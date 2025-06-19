@@ -1,0 +1,118 @@
+// FocusProvider.tsx
+"use client";
+import * as React from "react";
+
+type FocusedCell = {
+  rowId: string;
+  colId: string;
+  inEdit?: boolean;
+} | null;
+
+interface CellFocusContextValue {
+  focused: FocusedCell;
+  setFocused: React.Dispatch<React.SetStateAction<FocusedCell>>;
+}
+
+const CellFocusContext = React.createContext<CellFocusContextValue>({
+  focused: null,
+  setFocused: ()=>{},
+});
+
+export function CellFocusProvider({ children }: { children: React.ReactNode }) {
+  const [focused, setFocused] = React.useState<FocusedCell>(null);
+
+  React.useEffect(()=>{
+    function handleGlobalClick(e: MouseEvent){
+      const el = e.target as HTMLElement;
+      if(!el.closest("[data-focus-cell='true']")){
+        // clicked outside any cell => remove focus
+        setFocused(null);
+      }
+    }
+    window.addEventListener("mousedown", handleGlobalClick);
+    return () => window.removeEventListener("mousedown", handleGlobalClick);
+  },[]);
+
+  return (
+    <CellFocusContext.Provider value={{focused, setFocused}}>
+      {children}
+    </CellFocusContext.Provider>
+  );
+}
+
+/** 
+ * <FocusCell> 
+ *   1) first click => setsFocus => show ring
+ *   2) second click => if already focused => sets inEdit=>true
+ */
+export function FocusCell({
+  rowId,
+  colId,
+  children,
+  className,
+  style,
+}: {
+  rowId: string;
+  colId: string;
+  children: (args: {
+    isFocused: boolean;
+    isEditing: boolean;
+    exitEdit: () => void;
+    enterEdit: () => void;
+  }) => React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const { focused, setFocused } = React.useContext(CellFocusContext);
+  
+  const isFocused = (focused?.rowId === rowId && focused?.colId === colId);
+  const isEditing = isFocused && focused?.inEdit === true;
+
+  function handleClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    if(!isFocused) {
+      // first click => focus
+      setFocused({ rowId, colId, inEdit: false });
+    } else {
+      // second click => set inEdit = true
+      if(!isEditing) {
+        setFocused({ rowId, colId, inEdit: true });
+      }
+    }
+  }
+
+  function exitEdit() {
+    if(isFocused && isEditing) {
+      // remain focused, but no longer editing
+      setFocused({ rowId, colId, inEdit: false });
+    }
+  }
+  function enterEdit() {
+    if(isFocused && !isEditing) {
+      setFocused({ rowId, colId, inEdit: true });
+    }
+  }
+
+  return (
+    <td
+      data-focus-cell="true"
+      className={`
+        relative
+        ${className ?? ""}
+        ${isFocused ? "ring-2 ring-[#125AFF] bg-[#EDF6FF]" : ""}
+      `}
+      style={{
+        ...style,
+        zIndex: isFocused ? 10 : style?.zIndex
+      }}
+      onClick={handleClick}
+    >
+      {children({
+        isFocused: !!isFocused,
+        isEditing: !!isEditing,
+        exitEdit,
+        enterEdit,
+      })}
+    </td>
+  );
+}
