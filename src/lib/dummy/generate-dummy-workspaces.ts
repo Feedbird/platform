@@ -237,7 +237,7 @@ function makeBrand(): Brand {
   });
   // pages
   function makePagesFor(platform: Platform): SocialPageType[] {
-    const howMany = rInt(3, 5);
+    const howMany = rInt(0, 0);
     const arr: SocialPageType[] = [];
     const statuses: ("active" | "expired" | "pending" | "disconnected")[] = ["active", "expired", "pending", "disconnected"];
     
