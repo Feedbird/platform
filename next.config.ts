@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'i.pinimg.com'
       },
+      {
+        protocol: 'https',
+        hostname: 'scontent-vie1-1.cdninstagram.com'
+      },
     ],
   },
 };
