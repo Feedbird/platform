@@ -13,13 +13,26 @@ import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 import { Platform, SocialPage } from "@/lib/social/platforms/platform-types";
 
 export default function BrandSocialIcons() {
+  const [isClient, setIsClient] = React.useState(false);
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
-  const pages: SocialPage[] = brand?.socialPages ?? [];
-
-  // Control the "Manage Social Pages" dialog
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
-  if (!brand) return null;
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!brand || !isClient) {
+    // Render a placeholder or null on the server and initial client render
+    return (
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" disabled className="text-sm font-semibold text-black cursor-pointer rounded-[6px] border border-border-button">
+          Loading Socials...
+        </Button>
+      </div>
+    );
+  }
+
+  const pages: SocialPage[] = brand.socialPages ?? [];
 
   // If no connected pages, optionally show a simpler UI:
   if (!pages.length) {

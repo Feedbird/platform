@@ -120,8 +120,13 @@ const defaultBoardNav: NavLink[] = [
 /*  BOARD-HELPERS                                                        */
 /* --------------------------------------------------------------------- */
 
-function useBoardCount(boardId: string): number {
+function useBoardCount(boardId: string): number | null {
   const posts = useFeedbirdStore((s) => s.getActivePosts());
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const boardFormatMap: Record<string, string[]> = {
     "static-posts": ["static-image", "carousel"],
@@ -130,6 +135,12 @@ function useBoardCount(boardId: string): number {
   };
 
   const formats = boardFormatMap[boardId] ?? [];
+  
+  if (!isClient) {
+    // On the server, return null to prevent rendering.
+    return null;
+  }
+  
   return posts.filter((p) => formats.includes(p.format)).length;
 }
 
@@ -196,50 +207,6 @@ function BoardDropdownMenu({
   );
 }
 
-function BoardNavItem({ item, active }: { item: NavLink, active: boolean }) {
-  const boardCount = useBoardCount(item.id);
-
-  const handleBoardAction = React.useCallback((action: string, i: NavLink) => {
-    alert(`${action} → ${i.label}`);
-  }, []);
-
-  return (
-    <SidebarMenuItem key={item.id}>
-      <SidebarMenuButton
-        asChild
-        className={cn(
-          active && "bg-[#D7E9FF]",
-          "group/row gap-[6px] p-[6px] text-black text-sm font-semibold",
-          "cursor-pointer focus:outline-none",
-          "hover:bg-[#F4F5F6]"
-        )}
-      >
-        <LoadingLink
-          href={item.href!}
-          className="flex items-center gap-[6px] w-full"
-          loadingText={`Loading ${item.label}…`}
-        >
-          {item.image && (
-            <img
-              src={item.image}
-              alt={item.label}
-              className="w-[18px] h-[18px]"
-              loading="lazy"
-            />
-          )}
-          <span className="flex-1 truncate">{item.label}</span>
-          <div className="flex items-center gap-1 ml-auto">
-            <BoardDropdownMenu item={item} onAction={handleBoardAction} />
-            <span className="text-xs text-[#5C5E63] flex justify-center items-center w-4 h-4 p-[3px]">
-              {boardCount}
-            </span>
-          </div>
-        </LoadingLink>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-}
-
 const BoardCount = ({ boardId, variant = 'expanded' }: { boardId: string; variant?: 'expanded' | 'collapsed' }) => {
   const count = useBoardCount(boardId);
 
@@ -247,6 +214,10 @@ const BoardCount = ({ boardId, variant = 'expanded' }: { boardId: string; varian
     expanded: "text-xs text-[#5C5E63] flex justify-center items-center w-4 h-4 p-[3px]",
     collapsed: "text-xs text-gray-500 bg-gray-100 px-1 py-0.5 rounded ml-1"
   };
+
+  if (count === null) {
+    return null;
+  }
 
   return (
     <span className={styles[variant]}>
@@ -266,6 +237,11 @@ export const RenderNavItems = React.memo(function RenderNavItems({
 }) {
   const pathname = usePathname();
   const { state } = useSidebar();
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleBoardAction = React.useCallback((action: string, item: NavLink) => {
     alert(`${action} → ${item.label}`); // replace with real logic
@@ -333,8 +309,10 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           );
 
           return (
-            <SidebarMenuItem key={nav.id}>
-              {state === "collapsed" ? (
+            <SidebarMenuItem key={nav.id} className={isBoard ? "group/row" : undefined}>
+              {!isClient || state !== 'collapsed' ? (
+                RowContent
+              ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>{RowContent}</TooltipTrigger>
                   <TooltipContent side="right" className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md [&>svg]:hidden [&>div]:hidden">
@@ -345,8 +323,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     {isBoard && <BoardCount boardId={nav.id} variant="collapsed" />}
                   </TooltipContent>
                 </Tooltip>
-              ) : (
-                RowContent
               )}
             </SidebarMenuItem>
           );
@@ -363,6 +339,11 @@ export const RenderNavItems = React.memo(function RenderNavItems({
 export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const platformNav = React.useMemo(() => defaultPlatformNav, []);
   const boardNav    = React.useMemo(() => defaultBoardNav, []);
@@ -408,6 +389,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* -------------------- BOARDS ------------------------------- */}
+        {isClient && (
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center justify-between w-full cursor-pointer pr-1.5">
@@ -430,8 +412,10 @@ export function AppSidebar() {
             </div>
           )}
         </SidebarGroup>
+        )}
 
         {/* -------------------- SOCIALS ------------------------------ */}
+        {isClient && (
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center justify-between w-full cursor-pointer pr-1.5">
@@ -454,6 +438,7 @@ export function AppSidebar() {
             </SidebarMenu>
           )}
         </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>{/* Optional footer items */}</SidebarFooter>

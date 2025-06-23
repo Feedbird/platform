@@ -140,12 +140,13 @@ export const ChannelIcons = ({
   const cts = counts ?? 0;
   const isWhiteBorder = whiteBorder ?? true;
   const iconSize = size ?? 18;
+  const uniqueChannels = [...new Set(channels)];
 
-  if (!channels || channels.length === 0) return null;
+  if (!uniqueChannels || uniqueChannels.length === 0) return null;
   
   return (  
     <div className="flex gap-1">
-      {channels?.map(platform => {
+      {uniqueChannels?.map(platform => {
         const tint = (palette[platform] ?? '#888') + '1A';   // 10% alpha
         const n = cts;                     // 0 => hide badge
         return (

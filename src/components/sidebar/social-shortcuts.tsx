@@ -1,6 +1,7 @@
 /* components/sidebar/social-shortcuts.tsx */
 "use client";
 
+import * as React from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -26,10 +27,19 @@ export default function SocialShortcuts() {
   const pathname = usePathname();
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
   const { state } = useSidebar();
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Get all connected pages from brand
   const pages = brand?.socialPages?.filter((p) => p.connected) ?? [];
-  if (!pages.length) return null;
+  
+  // On the server, and on the first client render, return null to match server-rendered HTML.
+  if (!isClient || !pages.length) {
+    return null;
+  }
 
   return (
     <TooltipProvider delayDuration={0}>

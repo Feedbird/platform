@@ -14,18 +14,34 @@ import {
 } from '@/components/ui/command'
 import { Check, ChevronsUpDown, House } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { useLoading } from '@/lib/providers/loading-provider'
 import { startTransition } from 'react'
 
 export default function BrandSwitcher() {
+  const [isClient, setIsClient] = useState(false);
   const ws       = useFeedbirdStore(s => s.getActiveWorkspace())
   const activeId = useFeedbirdStore(s => s.activeBrandId)
   const setBrand = useFeedbirdStore(s => s.setActiveBrand)
   const { show, hide } = useLoading()
   const [open, setOpen] = useState(false)
-  if (!ws) return null
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!ws || !isClient) {
+    // Render a placeholder or null on the server and initial client render
+    return (
+      <div className="relative">
+        <span className='py-0 text-xs absolute top-[-8px] left-[10px] text-grey bg-background leading-none'>Brand</span>
+        <button className="flex items-center gap-[8px] cursor-pointer rounded-[6px] border border-border-button px-[8px] py-[5px] text-sm h-[38px] w-[150px]">
+          <span className="font-semibold text-sm text-gray-500">Loading…</span>
+        </button>
+      </div>
+    );
+  }
 
   const active = ws.brands.find(b => b.id === activeId)
 
