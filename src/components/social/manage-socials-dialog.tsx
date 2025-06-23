@@ -86,11 +86,22 @@ export function ManageSocialsDialog(props: {
         if (platform === "instagram" && pages.length === 1) {
          await confirmPage(brandId, pages[0].id);
         }
-      }, {
-        loading: `Connecting ${platform}...`,
-        success: "Account connected and pages staged.",
-        error: "Failed to process account information."
-      }).finally(() => {
+        
+        // Custom success/warning notifications
+        if (pages && pages.length > 0) {
+         toast.success("Account connected successfully!", {
+           description: `Found and staged ${pages.length} new page(s).`
+         });
+        } else {
+         let message = "Your account is connected, but no pages/boards were found.";
+         if (platform === 'pinterest') {
+           message = "Your Pinterest account is connected, but has no boards. Please create a board on Pinterest first."
+         }
+         toast.warning("Account connected", {
+           description: message,
+         });
+        }
+      }, `Connecting ${platform}...`).finally(() => {
         if (connectingPlatform) {
           setActivePlatform(connectingPlatform);
           setConnectingPlatform(null);
