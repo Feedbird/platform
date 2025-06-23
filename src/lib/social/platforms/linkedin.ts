@@ -24,11 +24,16 @@
     icon      : "/images/platforms/linkedin.svg",
     authUrl   : "https://www.linkedin.com/oauth/v2/authorization",
     scopes    : [
-      "r_liteprofile",
-      "r_organization_social",
-      "rw_organization_admin",
+      // --- Standard OIDC scopes for modern authentication
+      "openid", "profile", "email",
+      // --- Scope for posting to a member's personal profile
       "w_member_social",
-      "w_organization_social"
+      // --- Scopes for company pages. Requires "Community Management API" product. (Temporarily Disabled)
+      // "r_organization_social",          // To list pages and read their posts
+      // "w_organization_social",          // To publish posts as a page
+      // --- Scope for personal post history. Requires special partner approval.
+      // We are requesting it now, pending approval for Standard Tier Community Management API access.
+      // "r_member_social"
     ],
     apiVersion: "v2",
     baseUrl   : "https://api.linkedin.com",
@@ -94,40 +99,39 @@
   
     /* 2 ─ code ➜ token ➜ OIDC profile */
     async connectAccount(code: string): Promise<SocialAccount> {
-      // Exchange code for access token
-      const tokenResponse = await this.fetchWithAuth<{
+      // 1. Exchange authorization code for an access token.
+      const tokenResponse = await liFetch<{
         access_token: string;
         expires_in: number;
-      }>(`${config.baseUrl}/oauth/v2/accessToken`, {
+      }>(TOKEN_URL, {
         method: 'POST',
-        token: '',
-        body: JSON.stringify({
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
           grant_type: 'authorization_code',
           code,
+          redirect_uri: this.env.redirectUri,
           client_id: this.env.clientId,
           client_secret: this.env.clientSecret,
-          redirect_uri: this.env.redirectUri
-        })
+        }),
       });
   
-      // Get user info
-      const userInfo = await this.fetchWithAuth<{
-        id: string;
-        localizedFirstName: string;
-        localizedLastName: string;
-      }>(`${config.baseUrl}/v2/me`, {
-        token: tokenResponse.access_token
+      // 2. Get user info from the OIDC userinfo endpoint.
+      const userInfo = await liFetch<{
+        sub: string;
+        name: string;
+      }>(USERINFO_URL, {
+        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
       });
   
       return {
-        id        : crypto.randomUUID(),
-        platform  : "linkedin",
-        name      : `${userInfo.localizedFirstName} ${userInfo.localizedLastName}`,
-        accountId : userInfo.id,
-        authToken : tokenResponse.access_token,
-        expiresAt : new Date(Date.now() + tokenResponse.expires_in * 1000),
-        connected : true,
-        status    : "active",
+        id: crypto.randomUUID(),
+        platform: "linkedin",
+        name: userInfo.name,
+        accountId: userInfo.sub, // 'sub' is the unique member ID from OIDC
+        authToken: tokenResponse.access_token,
+        expiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
+        connected: true,
+        status: "active",
       };
     }
   
@@ -138,21 +142,13 @@
     async listPages(acc: SocialAccount): Promise<SocialPage[]> {
       const pages: SocialPage[] = [];
   
-      // Add personal profile
-      const profile = await this.fetchWithAuth<{
-        id: string;
-        localizedFirstName: string;
-        localizedLastName: string;
-      }>(`${config.baseUrl}/v2/me`, {
-        token: acc.authToken
-      });
-  
+      // Add personal profile directly from the SocialAccount object.
       pages.push({
         id         : crypto.randomUUID(),
         platform   : "linkedin",
         entityType : "profile",
-        name       : `${profile.localizedFirstName} ${profile.localizedLastName}`,
-        pageId     : `urn:li:person:${profile.id}`,
+        name       : acc.name,
+        pageId     : `urn:li:person:${acc.accountId}`, // Construct the URN from the ID
         authToken  : acc.authToken,
         connected  : true,
         status     : "active",
@@ -160,7 +156,8 @@
         statusUpdatedAt: new Date(),
       });
   
-      // Get organization pages
+      // Get organization pages - Temporarily Disabled
+      /*
       try {
         const orgs = await this.fetchWithAuth<{
           elements: Array<{
@@ -207,11 +204,13 @@
           }
         }
       } catch (error) {
-        console.error('Error fetching organization pages:', error);
+        console.error('[LinkedIn] Failed to fetch organization pages. This can happen if the user has not granted organization permissions or has no pages.', error);
       }
+      */
   
       return pages;
     }
+  
     async connectPage(a: SocialAccount) { return (await this.listPages(a))[0]; }
     async disconnectPage(p: SocialPage) { p.connected = false; p.status = "expired"; }
     async checkPageStatus(p: SocialPage){ return { ...p }; }
@@ -361,24 +360,38 @@
   
     /* 5 — optional history */
     async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
+      if (IS_BROWSER) {
+        const res = await fetch(`/api/social/linkedin/history`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page: pg, limit }),
+        });
+        if (!res.ok) {
+           const errorText = await res.text();
+           // Re-throwing the raw error from the backend as requested by the user.
+           throw new Error(errorText);
+        }
+        return res.json();
+      }
+  
+      // Any error from liFetch will be propagated up to the API route handler,
+      // which will then be sent to the browser and thrown above.
       const raw = await liFetch<{
-        elements: { id: string; lastModified: { time: number }; specificContent: any; }[];
+          elements: { id: string; lastModified: { time: number }; specificContent: any; }[];
       }>(
-        `${config.baseUrl}/v2/ugcPosts?q=authors` +
-        `&authors=List(urn:li:person:${pg.pageId})` +
-        `&sortBy=LAST_MODIFIED&count=${limit}`,
-        { headers: { Authorization: `Bearer ${pg.authToken}` } },
+          `${config.baseUrl}/v2/ugcPosts?q=authors&authors=List(${pg.pageId})&sortBy=LAST_MODIFIED&count=${limit}`,
+          { headers: { Authorization: `Bearer ${pg.authToken}` } },
       );
   
       return raw.elements.map(e => ({
-        id         : e.id,
-        postId     : e.id,
-        pageId     : pg.id,
-        content    : e.specificContent?.["com.linkedin.ugc.ShareContent"]
-                       ?.shareCommentary?.text ?? "",
-        mediaUrls  : [],
-        status     : "published",
-        publishedAt: new Date(e.lastModified.time),
+          id         : e.id,
+          postId     : e.id,
+          pageId     : pg.id,
+          content    : e.specificContent?.["com.linkedin.ugc.ShareContent"]
+                         ?.shareCommentary?.text ?? "",
+          mediaUrls  : [],
+          status     : "published",
+          publishedAt: new Date(e.lastModified.time),
       }));
     }
   
