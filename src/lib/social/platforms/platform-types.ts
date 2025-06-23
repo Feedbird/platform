@@ -9,8 +9,9 @@ export type Platform =
   | "google";
 
 // Status Types
-export type PageStatus = "active" | "expired" | "pending" | "disconnected";
+export type PageStatus = "active" | "expired" | "pending" | "disconnected" | "error";
 export type PostStatus = "draft" | "scheduled" | "published" | "failed" | "deleted";
+export type PublishStatus = "draft" | "pending";
 
 export type PageKind =
   | "page"       // FB / LinkedIn company
@@ -27,18 +28,14 @@ export type Status =
   | "Revised"
   | "Approved"
   | "Scheduled"
+  | "Publishing"
   | "Published"
   | "Failed Publishing";
 
 // Content Types
-export type FileKind = "image" | "video";
+export type FileKind = "image" | "video" | "document" | "other";
 
-export type ContentFormat = 
-  | "static-image"
-  | "carousel"
-  | "story"
-  | "video"
-  | "email";
+export type ContentFormat = "static" | "video" | "story" | "carousel";
 
 // Platform Configuration
 export interface SocialPlatformConfig {
@@ -161,6 +158,7 @@ export interface PlatformOperations {
   
   // Page operations
   listPages(acc: SocialAccount): Promise<SocialPage[]>;
+  getPage?: (acc: SocialAccount, pageId: string) => Promise<SocialPage>;
   connectPage(acc: SocialAccount, pageId: string): Promise<SocialPage>;
   disconnectPage(page: SocialPage): Promise<void>;
   checkPageStatus(page: SocialPage): Promise<SocialPage>;

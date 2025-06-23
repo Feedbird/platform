@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { toast } from 'sonner';
+import { handleError } from '@/lib/utils/error-handler';
 
 export interface LoadingOperation {
   id: string;
@@ -86,17 +88,22 @@ export const useLoadingStore = create<LoadingState>((set, get) => ({
   }
 }));
 
-// Helper function to wrap async operations with loading state
+// NEW: Centralized helper to wrap all major async operations.
 export async function withLoading<T>(
   operation: () => Promise<T>,
-  message: string
-): Promise<T> {
+  messages: { loading: string; success: string; error: string; }
+): Promise<T | undefined> {
   const operationId = crypto.randomUUID();
   const { startOperation, completeOperation } = useLoadingStore.getState();
 
   try {
-    startOperation(operationId, message);
-    return await operation();
+    startOperation(operationId, messages.loading);
+    const result = await operation();
+    toast.success(messages.success);
+    return result;
+  } catch (error) {
+    handleError(error, messages.error, { log: false });
+    return undefined;
   } finally {
     completeOperation(operationId);
   }

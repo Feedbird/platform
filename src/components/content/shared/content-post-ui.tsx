@@ -51,6 +51,12 @@ export const statusConfig: Record<Status, {
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
+  "Publishing": {
+    icon: "/images/publish/publish.svg",
+    bgColor: "#F1F4F9",
+    borderColor: "rgba(28, 29, 31, 0.05)",
+    textColor: "#1C1D1F"
+  },
   "Published": {
     icon: "/images/status/published.svg",
     bgColor: "#E5EEFF",

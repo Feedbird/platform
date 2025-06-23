@@ -1,12 +1,15 @@
 'use client';
 
-import Link from 'next/link';
+import { ProgressLink } from './progress-link';
 import { useRouter } from 'next/navigation';
 import { useAsyncLoading } from '@/hooks/use-async-loading';
 import { ComponentProps, forwardRef, useCallback } from 'react';
+import { LinkProps } from 'next/link';
 
-interface LoadingLinkProps extends ComponentProps<typeof Link> {
+interface LoadingLinkProps extends LinkProps {
   loadingText?: string;
+  className?: string;
+  children: React.ReactNode;
 }
 
 export const LoadingLink = forwardRef<HTMLAnchorElement, LoadingLinkProps>(
@@ -40,7 +43,7 @@ export const LoadingLink = forwardRef<HTMLAnchorElement, LoadingLinkProps>(
       onClick?.(e);
     }, [showLoading, loadingText, onClick, href]);
 
-    return <Link ref={ref} {...props} href={href} onClick={handleClick} />;
+    return <ProgressLink ref={ref} {...props} href={href} onClick={handleClick} />;
   }
 );
 

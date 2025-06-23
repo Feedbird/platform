@@ -9,7 +9,9 @@ import { LoadingProvider } from '@/lib/providers/loading-provider'
 import PortalRoot from '@/components/portal-root/portal-root'
 import { Suspense } from 'react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { Toaster } from 'sonner'
+import { Toaster } from "@/components/ui/sonner"
+import "nprogress/nprogress.css";
+import { TopProgressBar } from "@/components/layout/top-progress-bar";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,6 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LoadingProvider>
           <SidebarProvider>
             <FeedbirdProvider>
+              <Suspense fallback={null}>
+                <TopProgressBar />
+              </Suspense>
               <AppSidebar />
               <SidebarInset>
                 <AppHeader />

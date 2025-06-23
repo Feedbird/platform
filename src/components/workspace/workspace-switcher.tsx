@@ -28,11 +28,19 @@ import {
   Search,
   LogOut,
 } from 'lucide-react'
-import { toast, Toaster } from 'sonner'
+import { toast } from 'sonner'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { useLoading } from '@/lib/providers/loading-provider'
 import { WorkspaceModal } from '@/components/workspace/workspace-modal'
 import { useMounted } from '@/hooks/use-mounted'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Toaster } from "@/components/ui/sonner"
 
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
@@ -241,13 +249,12 @@ export default function WorkspaceSwitcher() {
         </SidebarMenuItem>
       </SidebarMenu>
 
-      {/* modal + toaster */}
+      {/* modal */}
       <WorkspaceModal
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onAdd={handleAdd}
       />
-      <Toaster richColors closeButton position="top-right"/>
     </>
   )
 }

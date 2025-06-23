@@ -13,6 +13,9 @@ import type {
   PostHistory
 } from "@/lib/social/platforms/platform-types";
 import { getPlatformOperations } from "../social/platforms";
+import { handleError } from "../utils/error-handler";
+import { BaseError } from "../utils/exceptions/base-error";
+import { withLoading } from "../utils/loading/loading-store";
 /** A small interface for your centralized nav items. */
 export interface NavLink {
   id: string;
@@ -270,147 +273,113 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         return brand?.contents ?? [];
       },
 
-      publishPostToAllPages: async (postId, scheduledTime) => {
-        const store = get();
-        const post = store.getPost(postId);
-        if (!post) return;
+      publishPostToAllPages: (postId, scheduledTime) => {
+        return withLoading(
+          async () => {
+            const { getActiveBrand, getPost, updatePost } = get();
+            const brand = getActiveBrand();
+            const post = getPost(postId);
 
-        const brand = store.getActiveBrand();
-        if (!brand || brand.id !== post.brandId) {
-          console.warn("Active brand mismatch for post:", postId);
-          return;
-        }
-        // Identify pages that match the post's platforms & are connected
-        const targetPages = brand.socialPages.filter(
-          (pg) => pg.connected && post.pages.includes(pg.id) && pg.platform !== "tiktok"
-        );
-        if (!targetPages.length) {
-          console.warn("No connected pages found for this post's platforms.");
-          return;
-        }
-
-        // Prepare content & media
-        const content = post.caption?.default || "(no caption)";
-        const mediaUrls = extractMediaUrls(post.blocks);
-        console.log(mediaUrls);
-        // Loop over pages => publish
-        await Promise.all(
-          targetPages.map(async (pg) => {
-            const ops = getPlatformOperations(pg.platform as Exclude<Platform, 'tiktok'>);
-            if (!ops) return;
-            try {
-              const result = await ops.publishPost(pg, {
-                text: content,
-                media: mediaUrls.length > 0 ? {
-                  type: post.format === "video" ? "video" : "image",
-                  urls: mediaUrls
-                } : undefined
-              }, { scheduledTime });
-
-              // Append to postHistory in store
-              set((state) => {
-                const oldHist = state.postHistory[pg.id] ?? [];
-                return {
-                  postHistory: {
-                    ...state.postHistory,
-                    [pg.id]: [...oldHist, result],
-                  },
-                };
-              });
-            } catch (err) {
-              console.error("Failed to publish to page", pg.id, err);
+            if (!brand || !post) {
+              throw new Error("Brand or Post not found");
             }
-          })
-        );
 
-        // Finally, update the post status in the store
-        store.updatePost(postId, {
-          status: scheduledTime ? "Scheduled" : "Published",
-          publishDate: scheduledTime ?? new Date(),
-        });
-      },
+            updatePost(postId, { status: "Publishing" });
 
-      syncPostHistory : async (brandId, pageId) => {
-        const state = get();
-        
-        // Prevent multiple simultaneous calls to the same pageId
-        if (state.syncingPostHistory?.[pageId]) {
-          console.log('Already syncing post history for page:', pageId);
-          return;
-        }
+            const results = await Promise.allSettled(post.pages.map(async (pageId) => {
+              const page = findPage(brand, pageId);
+              if (!page) {
+                throw new Error(`Page with ID ${pageId} not found in brand`);
+              }
 
-        const brand = state.getActiveBrand();
-        if (!brand || brand.id !== brandId) return;
+              const currentBlock = post.blocks[0];
+              const currentVersion = currentBlock.versions.find(v => v.id === currentBlock.currentVersionId);
+              if (!currentVersion) {
+                throw new Error("No content found for this post.");
+              }
 
-        const page = brand.socialPages.find((p) => p.id === pageId);
-        if (!page) return;
+              const response = await fetch(`/api/social/${page.platform}/publish`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  page,
+                  post: {
+                    text: currentVersion.caption,
+                    media: {
+                      type: currentVersion.file.kind,
+                      urls: [currentVersion.file.url],
+                    }
+                  },
+                  options: { scheduledTime }
+                }),
+              });
 
-        const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
-        if (!ops) {
-          console.error("No platform ops for", page.platform);
-          return;
-        }
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new BaseError(errorData.error.message, errorData.error.metadata.category, errorData.error.metadata);
+              }
+              return { success: true, pageId };
+            }));
 
-        try {
-          // Set loading state
-          set((state) => ({
-            syncingPostHistory: {
-              ...state.syncingPostHistory,
-              [pageId]: true,
-            },
-          }));
+            const failures = results.filter(r => r.status === 'rejected');
+            if (failures.length > 0) {
+              updatePost(postId, { status: "Failed Publishing" });
+              throw new Error(`${failures.length} of ${results.length} posts failed to publish.`);
+            }
 
-          const fetched = await ops.getPostHistory(page, 20);
-          
-          // Single state update to prevent multiple re-renders
-          set((state) => ({
-            // Update post history
-            postHistory: {
-              ...state.postHistory,
-              [pageId]: fetched,
-            },
-            // Clear loading state
-            syncingPostHistory: {
-              ...state.syncingPostHistory,
-              [pageId]: false,
-            },
-            // Update lastSyncAt in the same state update
-            workspaces: state.workspaces.map((w) => ({
-              ...w,
-              brands: w.brands.map((b) => {
-                if (b.id !== brandId) return b;
-                return {
-                  ...b,
-                  socialPages: b.socialPages.map((sp) =>
-                    sp.id === pageId
-                      ? { ...sp, lastSyncAt: new Date() }
-                      : sp
-                  ),
-                };
-              }),
-            })),
-          }));
-        } catch (err) {
-          console.error("syncPostHistory failed:", err);
-          
-          // Clear loading state on error
-          set((state) => ({
-            syncingPostHistory: {
-              ...state.syncingPostHistory,
-              [pageId]: false,
-            },
-          }));
-          
-          throw err; // Re-throw to allow proper error handling
-        }
-      },
-
-      getPost: (id) => {
-        for (const w of get().workspaces) {
-          for (const b of w.brands) {
-            const found = b.contents.find((p) => p.id === id);
-            if (found) return found;
+            updatePost(postId, { status: "Published" });
+          },
+          {
+            loading: scheduledTime ? "Scheduling post..." : "Publishing post...",
+            success: scheduledTime ? "Post scheduled successfully!" : "Post published successfully!",
+            error: "An error occurred while publishing."
           }
+        );
+      },
+
+      syncPostHistory: (brandId, pageId) => {
+        return withLoading(
+          async () => {
+            const brand = findBrand(get().workspaces, brandId);
+            if (!brand) throw new Error("Brand not found");
+
+            const page = findPage(brand, pageId);
+            if (!page) throw new Error("Page not found");
+
+            const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+            if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
+
+            const fetched = await ops.getPostHistory(page, 20);
+            
+            set((state) => ({
+              postHistory: { ...state.postHistory, [pageId]: fetched },
+              workspaces: state.workspaces.map((w) => ({
+                ...w,
+                brands: w.brands.map((b) => {
+                  if (b.id !== brandId) return b;
+                  return {
+                    ...b,
+                    socialPages: b.socialPages.map((sp) =>
+                      sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
+                    ),
+                  };
+                }),
+              })),
+            }));
+          },
+          {
+            loading: "Syncing post history...",
+            success: "Post history synced successfully!",
+            error: "Failed to sync post history."
+          }
+        );
+      },
+
+      getPost: (id: string) => {
+        const brands = get().getActiveWorkspace()?.brands ?? [];
+        for (const brand of brands) {
+          const found = brand.contents.find((p) => p.id === id);
+          if (found) return found;
         }
         return undefined;
       },
@@ -646,69 +615,79 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         if (!brand || brand.id !== brandId) return;
 
         const page = brand.socialPages.find((p) => p.id === pageId);
-        if (!page) {
-          console.error("No matching page in brand.socialPages", pageId);
-          return;
-        }
-        // find local account => must match page.accountId
+        if (!page) throw new Error(`Page with ID ${pageId} not found in brand.`);
+        
         const acct = brand.socialAccounts.find((a) => a.id === page.accountId);
-        if (!acct) {
-          console.error("No matching account for page", page);
-          return;
-        }
+        if (!acct) throw new Error(`Account for page ${pageId} not found.`);
 
         const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
-        if (!ops) {
-          console.error("No platform ops for", page.platform);
-          return;
+        if (!ops) throw new Error(`No platform operations for ${page.platform}`);
+
+        try {
+          // Actually connect the page at the platform level
+          const finalPage = await ops.connectPage(acct, page.pageId);
+
+          // store final results in feedbird store
+          set((s) => {
+            const newWs = s.workspaces.map((ws) => ({
+              ...ws,
+              brands: ws.brands.map((b) => {
+                if (b.id !== brandId) return b;
+                return {
+                  ...b,
+                  socialPages: b.socialPages.map((sp) => {
+                    if (sp.id === pageId) {
+                      // Overwrite with finalPage info
+                      return {
+                        ...sp,
+                        ...finalPage,
+                        connected: true,
+                        status: finalPage.status ?? "active",
+                      };
+                    }
+                    return sp;
+                  }),
+                };
+              }),
+            }));
+            return { workspaces: newWs };
+          });
+        } catch (error) {
+          console.error(`Failed to connect page ${page.name}:`, error);
+          // Propagate the error to be caught by the UI
+          throw error;
         }
-
-        // Actually connect the page at the platform level
-        const finalPage = await ops.connectPage(acct, page.pageId);
-
-        // store final results in feedbird store
-        set((s) => {
-          const newWs = s.workspaces.map((ws) => ({
-            ...ws,
-            brands: ws.brands.map((b) => {
-              if (b.id !== brandId) return b;
-              return {
-                ...b,
-                socialPages: b.socialPages.map((sp) => {
-                  if (sp.id === pageId) {
-                    // Overwrite with finalPage info
-                    return {
-                      ...sp,
-                      ...finalPage,
-                      connected: true,
-                      status: finalPage.status ?? "active",
-                    };
-                  }
-                  return sp;
-                }),
-              };
-            }),
-          }));
-          return { workspaces: newWs };
-        });
       },
 
-      disconnectSocialPage: (brandId: string, pageId: string) => {
-        set((s) => ({
-          workspaces: s.workspaces.map((ws) => ({
-            ...ws,
-            brands: ws.brands.map((b) => {
-              if (b.id !== brandId) return b;
-              // Remove the page from socialPages
-              return {
-                ...b,
-                socialPages: (b.socialPages ?? []).filter(
-                  (p) => p.id !== pageId
-                ),
-              };
-            }),
-          })),
-        }));
+      disconnectSocialPage: async (brandId: string, pageId: string) => {
+        const brand = get().getActiveBrand();
+        const page = brand?.socialPages.find(p => p.id === pageId);
+        if (!page) throw new Error(`Page with ID ${pageId} not found.`);
+
+        const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+        if (!ops) throw new Error(`No platform operations for ${page.platform}.`);
+
+        try {
+          // You might want a disconnect method in your platform operations
+          // For now, we just remove it from the store.
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              brands: ws.brands.map((b) => {
+                if (b.id !== brandId) return b;
+                return {
+                  ...b,
+                  socialPages: (b.socialPages ?? []).filter(
+                    (p) => p.id !== pageId
+                  ),
+                };
+              }),
+            })),
+          }));
+        } catch (error) {
+          console.error(`Failed to disconnect page ${page.name}:`, error);
+          throw error;
+        }
       },
 
       checkAccountStatus: async (brandId: string, accountId: string) => {
@@ -737,28 +716,26 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       },
 
       checkPageStatus: async (brandId: string, pageId: string) => {
-        set((state) => ({
-          workspaces: state.workspaces.map((w) => ({
-            ...w,
-            brands: w.brands.map((b) => {
-              if (b.id === brandId) {
-                return {
-                  ...b,
-                  socialPages: b.socialPages.map((p) => {
-                    if (p.id === pageId) {
-                      return {
-                        ...p,
-                        status: p.connected ? "active" : "disconnected",
-                      };
-                    }
-                    return p;
-                  }),
-                };
-              }
-              return b;
-            }),
-          })),
-        }));
+        const { workspaces } = get();
+        const brand = findBrand(workspaces, brandId);
+        const page = findPage(brand, pageId);
+        if (!page) return;
+
+        try {
+          const ops = getPlatformOperations(page.platform);
+          if (!ops?.checkPageStatus) {
+            // If checkPageStatus isn't supported, we can't verify, so we'll assume it's active.
+            set(state => updatePage(state, brandId, pageId, { status: 'active', statusUpdatedAt: new Date() }));
+            return;
+          }
+
+          const freshPage = await ops.checkPageStatus(page);
+          set(state => updatePage(state, brandId, pageId, { ...freshPage, statusUpdatedAt: new Date() }));
+        } catch (error) {
+          console.error(`Failed to check status for page ${page.name}:`, error);
+          set(state => updatePage(state, brandId, pageId, { status: 'error', statusUpdatedAt: new Date() }));
+          throw error; // Re-throw so the UI can catch it
+        }
       },
 
       deletePagePost: async (brandId, pageId, postId) => {
@@ -1190,4 +1167,33 @@ function extractMediaUrls(blocks: Block[]): string[] {
 // Helper to coerce any value to PageStatus
 function toPageStatus(val: any): import("@/lib/social/platforms/platform-types").PageStatus {
   return ["active", "expired", "pending", "disconnected"].includes(val) ? val : "pending";
+}
+
+// Helper functions to avoid deep nesting and complex state updates
+const findBrand = (workspaces: Workspace[], brandId: string) =>
+  workspaces.flatMap(w => w.brands).find(b => b.id === brandId);
+
+const findPage = (brand: Brand | undefined, pageId: string) =>
+  brand?.socialPages.find(p => p.id === pageId);
+
+const findAccount = (brand: Brand | undefined, accountId: string) =>
+  brand?.socialAccounts.find(a => a.id === accountId);
+
+// A generic function to update a specific page within the nested state
+function updatePage(
+  state: FeedbirdStore, 
+  brandId: string, 
+  pageId: string, 
+  updates: Partial<SocialPage>
+): { workspaces: Workspace[] } {
+  return {
+    workspaces: state.workspaces.map(w => ({
+      ...w,
+      brands: w.brands.map(b => b.id === brandId
+        ? { ...b, socialPages: b.socialPages.map(p => p.id === pageId
+          ? { ...p, ...updates }
+          : p)
+        } : b)
+    }))
+  };
 }

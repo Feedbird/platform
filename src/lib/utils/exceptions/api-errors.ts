@@ -1,10 +1,35 @@
-import { BaseError, ErrorMetadata } from './base-error';
+import { BaseError, ErrorCategory, ErrorMetadata } from './base-error';
 
-export class APIError extends BaseError {
+/**
+ * A general error for all API interactions.
+ */
+export class ApiError extends BaseError {
   constructor(message: string, options?: Partial<ErrorMetadata>) {
-    super(message, 'API_ERROR', {
-      retryable: true,
+    super(message, 'API_ERROR', options);
+  }
+}
+
+/**
+ * For authentication or authorization errors (e.g. invalid API key, expired token).
+ */
+export class AuthError extends BaseError {
+  constructor(message: string, options?: Partial<ErrorMetadata>) {
+    super(message, 'AUTH_ERROR', {
+      severity: 'warning',
+      retryable: true, // Often requires user to re-authenticate
       ...options
+    });
+  }
+}
+
+/**
+ * A specific error for when a social media platform's API returns an error.
+ */
+export class PlatformApiError extends BaseError {
+  constructor(platform: string, message: string, options?: Partial<ErrorMetadata>) {
+    super(`[${platform}] ${message}`, 'PLATFORM_ERROR', {
+      source: platform,
+      ...options,
     });
   }
 }
@@ -14,16 +39,6 @@ export class ValidationError extends BaseError {
     super(message, 'VALIDATION_ERROR', {
       severity: 'warning',
       retryable: false,
-      ...options
-    });
-  }
-}
-
-export class AuthenticationError extends BaseError {
-  constructor(message: string, options?: Partial<ErrorMetadata>) {
-    super(message, 'AUTH_ERROR', {
-      severity: 'error',
-      retryable: true,
       ...options
     });
   }

@@ -6,6 +6,7 @@ import { LinkedInPlatform } from "./linkedin";
 import { PinterestPlatform } from "./pinterest";
 import { PlatformOperations, PostHistory, SocialAccount, SocialPage } from "./platform-types";
 import { YouTubePlatform } from "./youtube";
+import { TikTokPlatform } from "./tiktok";
 
 /* Consolidated provider-side env config */
 const ENV = {
@@ -41,6 +42,11 @@ const ENV = {
     clientSecret : process.env.GOOGLE_CLIENT_SECRET ?? "",
     redirectUri  : process.env.GOOGLE_REDIRECT_URI  ?? "",
   },
+  tiktok: {
+    clientId     : process.env.TIKTOK_CLIENT_ID     ?? "",
+    clientSecret : process.env.TIKTOK_CLIENT_SECRET ?? "",
+    redirectUri  : process.env.TIKTOK_REDIRECT_URI  ?? "",
+  }
 } as const;
 
 /* Factory */
@@ -54,6 +60,7 @@ export function getPlatformOperations(p: keyof typeof ENV): PlatformOperations |
                          ENV.pinterest.redirectUri,
                        );
     case "linkedin":  return new LinkedInPlatform(ENV.linkedin);
+    case "tiktok":    return new TikTokPlatform(ENV.tiktok);
     case "youtube":   return new YouTubePlatform(
                          ENV.youtube.clientId,
                          ENV.youtube.clientSecret,
@@ -77,7 +84,6 @@ export async function fetchJSON<T = any>(
   if (!r.ok || j.error) throw new Error(j.error?.message ?? r.statusText);
   return j;
 }
-
 /*—— “Boards = Pages” for Pinterest ———————————*/
 async function listPages(acc: SocialAccount): Promise<SocialPage[]> {
   type Boards = { items: { id: string; name: string }[] };
@@ -135,3 +141,4 @@ async function publishPost(
     publishedAt: new Date(),
   };
 }
+

@@ -30,9 +30,15 @@ export function isTokenExpiredError(error: unknown): boolean {
   return false;
 }
 
-export function handleError(error: unknown, context?: string): void {
-  console.error('Error:', context, error);
-  
+export function handleError(
+  error: unknown,
+  context?: string,
+  options: { log?: boolean } = { log: true }
+): void {
+  if (options.log) {
+    console.error('Error:', context, error);
+  }
+
   let message = 'An unexpected error occurred';
   let type: 'error' | 'warning' = 'error';
   
