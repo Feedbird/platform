@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { immer } from 'zustand/middleware/immer';
+import { produce } from 'immer';
 import type { 
   Platform, 
   Status, 
@@ -10,7 +12,8 @@ import type {
   ContentFormat,
   SocialAccount, 
   SocialPage,
-  PostHistory
+  PostHistory,
+  PageStatus
 } from "@/lib/social/platforms/platform-types";
 import { getPlatformOperations } from "../social/platforms";
 import { handleError } from "../utils/error-handler";
@@ -135,6 +138,8 @@ export interface Workspace {
   brands: Brand[];
 }
 
+type PostHistorySyncState = 'idle' | 'loading' | 'success' | 'error';
+
 /*─────────────────────────────────────────────────────────────────────*/
 /*  Store Interface                                                  */
 /*─────────────────────────────────────────────────────────────────────*/
@@ -151,6 +156,8 @@ export interface FeedbirdStore {
   
   /** Loading states for post history sync. Key = pageId. */
   syncingPostHistory: Record<string, boolean>;
+
+  historySyncState: Record<string, PostHistorySyncState>;
 
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
@@ -248,8 +255,9 @@ const defaultBoardNav: NavLink[] = [
 /*─────────────────────────────────────────────────────────────────────*/
 /*  The Store                                                        */
 /*─────────────────────────────────────────────────────────────────────*/
-export const useFeedbirdStore = create<FeedbirdStore>()(
-  persist(
+export const useFeedbirdStore = create(
+  immer(
+    persist<FeedbirdStore>(
     (set, get) => ({
       workspaces: [],
       activeWorkspaceId: null,
@@ -259,6 +267,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       boardNav: defaultBoardNav,
       postHistory: {},
       syncingPostHistory: {},
+        historySyncState: {},
       // getters
       getActiveWorkspace: () =>
         get().workspaces.find((w) => w.id === get().activeWorkspaceId),
@@ -273,113 +282,116 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         return brand?.contents ?? [];
       },
 
-      publishPostToAllPages: (postId, scheduledTime) => {
-        return withLoading(
-          async () => {
-            const { getActiveBrand, getPost, updatePost } = get();
-            const brand = getActiveBrand();
-            const post = getPost(postId);
+        publishPostToAllPages: (postId, scheduledTime) => {
+          return withLoading(
+            async () => {
+              const { getActiveBrand, getPost, updatePost } = get();
+              const brand = getActiveBrand();
+              const post = getPost(postId);
 
-            if (!brand || !post) {
-              throw new Error("Brand or Post not found");
+              if (!brand || !post) {
+                throw new Error("Brand or Post not found");
+              }
+
+              updatePost(postId, { status: "Publishing" });
+
+              const results = await Promise.allSettled(post.pages.map(async (pageId) => {
+                const page = findPage(brand, pageId);
+                if (!page) {
+                  throw new Error(`Page with ID ${pageId} not found in brand`);
+        }
+
+                const currentBlock = post.blocks[0];
+                const currentVersion = currentBlock.versions.find(v => v.id === currentBlock.currentVersionId);
+                if (!currentVersion) {
+                  throw new Error("No content found for this post.");
+                }
+
+                const response = await fetch(`/api/social/${page.platform}/publish`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    page,
+                    post: {
+                      text: currentVersion.caption,
+                      media: {
+                        type: currentVersion.file.kind,
+                        urls: [currentVersion.file.url],
+                      }
+                    },
+                    options: { scheduledTime }
+                  }),
+                });
+
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  throw new BaseError(errorData.error.message, errorData.error.metadata.category, errorData.error.metadata);
+                }
+                return { success: true, pageId };
+              }));
+
+              const failures = results.filter(r => r.status === 'rejected');
+              if (failures.length > 0) {
+                updatePost(postId, { status: "Failed Publishing" });
+                throw new Error(`${failures.length} of ${results.length} posts failed to publish.`);
+              }
+
+              updatePost(postId, { status: "Published" });
+            },
+            {
+              loading: scheduledTime ? "Scheduling post..." : "Publishing post...",
+              success: scheduledTime ? "Post scheduled successfully!" : "Post published successfully!",
+              error: "An error occurred while publishing."
             }
-
-            updatePost(postId, { status: "Publishing" });
-
-            const results = await Promise.allSettled(post.pages.map(async (pageId) => {
-              const page = findPage(brand, pageId);
-              if (!page) {
-                throw new Error(`Page with ID ${pageId} not found in brand`);
-              }
-
-              const currentBlock = post.blocks[0];
-              const currentVersion = currentBlock.versions.find(v => v.id === currentBlock.currentVersionId);
-              if (!currentVersion) {
-                throw new Error("No content found for this post.");
-              }
-
-              const response = await fetch(`/api/social/${page.platform}/publish`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  page,
-                  post: {
-                    text: currentVersion.caption,
-                    media: {
-                      type: currentVersion.file.kind,
-                      urls: [currentVersion.file.url],
-                    }
-                  },
-                  options: { scheduledTime }
-                }),
-              });
-
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new BaseError(errorData.error.message, errorData.error.metadata.category, errorData.error.metadata);
-              }
-              return { success: true, pageId };
-            }));
-
-            const failures = results.filter(r => r.status === 'rejected');
-            if (failures.length > 0) {
-              updatePost(postId, { status: "Failed Publishing" });
-              throw new Error(`${failures.length} of ${results.length} posts failed to publish.`);
-            }
-
-            updatePost(postId, { status: "Published" });
-          },
-          {
-            loading: scheduledTime ? "Scheduling post..." : "Publishing post...",
-            success: scheduledTime ? "Post scheduled successfully!" : "Post published successfully!",
-            error: "An error occurred while publishing."
-          }
-        );
+          );
       },
 
-      syncPostHistory: (brandId, pageId) => {
-        return withLoading(
-          async () => {
-            const brand = findBrand(get().workspaces, brandId);
+        syncPostHistory: async (brandId, pageId) => {
+        const state = get();
+          if (state.historySyncState[pageId] === 'loading' || state.historySyncState[pageId] === 'success') {
+          return;
+        }
+
+          set(state => {
+            state.historySyncState[pageId] = 'loading';
+          });
+
+          try {
+            const brand = state.workspaces
+              .flatMap(w => w.brands)
+              .find(b => b.id === brandId);
             if (!brand) throw new Error("Brand not found");
-
-            const page = findPage(brand, pageId);
+            const page = brand.socialPages.find(p => p.id === pageId);
             if (!page) throw new Error("Page not found");
+        
+            const res = await fetch(`/api/social/${page.platform}/history`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pageId, brandId }),
+            });
 
-            const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
-            if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
-
-            const fetched = await ops.getPostHistory(page, 20);
-            
-            set((state) => ({
-              postHistory: { ...state.postHistory, [pageId]: fetched },
-              workspaces: state.workspaces.map((w) => ({
-                ...w,
-                brands: w.brands.map((b) => {
-                  if (b.id !== brandId) return b;
-                  return {
-                    ...b,
-                    socialPages: b.socialPages.map((sp) =>
-                      sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
-                    ),
-                  };
-                }),
-              })),
-            }));
-          },
-          {
-            loading: "Syncing post history...",
-            success: "Post history synced successfully!",
-            error: "Failed to sync post history."
-          }
-        );
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.message || 'Failed to sync post history');
+            }
+        
+            set(state => {
+              state.postHistory[pageId] = data.posts;
+              state.historySyncState[pageId] = 'success';
+            });
+          } catch (error) {
+            set(state => {
+              state.historySyncState[pageId] = 'error';
+            });
+            throw error;
+        }
       },
 
-      getPost: (id: string) => {
-        const brands = get().getActiveWorkspace()?.brands ?? [];
-        for (const brand of brands) {
-          const found = brand.contents.find((p) => p.id === id);
-          if (found) return found;
+        getPost: (id: string) => {
+          const brands = get().getActiveWorkspace()?.brands ?? [];
+          for (const brand of brands) {
+            const found = brand.contents.find((p) => p.id === id);
+            if (found) return found;
         }
         return undefined;
       },
@@ -615,79 +627,79 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         if (!brand || brand.id !== brandId) return;
 
         const page = brand.socialPages.find((p) => p.id === pageId);
-        if (!page) throw new Error(`Page with ID ${pageId} not found in brand.`);
-        
+          if (!page) throw new Error(`Page with ID ${pageId} not found in brand.`);
+          
         const acct = brand.socialAccounts.find((a) => a.id === page.accountId);
-        if (!acct) throw new Error(`Account for page ${pageId} not found.`);
+          if (!acct) throw new Error(`Account for page ${pageId} not found.`);
 
         const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
-        if (!ops) throw new Error(`No platform operations for ${page.platform}`);
+          if (!ops) throw new Error(`No platform operations for ${page.platform}`);
 
-        try {
-          // Actually connect the page at the platform level
-          const finalPage = await ops.connectPage(acct, page.pageId);
+          try {
+        // Actually connect the page at the platform level
+        const finalPage = await ops.connectPage(acct, page.pageId);
 
-          // store final results in feedbird store
-          set((s) => {
-            const newWs = s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((b) => {
-                if (b.id !== brandId) return b;
-                return {
-                  ...b,
-                  socialPages: b.socialPages.map((sp) => {
-                    if (sp.id === pageId) {
-                      // Overwrite with finalPage info
-                      return {
-                        ...sp,
-                        ...finalPage,
-                        connected: true,
-                        status: finalPage.status ?? "active",
-                      };
-                    }
-                    return sp;
-                  }),
-                };
-              }),
-            }));
-            return { workspaces: newWs };
-          });
-        } catch (error) {
-          console.error(`Failed to connect page ${page.name}:`, error);
-          // Propagate the error to be caught by the UI
-          throw error;
-        }
-      },
-
-      disconnectSocialPage: async (brandId: string, pageId: string) => {
-        const brand = get().getActiveBrand();
-        const page = brand?.socialPages.find(p => p.id === pageId);
-        if (!page) throw new Error(`Page with ID ${pageId} not found.`);
-
-        const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
-        if (!ops) throw new Error(`No platform operations for ${page.platform}.`);
-
-        try {
-          // You might want a disconnect method in your platform operations
-          // For now, we just remove it from the store.
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((b) => {
-                if (b.id !== brandId) return b;
-                return {
-                  ...b,
-                  socialPages: (b.socialPages ?? []).filter(
-                    (p) => p.id !== pageId
-                  ),
-                };
-              }),
-            })),
+        // store final results in feedbird store
+        set((s) => {
+          const newWs = s.workspaces.map((ws) => ({
+            ...ws,
+            brands: ws.brands.map((b) => {
+              if (b.id !== brandId) return b;
+              return {
+                ...b,
+                socialPages: b.socialPages.map((sp) => {
+                  if (sp.id === pageId) {
+                    // Overwrite with finalPage info
+                    return {
+                      ...sp,
+                      ...finalPage,
+                      connected: true,
+                      status: finalPage.status ?? "active",
+                    };
+                  }
+                  return sp;
+                }),
+              };
+            }),
           }));
-        } catch (error) {
-          console.error(`Failed to disconnect page ${page.name}:`, error);
-          throw error;
-        }
+          return { workspaces: newWs };
+        });
+          } catch (error) {
+            console.error(`Failed to connect page ${page.name}:`, error);
+            // Propagate the error to be caught by the UI
+            throw error;
+          }
+        },
+
+        disconnectSocialPage: async (brandId: string, pageId: string) => {
+          const brand = get().getActiveBrand();
+          const page = brand?.socialPages.find(p => p.id === pageId);
+          if (!page) throw new Error(`Page with ID ${pageId} not found.`);
+
+          const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+          if (!ops) throw new Error(`No platform operations for ${page.platform}.`);
+
+          try {
+            // You might want a disconnect method in your platform operations
+            // For now, we just remove it from the store.
+        set((s) => ({
+          workspaces: s.workspaces.map((ws) => ({
+            ...ws,
+            brands: ws.brands.map((b) => {
+              if (b.id !== brandId) return b;
+              return {
+                ...b,
+                socialPages: (b.socialPages ?? []).filter(
+                  (p) => p.id !== pageId
+                ),
+              };
+            }),
+          })),
+        }));
+          } catch (error) {
+            console.error(`Failed to disconnect page ${page.name}:`, error);
+            throw error;
+          }
       },
 
       checkAccountStatus: async (brandId: string, accountId: string) => {
@@ -716,26 +728,26 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       },
 
       checkPageStatus: async (brandId: string, pageId: string) => {
-        const { workspaces } = get();
-        const brand = findBrand(workspaces, brandId);
-        const page = findPage(brand, pageId);
-        if (!page) return;
+          const { workspaces } = get();
+          const brand = findBrand(workspaces, brandId);
+          const page = findPage(brand, pageId);
+          if (!page) return;
 
-        try {
-          const ops = getPlatformOperations(page.platform);
-          if (!ops?.checkPageStatus) {
-            // If checkPageStatus isn't supported, we can't verify, so we'll assume it's active.
-            set(state => updatePage(state, brandId, pageId, { status: 'active', statusUpdatedAt: new Date() }));
-            return;
+          try {
+            const ops = getPlatformOperations(page.platform);
+            if (!ops?.checkPageStatus) {
+              // If checkPageStatus isn't supported, we can't verify, so we'll assume it's active.
+              set(state => updatePage(state, brandId, pageId, { status: 'active', statusUpdatedAt: new Date() }));
+              return;
+            }
+
+            const freshPage = await ops.checkPageStatus(page);
+            set(state => updatePage(state, brandId, pageId, { ...freshPage, statusUpdatedAt: new Date() }));
+          } catch (error) {
+            console.error(`Failed to check status for page ${page.name}:`, error);
+            set(state => updatePage(state, brandId, pageId, { status: 'error', statusUpdatedAt: new Date() }));
+            throw error; // Re-throw so the UI can catch it
           }
-
-          const freshPage = await ops.checkPageStatus(page);
-          set(state => updatePage(state, brandId, pageId, { ...freshPage, statusUpdatedAt: new Date() }));
-        } catch (error) {
-          console.error(`Failed to check status for page ${page.name}:`, error);
-          set(state => updatePage(state, brandId, pageId, { status: 'error', statusUpdatedAt: new Date() }));
-          throw error; // Re-throw so the UI can catch it
-        }
       },
 
       deletePagePost: async (brandId, pageId, postId) => {
@@ -1147,6 +1159,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       name: "feedbird-v5",
       storage: createJSONStorage(() => sessionStorage),
     }
+    )
   )
 );
 
