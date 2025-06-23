@@ -90,37 +90,37 @@
   
     /* 2 – code → tokens + profile */
     async connectAccount(code: string): Promise<SocialAccount> {
-        const tok = await pinFetch<{
+      const tok = await pinFetch<{
         access_token: string;
         refresh_token: string;
         expires_in: number;
       }>(`${this.baseUrl}/oauth/token`, {
         method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: 'Basic ' + Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64'),
-          },
-          body: new URLSearchParams({
+        },
+        body: new URLSearchParams({
           grant_type: 'authorization_code',
-            code,
+          code,
           redirect_uri: this.redirectUri,
           client_id: this.clientId,
-            client_secret: this.clientSecret,
-          }),
+          client_secret: this.clientSecret,
+        }),
       });
   
-        const me = await pinFetch<{ id: string; username: string }>(
+      const me = await pinFetch<{ id: string; username: string }>(
         `${this.baseUrl}/user_account`,
         { headers: { Authorization: `Bearer ${tok.access_token}` } },
       );
   
-        return {
+      return {
         id: crypto.randomUUID(),
         platform: 'pinterest',
         name: me.username,
         accountId: me.id,
         authToken: tok.access_token,
-          refreshToken: tok.refresh_token,
+        refreshToken: tok.refresh_token,
         expiresAt: new Date(Date.now() + tok.expires_in * 1_000),
         connected: true,
         status: 'active',
@@ -141,14 +141,14 @@
       const tok = await pinFetch<{ access_token: string; refresh_token: string; expires_in: number }>(
         `${cfg.baseUrl}/v5/oauth/token`, {
         method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: 'Basic ' + Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64'),
-          },
-          body: new URLSearchParams({
+        },
+        body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: acc.refreshToken!,
-          }),
+        }),
       });
   
       return {

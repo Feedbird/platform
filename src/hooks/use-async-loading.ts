@@ -3,7 +3,6 @@ import { useLoading } from '@/lib/providers/loading-provider'
 import type { Platform } from '@/lib/social/platforms/platform-types'
 import { toast } from 'sonner'
 import { handleError } from '@/lib/utils/error-handler'
-import NProgress from 'nprogress'
 
 type LoadingMessages = {
   loading: string
@@ -24,7 +23,6 @@ export function useAsyncLoading() {
     const platform = typeof onFinallyOrPlatform === 'string' ? onFinallyOrPlatform : undefined
 
     let toastId: string | number | undefined
-    NProgress.start();
 
     try {
       if (isObjectMessages) {
@@ -49,14 +47,13 @@ export function useAsyncLoading() {
       } else {
         handleError(error, "An unexpected error occurred", { log: false });
       }
-      throw error;
+      return undefined
     } finally {
       if (isObjectMessages) {
         if (onFinally) onFinally()
       } else {
         loading.hide()
       }
-      NProgress.done();
     }
   }, [loading])
 

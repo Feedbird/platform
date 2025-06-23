@@ -10,8 +10,6 @@ import type { PostHistory } from '@/lib/social/platforms/platform-types';
 import { Button } from '@/components/ui/button';
 import { useAsyncLoading } from '@/hooks/use-async-loading';
 import { usePostHistoryLoading } from '@/hooks/use-post-history-loading';
-import { handleError } from '@/lib/utils/error-handler';
-import { toast } from 'sonner';
 
 export default function SocialPagePosts() {
   const { pageId } = useParams() as { pageId: string };
@@ -25,7 +23,14 @@ export default function SocialPagePosts() {
   
   // Check if the store is currently syncing this page
   const isStoreSyncing   = usePostHistoryLoading(pageId);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
+
+  /** optimistic error state (just for demo UI feedback) */
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  
+  // Use refs to track loading states and prevent multiple calls
+  const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   // Memoize the page to avoid unnecessary re-renders
   const page = useMemo(() => {
@@ -37,24 +42,65 @@ export default function SocialPagePosts() {
     return postHistory[pageId] || [];
   }, [postHistory, pageId]);
 
-  /* sync history on mount / page change */
-  useEffect(() => {
-    if (brandId && pageId && !isStoreSyncing) {
-      executeWithLoading(async () => {
-        try {
-          if (history.length === 0) {
-            setIsFirstLoad(true);
-          }
-          await syncPostHistory(brandId, pageId);
-        } catch (error) {
-          handleError(error, `Failed to load post history for ${page?.name}`);
-        } finally {
-          setIsFirstLoad(false);
-        }
-      });
+  // Memoized error clear function
+  const clearError = useCallback(() => {
+    setErrMsg(null);
+  }, []);
+
+  // Stable sync function - removed syncPostHistory from dependencies to prevent infinite loop
+  const syncHistory = useCallback(async () => {
+    if (!brandId || !pageId) return;
+    
+    // Prevent multiple simultaneous calls (local check)
+    if (isLoadingRef.current) {
+      console.log('Already loading locally, skipping sync');
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, pageId]);
+    
+    // Also check store loading state
+    if (isStoreSyncing) {
+      console.log('Store is already syncing, skipping sync');
+      return;
+    }
+    
+    isLoadingRef.current = true;
+    
+    try {
+      await syncPostHistory(brandId, pageId);
+      hasLoadedRef.current = true;
+    } catch (error) {
+      console.error('Failed to sync post history:', error);
+      setErrMsg(error instanceof Error ? error.message : 'Failed to load post history');
+    } finally {
+      setIsInitialLoading(false);
+      isLoadingRef.current = false;
+    }
+  }, [brandId, pageId, isStoreSyncing]); // Added isStoreSyncing to dependencies
+
+  /* sync history on mount / changes - only if not already loaded */
+  useEffect(() => {
+    if (brandId && pageId && !hasLoadedRef.current && !isLoadingRef.current && !isStoreSyncing) {
+      executeWithLoading(
+        syncHistory,
+        "Loading post history..."
+      );
+    }
+  }, [brandId, pageId, executeWithLoading, syncHistory, isStoreSyncing]);
+
+  // Reset loading state when pageId changes
+  useEffect(() => {
+    hasLoadedRef.current = false;
+    isLoadingRef.current = false;
+    setIsInitialLoading(true);
+  }, [pageId]);
+
+  // Clear error message automatically after 5 seconds
+  useEffect(() => {
+    if (errMsg) {
+      const timer = setTimeout(clearError, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errMsg, clearError]);
 
   // Early returns with proper loading states
   if (!brandId) {
@@ -77,29 +123,27 @@ export default function SocialPagePosts() {
     await executeWithLoading(async () => {
       try {
         await deletePagePost(brandId, pageId, ph.postId);
-        toast.success("Post deleted successfully");
       } catch (e: any) {
-        handleError(e, `Failed to delete post from ${page?.name}`);
+        const errorMsg = e.message ?? 'Failed deleting post';
+        setErrMsg(errorMsg);
         throw e; // Re-throw to stop loading
       }
-    });
-  }, [brandId, pageId, deletePagePost, executeWithLoading, page?.name]);
+    }, "Deleting post...");
+  }, [brandId, pageId, deletePagePost, executeWithLoading]);
 
   const handleRefresh = useCallback(() => {
-    if (brandId && pageId && !isStoreSyncing) {
-      executeWithLoading(async () => {
-        try {
-          await syncPostHistory(brandId, pageId);
-          toast.success(`Post history refreshed for ${page?.name}`);
-        } catch (error) {
-          handleError(error, `Failed to refresh post history for ${page?.name}`);
-        }
-      });
-    }
-  }, [brandId, pageId, isStoreSyncing, syncPostHistory, executeWithLoading, page?.name]);
+    // Reset the loaded flag to allow refresh
+    hasLoadedRef.current = false;
+    setIsInitialLoading(true);
+    
+    executeWithLoading(
+      syncHistory,
+      "Refreshing post history..."
+    );
+  }, [executeWithLoading, syncHistory]);
 
-  // Determine if we're really loading
-  const isReallyLoading = (isStoreSyncing || isFirstLoad) && history.length === 0;
+  // Determine if we're really loading (either local state or store state)
+  const isReallyLoading = isInitialLoading || isStoreSyncing;
 
   return (
     <div className="p-4 flex flex-col items-center overflow-y-auto w-full">
@@ -116,6 +160,20 @@ export default function SocialPagePosts() {
           {isStoreSyncing ? 'Loading...' : 'Refresh'}
         </Button>
       </div>
+
+      {errMsg && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md w-full max-w-[600px]">
+          <div className="flex justify-between items-center">
+            <p className="text-red-600 text-sm">{errMsg}</p>
+            <button 
+              onClick={clearError}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-6 w-full max-w-[600px] items-center">
         {isReallyLoading ? (
