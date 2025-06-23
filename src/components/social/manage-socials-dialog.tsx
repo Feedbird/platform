@@ -161,7 +161,7 @@ export function ManageSocialsDialog(props: {
    
   if (!brand) return null;
 
-  const pages = brand.socialPages.filter(pg => pg.platform === activePlatform);
+  const pages = brand.socialPages;
   const [connected, pending] = [
     pages.filter(p => p.connected),
     pages.filter(p => !p.connected),
@@ -224,133 +224,136 @@ export function ManageSocialsDialog(props: {
           </section>
           
           <div className="h-px bg-[#E6E4E2] my-6" />
-          {/* ——— Available Pages ——— */}
-          {pending.length > 0 && (
-            <section>
-              <h3 className="text-sm font-medium mb-3">AVAILABLE SOCIALS</h3>
-              <div className="flex flex-col gap-2">
-                {pending.map(pg => (
-                  <div key={pg.id} 
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-[6px] border bg-white",
-                      pg.status === "expired" ? "border-[#F19525]" : 
-                      pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" :
-                      "border-[#E6E4E2]"
-                    )}>
-                    <ChannelIcons channels={[pg.platform]} size={24} />
-                    <div className="flex-1">
-                      <div className="font-semibold text-black text-sm">{pg.name}</div>
-                      <div className="flex text-sm gap-2">
-                       <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
-                       <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 w-[200px] justify-end">
-                      {pg.status === "expired" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openPopup(pg.platform)}
-                          disabled={isLoading}
-                          className="text-[#F19525] hover:text-[#F19525] border-none bg-white hover:bg-white cursor-pointer shadow-none text-xs font-semibold"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          RE-AUTHENTICATE
-                        </Button>
-                      ) : pg.status === "disconnected" ? (
-                        <div className="flex flex-col items-end">
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={handleCheckPageStatus(pg.id)}
-                           disabled={isLoading}
-                           className="text-[#EC5050] hover:text-[#EC5050] border-none bg-transparent hover:bg-transparent cursor-pointer shadow-none text-xs font-semibold"
-                         >
-                          <AlertTriangle className="w-3 h-3" />
-                          CONNECTION ERROR
-                         </Button>
+          
+          <div className="max-h-[300px] overflow-y-auto pr-2 -mr-2">
+            {/* ——— Available Pages ——— */}
+            {pending.length > 0 && (
+              <section>
+                <h3 className="text-sm font-medium mb-3">AVAILABLE SOCIALS</h3>
+                <div className="flex flex-col gap-2">
+                  {pending.map(pg => (
+                    <div key={pg.id} 
+                      className={cn(
+                        "flex items-center gap-4 p-4 rounded-[6px] border bg-white",
+                        pg.status === "expired" ? "border-[#F19525]" : 
+                        pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" :
+                        "border-[#E6E4E2]"
+                      )}>
+                      <ChannelIcons channels={[pg.platform]} size={24} />
+                      <div className="flex-1">
+                        <div className="font-semibold text-black text-sm">{pg.name}</div>
+                        <div className="flex text-sm gap-2">
+                         <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
+                         <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
                         </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          disabled={isLoading}
-                          className="text-[#F19525] bg-transparent hover:bg-transparent border-none cursor-pointer shadow-none text-xs font-semibold"
-                          onClick={handleConfirmPage(pg.id)}
-                        >
-                         <Link className="w-3 h-3" />
-                         CONNECT
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* ——— Connected Pages ——— */}
-          <section>
-            <h3 className="text-sm font-medium mb-3 mt-6">CONNECTED SOCIALS</h3>
-            {connected.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {connected.map(pg => (
-                  <div key={pg.id} 
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-[6px] border bg-white",
-                      pg.status === "expired" || pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" : "border-[#E6E4E2]"
-                    )}>
-                    <ChannelIcons channels={[pg.platform]} size={24} />
-                    <div className="flex-1">
-                      <div className="font-semibold text-black text-sm">{pg.name}</div>
-                      <div className="flex text-sm gap-2">
-                       <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
-                       <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
+                      </div>
+                      <div className="flex items-center gap-3 w-[200px] justify-end">
+                        {pg.status === "expired" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openPopup(pg.platform)}
+                            disabled={isLoading}
+                            className="text-[#F19525] hover:text-[#F19525] border-none bg-white hover:bg-white cursor-pointer shadow-none text-xs font-semibold"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            RE-AUTHENTICATE
+                          </Button>
+                        ) : pg.status === "disconnected" ? (
+                          <div className="flex flex-col items-end">
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={handleCheckPageStatus(pg.id)}
+                             disabled={isLoading}
+                             className="text-[#EC5050] hover:text-[#EC5050] border-none bg-transparent hover:bg-transparent cursor-pointer shadow-none text-xs font-semibold"
+                           >
+                            <AlertTriangle className="w-3 h-3" />
+                            CONNECTION ERROR
+                           </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            disabled={isLoading}
+                            className="text-[#F19525] bg-transparent hover:bg-transparent border-none cursor-pointer shadow-none text-xs font-semibold"
+                            onClick={handleConfirmPage(pg.id)}
+                          >
+                           <Link className="w-3 h-3" />
+                           CONNECT
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center justify-end gap-3 w-[200px]">
-                      {pg.status === "expired" || pg.status === "disconnected" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={isLoading}
-                          onClick={handleCheckPageStatus(pg.id)}
-                          className="text-[#F19525] hover:text-[#F19525] border-none bg-white hover:bg-white cursor-pointer shadow-none text-xs font-semibold"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          RE-AUTHENTICATE
-                        </Button>
-                      ) : (
-                        <div className="flex items-center justify-end gap-1.5 text-sm text-[#129E62] font-semibold">
-                          <Check className="w-3 h-3" />
-                          ACTIVE
-                        </div>                           
-                      )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={handleDisconnectPage(pg.id)}
-                            className="text-[#EC5050] hover:text-[#EC5050] border-none bg-transparent hover:bg-transparent cursor-pointer shadow-none text-xs font-semibold"
-                          >
-                            <Trash className="w-3 h-3 mr-2" />
-                            DISCONNECT
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic text-center">
-                No pages connected yet
-              </p>
+                  ))}
+                </div>
+              </section>
             )}
-          </section>
+
+            {/* ——— Connected Pages ——— */}
+            <section>
+              <h3 className="text-sm font-medium mb-3 mt-6">CONNECTED SOCIALS</h3>
+              {connected.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {connected.map(pg => (
+                    <div key={pg.id} 
+                      className={cn(
+                        "flex items-center gap-4 p-4 rounded-[6px] border bg-white",
+                        pg.status === "expired" || pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" : "border-[#E6E4E2]"
+                      )}>
+                      <ChannelIcons channels={[pg.platform]} size={24} />
+                      <div className="flex-1">
+                        <div className="font-semibold text-black text-sm">{pg.name}</div>
+                        <div className="flex text-sm gap-2">
+                         <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
+                         <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-3 w-[200px]">
+                        {pg.status === "expired" || pg.status === "disconnected" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isLoading}
+                            onClick={handleCheckPageStatus(pg.id)}
+                            className="text-[#F19525] hover:text-[#F19525] border-none bg-white hover:bg-white cursor-pointer shadow-none text-xs font-semibold"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            RE-AUTHENTICATE
+                          </Button>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1.5 text-sm text-[#129E62] font-semibold">
+                            <Check className="w-3 h-3" />
+                            ACTIVE
+                          </div>                           
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={handleDisconnectPage(pg.id)}
+                              className="text-[#EC5050] hover:text-[#EC5050] border-none bg-transparent hover:bg-transparent cursor-pointer shadow-none text-xs font-semibold"
+                            >
+                              <Trash className="w-3 h-3 mr-2" />
+                              DISCONNECT
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic text-center">
+                  No pages connected yet
+                </p>
+              )}
+            </section>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

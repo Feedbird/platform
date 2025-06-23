@@ -157,8 +157,8 @@ export interface FeedbirdStore {
   connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => string;
   disconnectSocialAccount: (brandId: string, accountId: string) => void;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
-  confirmSocialPage: (brandId: string, pageId: string) => void;
-  disconnectSocialPage: (brandId: string, pageId: string) => void;
+  confirmSocialPage: (brandId: string, pageId: string) => Promise<void>;
+  disconnectSocialPage: (brandId: string, pageId: string) => Promise<void>;
   checkAccountStatus: (brandId: string, accountId: string) => Promise<void>;
   checkPageStatus: (brandId: string, pageId: string) => Promise<void>;
   deletePagePost: (brandId: string, pageId: string, postId: string) => Promise<void>;
