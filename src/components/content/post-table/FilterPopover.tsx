@@ -98,11 +98,10 @@ const platformOptions: Platform[] = [
 ];
 
 const formatOptions: ContentFormat[] = [
-  "static-image",
+  "static",
   "carousel",
   "story",
   "video",
-  "email",
 ];
 
 const monthOptions = Array.from({ length: 50 }, (_, i) => (i + 1).toString());
@@ -111,6 +110,26 @@ function getMonthColor(month: number): string {
   const hue = (month * 7) % 360;
   return `hsl(${hue}, 70%, 90%)`;
 }
+
+const formatDisplayNames: Record<ContentFormat, string> = {
+  static: "Static Image",
+  carousel: "Carousel",
+  story: "Story",
+  video: "Video",
+};
+
+const statusDisplayNames: Record<Status | 'any', string> = {
+  any: "Any Status",
+  Draft: "Draft",
+  "Pending Approval": "Pending Approval",
+  "Needs Revisions": "Needs Revisions",
+  Revised: "Revised",
+  Approved: "Approved",
+  Scheduled: "Scheduled",
+  Publishing: "Publishing",
+  Published: "Published",
+  "Failed Publishing": "Failed Publishing",
+};
 
 /* ------------------------------------------------------------------ */
 /* 2.  Main component                                                 */
@@ -671,15 +690,7 @@ const FormatMultiSelect: React.FC<MSProps> = ({ selectedValues, onChange }) => {
   };
 
   const label = (f: string): string =>
-    (
-      {
-        "static-image": "Static Image",
-        carousel: "Carousel",
-        story: "Story",
-        video: "Video",
-        email: "Email",
-      } as Record<string, string>
-    )[f] ?? f;
+    formatDisplayNames[f as ContentFormat] ?? f;
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -749,7 +760,7 @@ const FormatMultiSelect: React.FC<MSProps> = ({ selectedValues, onChange }) => {
                   )}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <FormatBadge kind={f} widthFull={false} />
+                    <FormatBadge kind={f as ContentFormat} widthFull={false} />
                     {localValues.includes(f) && (
                       <div className="flex items-center justify-center w-4 h-4 bg-purple-600 rounded-full ml-2">
                         <Check className="h-2.5 w-2.5 text-white" />
