@@ -18,6 +18,13 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { ChevronDown, AlarmClock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
 import { Platform, SocialPage } from "@/lib/social/platforms/platform-types";
@@ -312,31 +319,29 @@ export function PublishDateCell({
       </div>
 
       {/* ----- Confirm Scheduling Dialog ----- */}
-      {confirmScheduleOpen && (
-        <ConfirmScheduleDialog
-          post={post}
-          onClose={() => setConfirmScheduleOpen(false)}
-          onConfirm={async () => {
-            // "ScheduledTime" publish
-            if (post.publishDate) {
-              await publishPostToAllPages(post.id, new Date(post.publishDate));
-            } else {
-              await publishPostToAllPages(post.id);
-            }
-          }}
-        />
-      )}
+      <ConfirmScheduleDialog
+        open={confirmScheduleOpen}
+        post={post}
+        onClose={() => setConfirmScheduleOpen(false)}
+        onConfirm={async () => {
+          // "ScheduledTime" publish
+          if (post.publishDate) {
+            await publishPostToAllPages(post.id, new Date(post.publishDate));
+          } else {
+            await publishPostToAllPages(post.id);
+          }
+        }}
+      />
 
       {/* ----- Confirm Publish Now Dialog ----- */}
-      {confirmPublishOpen && (
-        <ConfirmPublishNowDialog
-          post={post}
-          onClose={() => setConfirmPublishOpen(false)}
-          onConfirm={async () => {
-            await publishPostToAllPages(post.id);
-          }}
-        />
-      )}
+      <ConfirmPublishNowDialog
+        open={confirmPublishOpen}
+        post={post}
+        onClose={() => setConfirmPublishOpen(false)}
+        onConfirm={async () => {
+          await publishPostToAllPages(post.id);
+        }}
+      />
     </div>
   );
 }
@@ -348,10 +353,12 @@ function ConfirmScheduleDialog({
   post,
   onClose,
   onConfirm,
+  open,
 }: {
   post: Post;
   onClose: () => void;
   onConfirm: () => Promise<void>;
+  open: boolean;
 }) {
   const { executeWithLoading } = useAsyncLoading();
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
@@ -374,45 +381,47 @@ function ConfirmScheduleDialog({
     }, "Scheduling post...");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-md shadow-lg w-[320px] p-5 space-y-4">
-        <h3 className="text-base font-semibold text-center">
-          Confirm Scheduling
-        </h3>
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-          {/* Instead of "Platforms:", show "Pages" + icon cluster */}
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground">Pages:</span>
-            <div className="flex items-center gap-1">
-              {Object.entries(platformCounts).map(([platform, count], idx) => (
-                <ChannelIcons
-                  key={platform}
-                  channels={[platform as Platform]}
-                  counts={count}
-                  size={20}
-                />
-              ))}
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="w-[320px] p-5">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold text-center">Confirm Scheduling</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            {/* Instead of "Platforms:", show "Pages" + icon cluster */}
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">Pages:</span>
+              <div className="flex items-center gap-1">
+                {Object.entries(platformCounts).map(([platform, count], idx) => (
+                  <ChannelIcons
+                    key={platform}
+                    channels={[platform as Platform]}
+                    counts={count}
+                    size={20}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="font-medium text-foreground">Time:</span> {dt}
             </div>
           </div>
-
-          <div>
-            <span className="font-medium text-foreground">Time:</span> {dt}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleConfirm}
+            >
+              Schedule
+            </Button>
           </div>
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleConfirm}
-          >
-            Schedule
-          </Button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -423,10 +432,12 @@ function ConfirmPublishNowDialog({
   post,
   onClose,
   onConfirm,
+  open,
 }: {
   post: Post;
   onClose: () => void;
   onConfirm: () => Promise<void>;
+  open: boolean;
 }) {
   const { executeWithLoading } = useAsyncLoading();
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
@@ -449,45 +460,47 @@ function ConfirmPublishNowDialog({
     }, "Publishing post...");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-md shadow-lg w-[320px] p-5 space-y-4">
-        <h3 className="text-base font-semibold text-center">
-          Publish Now?
-        </h3>
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-          {/* Show pages + icon cluster */}
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground">Pages:</span>
-            <div className="flex items-center gap-1">
-              {Object.entries(platformCounts).map(([platform, count]) => (
-                <ChannelIcons
-                  key={platform}
-                  channels={[platform as Platform]}
-                  counts={count}
-                  size={20}
-                />
-              ))}
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="w-[320px] p-5">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold text-center">Publish Now?</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            {/* Show pages + icon cluster */}
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">Pages:</span>
+              <div className="flex items-center gap-1">
+                {Object.entries(platformCounts).map(([platform, count]) => (
+                  <ChannelIcons
+                    key={platform}
+                    channels={[platform as Platform]}
+                    counts={count}
+                    size={20}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="font-medium text-foreground">Current date/time:</span> {dt}
             </div>
           </div>
-
-          <div>
-            <span className="font-medium text-foreground">Current date/time:</span> {dt}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleConfirm}
+            >
+              Publish
+            </Button>
           </div>
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleConfirm}
-          >
-            Publish
-          </Button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -335,14 +335,13 @@ export function PostTable({
     return STICKY_COLUMNS.includes(colId as any);
   }
 
-  function stickyStyles(colId: string, zIndex = 1): React.CSSProperties | undefined {
+  function stickyStyles(colId: string, zIndex = 10): React.CSSProperties | undefined {
     if (!isSticky(colId)) return;
   
     const styles: React.CSSProperties = {
       position: "sticky",
       left: STICKY_OFFSETS[colId],
       zIndex,
-      transform: 'translateZ(0px)',
     };
 
     if (colId === 'status') {
@@ -637,7 +636,6 @@ export function PostTable({
             <div 
               className="relative w-[22px] h-[22px] cursor-pointer transition-opacity hover:opacity-80 active:opacity-60"
               onClick={(e) => {
-                e.stopPropagation();
                 onOpen?.(post.id);
               }}
             >
@@ -1270,7 +1268,7 @@ export function PostTable({
                     index !== 0 && "border-r",
                     isSticky(h.id) && 'bg-[#FBFBFB]'
                   )}
-                  style={{ width: h.getSize(), ...stickyStyles(h.id) }}
+                  style={{ width: h.getSize(), ...stickyStyles(h.id, 10) }}
                 >
                   {flexRender(h.column.columnDef.header, h.getContext())}
                 </TableHead>
@@ -1314,7 +1312,7 @@ export function PostTable({
           className="bg-white border-t border-l border-b border-[#E6E4E2]"
           colSpan={stickyCols.length}
           style={{
-            ...stickyStyles("drag", 3), // Higher than row zIndex
+            ...stickyStyles("drag", 10), // Higher than row zIndex
           }}
         >
           <div className="flex items-center gap-2 px-[12px] py-[10px] font-medium text-sm">
@@ -1460,7 +1458,7 @@ export function PostTable({
                             borderBottom: "1px solid #EAE9E9",
                             ...stickyStyles(
                               cell.column.id,
-                              row.getIsSelected() ? 2 : 1
+                              10
                             ),
                           }}
                         >
@@ -1507,7 +1505,7 @@ export function PostTable({
                             colSpan={stickyCols.length}
                             className="px-3 py-3 bg-white border-l border-t-0 border-r-0 border-b border-[#E6E4E2] rounded-b-[2px]"
                             style={{
-                              ...stickyStyles("drag", 3), // Use first sticky col ID
+                              ...stickyStyles("drag", 10), // Use first sticky col ID
                               width: stickyWidth,
                             }}
                           >
@@ -1582,7 +1580,7 @@ export function PostTable({
                       )}
                       style={{
                         width: header.getSize(),
-                        ...stickyStyles(header.id, 8)
+                        ...stickyStyles(header.id, 9)
                       }}
                       colSpan={header.colSpan}
                     >
@@ -1742,7 +1740,7 @@ export function PostTable({
                           height: "inherit",
                           borderRight: "1px solid #EAE9E9",
                           width: cell.column.getSize(),
-                          ...stickyStyles(cell.column.id, row.getIsSelected() ? 8 : 1)
+                          ...stickyStyles(cell.column.id, 10)
                         }}
                       >
                         {({isFocused, isEditing, exitEdit, enterEdit}) => {
@@ -1787,7 +1785,7 @@ export function PostTable({
                       colSpan={3}
                       className="p-3 border-t border-[#EAE9E9]"
                       style={{
-                        ...stickyStyles('drag', 8),
+                        ...stickyStyles('drag', 10),
                         width: stickyWidth,
                       }}
                     >

@@ -93,18 +93,24 @@ export function FocusCell({
     }
   }
 
+  const ringShadow = '0 0 0 2px #125AFF';
+  const combinedStyle: React.CSSProperties = { ...style };
+
+  if (isFocused) {
+    const existingShadow = style?.boxShadow || '';
+    combinedStyle.boxShadow = existingShadow ? `${ringShadow}, ${existingShadow}` : ringShadow;
+    combinedStyle.zIndex = (parseInt(String(style?.zIndex || 0), 10)) + 1;
+  }
+
   return (
     <td
       data-focus-cell="true"
       className={`
         relative
         ${className ?? ""}
-        ${isFocused ? "ring-2 ring-[#125AFF] bg-[#EDF6FF]" : ""}
+        ${isFocused ? "bg-[#EDF6FF]" : ""}
       `}
-      style={{
-        ...style,
-        zIndex: isFocused ? 10 : style?.zIndex
-      }}
+      style={combinedStyle}
       onClick={handleClick}
     >
       {children({
