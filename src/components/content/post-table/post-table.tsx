@@ -14,6 +14,7 @@ import {
   FilterFn,
   GroupingState,
   SortingState,
+  SortingFn,
   VisibilityState,
   ExpandedState,
   ColumnResizeMode,
@@ -256,6 +257,28 @@ const platformsFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) =
   
   // Check if any of the row's platforms match any of the filter values
   return rowPlatforms.some(platform => filterValues.includes(platform));
+};
+
+const statusSortOrder: Status[] = [
+  "Draft",
+  "Pending Approval",
+  "Needs Revisions",
+  "Revised",
+  "Approved",
+  "Scheduled",
+  "Publishing",
+  "Published",
+  "Failed Publishing",
+];
+
+const statusSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
+  const statusA = rowA.getValue<Status>(columnId);
+  const statusB = rowB.getValue<Status>(columnId);
+
+  const indexA = statusSortOrder.indexOf(statusA);
+  const indexB = statusSortOrder.indexOf(statusB);
+
+  return indexA - indexB;
 };
 
 /** ---------- The PostTable ---------- **/
@@ -682,6 +705,7 @@ export function PostTable({
       id: "status",
         accessorKey: "status",
         filterFn: statusFilterFn,
+        sortingFn: statusSortingFn,
         header: () => (
           <div className="flex items-center gap-[6px] text-black text-sm font-medium">
             <Image src={`/images/columns/status.svg`} alt="status" width={14} height={14} />
