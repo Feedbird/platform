@@ -1,9 +1,11 @@
 /* app/(content)/static/_inner.tsx */
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import { useFeedbirdStore, FeedbirdStore, Post } from "@/lib/store/use-feedbird-store";
+import { shallow } from "zustand/shallow";
 
 import { PostTable } from "@/components/content/post-table/post-table";
 import CalendarView from "@/components/content/content-calendar/calendar-view";
@@ -15,13 +17,15 @@ export function EmailDesignInner() {
   const view = search.get("view") === "calendar" ? "calendar" : "table";
 
   // Pull all store-based posts, then filter for static formats:
-  const allPosts = useFeedbirdStore((s) => s.getActivePosts());
-  const posts = useMemo(
-    () =>
-      allPosts.filter(
-        (p) => p.format === "email"
-      ),
-    [allPosts]
+  const posts = useStoreWithEqualityFn(
+    useFeedbirdStore,
+    (s: FeedbirdStore): Post[] =>
+      s
+        .getActivePosts()
+        .filter(
+          (p) => p.format === "email"
+        ),
+    shallow
   );
 
   // For opening the record modal:

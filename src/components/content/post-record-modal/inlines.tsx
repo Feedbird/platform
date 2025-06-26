@@ -194,7 +194,6 @@ export function InlineFormatEditor({ post }: { post: Post }) {
 ------------------------------------------------------------------ */
 export function InlineDateEditor({ post }: { post: Post }) {
   const updatePost = useFeedbirdStore(s => s.updatePost);
-  const allPosts   = useFeedbirdStore(s => s.getActivePosts());
 
   const savedDate  = post.publishDate ? new Date(post.publishDate) : null;
   const hasDate    = !!savedDate;
@@ -214,6 +213,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
   );
 
   function autoSchedule() {
+    const allPosts = useFeedbirdStore.getState().getActivePosts();
     const suggestions = getSuggestedSlots(post, allPosts, 5);
     if (suggestions.length) {
       updatePost(post.id, { publishDate: suggestions[0].date });

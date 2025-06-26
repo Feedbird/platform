@@ -120,28 +120,31 @@ const defaultBoardNav: NavLink[] = [
 /*  BOARD-HELPERS                                                        */
 /* --------------------------------------------------------------------- */
 
+const boardFormatMap: Record<string, string[]> = {
+  "static-posts": ["static-image", "carousel"],
+  "short-form-videos": ["video"],
+  "email-design": ["story"],
+};
+
 function useBoardCount(boardId: string): number | null {
-  const posts = useFeedbirdStore((s) => s.getActivePosts());
+  const count = useFeedbirdStore((s) => {
+    const posts = s.getActivePosts();
+    const formats = boardFormatMap[boardId] ?? [];
+    return posts.filter((p) => formats.includes(p.format)).length;
+  });
+
   const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const boardFormatMap: Record<string, string[]> = {
-    "static-posts": ["static-image", "carousel"],
-    "short-form-videos": ["video"],
-    "email-design": ["story"],
-  };
-
-  const formats = boardFormatMap[boardId] ?? [];
-  
   if (!isClient) {
     // On the server, return null to prevent rendering.
     return null;
   }
   
-  return posts.filter((p) => formats.includes(p.format)).length;
+  return count;
 }
 
 function BoardDropdownMenu({

@@ -16,6 +16,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import { shallow } from "zustand/shallow";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
 import { Post, Block } from "@/lib/store/use-feedbird-store";
@@ -28,7 +30,7 @@ import ActivityFeed from "@/components/post/activity-feed";
 import { ContentModal } from "@/components/content/content-modal/content-modal";
 import ScheduleDialog from "@/components/post/schedule-dialog";
 
-/* simpler inline “clones” for status, channels, format, date */
+/* simpler inline "clones" for status, channels, format, date */
 import { InlineStatusEditor, InlinePlatformsEditor, InlineFormatEditor, InlineDateEditor, ApproveCell, UpdateDateCell } from "./inlines";
 
 /* shared UI bits */
@@ -39,11 +41,10 @@ export function PostRecordModal({ postId, open, onClose }:{
   open: boolean;
   onClose(): void;
 }) {
-  const store  = useFeedbirdStore();
-  const posts  = store.getActivePosts();
-  const idx    = posts.findIndex(p => p.id === postId);
-  const post   = posts[idx]!;
-  const brand  = store.getActiveBrand();
+  const posts = useStoreWithEqualityFn(useFeedbirdStore, (s) => s.getActivePosts(), shallow);
+  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const post = posts.find((p) => p.id === postId);
 
   /* local states */
   const [pane, setPane] = useState<"comments"|"activity">("comments");
@@ -51,8 +52,14 @@ export function PostRecordModal({ postId, open, onClose }:{
   const [slots, setSlots] = useState<ReturnType<typeof getSuggestedSlots>|null>(null);
   const [activeBlock, setActiveBlock] = useState<Block|null>(null);
 
+  if (!post) {
+    // Post might not be available yet if things are loading.
+    return null;
+  }
+
+  const idx    = posts.findIndex(p => p.id === postId);
+
   // actions
-  const updatePost = store.updatePost;
   const approve = () => {
     updatePost(post.id, { status: "Approved" });
     setSlots(getSuggestedSlots(post, posts));
