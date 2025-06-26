@@ -1485,14 +1485,9 @@ export function PostTable({
                 {isExpanded && (
                   <tr>
                     {/* ◀ left phantom sticky */}
-                    <td style={{
-                        position: 'sticky',
-                        left: 0,
-                        width: 20,
-                        background: "#F8F8F8",
-                        border: "none",
-                        zIndex: 4,
-                    }} />
+                    <TableCell
+                        style={{ width: 20, padding: 0, border: "none", backgroundColor: "#F8F8F8" }}
+                      />
 
                     {(() => {
                       const stickyCols = table.getVisibleLeafColumns().filter(c => isSticky(c.id));
