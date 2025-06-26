@@ -1250,7 +1250,7 @@ export function PostTable({
     stickyStyles: (id: string, z?: number) => React.CSSProperties | undefined;
   }) {
     return (
-      <TableHeader className="sticky top-0 z-[4] bg-[#FBFBFB]">
+      <TableHeader className="sticky top-0 z-[13] bg-[#FBFBFB]">
         {table.getHeaderGroups().map((hg) => (
           <TableRow
             key={hg.id}

@@ -115,7 +115,7 @@ export function CaptionCell(props: CaptionCellProps) {
           className={cn(
             "absolute z-10 left-[-2px] top-[-3px] border border-[2px] border-[#125AFF]",
             "min-w-[calc(100%+5px)]",
-            `min-h-[${rowHeight + 12}px]`, 
+            `min-h-[${rowHeight + 20}px]`, 
             "bg-[#EDF6FF] px-[8px] py-[6px]",
             "whitespace-pre-wrap break-words",
             "text-[#125AFF] text-xs font-normal",
@@ -125,7 +125,6 @@ export function CaptionCell(props: CaptionCellProps) {
           style={{
             width: 'max-content',
             maxWidth: '400px',
-            minHeight: rowHeight,
           }}
         >
           <textarea
