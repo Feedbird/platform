@@ -1501,11 +1501,11 @@ export function PostTable({
 
                       return (
                         <>
-                          <td
+                          <TableCell
                             colSpan={stickyCols.length}
                             className="px-3 py-3 bg-white border-l border-t-0 border-r-0 border-b border-[#E6E4E2] rounded-b-[2px]"
                             style={{
-                              ...stickyStyles("drag", 10), // Use first sticky col ID
+                              ...stickyStyles("drag", 3), // Use first sticky col ID
                               width: stickyWidth,
                             }}
                           >
@@ -1520,8 +1520,8 @@ export function PostTable({
                               <PlusIcon size={16} />
                               Add new record
                             </button>
-                          </td>
-                          <td
+                          </TableCell>
+                          <TableCell
                             colSpan={nonStickyCols.length}
                             className="bg-white border border-l-0 border-t-0 border-[#E6E4E2] rounded-b-[2px]"
                           />
@@ -1783,7 +1783,7 @@ export function PostTable({
                   <>
                     <TableCell
                       colSpan={3}
-                      className="p-3 border-t border-[#EAE9E9]"
+                      className="px-3 py-3 bg-white border-t border-[#EAE9E9]"
                       style={{
                         ...stickyStyles('drag', 10),
                         width: stickyWidth,
@@ -1801,8 +1801,7 @@ export function PostTable({
                       <TableCell
                         key={col.id}
                         className={cn(
-                          "p-3 border-t border-[#EAE9E9]",
-                          index === restOfCols.length - 1 && "last:border-r-0"
+                          "px-3 py-3 bg-white border-t border-[#EAE9E9]",
                         )}
                         style={{
                           width: col.getSize(),

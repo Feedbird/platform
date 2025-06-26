@@ -118,7 +118,6 @@ export function CaptionCell(props: CaptionCellProps) {
             `min-h-[${rowHeight + 12}px]`, 
             "bg-[#EDF6FF] px-[8px] py-[6px]",
             "whitespace-pre-wrap break-words",
-            "shadow-lg",
             "text-[#125AFF] text-xs font-normal",
             "flex flex-row",
             "justify-between"
