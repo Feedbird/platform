@@ -286,6 +286,28 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
             updatePost(postId, { status: "Publishing" });
 
+            // Helper: convert any URL (data: or http(s):) to a File object for FormData upload.
+            const urlToFile = async (srcUrl: string, defaultName: string, kind: FileKind): Promise<File> => {
+              if (srcUrl.startsWith('data:')) {
+                const arr = srcUrl.split(',');
+                const mimeMatch = arr[0].match(/:(.*);/);
+                if (!mimeMatch) throw new Error('Invalid data URL');
+                const mime = mimeMatch[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) u8arr[n] = bstr.charCodeAt(n);
+                return new File([u8arr], defaultName, { type: mime });
+              }
+
+              // Remote URL – fetch it and build a File object
+              const res = await fetch(srcUrl);
+              if (!res.ok) throw new Error(`Failed to fetch media: ${res.status}`);
+              const blob = await res.blob();
+              const ct = blob.type || (kind === 'video' ? 'video/mp4' : 'image/png');
+              return new File([blob], defaultName, { type: ct });
+            };
+
             const results = await Promise.allSettled(post.pages.map(async (pageId) => {
               const page = findPage(brand, pageId);
               if (!page) {
@@ -298,7 +320,28 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 throw new Error("No content found for this post.");
               }
 
-              const response = await fetch(`/api/social/${page.platform}/publish`, {
+              // Always perform conversion + upload for each platform to ensure compliance.
+              const filenameBase = `post-${post.id}-${page.platform}`;
+              const fileExt = currentVersion.file.kind === 'video' ? 'mp4' : 'png';
+              const file = await urlToFile(currentVersion.file.url, `${filenameBase}.${fileExt}`, currentVersion.file.kind);
+
+              const formData = new FormData();
+              formData.append('file', file);
+
+              const uploadRes = await fetch(`/api/media/upload?platform=${page.platform}`, {
+                method: 'POST',
+                body: formData,
+              });
+
+              if (!uploadRes.ok) {
+                const err = await uploadRes.text();
+                throw new Error(`Media upload failed: ${err}`);
+              }
+
+              const { url: mediaUrl } = await uploadRes.json();
+
+              // ----- 2. Publish to the social platform -----
+              const publishRes = await fetch(`/api/social/${page.platform}/publish`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -307,17 +350,18 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     text: currentVersion.caption,
                     media: {
                       type: currentVersion.file.kind,
-                      urls: [currentVersion.file.url],
+                      urls: [mediaUrl],
                     }
                   },
                   options: { scheduledTime }
                 }),
               });
 
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new BaseError(errorData.error.message, errorData.error.metadata.category, errorData.error.metadata);
+              if (!publishRes.ok) {
+                const errorData = await publishRes.json();
+                throw new BaseError(errorData.error?.message || 'Publish failed', errorData.error?.metadata?.category || 'PUBLISH_ERROR', errorData.error?.metadata);
               }
+
               return { success: true, pageId };
             }));
 

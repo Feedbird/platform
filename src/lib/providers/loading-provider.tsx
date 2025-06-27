@@ -10,6 +10,7 @@ import {
   type FC,
   Suspense,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { usePathname, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import type { Platform } from '@/lib/social/platforms/platform-types'
@@ -17,6 +18,7 @@ import type { Platform } from '@/lib/social/platforms/platform-types'
 type LoadingCtx = { 
   show: (text?: string, platform?: Platform) => void; 
   hide: () => void;
+  update: (text: string) => void;
   isLoading: boolean;
   loadingText?: string;
   platform?: Platform;
@@ -29,7 +31,7 @@ export const useLoading = () => useContext(LoadingContext)
 /** Global loading spinner component */
 function GlobalSpinner({ text, platform }: { text?: string; platform?: Platform }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" 
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm" 
          style={{ backgroundColor: 'rgba(28, 29, 31, 0.70)' }}>
       <div className="bg-white rounded-lg p-6 shadow-lg flex flex-col items-center gap-4">
         <div className="relative flex items-center justify-center">
@@ -112,6 +114,12 @@ export const LoadingProvider: FC<{ children: ReactNode }> = ({
     setPlatform(platform)
   }, [])
 
+  const update = useCallback((text: string) => {
+    if (isLoading) {
+      setLoadingText(text);
+    }
+  }, [isLoading]);
+
   const hide = useCallback(() => {
     setIsLoading(false)
     setLoadingText(undefined)
@@ -124,6 +132,7 @@ export const LoadingProvider: FC<{ children: ReactNode }> = ({
     platform,
     show,
     hide,
+    update,
   }
 
   return (
@@ -132,7 +141,10 @@ export const LoadingProvider: FC<{ children: ReactNode }> = ({
         <NavigationWatcher />
       </Suspense>
       {children}
-      {isLoading && <GlobalSpinner text={loadingText} platform={platform} />}
+      {isLoading && createPortal(
+        <GlobalSpinner text={loadingText} platform={platform} />,
+        document.body
+      )}
     </LoadingContext.Provider>
   )
 }

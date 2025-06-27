@@ -38,17 +38,41 @@
     apiVersion: "v2",
     baseUrl   : "https://api.linkedin.com",
     features: {
-      multipleAccounts: false,
+      multipleAccounts: true,
       multiplePages: true,
       scheduling: true,
       analytics: true,
-      deletion: false,
-      mediaTypes: ['image', 'video', 'carousel'],
-      maxMediaCount: 9,
+      deletion: true,
+      mediaTypes: ["image", "video"],
+      maxMediaCount: 9, // 1 for video, 9 for images
       characterLimits: {
         content: 3000,
-        title: 200
-      }
+      },
+    },
+    mediaConstraints: {
+      image: {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        aspectRatios: ["1:1", "1.91:1"],
+        maxSizeMb: 8,
+        formats: ["jpg", "png"],
+      },
+      video: {
+        maxWidth: 4096,
+        maxHeight: 2304,
+        aspectRatios: ["16:9", "1:1", "9:16", "4:5"],
+        maxSizeMb: 200,
+        minDurationSec: 3,
+        maxDurationSec: 600, // 10 minutes
+        maxFps: 60,
+        formats: ["mp4", "mov"],
+        audio: {
+          codecs: ["aac", "mp3"], // mpeg4 audio is mp3
+        },
+        video: {
+          codecs: ["h264"],
+        },
+      },
     },
     connectOptions: [
       {

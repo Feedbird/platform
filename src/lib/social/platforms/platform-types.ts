@@ -61,6 +61,33 @@ export interface SocialPlatformConfig {
       title?: number;
     };
   };
+  mediaConstraints?: {
+    image?: {
+      maxWidth?: number;
+      maxHeight?: number;
+      aspectRatios?: string[]; // e.g., ["1:1", "16:9"]
+      maxSizeMb?: number;
+      formats?: ("jpg" | "png" | "gif")[];
+    };
+    video?: {
+      maxWidth?: number;
+      maxHeight?: number;
+      aspectRatios?: string[];
+      maxSizeMb?: number;
+      minDurationSec?: number;
+      maxDurationSec?: number;
+      formats?: ("mp4" | "mov")[];
+      maxFps?: number;
+      audio?: {
+        minBitrateKbps?: number;
+        maxBitrateKbps?: number;
+        codecs?: ("aac" | "mp3")[];
+      };
+      video?: {
+        codecs?: ("h264" | "h265")[];
+      };
+    };
+  };
   connectOptions: {
     title: string;
     type: string;

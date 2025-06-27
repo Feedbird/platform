@@ -12,8 +12,8 @@ import type {
     apiVersion: "v19.0",
     baseUrl: "https://graph.facebook.com",
     features: {
-      multipleAccounts: false,
-      multiplePages: false,
+      multipleAccounts: true,
+      multiplePages: true,
       scheduling: true,
       analytics: true,
       deletion: true,
@@ -23,6 +23,30 @@ import type {
         content: 2200, // Instagram caption limit
         title: 0 // Instagram doesn't use titles
       }
+    },
+    mediaConstraints: {
+      image: {
+        maxWidth: 1080,
+        maxHeight: 1350,
+        aspectRatios: ["1:1", "4:5", "1.91:1"],
+        maxSizeMb: 30,
+        formats: ["jpg", "png"],
+      },
+      video: {
+        maxWidth: 1080,
+        maxHeight: 1920,
+        aspectRatios: ["1:1", "4:5", "16:9", "9:16"],
+        maxSizeMb: 4000, // 4GB
+        maxDurationSec: 3600, // 60 minutes for feed
+        maxFps: 30,
+        formats: ["mp4", "mov"],
+        audio: {
+          codecs: ["aac"],
+        },
+        video: {
+          codecs: ["h264"],
+        },
+      },
     },
     connectOptions: [
       {

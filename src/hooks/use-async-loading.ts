@@ -61,6 +61,7 @@ export function useAsyncLoading() {
     executeWithLoading,
     showLoading: loading.show,
     hideLoading: loading.hide,
+    updateLoading: loading.update,
     isLoading: loading.isLoading,
   }
 } 

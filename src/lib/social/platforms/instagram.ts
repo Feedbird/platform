@@ -30,15 +30,39 @@ const config: SocialPlatformConfig = {
   baseUrl: 'https://graph.facebook.com',
   features: {
     multipleAccounts: true,
-    multiplePages: true,
+    multiplePages: false,
     scheduling: true,
     analytics: true,
-    deletion: false, // Instagram API doesn't support post deletion
-    mediaTypes: ['image', 'video', 'carousel'],
+    deletion: true,
+    mediaTypes: ["image", "video"],
     maxMediaCount: 10,
     characterLimits: {
-      content: 2200, // Instagram's caption limit
-    }
+      content: 2200,
+    },
+  },
+  mediaConstraints: {
+    image: {
+      maxWidth: 1080,
+      maxHeight: 1350,
+      aspectRatios: ["1:1", "4:5", "1.91:1"],
+      maxSizeMb: 30,
+      formats: ["jpg", "png"],
+    },
+    video: {
+      maxWidth: 1080,
+      maxHeight: 1920,
+      aspectRatios: ["1:1", "4:5", "16:9", "9:16"],
+      maxSizeMb: 4000, // 4GB
+      maxDurationSec: 3600, // 60 minutes for feed
+      maxFps: 30,
+      formats: ["mp4", "mov"],
+      audio: {
+        codecs: ["aac"],
+      },
+      video: {
+        codecs: ["h264"],
+      },
+    },
   },
   connectOptions: [
     {

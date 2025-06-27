@@ -28,7 +28,7 @@ const config: SocialPlatformConfig = {
   apiVersion: 'v19.0',
   baseUrl: 'https://graph.facebook.com',
   features: {
-    multipleAccounts: false,
+    multipleAccounts: true,
     multiplePages: true,
     scheduling: true,
     analytics: true,
@@ -38,6 +38,31 @@ const config: SocialPlatformConfig = {
     characterLimits: {
       content: 63206 // Facebook's actual limit
     }
+  },
+  mediaConstraints: {
+    image: {
+      maxWidth: 1200,
+      maxHeight: 1350,
+      aspectRatios: ["1.91:1", "1:1", "4:5"],
+      maxSizeMb: 8,
+      formats: ["jpg", "png"],
+    },
+    video: {
+      maxWidth: 1280,
+      maxHeight: 720,
+      aspectRatios: ["16:9", "1:1", "4:5", "9:16"],
+      maxSizeMb: 250,
+      maxDurationSec: 14400, // 240 minutes
+      maxFps: 30,
+      formats: ["mp4", "mov"],
+      audio: {
+        codecs: ["aac"],
+        minBitrateKbps: 128,
+      },
+      video: {
+        codecs: ["h264"],
+      },
+    },
   },
   connectOptions: [
     {
