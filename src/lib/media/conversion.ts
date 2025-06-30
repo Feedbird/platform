@@ -9,7 +9,6 @@ const mediaConstraints: Record<Platform, any> = {
     pinterest: { /* ... pinterest constraints ... */ },
     youtube: { /* ... youtube constraints ... */ },
     tiktok: { /* ... tiktok constraints ... */ },
-    "google-business": { /* ... google-business constraints ... */ },
     google: { /* ... google constraints ... */ },
 };
 
