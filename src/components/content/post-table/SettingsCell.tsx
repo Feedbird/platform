@@ -97,12 +97,12 @@ export function SettingsEditCell({
               onClick={() => setOpen(true)}
             >
               <div className="flex items-center flex-nowrap min-w-0">
-                <div className="flex-shrink-0 flex items-center gap-[6px]">
+                <div className="flex-shrink-0 flex items-center gap-[8px]">
                   <TooltipProvider>
                     {(Object.keys(ICONS) as (keyof PostSettings)[]).map((k) => (
                       <Tooltip key={k}>
                         <TooltipTrigger asChild>
-                          <span className="border border-border-button rounded-[6px] p-[6px] text-[#737C8B]">{React.cloneElement(ICONS[k] as any, {
+                          <span className="text-[#5C5E63]">{React.cloneElement(ICONS[k] as any, {
                             className: iconClass(settings[k]),
                           })}</span>
                         </TooltipTrigger>

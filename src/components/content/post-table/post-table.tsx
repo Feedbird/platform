@@ -748,12 +748,33 @@ export function PostTable({
         enableSorting: false,
         cell: ({ row }) => {
           const post = row.original;
+          
+          const handleFilesSelected = async (files: File[]) => {
+            // Handle file upload logic here
+            // For now, we'll just log the files
+            // In a real implementation, you'd upload to your API and update the post
+            console.log('Files selected for post:', post.id, files);
+            
+            // TODO: Implement actual file upload
+            // 1. Upload files to /api/media/upload
+            // 2. Create blocks from uploaded files
+            // 3. Update post with new blocks
+          };
+
           return (
             <div
-              className="flex flex-1 px-[4px] py-[4px] cursor-pointer h-full"
-              onClick={() => onOpen?.(post.id)}
+              className="flex flex-1 px-[4px] py-[4px] h-full"
+              onClick={(e) => {
+                // Only open modal if there are blocks to view
+                if (post.blocks.length > 0) {
+                  onOpen?.(post.id);
+                }
+              }}
             >
-              <BlocksPreview blocks={post.blocks} />
+              <BlocksPreview 
+                blocks={post.blocks} 
+                onFilesSelected={handleFilesSelected}
+              />
             </div>
           );
         },
@@ -958,8 +979,8 @@ export function PostTable({
                       handleEditPost(post);
                     }}
                   >
-                    <Image src={`/images/columns/revision.svg`} alt="revision" width={14} height={14} />
-                    <span className="text-sm text-black font-semibold">Needs revision</span>
+                    <Image src={`/images/columns/request.svg`} alt="revision" width={14} height={14} />
+                    <span className="text-sm text-black font-semibold">Request changes</span>
                   </Button>
                 </div>
               </div>

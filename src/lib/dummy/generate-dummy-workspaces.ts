@@ -194,7 +194,7 @@ function makePost(brandId: string, brandPlatforms: Platform[]): Post {
 
   /* now build blocks with the chosen kind */
   const blocks = Array.from(
-    { length: faker.number.int({ min: 1, max: 3 }) },
+    { length: faker.number.int({ min: 0, max: 2 }) },
     () => makeBlock(fileKind),
   );
 
