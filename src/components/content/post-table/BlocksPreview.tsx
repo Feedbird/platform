@@ -36,7 +36,7 @@ export function BlocksPreview({ blocks }: { blocks: Block[] }) {
               relative flex-shrink-0
               rounded-[2px] bg-black/10 overflow-hidden
             "
-            style={{ aspectRatio: "1 / 1", height: "100%" }}
+            style={{ aspectRatio: "1 / 1", height: "100%", border: "0.5px solid #D0D5D0", borderRadius: "2px" }}
           >
             {isVideo ? (
               <video
