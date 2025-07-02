@@ -148,7 +148,7 @@ export function PublishDateCell({
           {!isScheduled && !isPublished && !isFailedPublishing ? (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <div className="cursor-pointer">
+                <div className="cursor-pointer" style={{width: "fit-content"}}>
                   {hasDate ? (
                     /* If has time but not scheduled: show chip style with calendar icon + time */
                     <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
