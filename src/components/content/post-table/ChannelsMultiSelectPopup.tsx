@@ -21,9 +21,7 @@ export function ChannelsMultiSelectPopup({
   const [showManageDialog, setShowManageDialog] = React.useState(false);
 
   // Get all available pages from the brand
-  const availablePages = brand?.socialPages?.filter(
-    (page) => page.connected
-  ) ?? [];
+  const availablePages = brand?.socialPages?.filter((page) => page.connected) ?? [];
 
   function toggle(pageId: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -40,29 +38,52 @@ export function ChannelsMultiSelectPopup({
 
   return (
     <>
-      <div className="p-[4px] w-full flex flex-col rounded-[6px] border border-[1px] border-[#EAECF0]">
+      <div className="w-full flex flex-col rounded-[6px] border border-[1px] border-[#EAECF0] gap-1 pb-1">
+        {/* Connected Social Icons */}
+        {vals.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap p-2 bg-[#F8F8F8] border-b" style={{borderColor:'#E6E4E2'}}>
+            {vals.map((id) => {
+              const pg = availablePages.find((p) => p.id === id);
+              if (!pg) return null;
+              return (
+                <div key={id} className="relative">
+                  <ChannelIcons channels={[pg.platform]} size={18} />
+                  <button
+                    className="absolute -top-1 -right-1 bg-[#5C5E63] rounded-full p-[1px] flex items-center justify-center cursor-pointer"
+                    onClick={(e) => toggle(id, e as any)}
+                  > 
+                    <Plus className="w-[10px] h-[10px] rotate-45 text-white" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Select Socials Label */}
-        <div className="px-[12px] pt-[8px] pb-[4px] text-sm font-semibold text-black">
+        <div className="px-2 pt-1 pb-1 text-sm font-semibold text-black">
           Select Socials
         </div>
 
         {/* Social Pages List */}
-        <div className="flex flex-col">
+        <div className="flex flex-col px-2">
           {availablePages.map((page) => (
             <Button
               key={page.id}
               variant="ghost"
               className={cn(
-                "justify-start",
-                "cursor-pointer",
+                "justify-start cursor-pointer p-0",
+                "rounded-none",
                 vals.includes(page.id)
-                  ? "bg-[#D7E9FF] text-black"
-                  : "hover:bg-[#F4F5F6]"
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted/50"
               )}
               size="sm"
               onClick={(e) => toggle(page.id, e)}
             >
               <div className="flex items-center space-x-2">
+                {/* Placeholder spacing to align icons */}
+                <span className="w-3 h-3" />
                 <ChannelIcons channels={[page.platform]} whiteBorder={false} />
                 <span className="text-sm font-medium">{page.name}</span>
               </div>
@@ -71,7 +92,7 @@ export function ChannelsMultiSelectPopup({
         </div>
 
         {/* Separator */}
-        <Separator className="my-1 mx-auto w-9/10" />
+        <Separator className="mx-auto w-9/10" />
 
         {/* Add Socials Button */}
         <Button
