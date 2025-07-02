@@ -17,7 +17,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { ChevronDown, AlarmClock, CalendarDays, Plus } from "lucide-react";
+import { ChevronDown, AlarmClock, CalendarDays, Plus, Clock, Globe, Settings } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -118,6 +118,7 @@ export function PublishDateCell({
       fallback.setHours(9, 0, 0, 0);
       updatePost(post.id, { publishDate: fallback, status: "Scheduled" });
     }
+    setPopoverOpen(false);
   }
 
   function handleUnschedule() {
@@ -194,58 +195,131 @@ export function PublishDateCell({
               <PopoverContent 
                 align="center" 
                 side="bottom"
-                sideOffset={6} 
-                collisionPadding={16}
                 avoidCollisions={true}
-                className="w-auto min-w-[280px]"
+                className="w-auto min-w-[250px]"
+                style={{
+                  display: "flex",
+                  width: "250px",
+                  padding: "4px 0px",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                  borderRadius: "6px",
+                  background: "rgba(255, 255, 255, 0.95)",
+                  boxShadow: "0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.06), 0px 3px 3px -1.5px rgba(0, 0, 0, 0.06), 0px 6px 6px -3px rgba(0, 0, 0, 0.06), 0px 12px 12px -6px rgba(0, 0, 0, 0.04), 0px 24px 24px -12px rgba(0, 0, 0, 0.04)",
+                  backdropFilter: "blur(4px)"
+                }}
               >
-                <div className="p-3 space-y-3 max-h-[calc(100vh-100px)] overflow-auto">
-                  <Calendar
-                    mode="single"
-                    selected={tempDate}
-                    onSelect={(d) => d && setTempDate(d)}
-                    className="w-full mx-auto text-sm"
-                    classNames={{
-                      day_today: "bg-[#EDF0FF] rounded-full",
-                      day_selected: "bg-[#4D3AF1] rounded-full text-white",
-                      day: "h-8 w-8 text-sm p-0",
-                      nav_button: "h-8 w-8",
-                    }}
-                  />
-                  <div className="text-xs text-muted-foreground text-center">
-                    {format(tempDate, "EEE, MMM d yyyy")}
+                {!hasDate ? (
+                  /* Show menu options when no time is set */
+                  <div>
+                    {/* Auto Schedule */}
+                    <div className="px-[10px] py-[8px] cursor-pointer gap-[2px]" onClick={handleAutoSchedule}>
+                      <div className="text-sm font-medium text-black flex flex-row items-center gap-[6px]">
+                        <Image 
+                          src={"/images/publish/clock-check.svg"} 
+                          alt="Auto Schedule" 
+                          width={14} 
+                          height={14}
+                        />
+                        <p>Auto Schedule</p>
+                      </div>
+                      <div className="text-sm font-normal text-[#5C5E63]">
+                        Scheduled for the optimal time upon approval
+                      </div>
+                    </div>
+                    
+                    <div className="h-px bg-[#E6E4E2] mx-2 my-1"></div>
+                    
+                    {/* Custom Date */}
+                    <div className="px-[10px] py-[8px] cursor-pointer" onClick={() => setPopoverOpen(false)}>
+                      <div className="flex items-center gap-[6px]">
+                        <Image 
+                          src={"/images/publish/auto-schedule.svg"} 
+                          alt="Custom Date" 
+                          width={14} 
+                          height={14}
+                        />
+                        <div className="text-sm font-medium text-black">Custom Date</div>
+                      </div>
+                    </div>
+                    
+                    {/* Change Workspace Timezone */}
+                    <div className="px-[10px] py-[8px] cursor-pointer" onClick={() => setPopoverOpen(false)}>
+                      <div className="flex items-center gap-[6px]">
+                        <Image 
+                          src={"/images/publish/timezone.svg"} 
+                          alt="Change workspace time zone" 
+                          width={14} 
+                          height={14}
+                        />
+                        <div className="text-sm font-medium text-black">Change workspace time zone</div>
+                      </div>
+                    </div>
+                    
+                    {/* Allowed Posting Time */}
+                    <div className="px-[10px] py-[8px] cursor-pointer" onClick={() => setPopoverOpen(false)}>
+                      <div className="flex items-center gap-[6px]">
+                        <Image 
+                          src={"/images/columns/updated-time.svg"} 
+                          alt="Change workspace time zone" 
+                          width={14} 
+                          height={14}
+                        />
+                        <div className="text-sm font-medium text-black">Allowed posting time</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs font-medium text-center">
-                    {`Local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
+                ) : (
+                  /* Show datetime selector when time is set */
+                  <div className="p-3 space-y-3 max-h-[calc(100vh-100px)] overflow-auto">
+                    <Calendar
+                      mode="single"
+                      selected={tempDate}
+                      onSelect={(d) => d && setTempDate(d)}
+                      className="w-full mx-auto text-sm"
+                      classNames={{
+                        day_today: "bg-[#EDF0FF] rounded-full",
+                        day_selected: "bg-[#4D3AF1] rounded-full text-white",
+                        day: "h-8 w-8 text-sm p-0",
+                        nav_button: "h-8 w-8",
+                      }}
+                    />
+                    <div className="text-xs text-muted-foreground text-center">
+                      {format(tempDate, "EEE, MMM d yyyy")}
+                    </div>
+                    <div className="text-xs font-medium text-center">
+                      {`Local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <AlarmClock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <Select value={timeVal} onValueChange={(v) => setTimeVal(v)}>
+                        <SelectTrigger className="border rounded px-2 py-1 flex-1 min-w-0 text-sm h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[180px] w-full min-w-[140px]">
+                          {buildHalfHourSlots().map((slot) => (
+                            <SelectItem 
+                              key={slot.value} 
+                              value={slot.value}
+                              className="text-sm h-8"
+                            >
+                              {slot.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleSetDate} 
+                      className="w-full h-9 text-sm"
+                    >
+                      Set date
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <AlarmClock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <Select value={timeVal} onValueChange={(v) => setTimeVal(v)}>
-                      <SelectTrigger className="border rounded px-2 py-1 flex-1 min-w-0 text-sm h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[180px] w-full min-w-[140px]">
-                        {buildHalfHourSlots().map((slot) => (
-                          <SelectItem 
-                            key={slot.value} 
-                            value={slot.value}
-                            className="text-sm h-8"
-                          >
-                            {slot.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleSetDate} 
-                    className="w-full h-9 text-sm"
-                  >
-                    Set date
-                  </Button>
-                </div>
+                )}
               </PopoverContent>
             </Popover>
           ) : (
@@ -284,36 +358,94 @@ export function PublishDateCell({
         </div>
       </div>
       {/* Additional action icons */}
-      <div className="flex flex-row gap-2 flex-shrink-0">
-        {/* Auto-schedule (only if not published/scheduled/failed publishing) */}
-        {showClock && !isPublished && !isFailedPublishing && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={handleAutoSchedule}
+      {hasDate && (
+        <div className="flex flex-row gap-2 flex-shrink-0">
+          {/* Auto-schedule (only if not published/scheduled/failed publishing) */}
+          {showClock && !isPublished && !isFailedPublishing && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={handleAutoSchedule}
+                  >
+                    <Image
+                      src="/images/publish/auto-schedule.svg"
+                      alt="Auto Schedule"
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="bg-[#151515] text-white border-none text-xs"
                 >
-                  <Image
-                    src="/images/publish/auto-schedule.svg"
-                    alt="Auto Schedule"
-                    width={16}
-                    height={16}
-                  />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className="bg-[#151515] text-white border-none text-xs"
-              >
-                Auto Schedule
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+                  Auto Schedule
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
 
-        {/* Publish now (only if we have a date & not published/failed publishing) */}
-        {showSend && !isPublished && !isFailedPublishing && (
+          {/* Publish now (only if we have a date & not published/failed publishing) */}
+          {showSend && !isPublished && !isFailedPublishing && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => setConfirmPublishOpen(true)}
+                  >
+                    <Image
+                      src="/images/publish/publish.svg"
+                      alt="Publish"
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="bg-[#151515] text-white border-none text-xs"
+                >
+                  Publish Now
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* Unschedule (only if status === "Scheduled" and not published/failed publishing) */}
+          {showClockOff && !isPublished && !isFailedPublishing && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={handleUnschedule}
+                  >
+                    <Image
+                      src="/images/publish/unschedule.svg"
+                      alt="Unschedule"
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="bg-[#151515] text-white border-none text-xs"
+                >
+                  Unschedule
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      )}
+
+      {/* Publish now button for failed publishing posts (even without date) */}
+      {isFailedPublishing && (
+        <div className="flex flex-row gap-2 flex-shrink-0">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -337,35 +469,8 @@ export function PublishDateCell({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        )}
-
-        {/* Unschedule (only if status === "Scheduled" and not published/failed publishing) */}
-        {showClockOff && !isPublished && !isFailedPublishing && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={handleUnschedule}
-                >
-                  <Image
-                    src="/images/publish/unschedule.svg"
-                    alt="Unschedule"
-                    width={16}
-                    height={16}
-                  />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className="bg-[#151515] text-white border-none text-xs"
-              >
-                Unschedule
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ----- Confirm Scheduling Dialog ----- */}
       <ConfirmScheduleDialog
