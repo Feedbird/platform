@@ -198,7 +198,7 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
                 <div className={cn(
                   "flex flex-row items-center gap-1 rounded-[4px] bg-white",
                   )} style={{
-                    padding: "1px 6px 1px 4px",
+                    padding: "3px 6px 3px 4px",
                     boxShadow: "0px 0px 0px 1px #D3D3D3"
                   }}>
                     <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
@@ -206,7 +206,7 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
                         "w-3 h-3 text-[#5C5E63]",
                       )}/>
                     </div>
-                   <span className="text-sm text-[#5C5E63] font-semibold">Select socials</span>
+                   <span className="text-xs text-[#5C5E63] font-semibold">Select socials</span>
                 </div>
               )}
 

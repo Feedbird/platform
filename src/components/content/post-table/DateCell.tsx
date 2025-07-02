@@ -17,7 +17,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { ChevronDown, AlarmClock } from "lucide-react";
+import { ChevronDown, AlarmClock, CalendarDays, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -51,13 +51,44 @@ export function PublishDateCell({
 
   const isScheduled = post.status === "Scheduled";
   const isPublished = post.status === "Published";
+  const isFailedPublishing = post.status === "Failed Publishing";
   const hasDate = !!savedDate;
   const displayText = hasDate ? formatDateTime(savedDate!) : "No time is set yet";
 
-  const showChevronDown = !isScheduled;
   const showClock = !isScheduled; // auto-schedule button
   const showSend = hasDate;       // "publish now" button
   const showClockOff = hasDate && isScheduled; // "unschedule" button
+
+  // Helper functions to get styling based on status
+  const getStatusStyling = () => {
+    if (isPublished) {
+      return {
+        backgroundColor: "#DDF9E4",
+        borderColor: "rgba(28, 29, 31, 0.05)",
+        iconBackgroundColor: "#0DAD69",
+        iconSrc: "/images/publish/published.svg",
+        textColor: "#000000"
+      };
+    } else if (isFailedPublishing) {
+      return {
+        backgroundColor: "#F5EEFF",
+        borderColor: "#EAE4F4",
+        iconBackgroundColor: "#A064F5",
+        iconSrc: "/images/publish/failed-published.svg",
+        textColor: "#000000"
+      };
+    } else {
+      return {
+        backgroundColor: "#E5EEFF",
+        borderColor: "rgba(28, 29, 31, 0.05)",
+        iconBackgroundColor: "#125AFF",
+        iconSrc: "/images/columns/post-time.svg",
+        textColor: "#133495"
+      };
+    }
+  };
+
+  const statusStyling = getStatusStyling();
 
   // We'll open separate dialogs for scheduling vs publishing
   const [confirmScheduleOpen, setConfirmScheduleOpen] = useState(false);
@@ -79,13 +110,13 @@ export function PublishDateCell({
   function handleAutoSchedule() {
     const suggestions = getSuggestedSlots(post, allPosts, 5);
     if (suggestions.length > 0) {
-      updatePost(post.id, { publishDate: suggestions[0].date });
+      updatePost(post.id, { publishDate: suggestions[0].date, status: "Scheduled" });
     } else {
       // fallback => next week 9:00am
       const fallback = new Date();
       fallback.setDate(fallback.getDate() + 7);
       fallback.setHours(9, 0, 0, 0);
-      updatePost(post.id, { publishDate: fallback });
+      updatePost(post.id, { publishDate: fallback, status: "Scheduled" });
     }
   }
 
@@ -108,71 +139,77 @@ export function PublishDateCell({
   }
 
   return (
-    <div className="flex items-center justify-between w-full px-2">
+    <div className="flex items-center justify-between w-full px-2 py-[6px]">
       {/* Date text + popover trigger */}
       <div className="flex items-center w-full min-w-0 max-w-full">
-        <div
-          className={cn(
-            "text-sm mr-1 font-normal truncate flex-1 min-w-0 flex flex-row items-center",
-            !hasDate ? "text-muted-foreground" : "text-black",
-            "gap-2",
-          )}
-          title={displayText}
-        >
-          <span className="truncate">{displayText}</span>
-          {/* Date/time popover - only if not scheduled/published */}
-          {showChevronDown && !isPublished && (
+        <div className="flex-1 min-w-0">
+          {/* Date/time popover - only if not scheduled/published/failed publishing */}
+          {!isScheduled && !isPublished && !isFailedPublishing ? (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "flex-shrink-0 cursor-pointer text-muted-foreground",
-                    // More responsive sizing with better breakpoints
-                    "h-[18px] w-[18px] p-0 m-0 flex justify-center items-center",
+                <div className="cursor-pointer">
+                  {hasDate ? (
+                    /* If has time but not scheduled: show chip style with calendar icon + time */
+                    <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
+                      padding: "1px 6px 1px 4px",
+                      border: `1px solid ${statusStyling.borderColor}`,
+                      backgroundColor: statusStyling.backgroundColor,
+                      width: "fit-content"
+                    }}>
+                      <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
+                        backgroundColor: statusStyling.iconBackgroundColor
+                      }}>
+                        <Image 
+                          src={statusStyling.iconSrc} 
+                          alt="Publish Date" 
+                          width={12} 
+                          height={12}
+                          className="filter brightness-0 invert"
+                          style={{ filter: 'brightness(0) invert(1)' }}
+                        />
+                      </div>
+                      <span className="text-xs text-[#133495] font-semibold whitespace-nowrap" style={{
+                        lineHeight: "18px",
+                      }}>{displayText}</span>
+                    </div>
+                  ) : (
+                    /* If no time: show icon button with + icon + "Select time" label */
+                    <div className={cn(
+                      "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                      )} style={{
+                        padding: "3px 6px 3px 4px",
+                        boxShadow: "0px 0px 0px 1px #D3D3D3",
+                        width: "fit-content"
+                      }}>
+                        <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                          <Plus className={cn(
+                            "w-3 h-3 text-[#5C5E63]",
+                          )}/>
+                        </div>
+                       <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
+                    </div>
                   )}
-                >
-                  <ChevronDown className={cn(
-                    "w-2.5 h-2.5",
-                  )} />
-                </Button>
+                </div>
               </PopoverTrigger>
               <PopoverContent 
                 align="center" 
                 side="bottom"
                 sideOffset={6} 
-                collisionPadding={16} // More padding on mobile
+                collisionPadding={16}
                 avoidCollisions={true}
-                className={cn(
-                  // Responsive width with better mobile support
-                  "w-auto min-w-[280px]",
-                )}
+                className="w-auto min-w-[280px]"
               >
-                <div className={cn(
-                  "p-3 space-y-3", // More padding on mobile
-                  // Responsive height with mobile considerations
-                  "max-h-[calc(100vh-100px)]", // Ensure it fits in viewport
-                  "overflow-auto",
-                )}>
+                <div className="p-3 space-y-3 max-h-[calc(100vh-100px)] overflow-auto">
                   <Calendar
                     mode="single"
                     selected={tempDate}
                     onSelect={(d) => d && setTempDate(d)}
-                    className={cn(
-                      "w-full mx-auto",
-                      "text-sm"
-                    )}
+                    className="w-full mx-auto text-sm"
                     classNames={{
                       day_today: "bg-[#EDF0FF] rounded-full",
                       day_selected: "bg-[#4D3AF1] rounded-full text-white",
-                      // More responsive day cells with better touch targets
-                      day: cn(
-                        "h-8 w-8 text-sm p-0", // Default
-                      ),
-                      nav_button: cn(
-                        "h-8 w-8", // Default nav buttons
-                      ),
+                      day: "h-8 w-8 text-sm p-0",
+                      nav_button: "h-8 w-8",
                     }}
                   />
                   <div className="text-xs text-muted-foreground text-center">
@@ -182,32 +219,17 @@ export function PublishDateCell({
                     {`Local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <AlarmClock className={cn(
-                      "w-4 h-4 text-muted-foreground flex-shrink-0",
-                    )} />
+                    <AlarmClock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <Select value={timeVal} onValueChange={(v) => setTimeVal(v)}>
-                      <SelectTrigger className={cn(
-                        "border rounded px-2 py-1 flex-1 min-w-0",
-                        "text-sm",
-                        // More touch-friendly height
-                        "h-9",
-                      )}>
+                      <SelectTrigger className="border rounded px-2 py-1 flex-1 min-w-0 text-sm h-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className={cn(
-                        // Better mobile dropdown sizing
-                        "max-h-[180px]",
-                        "w-full min-w-[140px]"
-                      )}>
+                      <SelectContent className="max-h-[180px] w-full min-w-[140px]">
                         {buildHalfHourSlots().map((slot) => (
                           <SelectItem 
                             key={slot.value} 
                             value={slot.value}
-                            className={cn(
-                              "text-sm",
-                              // Touch-friendly item height
-                              "h-8",
-                            )}
+                            className="text-sm h-8"
                           >
                             {slot.label}
                           </SelectItem>
@@ -219,25 +241,52 @@ export function PublishDateCell({
                     variant="outline" 
                     size="sm" 
                     onClick={handleSetDate} 
-                    className={cn(
-                      "w-full",
-                      // More touch-friendly button
-                      "h-9",
-                      "text-sm",
-                    )}
+                    className="w-full h-9 text-sm"
                   >
                     Set date
                   </Button>
                 </div>
               </PopoverContent>
             </Popover>
+          ) : (
+            /* If scheduled/published/failed publishing or has date: show status with icon + time below */
+            <div className="flex flex-col">
+              {isScheduled && (
+                <span className="text-sm font-normal text-[#5C5E63] mb-1" style={{lineHeight: "18px"}}>
+                  Scheduled
+                </span>
+              )}
+              <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
+                padding: "1px 6px 1px 4px",
+                border: `1px solid ${statusStyling.borderColor}`,
+                backgroundColor: statusStyling.backgroundColor,
+                width: "fit-content"
+              }}>
+                <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
+                  backgroundColor: statusStyling.iconBackgroundColor
+                }}>
+                  <Image 
+                    src={statusStyling.iconSrc} 
+                    alt="Publish Date" 
+                    width={12} 
+                    height={12}
+                    className="filter brightness-0 invert"
+                    style={{ filter: 'brightness(0) invert(1)' }}
+                  />
+                </div>
+                <span className="text-xs font-semibold whitespace-nowrap" style={{
+                  lineHeight: "18px",
+                  color: statusStyling.textColor
+                }}>{displayText}</span>
+              </div>
+            </div>
           )}
         </div>
       </div>
       {/* Additional action icons */}
       <div className="flex flex-row gap-2 flex-shrink-0">
-        {/* Auto-schedule (only if not published/scheduled) */}
-        {showClock && !isPublished && (
+        {/* Auto-schedule (only if not published/scheduled/failed publishing) */}
+        {showClock && !isPublished && !isFailedPublishing && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -263,8 +312,8 @@ export function PublishDateCell({
           </TooltipProvider>
         )}
 
-        {/* Publish now (only if we have a date & not published) */}
-        {showSend && !isPublished && (
+        {/* Publish now (only if we have a date & not published/failed publishing) */}
+        {showSend && !isPublished && !isFailedPublishing && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -290,8 +339,8 @@ export function PublishDateCell({
           </TooltipProvider>
         )}
 
-        {/* Unschedule (only if status === "Scheduled") */}
-        {showClockOff && !isPublished && (
+        {/* Unschedule (only if status === "Scheduled" and not published/failed publishing) */}
+        {showClockOff && !isPublished && !isFailedPublishing && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -511,7 +560,7 @@ export function UpdateDateCell({ post }: { post: Post }) {
   const d = post.updatedAt ? new Date(post.updatedAt) : null;
   const display = d ? formatDateTime(d) : "—";
   return (
-    <span className="text-sm whitespace-nowrap min-w-[110px] overflow-hidden text-ellipsis">
+    <span className="text-sm text-[#5C5E63] font-normal whitespace-nowrap min-w-[110px] overflow-hidden text-ellipsis">
       {display}
     </span>
   );
@@ -521,5 +570,25 @@ export function UpdateDateCell({ post }: { post: Post }) {
    Helpers
   ───────────────────────────────────────────────────────────────────*/
 function formatDateTime(date: Date) {
-  return format(date, "MMM dd, hh:mm aa");
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const inputDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  const diffTime = inputDate.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  const timeStr = format(date, "h:mm aa");
+  
+  if (diffDays === 0) {
+    return `Today, ${timeStr}`;
+  } 
+  // else if (diffDays === -1) {
+  //   return `Yesterday, ${timeStr}`;
+  // } 
+  // else if (diffDays === 1) {
+  //   return `Tomorrow, ${timeStr}`;
+  // } 
+  else {
+    return format(date, "MMM dd, h:mm aa");
+  }
 }
