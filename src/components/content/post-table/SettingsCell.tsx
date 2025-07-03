@@ -19,157 +19,299 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin, AtSign, Image as ImageIcon, SlidersHorizontal } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, AtSign, Image as ImageIcon, X } from "lucide-react";
 
 /* ------------------------------------------------------------ */
-/* Types + helpers                                               */
+/* Types & helpers                                               */
 /* ------------------------------------------------------------ */
-export type PostSettings = {
-  location   : boolean; // "Add location tag"
-  tagAccounts: boolean; // "Tag accounts"
-  thumbnail  : boolean; // "Adjust video thumbnail"
+// Flag mapping for icons only
+type SettingFlags = {
+  location   : boolean;
+  tagAccounts: boolean;
+  thumbnail  : boolean;
 };
 
-const DEFAULT_VAL: PostSettings = {
+const DEFAULT_FLAGS: SettingFlags = {
   location: false,
   tagAccounts: false,
   thumbnail: false,
 };
 
-const LABELS: Record<keyof PostSettings, string> = {
+const LABELS: Record<keyof SettingFlags, string> = {
   location   : "Location Tag",
   tagAccounts: "Tag Accounts",
   thumbnail  : "Custom Thumbnail",
 };
 
-const ICONS: Record<keyof PostSettings, React.ReactNode> = {
+const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
   location   : <Image src={`/images/settings/map.svg`} alt="Location" width={16} height={16} />,
   tagAccounts: <Image src={`/images/settings/at-sign.svg`} alt="Tag Accounts" width={16} height={16} />,
   thumbnail  : <Image src={`/images/settings/image.svg`} alt="Thumbnail" width={16} height={16} />,
 };
 
-/* colour helper */
 const iconClass = (active: boolean) =>
-  cn(
-     active ? "text-[#4D3AF1]" /* brand purple when ON  */
-            : "text-[#737C8B]"); /* grey when OFF  */
+  cn(active ? "text-[#4D3AF1]" : "text-[#737C8B]");
 
 /* ------------------------------------------------------------ */
-/* Main cell                                                    */
+/* Component                                                     */
 /* ------------------------------------------------------------ */
+interface Props {
+  value: Partial<SettingsData> | undefined;
+  onChange: (v: SettingsData) => void;
+  isFocused?: boolean;
+  isEditing?: boolean;
+  enterEdit?: () => void;
+  exitEdit?: () => void;
+}
+
+interface SettingsData {
+  locationTags: string[];
+  taggedAccounts: string[];
+  thumbnail: boolean;
+}
+
 export function SettingsEditCell({
   value,
   onChange,
-}: {
-  value    : Partial<PostSettings>;         // may be partial / undefined
-  onChange : (v: PostSettings) => void;
-}) {
-  /** local (mutable) copy while inside the pop-over */
-  const [settings, setSettings] = React.useState<PostSettings>({
-    ...DEFAULT_VAL,
-    ...value,
-  });
+  isFocused,
+  isEditing,
+  enterEdit,
+  exitEdit,
+}: Props) {
+  const initial = React.useMemo<SettingsData>(() => ({
+    locationTags: value?.locationTags ?? [],
+    taggedAccounts: value?.taggedAccounts ?? [],
+    thumbnail: value?.thumbnail ?? false,
+  }), [value]);
 
-  /* for opening the editor pop-over */
-  const [open, setOpen] = React.useState<boolean>(false);
+  const [local, setLocal] = React.useState<SettingsData>(initial);
 
-  /* when the pop-over closes → commit to parent */
-  const handleClose = () => {
-    setOpen(false);
-    onChange(settings);
-  };
+  /* Helper booleans for UI */
+  const activeFlags: SettingFlags = {
+    location: local.locationTags.length > 0,
+    tagAccounts: local.taggedAccounts.length > 0,
+    thumbnail: local.thumbnail,
+  } as const;
 
-  /** quick toggle inside the editor */
-  const toggle = (key: keyof PostSettings) =>
-    setSettings((s) => ({ ...s, [key]: !s[key] }));
+  type FlagKey = keyof typeof activeFlags;
 
-  /** ---------------------------------------------------------------- */
+  function toggleFlag(k: FlagKey) {
+    setLocal(prev => {
+      switch(k) {
+        case 'thumbnail':
+          return { ...prev, thumbnail: !prev.thumbnail };
+        case 'location':
+          return { ...prev, locationTags: [] };
+        case 'tagAccounts':
+          return { ...prev, taggedAccounts: [] };
+      }
+    });
+  }
+
+  /* -------------------------------- popover control ------------------------------ */
+  const open = !!isEditing; // controlled by FocusProvider
+
+  /* ------------------------------- Modal state ------------------------------- */
+  const [modalOpen, setModalOpen] = React.useState(false);
+
+  /* -------------------------------------------------------------------------- */
+  /* JSX                                                                        */
+  /* -------------------------------------------------------------------------- */
   return (
-    <Popover open={open} onOpenChange={(o) => !o ? handleClose() : setOpen(true)}>
-      <HoverCard openDelay={120}>
-        {/*  ONE trigger div that  ➜  opens pop-over on click,
-            and acts as hover-trigger for the details card      */}
-        <HoverCardTrigger asChild>
+    <HoverCard openDelay={120} open={isFocused ? false : undefined}>
+      {/* TRIGGER: entire cell  */}
+      <HoverCardTrigger asChild>
+        <Popover
+          open={open}
+          onOpenChange={(o) => {
+            if (o) enterEdit?.();
+            else {
+              onChange(local);
+              exitEdit?.();
+            }
+          }}
+        >
+          {/* Clickable cell */}
           <PopoverTrigger asChild>
-            <div
-              className="cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]"
-              onClick={() => setOpen(true)}
-            >
-              <div className="flex items-center flex-nowrap min-w-0">
-                <div className="flex-shrink-0 flex items-center gap-[8px]">
-                  <TooltipProvider>
-                    {(Object.keys(ICONS) as (keyof PostSettings)[]).map((k) => (
-                      <Tooltip key={k}>
-                        <TooltipTrigger asChild>
-                          <span className="text-[#5C5E63]">{React.cloneElement(ICONS[k] as any, {
-                            className: iconClass(settings[k]),
-                          })}</span>
-                        </TooltipTrigger>
-                        {/* subtle dark tooltip – tweak colours in tailwind config if desired */}
-                        <TooltipContent
-                          side="top"
-                          className="bg-[#151515] text-white border-none text-xs "
-                        >
-                          {LABELS[k]}
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </TooltipProvider>
-                </div>
+            <div className="cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]">
+              <div className="flex items-center gap-[8px]">
+                <TooltipProvider>
+                  {(Object.keys(ICONS) as (keyof SettingFlags)[]).map((k) => (
+                    <Tooltip key={k}>
+                      <TooltipTrigger asChild>
+                        <span>{React.cloneElement(ICONS[k] as any, {
+                          className: iconClass(activeFlags[k as FlagKey]),
+                        })}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#151515] text-white border-none text-xs">
+                        {LABELS[k as keyof SettingFlags]}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+                {isFocused && !isEditing && (
+                  <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                )}
               </div>
             </div>
           </PopoverTrigger>
-        </HoverCardTrigger>
 
-        {/* ---------------------------------------------------------- */}
-        {/* 💬  Hover-only card with a tiny summary                    */}
-        <HoverCardContent className="p-2 w-[220px]">
-          <p className="text-sm font-semibold mb-1">Post settings</p>
-          <ul className="space-y-1 text-xs">
-            {(Object.keys(LABELS) as (keyof PostSettings)[]).map((k) => (
-              <li key={k} className="flex items-center gap-2">
-                {React.cloneElement(ICONS[k] as any, {
-                  className: iconClass(settings[k]),
-                })}
-                <span>{LABELS[k]}</span>
-                <span className={cn(
-                  "ml-auto font-semibold",
-                  settings[k] ? "text-green-600" : "text-red-500"
-                )}>
-                  {settings[k] ? "ON" : "OFF"}
-                </span>
-              </li>
+          {/* DROPDOWN EDITOR */}
+          <PopoverContent className="pt-[8px] py-[12px] px-[12px] w-50" align="center" side="bottom" sideOffset={6}>
+            <p className="text-base font-semibold mb-[6px]">Settings</p>
+            {(Object.keys(LABELS) as (keyof SettingFlags)[]).map((k) => (
+              <label key={k} className="flex items-center justify-between py-[8px] gap-2 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  {React.cloneElement(ICONS[k as keyof SettingFlags] as any, { className: iconClass(activeFlags[k as FlagKey]) })}
+                  <span className="text-sm font-medium leading-[16px]">{LABELS[k as keyof SettingFlags]}</span>
+                </div>
+                <Checkbox 
+                  checked={activeFlags[k as FlagKey]} 
+                  onCheckedChange={() => toggleFlag(k as FlagKey)}
+                  className={cn(
+                    // base
+                    "h-4 w-4 rounded-none border border-[#D0D5DD] transition-colors duration-150 ease-in-out rounded-[3px]",
+                    "hover:border-[#2183FF]",                             // Airtable blue on hover
+                    // when it's checked
+                    "data-[state=checked]:bg-[#2183FF]",                 // Airtable blue fill
+                    "data-[state=checked]:border-[#2183FF]",             // Airtable blue stroke
+                    "data-[state=checked]:text-white"                    // << this makes the ✓ white
+                  )}
+                />
+              </label>
             ))}
-          </ul>
-        </HoverCardContent>
-      </HoverCard>
 
-      {/* ---------------------------------------------------------- */}
-      {/* ✔  Click-to-edit pop-over                                 */}
-      {open && (
-        <PopoverContent
-          className="p-3 w-56 space-y-2"
-          align="center"
-          side="bottom"
-          sideOffset={6}
-        >
-          <p className="text-sm font-semibold">Edit settings</p>
+            <Button
+              variant="outline"
+              className="w-full rounded-[6px] px-[16px] py-[6px] text-sm mt-[4px] font-semibold border border-[#D3D3D3]"
+              onClick={() => {
+                setModalOpen(true);
+                exitEdit?.();
+              }}
+            >
+              Open Settings
+            </Button>
+          </PopoverContent>
+        </Popover>
+      </HoverCardTrigger>
 
-          {(Object.keys(LABELS) as (keyof PostSettings)[]).map((k) => (
-            <label key={k} className="flex items-center gap-2 cursor-pointer">
-              <Checkbox
-                checked={settings[k]}
-                onCheckedChange={() => toggle(k)}
-              />
-              {React.cloneElement(ICONS[k] as any, {
-                className: "h-4 w-4 text-muted-foreground",
-              })}
-              <span className="text-sm">{LABELS[k]}</span>
-            </label>
+      {/* SUMMARY CARD (shows only when not focused) */}
+      <HoverCardContent className="p-2 w-[220px]">
+        <p className="text-sm font-semibold mb-1">Post settings</p>
+        <ul className="space-y-1 text-xs">
+          {(Object.keys(LABELS) as (keyof SettingFlags)[]).map((k) => (
+            <li key={k} className="flex items-center gap-2">
+              {React.cloneElement(ICONS[k as keyof SettingFlags] as any, { className: iconClass(activeFlags[k as FlagKey]) })}
+              <span>{LABELS[k as keyof SettingFlags]}</span>
+              <span className={cn("ml-auto font-semibold", activeFlags[k as FlagKey] ? "text-green-600" : "text-red-500")}>{activeFlags[k as FlagKey] ? "ON" : "OFF"}</span>
+            </li>
           ))}
-        </PopoverContent>
-      )}
-    </Popover>
+        </ul>
+      </HoverCardContent>
+
+      {/* Settings Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="w-[512px] p-4 flex flex-col gap-6 rounded-[12px] bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-black">Settings</DialogTitle>
+          </DialogHeader>
+
+          <Tabs defaultValue="location" className="w-full mt-0 flex flex-col gap-6">
+            <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
+              <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium data-[state=active]:bg-white data-[state=active]:shadow-[0_0_0_1px_rgba(33,33,38,0.05),0_1px_1px_rgba(0,0,0,0.05),0_4px_6px_rgba(34,42,53,0.04)]">
+                <MapPin className="h-4 w-4 text-primary"/> Location Tag
+              </TabsTrigger>
+              <TabsTrigger value="tags" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium data-[state=active]:bg-white data-[state=active]:shadow-[0_0_0_1px_rgba(33,33,38,0.05),0_1px_1px_rgba(0,0,0,0.05),0_4px_6px_rgba(34,42,53,0.04)]">
+                <AtSign className="h-4 w-4 text-primary"/>
+                Tag Accounts
+              </TabsTrigger>
+              <TabsTrigger value="thumb" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium data-[state=active]:bg-white data-[state=active]:shadow-[0_0_0_1px_rgba(33,33,38,0.05),0_1px_1px_rgba(0,0,0,0.05),0_4px_6px_rgba(34,42,53,0.04)]">
+                <ImageIcon className="h-4 w-4"/>
+                Custom Thumbnail
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Location Tab */}
+            <TabsContent value="location" className="space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-black">Location</label>
+              <Input
+                placeholder="Example: San Francisco, CA"
+                onKeyDown={(e)=>{
+                  if(e.key==='Enter'){
+                    e.preventDefault();
+                    const val=(e.target as HTMLInputElement).value.trim();
+                    if(val && !local.locationTags.includes(val))
+                      setLocal(p => ({ ...p, locationTags: [...p.locationTags, val] }));
+                    (e.target as HTMLInputElement).value='';
+                  }
+                }}
+              />
+              {local.locationTags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {local.locationTags.map(loc => (
+                    <span key={loc} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#E6F1FF] text-xs text-[#125AFF] font-medium shadow-sm">
+                      {loc}<X className="h-3 w-3 cursor-pointer" onClick={()=>setLocal(p=>({...p, locationTags: p.locationTags.filter(l=>l!==loc)}))} />
+                    </span>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Tags Tab */}
+            <TabsContent value="tags" className="space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium">Tag accounts</label>
+              <Input
+                placeholder="Type username and press Enter"
+                onKeyDown={(e)=>{
+                  if(e.key==='Enter'){
+                    e.preventDefault();
+                    const val=(e.target as HTMLInputElement).value.trim();
+                    if(val && !local.taggedAccounts.includes(val)) setLocal(p=>({ ...p, taggedAccounts: [...p.taggedAccounts, val] }));
+                    (e.target as HTMLInputElement).value='';
+                  }
+                }}
+              />
+              <div className="flex flex-wrap gap-2">
+                {local.taggedAccounts.map(t=> (
+                  <span key={t} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#E6F1FF] text-xs text-[#125AFF] font-medium shadow-sm">@{t}<X className="h-3 w-3 cursor-pointer" onClick={()=>setLocal(p=>({ ...p, taggedAccounts: p.taggedAccounts.filter(x=>x!==t) }))} /></span>
+                ))}
+              </div>
+            </TabsContent>
+
+            {/* Thumbnail Tab */}
+            <TabsContent value="thumb" className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">Custom thumbnail feature coming soon.</div>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-between gap-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={()=>setModalOpen(false)}
+              className="flex h-9 px-4 justify-center items-center gap-2 rounded-[6px] border border-[#D3D3D3] text-sm font-semibold text-black"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={()=>{
+                const updated: SettingsData = { ...local };
+                onChange(updated);
+                setModalOpen(false);
+              }}
+              className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </HoverCard>
   );
 }

@@ -1019,17 +1019,20 @@ export function PostTable({
         size   : 150,
         enableSorting : false,
         enableGrouping: false,
-        cell: ({ row }) => {
+        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit } : FocusCellContext<Post>) => {
           const post = row.original;
           return (
             <SettingsEditCell
-              value={undefined as any /* may be undefined  */}
-              onChange={(s) => {
-                /* update both table state & store */
+              value={post.settings as any}
+              isFocused={isFocused}
+              isEditing={isEditing}
+              enterEdit={enterEdit}
+              exitEdit={exitEdit}
+              onChange={(newSettings) => {
                 setTableData((prev) =>
-                  prev.map((p) => (p.id === post.id ? { ...p, settings: s } : p))
+                  prev.map((p) => (p.id === post.id ? { ...p, settings: newSettings } : p))
                 );
-                // updatePost(post.id, { settings: s } as any);
+                updatePost(post.id, { settings: newSettings } as any);
               }}
             />
           );

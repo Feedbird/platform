@@ -106,6 +106,18 @@ export interface Post {
   billingMonth?: string;
   month: number;  // Month number (1-50)
 
+  /** Per-post settings such as location tag, tagged accounts, custom thumbnail, etc. */
+  settings?: {
+    /* flags */
+    location?: boolean;
+    tagAccounts?: boolean;
+    thumbnail?: boolean;
+
+    /* actual data */
+    locationTags?: string[];
+    taggedAccounts?: string[];
+  };
+
   blocks: Block[];
   comments: BaseComment[]; 
   activities: Activity[];
@@ -898,6 +910,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           updatedAt: new Date(),
           platforms: [],
           pages: [],
+          settings: {},
           blocks: [],
           comments: [],
           activities: [],
