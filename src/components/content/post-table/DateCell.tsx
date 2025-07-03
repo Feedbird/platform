@@ -325,11 +325,6 @@ export function PublishDateCell({
           ) : (
             /* If scheduled/published/failed publishing or has date: show status with icon + time below */
             <div className="flex flex-col">
-              {isScheduled && (
-                <span className="text-sm font-normal text-[#5C5E63] mb-1" style={{lineHeight: "18px"}}>
-                  Scheduled
-                </span>
-              )}
               <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
                 padding: "1px 6px 1px 4px",
                 border: `1px solid ${statusStyling.borderColor}`,
@@ -360,6 +355,33 @@ export function PublishDateCell({
       {/* Additional action icons */}
       {hasDate && (
         <div className="flex flex-row gap-2 flex-shrink-0">
+          {/* Unschedule (only if status === "Scheduled" and not published/failed publishing) */}
+          {showClockOff && !isPublished && !isFailedPublishing && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={handleUnschedule}
+                  >
+                    <Image
+                      src="/images/publish/unschedule.svg"
+                      alt="Unschedule"
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="bg-[#151515] text-white border-none text-xs"
+                >
+                  Unschedule
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           {/* Auto-schedule (only if not published/scheduled/failed publishing) */}
           {showClock && !isPublished && !isFailedPublishing && (
             <TooltipProvider>
@@ -409,33 +431,6 @@ export function PublishDateCell({
                   className="bg-[#151515] text-white border-none text-xs"
                 >
                   Publish Now
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-
-          {/* Unschedule (only if status === "Scheduled" and not published/failed publishing) */}
-          {showClockOff && !isPublished && !isFailedPublishing && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={handleUnschedule}
-                  >
-                    <Image
-                      src="/images/publish/unschedule.svg"
-                      alt="Unschedule"
-                      width={16}
-                      height={16}
-                    />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="bg-[#151515] text-white border-none text-xs"
-                >
-                  Unschedule
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
