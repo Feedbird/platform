@@ -28,17 +28,15 @@ export function SortMenu({ sorting, setSorting, columnNames, columns }: SortMenu
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
+        <div
           className={cn(
-            "flex items-center gap-[6px] px-[8px] py-[7px] rounded-[6px] border border-border-button shadow-none cursor-pointer",
+            "flex items-center gap-[6px] px-[8px] py-[2px] rounded-[100px] border border-[#D3D3D3] shadow-none cursor-pointer",
           )}
         >
-          <Image src="/images/icons/table-toolbar-sort.svg" alt="Sort" width={14} height={14} />
-          <span className="text-sm font-semibold">{sorting.length > 0 ? `Sorted by ${sorting.length} fields` : "Sort"}</span>
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </Button>
+          <Image src="/images/icons/table-toolbar-sort.svg" alt="Sort" width={12} height={12} />
+          <span className="text-sm font-medium text-black">{sorting.length > 0 ? `Sorted by ${sorting.length} fields` : "Sort"}</span>
+          {/* {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} */}
+        </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="p-2 w-[240px] flex flex-col" align="start">
         <DropdownMenuLabel className="text-sm">Sort By</DropdownMenuLabel>

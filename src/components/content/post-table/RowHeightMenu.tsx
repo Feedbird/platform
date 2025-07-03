@@ -30,11 +30,11 @@ export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
 
   // We can define each label + icon
   const possibleHeights = [
-    { value: 40, label: "Small", icon: <Rows4 fontSize="small" /> },
-    { value: 60, label: "Medium", icon: <Rows3 fontSize="small" /> },
-    { value: 90, label: "Large", icon: <Rows2 fontSize="small" /> },
-    { value: 130, label: "X-Large", icon: <RectangleHorizontal fontSize="small" /> },
-    { value: 160, label: "XX-Large", icon: <Maximize2 fontSize="small" /> },
+    { value: 40, label: "Short", icon: <Rows4 className="h-3 w-3 text-[#838488]" /> },
+    { value: 48, label: "Medium", icon: <Rows3 className="h-3 w-3 text-[#838488]" /> },
+    { value: 72, label: "Tall", icon: <Rows2 className="h-3 w-3 text-[#838488]" /> },
+    { value: 120, label: "Extra Tall", icon: <RectangleHorizontal className="h-3 w-3 text-[#838488]" /> },
+    // { value: 160, label: "XX-Large", icon: <Maximize2 className="h-3 w-3" /> },
   ];
 
   // Find the current selected height option
@@ -43,17 +43,15 @@ export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
+        <div
           className={cn(
-            "flex items-center gap-[6px] px-[8px] py-[7px] rounded-[6px] border border-border-button shadow-none cursor-pointer",
+            "flex items-center gap-[6px] px-[8px] py-[2px] rounded-[100px] border border-[#D3D3D3] shadow-none cursor-pointer",
           )}
         >
           {currentHeight.icon}
-          <span className="text-sm font-semibold">Row Height</span>
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </Button>
+          <span className="text-sm font-medium text-black">Row Height</span>
+          {/* {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} */}
+        </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="p-2 w-[240px] flex flex-col" align="start">
         <DropdownMenuLabel>Row Height</DropdownMenuLabel>

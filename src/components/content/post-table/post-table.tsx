@@ -1882,8 +1882,8 @@ export function PostTable({
         </DropdownMenu>
 
         {/* Top Bar */}
-        <div className="flex flex-wrap items-center justify-between py-[12px] border-b border-border-primary">
-          <div className="flex gap-[8px] relative pl-[16px]">
+        <div className="flex flex-wrap items-center justify-between py-[10px] border-b border-border-primary">
+          <div className="flex gap-[6px] relative pl-[14px]">
             <FilterPopover
               open={filterOpen}
               onOpenChange={setFilterOpen}
@@ -1917,7 +1917,7 @@ export function PostTable({
             />
           </div>
             
-          <div className="pr-[16px]">
+          {/* <div className="pr-[16px]">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1941,7 +1941,7 @@ export function PostTable({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
+          </div> */}
         </div>
 
         {/* Table region */}

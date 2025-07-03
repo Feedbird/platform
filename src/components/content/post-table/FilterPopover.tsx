@@ -297,28 +297,26 @@ export function FilterPopover({
   return (
     <Popover open={popOpen} onOpenChange={setPopOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
+        <div
           className={cn(
-            "flex items-center gap-[6px] px-[8px] py-[7px] rounded-[6px] border border-border-button shadow-none cursor-pointer",
+            "flex items-center gap-[6px] px-[8px] py-[2px] rounded-[100px] border border-[#D3D3D3] shadow-none cursor-pointer",
           )}
         >
           <Image
             src="/images/icons/table-toolbar-filter.svg"
             alt="Filter"
-            width={14}
-            height={14}
+            width={12}
+            height={12}
           />
-          <span className="text-sm font-semibold">
+          <span className="text-sm font-medium text-black">
             {hasFilters ? `Filtered by ${rootGroup.children.length} fields` : "Filter"}
           </span>
-          {popOpen ? (
+          {/* {popOpen ? (
             <ChevronUp className="h-4 w-4 opacity-70" />
           ) : (
             <ChevronDown className="h-4 w-4 opacity-70" />
-          )}
-        </Button>
+          )} */}
+        </div>
       </PopoverTrigger>
 
       <PopoverContent
