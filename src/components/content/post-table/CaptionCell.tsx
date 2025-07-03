@@ -78,7 +78,6 @@ export function CaptionCell(props: CaptionCellProps) {
   // 1) line-clamp logic
   React.useEffect(() => {
     if (!ref.current) return;
-    console.log('rowHeight', rowHeight);
     const style = getComputedStyle(ref.current);
     const lineH = parseFloat(style.lineHeight || "16");
     const maxLines = Math.max(1, Math.floor((rowHeight - 16) / lineH));

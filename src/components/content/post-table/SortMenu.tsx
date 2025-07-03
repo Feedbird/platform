@@ -34,7 +34,7 @@ export function SortMenu({ sorting, setSorting, columnNames, columns }: SortMenu
           )}
         >
           <Image src="/images/icons/table-toolbar-sort.svg" alt="Sort" width={12} height={12} />
-          <span className="text-sm font-medium text-black">{sorting.length > 0 ? `Sorted by ${sorting.length} fields` : "Sort"}</span>
+          <span className="text-sm font-medium text-black leading-[16px]">{sorting.length > 0 ? `Sorted by ${sorting.length} fields` : "Sort"}</span>
           {/* {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} */}
         </div>
       </DropdownMenuTrigger>

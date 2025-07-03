@@ -308,7 +308,7 @@ export function FilterPopover({
             width={12}
             height={12}
           />
-          <span className="text-sm font-medium text-black">
+          <span className="text-sm font-medium text-black leading-[16px]">
             {hasFilters ? `Filtered by ${rootGroup.children.length} fields` : "Filter"}
           </span>
           {/* {popOpen ? (

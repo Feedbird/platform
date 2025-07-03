@@ -49,7 +49,7 @@ export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
           )}
         >
           {currentHeight.icon}
-          <span className="text-sm font-medium text-black">Row Height</span>
+          <span className="text-sm font-medium text-black leading-[16px]">Row Height</span>
           {/* {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} */}
         </div>
       </DropdownMenuTrigger>

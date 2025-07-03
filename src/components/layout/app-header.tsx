@@ -100,7 +100,7 @@ function HeaderInner() {
   /* ------------------------------------------------------------ */
   return (
     <header className="
-      h-[48px] flex justify-center border-b border-border-primary px-[16px] py-[9px] gap-4 bg-white
+      h-[48px] flex justify-center border-b border-border-primary pl-[16px] pr-[10px] py-[9px] gap-4 bg-white
     ">
       {/* sidebar trigger */}
       <SidebarTrigger className="cursor-pointer shrink-0" />

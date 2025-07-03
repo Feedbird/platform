@@ -59,7 +59,8 @@ import {
   Unlock,
   X as XIcon,
   Copy,
-  ChevronDown
+  ChevronDown,
+  MoreHorizontal
 } from "lucide-react";
 
 import { nanoid } from "nanoid";
@@ -345,7 +346,7 @@ export function PostTable({
     };
 
     if (colId === 'status') {
-      styles.boxShadow = '2px 0 5px -2px rgba(0,0,0,0.1)';
+      styles.boxShadow = '6px 0px 0px -4px rgba(16, 24, 40, 0.05)';
     }
   
     return styles;
@@ -705,7 +706,7 @@ export function PostTable({
         filterFn: statusFilterFn,
         sortingFn: statusSortingFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/status.svg`} alt="status" width={14} height={14} />
             {columnNames["status"] || "Status"}
           </div>
@@ -739,7 +740,7 @@ export function PostTable({
         id: "preview",
         accessorKey: "blocks",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/preview.svg`} alt="preview" width={14} height={14} />
             {columnNames["preview"] || "Preview"}
           </div>
@@ -784,9 +785,9 @@ export function PostTable({
         id: "caption",
         accessorKey: "caption",
         header: () => (
-          <div className="flex items-center w-full text-black gap-[6px] font-medium">
+          <div className="flex items-center w-full text-black gap-[6px] font-medium leading-[16px]">
             <Image src={`/images/columns/caption.svg`} alt="caption" width={14} height={14} />
-            <span className="text-sm">{columnNames["caption"] || "Caption"}</span>
+            <span className="text-sm leading-[16px]">{columnNames["caption"] || "Caption"}</span>
 
             {/* channel-icon filter buttons – right-aligned */}
             <div className="ml-auto flex">
@@ -855,7 +856,7 @@ export function PostTable({
         accessorKey: "pages",
         filterFn: platformsFilterFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/socials.svg`} alt="socials" width={14} height={14} />
             {columnNames["platforms"] || "Socials"}
           </div>
@@ -889,7 +890,7 @@ export function PostTable({
         accessorKey: "format",
         filterFn: formatFilterFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/format.svg`} alt="format" width={14} height={14} />
             {columnNames["format"] || "Format"}
           </div>
@@ -919,7 +920,7 @@ export function PostTable({
         accessorKey: "month",
         filterFn: monthFilterFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/post-time.svg`} alt="Month" width={14} height={14} />
             {"Month"}
           </div>
@@ -952,7 +953,7 @@ export function PostTable({
       {
         id: "revision",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/revision.svg`} alt="revision" width={14} height={14} />
             {columnNames["revision"] || "Revision"}
           </div>
@@ -965,10 +966,11 @@ export function PostTable({
             <div className="cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]">
               <div className="flex items-center flex-nowrap min-w-0">
                 <div className="flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    className="text-sm text-black border border-border-button rounded-[6px] px-[8px] py-[7px] gap-[6px] cursor-pointer"
-                    size="sm"
+                  <div
+                    className="flex items-center border border-border-button rounded-[4px] px-[8px] py-[6px] gap-[4px] cursor-pointer"
+                    style={{
+                      boxShadow: "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)"
+                    }}
                     onClick={() => {
                       setTableData((prev) =>
                         prev.map((p) =>
@@ -980,8 +982,8 @@ export function PostTable({
                     }}
                   >
                     <Image src={`/images/columns/request.svg`} alt="revision" width={14} height={14} />
-                    <span className="text-sm text-black font-semibold">Request changes</span>
-                  </Button>
+                    <span className="text-xs text-black font-semibold leading-[16px]">Request changes</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -992,7 +994,7 @@ export function PostTable({
       {
         id: "approve",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/approve.svg`} alt="approve" width={14} height={14} />
             {columnNames["approve"] || "Approve"}
           </div>
@@ -1008,7 +1010,7 @@ export function PostTable({
       {
         id: "settings",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/settings.svg`} alt="settings" width={14} height={14} />
             {columnNames["settings"] || "Settings"}
           </div>
@@ -1037,7 +1039,7 @@ export function PostTable({
         id: "publishDate",
         accessorKey: "publishDate",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
             <Image src={`/images/columns/post-time.svg`} alt="Publish Date" width={14} height={14} />
             {"Post Time"}
           </div>
@@ -1066,7 +1068,7 @@ export function PostTable({
         id: "updatedAt",
         accessorKey: "updatedAt",
         header: () => (
-          <div className="flex items-center gap-[6px] text-sm font-medium text-black">
+          <div className="flex items-center gap-[6px] text-sm font-medium text-black leading-[16px]">
             <Image src={`/images/columns/updated-time.svg`} alt="Updated At" width={14} height={14} />
             {"Updated"}
           </div>
@@ -1278,7 +1280,7 @@ export function PostTable({
             className="bg-[#FBFBFB] border-b border-[#E6E4E2]"
           >
             {/* ◀ phantom on the left */}
-            <TableHead className="border-b border-[#E6E4E2] bg-[#FBFBFB]" style={{ width: 20, padding: 0}} />
+            <TableHead className="border-b border-[#E6E4E2] bg-[#FBFBFB]" style={{ width: 14, padding: 0}} />
 
             {hg.headers.map((h, index) =>
               h.isPlaceholder ? null : (
@@ -1297,7 +1299,7 @@ export function PostTable({
             )}
 
             {/* ▶ phantom on the right */}
-            <TableHead style={{ width: 16, padding: 0, border: "none" }} />
+            <TableHead style={{ width: 10, padding: 0, border: "none" }} />
           </TableRow>
         ))}
       </TableHeader>
@@ -1333,6 +1335,7 @@ export function PostTable({
           className="bg-white border-t border-l border-b border-[#E6E4E2]"
           colSpan={stickyCols.length}
           style={{
+            borderRadius: "4px 0px 0px 0px",
             ...stickyStyles("drag", 10), // Higher than row zIndex
           }}
         >
@@ -1344,6 +1347,9 @@ export function PostTable({
         <td
           colSpan={nonStickyCols.length}
           className="bg-white border-t border-b border-r border-[#E6E4E2]"
+          style={{
+            borderRadius: "0px 4px 0px 0px",
+          }}
         >
           &nbsp;
         </td>
@@ -1385,7 +1391,7 @@ export function PostTable({
             <tr>
               <td
                 colSpan={colSpan + 2}
-                style={{ height: 16, background: "#F8F8F8", border: "none" }}
+                style={{ height: 10, background: "#F8F8F8", border: "none" }}
               />
             </tr>
           </tbody>
@@ -1402,7 +1408,7 @@ export function PostTable({
                   <tr>
                     <td
                       colSpan={colSpan + 2}
-                      className="h-4 bg-[#F8F8F8]"
+                      className="h-[10px] bg-[#F8F8F8]"
                       style={{ border: "none" }}
                     />
                   </tr>
@@ -1522,11 +1528,12 @@ export function PostTable({
                             className="px-3 py-3 bg-white border-l border-t-0 border-r-0 border-b border-[#E6E4E2] rounded-b-[2px]"
                             style={{
                               ...stickyStyles("drag", 3), // Use first sticky col ID
+                              borderRadius: "0px 0px 0px 4px",
                               width: stickyWidth,
                             }}
                           >
                             <button
-                              className="p-0 m-0 font-semibold text-sm flex items-center gap-2 cursor-pointer"
+                              className="p-0 m-0 font-semibold text-sm flex items-center gap-2 leading-[16px] cursor-pointer"
                               onClick={() =>
                                 handleAddRowForGroup(
                                   group.groupValues
@@ -1540,6 +1547,9 @@ export function PostTable({
                           <TableCell
                             colSpan={nonStickyCols.length}
                             className="bg-white border border-l-0 border-t-0 border-[#E6E4E2] rounded-b-[2px]"
+                            style={{
+                              borderRadius: "0px 0px 4px 0px",
+                            }}
                           />
                         </>
                       );
@@ -1806,7 +1816,7 @@ export function PostTable({
                       }}
                     >
                       <button
-                        className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row items-center gap-2"
+                        className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
                         onClick={handleAddRowUngrouped}
                       >
                         <PlusIcon size={16} />
@@ -1917,31 +1927,27 @@ export function PostTable({
             />
           </div>
             
-          {/* <div className="pr-[16px]">
+          <div className="pr-[10px]">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-[6px] px-[8px] py-[7px] rounded-[6px] border border-border-button shadow-none cursor-pointer"
+                <div
+                  className="flex items-center p-[3px] rounded-[6px] border border-[#D3D3D3] shadow-none cursor-pointer bg-[#FBFBFB]"
                 >
-                  <Image src={`/images/icons/table-toolbar-import.svg`} alt="Import / Export" width={14} height={14} />
-                  <span className="text-sm font-semibold">Import / Export</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+                  <MoreHorizontal className="h-[14px] w-[14px] text-black" />
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[180px]">
                 <DropdownMenuItem onClick={handleImport} className="cursor-pointer">
                   <ArrowUpFromLine className="mr-2 h-4 w-4" />
-                  <span>Import</span>
+                  <span className="text-sm text-black font-medium leading-[16px]">Import</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExport} className="cursor-pointer">
                   <ArrowDownToLine className="mr-2 h-4 w-4" />
-                  <span>Export</span>
+                  <span className="text-sm text-black font-medium leading-[16px]">Export</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div> */}
+          </div>
         </div>
 
         {/* Table region */}

@@ -31,16 +31,16 @@ export function ApproveCell({
             <div
               style={{
                 display: "inline-flex",
-                padding: "4px 8px 4px 4px",
+                padding: "2px 6px 2px 4px",
                 alignItems: "center",
                 gap: "4px",
                 borderRadius: "4px",
                 border: "1px solid rgba(28, 29, 31, 0.05)",
                 background: "#DDF9E4",
               }}
-              className="text-xs font-semibold"
+              className="text-xs font-semibold leading-[18px]"
             >
-              <Image src="/images/status/approved.svg" alt="approved" width={16} height={16} />
+              <Image src="/images/status/approved.svg" alt="approved" width={14} height={14} />
               <span>Approved</span>
             </div>
           ) : isInRevision ? (
@@ -54,9 +54,9 @@ export function ApproveCell({
                 border: "1px solid rgba(28, 29, 31, 0.05)",
                 background: "#FCE4E5",
               }}
-              className="text-xs font-semibold"
+              className="text-xs font-semibold leading-[18px]"
             >
-              <Image src="/images/status/needs-revision.svg" alt="needs revision" width={16} height={16} />
+              <Image src="/images/status/needs-revision.svg" alt="needs revision" width={14} height={14} />
               <span>Revision</span>
             </div>
           ) : (
@@ -72,7 +72,7 @@ export function ApproveCell({
               }}
               className="border border-border-button"
             >
-              <Image src="/images/sidebar/approvals.svg" alt="approve" width={16} height={16} />
+              <Image src="/images/sidebar/approvals.svg" alt="approve" width={14} height={14} />
             </div>
           )}
         </div>

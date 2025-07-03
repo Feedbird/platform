@@ -43,7 +43,7 @@ export function ColumnVisibilityMenu({
           )}
         >
           <Image src="/images/icons/table-toolbar-columns.svg" alt="Columns" width={12} height={12} />
-          <span className="text-sm font-medium text-black">{hiddenColumns > 0 ? `${hiddenColumns} columns hidden` : "Columns"}</span>
+          <span className="text-sm font-medium text-black leading-[16px]">{hiddenColumns > 0 ? `${hiddenColumns} columns hidden` : "Columns"}</span>
           {/* {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} */}
         </div>
       </DropdownMenuTrigger>
