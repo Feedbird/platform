@@ -1,23 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Post } from "@/lib/store/use-feedbird-store";
 import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
 import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { ChevronDown, AlarmClock, CalendarDays, Plus, Clock, Globe, Settings } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +22,8 @@ import { ChannelIcons } from "@/components/content/shared/content-post-ui";
 import { Platform, SocialPage } from "@/lib/social/platforms/platform-types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAsyncLoading } from "@/hooks/use-async-loading";
+import { DateTimeSelector } from "./DateTimeSelector";
+import { PostingSettingsPanel } from "./PostingSettingsPanel";
 
 export function PublishDateCell({
   post,
@@ -42,12 +36,8 @@ export function PublishDateCell({
 }) {
   const savedDate = post.publishDate ? new Date(post.publishDate) : null;
   const [popoverOpen, setPopoverOpen] = useState(false);
-
-  // Local date/time picking state
-  const [tempDate, setTempDate] = useState<Date>(savedDate ?? new Date());
-  const [timeVal, setTimeVal] = useState(() =>
-    savedDate ? format(savedDate, "HH:mm") : "09:00"
-  );
+  const [showSelector, setShowSelector] = useState(false);
+  const [showPostingPanel, setShowPostingPanel] = useState(false);
 
   const isScheduled = post.status === "Scheduled";
   const isPublished = post.status === "Published";
@@ -98,15 +88,6 @@ export function PublishDateCell({
   const publishPostToAllPages = useFeedbirdStore((s) => s.publishPostToAllPages);
 
   /* ---------- Actions ---------- */
-  function handleSetDate() {
-    const [hh, mm] = timeVal.split(":").map(Number);
-    const final = new Date(tempDate);
-    final.setHours(hh, mm, 0, 0);
-    // We only store the date in the post for now
-    updatePost(post.id, { publishDate: final });
-    setPopoverOpen(false);
-  }
-
   function handleAutoSchedule() {
     const suggestions = getSuggestedSlots(post, allPosts, 5);
     if (suggestions.length > 0) {
@@ -126,18 +107,9 @@ export function PublishDateCell({
     updatePost(post.id, { status: "Draft", publishDate: undefined });
   }
 
-  function buildHalfHourSlots(): { label: string; value: string }[] {
-    const items: { label: string; value: string }[] = [];
-    for (let h = 0; h < 24; h++) {
-      for (const m of [0, 30]) {
-        const hh = String(h).padStart(2, "0");
-        const mm = String(m).padStart(2, "0");
-        const label = format(new Date(2020, 0, 1, h, m), "hh:mma");
-        items.push({ label, value: `${hh}:${mm}` });
-      }
-    }
-    return items;
-  }
+  useEffect(() => {
+    if (!popoverOpen) setShowSelector(false);
+  }, [popoverOpen]);
 
   return (
     <div className="flex items-center justify-between w-full px-2 py-[6px]">
@@ -192,34 +164,54 @@ export function PublishDateCell({
                   )}
                 </div>
               </PopoverTrigger>
-              <PopoverContent 
-                align="center" 
+              <PopoverContent
+                align={(hasDate || showSelector || showPostingPanel) ? "end" : "center"}
                 side="bottom"
-                avoidCollisions={true}
-                className="w-auto min-w-[250px]"
-                style={{
-                  display: "flex",
-                  width: "250px",
-                  padding: "4px 0px",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "6px",
-                  borderRadius: "6px",
-                  background: "rgba(255, 255, 255, 0.95)",
-                  boxShadow: "0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.06), 0px 3px 3px -1.5px rgba(0, 0, 0, 0.06), 0px 6px 6px -3px rgba(0, 0, 0, 0.06), 0px 12px 12px -6px rgba(0, 0, 0, 0.04), 0px 24px 24px -12px rgba(0, 0, 0, 0.04)",
-                  backdropFilter: "blur(4px)"
-                }}
+                sideOffset={6}
+                avoidCollisions
+                className={cn(
+                  (hasDate || showSelector || showPostingPanel) ? "p-0 border-none bg-transparent max-w-[90vw]" : "w-auto min-w-[250px]"
+                )}
+                style={
+                  (!hasDate && !showSelector && !showPostingPanel)
+                    ? {
+                        display: "flex",
+                        width: "250px",
+                        padding: "4px 0px",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                        borderRadius: "6px",
+                        background: "rgba(255, 255, 255, 0.95)",
+                        boxShadow:
+                          "0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.06), 0px 3px 3px -1.5px rgba(0, 0, 0, 0.06), 0px 6px 6px -3px rgba(0, 0, 0, 0.06), 0px 12px 12px -6px rgba(0, 0, 0, 0.04), 0px 24px 24px -12px rgba(0, 0, 0, 0.04)",
+                        backdropFilter: "blur(4px)",
+                      }
+                    : undefined
+                }
               >
-                {!hasDate ? (
-                  /* Show menu options when no time is set */
+                {showPostingPanel ? (
+                  <PostingSettingsPanel
+                    initialTimezone={(post as any).timezone}
+                    initialSlots={(post as any).postingSlots}
+                    onBack={()=>setShowPostingPanel(false)}
+                    onSave={(tz,slots)=>{
+                      updatePost(post.id,{ timezone: tz, postingSlots: slots } as any);
+                      setShowPostingPanel(false);
+                    }}
+                  />
+                ) : (!hasDate && !showSelector) ? (
                   <div>
                     {/* Auto Schedule */}
-                    <div className="px-[10px] py-[8px] cursor-pointer gap-[2px]" onClick={handleAutoSchedule}>
+                    <div
+                      className="px-[10px] py-[8px] cursor-pointer gap-[2px]"
+                      onClick={handleAutoSchedule}
+                    >
                       <div className="text-sm font-medium text-black flex flex-row items-center gap-[6px]">
-                        <Image 
-                          src={"/images/publish/clock-check.svg"} 
-                          alt="Auto Schedule" 
-                          width={14} 
+                        <Image
+                          src={"/images/publish/clock-check.svg"}
+                          alt="Auto Schedule"
+                          width={14}
                           height={14}
                         />
                         <p>Auto Schedule</p>
@@ -228,42 +220,51 @@ export function PublishDateCell({
                         Scheduled for the optimal time upon approval
                       </div>
                     </div>
-                    
+
                     <div className="h-px bg-[#E6E4E2] mx-2 my-1"></div>
-                    
+
                     {/* Custom Date */}
-                    <div className="px-[10px] py-[8px] cursor-pointer" onClick={() => setPopoverOpen(false)}>
+                    <div
+                      className="px-[10px] py-[8px] cursor-pointer"
+                      onClick={() => setShowSelector(true)}
+                    >
                       <div className="flex items-center gap-[6px]">
-                        <Image 
-                          src={"/images/publish/auto-schedule.svg"} 
-                          alt="Custom Date" 
-                          width={14} 
+                        <Image
+                          src={"/images/publish/auto-schedule.svg"}
+                          alt="Custom Date"
+                          width={14}
                           height={14}
                         />
                         <div className="text-sm font-medium text-black">Custom Date</div>
                       </div>
                     </div>
-                    
+
                     {/* Change Workspace Timezone */}
-                    <div className="px-[10px] py-[8px] cursor-pointer" onClick={() => setPopoverOpen(false)}>
+                    <div
+                      className="px-[10px] py-[8px] cursor-pointer"
+                      onClick={() => { setShowPostingPanel(true); setShowSelector(false); }}
+                    >
                       <div className="flex items-center gap-[6px]">
-                        <Image 
-                          src={"/images/publish/timezone.svg"} 
-                          alt="Change workspace time zone" 
-                          width={14} 
+                        <Image
+                          src={"/images/publish/timezone.svg"}
+                          alt="Change workspace time zone"
+                          width={14}
                           height={14}
                         />
                         <div className="text-sm font-medium text-black">Change workspace time zone</div>
                       </div>
                     </div>
-                    
+
                     {/* Allowed Posting Time */}
-                    <div className="px-[10px] py-[8px] cursor-pointer" onClick={() => setPopoverOpen(false)}>
+                    <div
+                      className="px-[10px] py-[8px] cursor-pointer"
+                      onClick={() => { setShowPostingPanel(true); setShowSelector(false); }}
+                    >
                       <div className="flex items-center gap-[6px]">
-                        <Image 
-                          src={"/images/columns/updated-time.svg"} 
-                          alt="Change workspace time zone" 
-                          width={14} 
+                        <Image
+                          src={"/images/columns/updated-time.svg"}
+                          alt="Allowed posting time"
+                          width={14}
                           height={14}
                         />
                         <div className="text-sm font-medium text-black">Allowed posting time</div>
@@ -271,54 +272,20 @@ export function PublishDateCell({
                     </div>
                   </div>
                 ) : (
-                  /* Show datetime selector when time is set */
-                  <div className="p-3 space-y-3 max-h-[calc(100vh-100px)] overflow-auto">
-                    <Calendar
-                      mode="single"
-                      selected={tempDate}
-                      onSelect={(d) => d && setTempDate(d)}
-                      className="w-full mx-auto text-sm"
-                      classNames={{
-                        day_today: "bg-[#EDF0FF] rounded-full",
-                        day_selected: "bg-[#4D3AF1] rounded-full text-white",
-                        day: "h-8 w-8 text-sm p-0",
-                        nav_button: "h-8 w-8",
-                      }}
-                    />
-                    <div className="text-xs text-muted-foreground text-center">
-                      {format(tempDate, "EEE, MMM d yyyy")}
-                    </div>
-                    <div className="text-xs font-medium text-center">
-                      {`Local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <AlarmClock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <Select value={timeVal} onValueChange={(v) => setTimeVal(v)}>
-                        <SelectTrigger className="border rounded px-2 py-1 flex-1 min-w-0 text-sm h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[180px] w-full min-w-[140px]">
-                          {buildHalfHourSlots().map((slot) => (
-                            <SelectItem 
-                              key={slot.value} 
-                              value={slot.value}
-                              className="text-sm h-8"
-                            >
-                              {slot.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleSetDate} 
-                      className="w-full h-9 text-sm"
-                    >
-                      Set date
-                    </Button>
-                  </div>
+                  <DateTimeSelector
+                    post={post}
+                    allPosts={allPosts}
+                    onClose={() => { setPopoverOpen(false); setShowSelector(false); }}
+                    onSchedule={(d) => {
+                      updatePost(post.id, {
+                        publishDate: d,
+                        status: "Scheduled",
+                      });
+                    }}
+                    onPublishNow={async () => {
+                      await publishPostToAllPages(post.id);
+                    }}
+                  />
                 )}
               </PopoverContent>
             </Popover>
