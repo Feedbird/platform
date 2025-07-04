@@ -39,7 +39,7 @@ export function ColumnVisibilityMenu({
       <DropdownMenuTrigger asChild>
         <div
           className={cn(
-            "flex items-center gap-[6px] px-[8px] py-[2px] rounded-[100px] border border-[#D3D3D3] shadow-none cursor-pointer",
+            "flex items-center gap-[6px] px-[8px] py-[4px] rounded-[100px] border border-[#D3D3D3] shadow-none cursor-pointer",
           )}
         >
           <Image src="/images/icons/table-toolbar-columns.svg" alt="Columns" width={12} height={12} />

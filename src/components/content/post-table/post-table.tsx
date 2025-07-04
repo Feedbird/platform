@@ -1936,7 +1936,7 @@ export function PostTable({
                 <div
                   className="flex items-center p-[3px] rounded-[6px] border border-[#D3D3D3] shadow-none cursor-pointer bg-[#FBFBFB]"
                 >
-                  <MoreHorizontal className="h-[14px] w-[14px] text-black" />
+                  <MoreHorizontal className="h-[16px] w-[16px] text-black" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[180px]">
