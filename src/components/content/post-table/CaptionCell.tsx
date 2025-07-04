@@ -107,7 +107,7 @@ export function CaptionCell(props: CaptionCellProps) {
         )}
         title={errMsg || ""}
       >
-        <>{text || <span className="text-muted-foreground">No caption</span>}</>
+        <>{text}</>
       </div>
 
       {isFocused && (
