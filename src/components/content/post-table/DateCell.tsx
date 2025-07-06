@@ -80,6 +80,15 @@ export function PublishDateCell({
 
   const statusStyling = getStatusStyling();
 
+  // Tooltip text depending on state
+  const tooltipLabel = React.useMemo(() => {
+    if (!hasDate) return "Select publish time";
+    if (isScheduled) return `Scheduled: ${displayText}`;
+    if (isPublished) return `Published: ${displayText}`;
+    if (isFailedPublishing) return `Failed publishing: ${displayText}`;
+    return "Edit publish time";
+  }, [hasDate, isScheduled, isPublished, isFailedPublishing, displayText]);
+
   // We'll open separate dialogs for scheduling vs publishing
   const [confirmScheduleOpen, setConfirmScheduleOpen] = useState(false);
   const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
@@ -119,58 +128,70 @@ export function PublishDateCell({
           {/* Date/time popover - only if not scheduled/published/failed publishing */}
           {!isScheduled && !isPublished && !isFailedPublishing ? (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <PopoverTrigger asChild>
-                <div className="cursor-pointer" style={{width: "fit-content"}}>
-                  {hasDate ? (
-                    /* If has time but not scheduled: show chip style with calendar icon + time */
-                    <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
-                      padding: "1px 6px 1px 4px",
-                      border: `1px solid ${statusStyling.borderColor}`,
-                      backgroundColor: statusStyling.backgroundColor,
-                      width: "fit-content"
-                    }}>
-                      <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
-                        backgroundColor: statusStyling.iconBackgroundColor
-                      }}>
-                        <Image 
-                          src={statusStyling.iconSrc} 
-                          alt="Publish Date" 
-                          width={12} 
-                          height={12}
-                          className="filter brightness-0 invert"
-                          style={{ filter: 'brightness(0) invert(1)' }}
-                        />
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <div className="cursor-pointer" style={{width: "fit-content"}}>
+                        {hasDate ? (
+                          /* If has time but not scheduled: show chip style with calendar icon + time */
+                          <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
+                            padding: "1px 6px 1px 4px",
+                            border: `1px solid ${statusStyling.borderColor}`,
+                            backgroundColor: statusStyling.backgroundColor,
+                            width: "fit-content"
+                          }}>
+                            <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
+                              backgroundColor: statusStyling.iconBackgroundColor
+                            }}>
+                              <Image 
+                                src={statusStyling.iconSrc} 
+                                alt="Publish Date" 
+                                width={12} 
+                                height={12}
+                                className="filter brightness-0 invert"
+                                style={{ filter: 'brightness(0) invert(1)' }}
+                              />
+                            </div>
+                            <span className="text-xs text-[#133495] font-semibold whitespace-nowrap" style={{
+                              lineHeight: "18px",
+                            }}>{displayText}</span>
+                          </div>
+                        ) : (
+                          /* If no time: show icon button with + icon + "Select time" label */
+                          <div className={cn(
+                            "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                            )} style={{
+                              padding: "3px 6px 3px 4px",
+                              boxShadow: "0px 0px 0px 1px #D3D3D3",
+                              width: "fit-content"
+                            }}>
+                              <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                                <Plus className={cn(
+                                  "w-3 h-3 text-[#5C5E63]",
+                                )}/>
+                              </div>
+                             <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-xs text-[#133495] font-semibold whitespace-nowrap" style={{
-                        lineHeight: "18px",
-                      }}>{displayText}</span>
-                    </div>
-                  ) : (
-                    /* If no time: show icon button with + icon + "Select time" label */
-                    <div className={cn(
-                      "flex flex-row items-center gap-1 rounded-[4px] bg-white",
-                      )} style={{
-                        padding: "3px 6px 3px 4px",
-                        boxShadow: "0px 0px 0px 1px #D3D3D3",
-                        width: "fit-content"
-                      }}>
-                        <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
-                          <Plus className={cn(
-                            "w-3 h-3 text-[#5C5E63]",
-                          )}/>
-                        </div>
-                       <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
-                    </div>
-                  )}
-                </div>
-              </PopoverTrigger>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#151515] text-white border-none text-xs whitespace-nowrap">
+                    {tooltipLabel}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
               <PopoverContent
                 align={(hasDate || showSelector || showPostingPanel) ? "end" : "center"}
                 side="bottom"
                 sideOffset={6}
                 avoidCollisions
                 className={cn(
-                  (hasDate || showSelector || showPostingPanel) ? "p-0 border-none bg-transparent max-w-[90vw]" : "w-auto min-w-[250px]"
+                  (hasDate || showSelector || showPostingPanel)
+                    ? "p-0 border-none bg-transparent max-w-[90vw]"
+                    : "w-auto min-w-[250px]"
                 )}
                 style={
                   (!hasDate && !showSelector && !showPostingPanel)
@@ -194,13 +215,16 @@ export function PublishDateCell({
                   <PostingSettingsPanel
                     initialTimezone={(post as any).timezone}
                     initialSlots={(post as any).postingSlots}
-                    onBack={()=>setShowPostingPanel(false)}
-                    onSave={(tz,slots)=>{
-                      updatePost(post.id,{ timezone: tz, postingSlots: slots } as any);
+                    onBack={() => setShowPostingPanel(false)}
+                    onSave={(tz, slots) => {
+                      updatePost(post.id, {
+                        timezone: tz,
+                        postingSlots: slots,
+                      } as any);
                       setShowPostingPanel(false);
                     }}
                   />
-                ) : (!hasDate && !showSelector) ? (
+                ) : !hasDate && !showSelector ? (
                   <div>
                     {/* Auto Schedule */}
                     <div
@@ -242,7 +266,10 @@ export function PublishDateCell({
                     {/* Change Workspace Timezone */}
                     <div
                       className="px-[10px] py-[8px] cursor-pointer"
-                      onClick={() => { setShowPostingPanel(true); setShowSelector(false); }}
+                      onClick={() => {
+                        setShowPostingPanel(true);
+                        setShowSelector(false);
+                      }}
                     >
                       <div className="flex items-center gap-[6px]">
                         <Image
@@ -258,7 +285,10 @@ export function PublishDateCell({
                     {/* Allowed Posting Time */}
                     <div
                       className="px-[10px] py-[8px] cursor-pointer"
-                      onClick={() => { setShowPostingPanel(true); setShowSelector(false); }}
+                      onClick={() => {
+                        setShowPostingPanel(true);
+                        setShowSelector(false);
+                      }}
                     >
                       <div className="flex items-center gap-[6px]">
                         <Image
@@ -275,7 +305,10 @@ export function PublishDateCell({
                   <DateTimeSelector
                     post={post}
                     allPosts={allPosts}
-                    onClose={() => { setPopoverOpen(false); setShowSelector(false); }}
+                    onClose={() => {
+                      setPopoverOpen(false);
+                      setShowSelector(false);
+                    }}
                     onSchedule={(d) => {
                       updatePost(post.id, {
                         publishDate: d,
@@ -291,31 +324,40 @@ export function PublishDateCell({
             </Popover>
           ) : (
             /* If scheduled/published/failed publishing or has date: show status with icon + time below */
-            <div className="flex flex-col">
-              <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
-                padding: "1px 6px 1px 4px",
-                border: `1px solid ${statusStyling.borderColor}`,
-                backgroundColor: statusStyling.backgroundColor,
-                width: "fit-content"
-              }}>
-                <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
-                  backgroundColor: statusStyling.iconBackgroundColor
-                }}>
-                  <Image 
-                    src={statusStyling.iconSrc} 
-                    alt="Publish Date" 
-                    width={12} 
-                    height={12}
-                    className="filter brightness-0 invert"
-                    style={{ filter: 'brightness(0) invert(1)' }}
-                  />
-                </div>
-                <span className="text-xs font-semibold whitespace-nowrap" style={{
-                  lineHeight: "18px",
-                  color: statusStyling.textColor
-                }}>{displayText}</span>
-              </div>
-            </div>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex flex-col">
+                    <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
+                      padding: "1px 6px 1px 4px",
+                      border: `1px solid ${statusStyling.borderColor}`,
+                      backgroundColor: statusStyling.backgroundColor,
+                      width: "fit-content"
+                    }}>
+                      <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
+                        backgroundColor: statusStyling.iconBackgroundColor
+                      }}>
+                        <Image 
+                          src={statusStyling.iconSrc} 
+                          alt="Publish Date" 
+                          width={12} 
+                          height={12}
+                          className="filter brightness-0 invert"
+                          style={{ filter: 'brightness(0) invert(1)' }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold whitespace-nowrap" style={{
+                        lineHeight: "18px",
+                        color: statusStyling.textColor
+                      }}>{displayText}</span>
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="bg-[#151515] text-white border-none text-xs whitespace-nowrap">
+                  {tooltipLabel}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
