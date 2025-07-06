@@ -67,7 +67,7 @@ export function StatusEditCell({
         <StatusSelectPopup
           value={value}
           onChange={(newVal) => {
-            onChange(newVal);
+            // onChange(newVal);
             exitEdit?.();          // close + leave edit mode
           }}
           onClose={() => exitEdit?.()}
