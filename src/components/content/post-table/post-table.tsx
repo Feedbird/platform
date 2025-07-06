@@ -967,7 +967,7 @@ export function PostTable({
               <div className="flex items-center flex-nowrap min-w-0">
                 <div className="flex-shrink-0">
                   <div
-                    className="flex items-center border border-border-button rounded-[4px] px-[8px] py-[6px] gap-[4px] cursor-pointer"
+                    className="flex items-center rounded-[4px] px-[8px] py-[6px] gap-[4px] cursor-pointer"
                     style={{
                       boxShadow: "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)"
                     }}
