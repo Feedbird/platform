@@ -128,7 +128,7 @@ function HeaderInner() {
                   className="shrink-0"
                 />
               )}
-              <span className="font-semibold text-xl tracking-[-0.6px]">{activeBoard?.label ?? 'Select board'}</span>
+              <span className="font-semibold text-lg tracking-[-0.6px]">{activeBoard?.label ?? 'Select board'}</span>
               <ChevronDown className="size-4 opacity-60" />
             </button>
           </PopoverTrigger>
