@@ -388,7 +388,7 @@ function HeaderInner() {
       <div className="ml-auto flex items-center gap-[8px]">
         <BrandSwitcher />
         <BrandSocialIcons />
-        <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] text-black px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-semibold">
+        <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] text-black px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium">
           <Image src="/images/header/user-plus.svg" alt="Share" width={16} height={16} />
           Share
         </Button>

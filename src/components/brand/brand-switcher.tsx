@@ -37,7 +37,7 @@ export default function BrandSwitcher() {
       <div className="relative">
         <span className='py-0 text-xs absolute top-[-8px] left-[10px] text-grey bg-background leading-none'>Brand</span>
         <button className="flex items-center gap-[8px] cursor-pointer rounded-[6px] border border-border-button px-[8px] py-[5px] text-sm h-[38px] w-[150px]">
-          <span className="font-semibold text-sm text-gray-500">Loading…</span>
+          <span className="font-medium text-sm text-gray-500">Loading…</span>
         </button>
       </div>
     );
@@ -66,7 +66,7 @@ export default function BrandSwitcher() {
                 className="rounded-md object-contain"
               />
             )}
-            <span className="max-w-[150px] truncate font-semibold text-sm text-black">
+            <span className="max-w-[150px] truncate font-medium text-sm text-black">
               {active?.name ?? 'Pick a brand'}
             </span>
             <ChevronsUpDown className="h-4 w-4 opacity-60" />
