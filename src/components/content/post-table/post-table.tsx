@@ -706,7 +706,7 @@ export function PostTable({
         filterFn: statusFilterFn,
         sortingFn: statusSortingFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/status.svg`} alt="status" width={14} height={14} />
             {columnNames["status"] || "Status"}
           </div>
@@ -740,7 +740,7 @@ export function PostTable({
         id: "preview",
         accessorKey: "blocks",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/preview.svg`} alt="preview" width={14} height={14} />
             {columnNames["preview"] || "Preview"}
           </div>
@@ -785,9 +785,9 @@ export function PostTable({
         id: "caption",
         accessorKey: "caption",
         header: () => (
-          <div className="flex items-center w-full text-black gap-[6px] font-medium leading-[16px]">
+          <div className="flex items-center w-full text-black gap-[6px] text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/caption.svg`} alt="caption" width={14} height={14} />
-            <span className="text-sm leading-[16px]">{columnNames["caption"] || "Caption"}</span>
+            <span className="text-[13px] leading-[16px]">{columnNames["caption"] || "Caption"}</span>
 
             {/* channel-icon filter buttons – right-aligned */}
             <div className="ml-auto flex">
@@ -856,7 +856,7 @@ export function PostTable({
         accessorKey: "pages",
         filterFn: platformsFilterFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/socials.svg`} alt="socials" width={14} height={14} />
             {columnNames["platforms"] || "Socials"}
           </div>
@@ -890,7 +890,7 @@ export function PostTable({
         accessorKey: "format",
         filterFn: formatFilterFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/format.svg`} alt="format" width={14} height={14} />
             {columnNames["format"] || "Format"}
           </div>
@@ -920,7 +920,7 @@ export function PostTable({
         accessorKey: "month",
         filterFn: monthFilterFn,
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/post-time.svg`} alt="Month" width={14} height={14} />
             {"Month"}
           </div>
@@ -953,7 +953,7 @@ export function PostTable({
       {
         id: "revision",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/revision.svg`} alt="revision" width={14} height={14} />
             {columnNames["revision"] || "Revision"}
           </div>
@@ -994,7 +994,7 @@ export function PostTable({
       {
         id: "approve",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/approve.svg`} alt="approve" width={14} height={14} />
             {columnNames["approve"] || "Approve"}
           </div>
@@ -1010,7 +1010,7 @@ export function PostTable({
       {
         id: "settings",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/settings.svg`} alt="settings" width={14} height={14} />
             {columnNames["settings"] || "Settings"}
           </div>
@@ -1042,7 +1042,7 @@ export function PostTable({
         id: "publishDate",
         accessorKey: "publishDate",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/post-time.svg`} alt="Publish Date" width={14} height={14} />
             {"Post Time"}
           </div>
@@ -1071,7 +1071,7 @@ export function PostTable({
         id: "updatedAt",
         accessorKey: "updatedAt",
         header: () => (
-          <div className="flex items-center gap-[6px] text-sm font-medium text-black leading-[16px]">
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/updated-time.svg`} alt="Updated At" width={14} height={14} />
             {"Updated"}
           </div>
@@ -1290,11 +1290,11 @@ export function PostTable({
                 <TableHead
                   key={h.id}
                   className={cn(
-                    "relative text-left border-b border-[#E6E4E2] px-2 py-2",
+                    "relative text-left border-b border-[#E6E4E2] px-2 py-0",
                     index !== 0 && "border-r",
                     isSticky(h.id) && 'bg-[#FBFBFB]'
                   )}
-                  style={{ width: h.getSize(), ...stickyStyles(h.id, 10) }}
+                  style={{ width: h.getSize(), ...stickyStyles(h.id, 10)}}
                 >
                   {flexRender(h.column.columnDef.header, h.getContext())}
                 </TableHead>
