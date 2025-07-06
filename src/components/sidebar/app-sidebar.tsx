@@ -261,7 +261,8 @@ export const RenderNavItems = React.memo(function RenderNavItems({
               asChild
               className={cn(
                 active && "bg-[#D7E9FF]",
-                "group/row gap-[6px] p-[6px] text-black text-sm font-semibold",
+                "group/row gap-[6px] py-[6px] text-black text-sm font-semibold",
+                isBoard ? "px-[6px]" : "px-[8px]",
                 "cursor-pointer focus:outline-none",
                 "hover:bg-[#F4F5F6]"
               )}

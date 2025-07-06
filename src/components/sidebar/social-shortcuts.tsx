@@ -50,7 +50,7 @@ export default function SocialShortcuts() {
             asChild
             className={cn(
               active && "bg-[#D7E9FF]",
-              "gap-[6px] p-[6px] text-black text-sm font-medium"
+              "gap-[6px] py-[6px] px-[8px] text-black text-sm font-medium"
             )}
           >
             <Link
