@@ -50,7 +50,7 @@ export default function SocialShortcuts() {
             asChild
             className={cn(
               active && "bg-[#D7E9FF]",
-              "gap-[6px] py-[6px] px-[8px] text-black text-sm font-medium"
+              "gap-[6px] p-[6px] text-black text-sm font-medium"
             )}
           >
             <Link
@@ -60,8 +60,8 @@ export default function SocialShortcuts() {
               <Image
                 src={`/images/platforms/${page.platform}.svg`}
                 alt={page.name}
-                width={16}
-                height={16}
+                width={18}
+                height={18}
               />
               <span className="font-semibold truncate text-black">
                 {page.name}
