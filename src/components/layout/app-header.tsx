@@ -358,7 +358,7 @@ function HeaderInner() {
             size="sm"
             onClick={() => setView('table')}
             className={cn(
-              'px-[8px] gap-[6px] text-black rounded-[6px] font-semibold text-sm h-[24px] cursor-pointer',
+              'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
               view === 'table'
                 ? 'bg-white shadow'
                 : ''
@@ -372,7 +372,7 @@ function HeaderInner() {
             size="sm"
             onClick={() => setView('calendar')}
             className={cn(
-              'px-[8px] gap-[6px] text-black rounded-[6px] font-semibold text-sm h-[24px] cursor-pointer',
+              'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
               view === 'calendar'
                 ? 'bg-white shadow'
                 : ''
