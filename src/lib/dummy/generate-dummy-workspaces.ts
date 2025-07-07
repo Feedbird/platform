@@ -194,7 +194,7 @@ function makePost(brandId: string, brandPlatforms: Platform[]): Post {
 
   /* now build blocks with the chosen kind */
   const blocks = Array.from(
-    { length: faker.number.int({ min: 0, max: 2 }) },
+    { length: faker.number.int({ min: 0, max: 0 }) },
     () => makeBlock(fileKind),
   );
 
@@ -237,7 +237,7 @@ function makeBrand(): Brand {
   });
   // pages
   function makePagesFor(platform: Platform): SocialPageType[] {
-    const howMany = rInt(3, 5);
+    const howMany = rInt(0, 0);
     const arr: SocialPageType[] = [];
     const statuses: ("active" | "expired" | "pending" | "disconnected")[] = ["active", "expired", "pending", "disconnected"];
     

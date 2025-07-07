@@ -1,25 +1,148 @@
 "use client";
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Block } from "@/lib/store/use-feedbird-store";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { toast } from "sonner";
 
 /**
  * Renders each block's *current* version in a horizontal strip.
  * Each thumbnail has a 1:1 aspect ratio, so it fits nicely in a row or table cell.
  */
 export function BlocksPreview({ 
-  blocks, 
-  onFilesSelected 
-}: { 
+  blocks,
+  postId,
+  onFilesSelected,
+}: {
   blocks: Block[];
+  postId: string;
   onFilesSelected?: (files: File[]) => void;
 }) {
-  const [isDragOver, setIsDragOver] = React.useState(false);
-  const dragCounter = React.useRef(0);
-  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounter = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  /*────────────────── Upload state ──────────────────*/
+  type UploadItem = {
+    id: string;
+    file: File;
+    previewUrl: string;
+    progress: number;   // 0-100
+    status: "uploading" | "processing" | "done" | "error";
+    xhr?: XMLHttpRequest;
+  };
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
+
+  const wid = useFeedbirdStore((s) => s.activeWorkspaceId);
+  const bid = useFeedbirdStore((s) => s.activeBrandId);
+  const addBlock = useFeedbirdStore((s) => s.addBlock);
+  const addVersion = useFeedbirdStore((s) => s.addVersion);
+  const updatePost = useFeedbirdStore((s) => s.updatePost);
+
+  /** Start uploading the given files and track progress */
+  const startUploads = (files: File[]) => {
+    files.forEach((file) => {
+      const id = crypto.randomUUID();
+      const previewUrl = URL.createObjectURL(file);
+
+      const xhr = new XMLHttpRequest();
+      const form = new FormData();
+      form.append("file", file);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          const newStatus = pct >= 100 ? "processing" : "uploading";
+          setUploads((u) => u.map((it) => it.id === id ? { ...it, progress: pct, status: newStatus } : it));
+        }
+      };
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const resJson = JSON.parse(xhr.responseText);
+              const uploadedUrl = resJson.url as string | undefined;
+              if (uploadedUrl) {
+                const kind: "image" | "video" = file.type.startsWith("video") ? "video" : "image";
+                const blockId = addBlock(postId, kind);
+                addVersion(postId, blockId, {
+                  by: "Me",
+                  caption: "",
+                  file: { kind, url: uploadedUrl },
+                });
+
+                /* ----- Determine new post format ----- */
+                const state = useFeedbirdStore.getState();
+                const post = state.getPost(postId);
+                if (post) {
+                  const imgCnt = post.blocks.filter((b) => b.kind === "image").length;
+                  const vidCnt = post.blocks.filter((b) => b.kind === "video").length;
+
+                  let newFormat = post.format;
+                  if (vidCnt > 0 && imgCnt === 0) {
+                    newFormat = "video";
+                  } else if (imgCnt === 1 && vidCnt === 0) {
+                    newFormat = "static-image";
+                  } else if (imgCnt >= 2 || (imgCnt >= 1 && vidCnt > 0)) {
+                    newFormat = "carousel";
+                  }
+
+                  if (newFormat !== post.format) {
+                    updatePost(postId, { format: newFormat });
+                  }
+                }
+              }
+              toast.success(`${file.name} uploaded`);
+              setUploads((u) => u.map((it) => it.id === id ? { ...it, progress: 100, status: "done" } : it));
+            } catch (e) {
+              console.error("Failed to update store after upload", e);
+              toast.error(`Upload processed but failed to update UI`);
+              setUploads((u) => u.map((it) => it.id === id ? { ...it, status: "error" } : it));
+            }
+          } else if (xhr.status === 0) {
+            // request aborted (unlikely now that cancel removed)
+            setUploads((u) => u.map((it) => it.id === id ? { ...it, status: "error" } : it));
+          } else {
+            toast.error(`${file.name} failed`, {
+              description: `Server responded with ${xhr.status}`,
+            });
+            setUploads((u) => u.map((it) => it.id === id ? { ...it, status: "error" } : it));
+          }
+        }
+      };
+
+      // Build query string: /api/media/upload?wid=...&bid=...&pid=...
+      const qs = new URLSearchParams();
+      if (wid) qs.append("wid", wid);
+      if (bid) qs.append("bid", bid);
+      if (postId) qs.append("pid", postId);
+
+      const url = `/api/media/upload${qs.toString() ? "?" + qs.toString() : ""}`;
+
+      xhr.open("POST", url);
+      xhr.send(form);
+
+      setUploads((u) => [...u, { id, file, previewUrl, progress: 0, status: "uploading", xhr }]);
+    });
+  };
+
+  /* Clean blob URLs */
+  useEffect(() => {
+    return () => {
+      uploads.forEach((u) => URL.revokeObjectURL(u.previewUrl));
+    };
+  }, [uploads]);
+
+  // Auto-remove completed uploads after short delay
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setUploads((prev) => prev.filter((u) => u.status !== "done"));
+    }, 1500);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -47,7 +170,7 @@ export function BlocksPreview({
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      setSelectedFiles(files);
+      startUploads(files);
       onFilesSelected?.(files);
     }
   };
@@ -55,7 +178,7 @@ export function BlocksPreview({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      setSelectedFiles(files);
+      startUploads(files);
       onFilesSelected?.(files);
     }
   };
@@ -65,7 +188,7 @@ export function BlocksPreview({
   };
 
   // If there are blocks to preview, show them
-  if (blocks.length > 0) {
+  if (blocks.length > 0 || uploads.length > 0) {
     return (
       <div
         className="
@@ -118,6 +241,55 @@ export function BlocksPreview({
             </div>
           );
         })}
+
+        {/* Upload in progress */}
+        {uploads.map((up) => (
+          <div
+            key={up.id}
+            className="relative flex-shrink-0 rounded-[2px] bg-black/10 overflow-hidden"
+            style={{ aspectRatio: "1 / 1", height: "100%", border: "0.5px solid #D0D5D0" }}
+          >
+            <img src={up.previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" />
+            {/* Progress overlay */}
+            {up.status === "uploading" && (
+              <>
+                {/* Dim overlay but leave preview visible */}
+                <div className="absolute inset-0 bg-black/40" />
+                {/* Bottom progress bar */}
+                <div className="absolute left-0 bottom-0 w-full h-[3px] bg-white/20">
+                  <div
+                    className="h-full bg-blue-400 transition-all"
+                    style={{ width: `${up.progress}%` }}
+                  />
+                </div>
+                {/* Percent text top-right (hide on very small widths) */}
+                <span className="absolute top-0 right-0 m-[2px] px-[2px] rounded bg-black/60 text-[10px] text-white leading-none">
+                  {up.progress}%
+                </span>
+              </>
+            )}
+            {up.status === "error" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-600/80 text-white text-xs gap-2">
+                <X className="w-6 h-6" />
+                <span>Error</span>
+              </div>
+            )}
+            {up.status === "processing" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white text-xs gap-2">
+                <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+              </div>
+            )}
+            {up.status === "done" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-600/70 text-white text-xs gap-2">
+                <Check className="w-6 h-6" />
+                <span>Uploaded</span>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     );
   }

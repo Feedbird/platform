@@ -80,11 +80,13 @@ const mediaConstraints: Record<string, any> = {
  * 
  * @param sourcePath The local path to the source media file.
  * @param platform The target social media platform.
+ * @param keyPrefix Optional key prefix for the uploaded file
  * @returns A promise that resolves with the path to the converted media file.
  */
 export async function convertMediaForPlatform(
     sourcePath: string,
-    platform: Platform
+    platform: Platform,
+    keyPrefix?: string
 ): Promise<string> {
     console.log(`Converting ${sourcePath} for ${platform}...`);
 
@@ -92,7 +94,8 @@ export async function convertMediaForPlatform(
     if (!constraints) {
         console.warn(`No media constraints found for platform: ${platform}. Skipping conversion.`);
         // Even if no conversion, upload the original file to R2
-        return uploadToR2(sourcePath);
+        const fileName = keyPrefix ? `${keyPrefix}${path.basename(sourcePath)}` : undefined;
+        return uploadToR2(sourcePath, fileName);
     }
 
     const fileExtension = path.extname(sourcePath).toLowerCase().substring(1);
@@ -223,7 +226,8 @@ export async function convertMediaForPlatform(
     const finalPath = convertedPath || sourcePath;
     
     console.log(`[CONVERSION] Process complete. Starting R2 upload for: ${finalPath}`);
-    const url = await uploadToR2(finalPath);
+    const uploadKey = keyPrefix ? `${keyPrefix}${path.basename(finalPath)}` : undefined;
+    const url = await uploadToR2(finalPath, uploadKey);
 
     // Clean up original file if a conversion happened and it's not the same file
     if (convertedPath && convertedPath !== sourcePath) {

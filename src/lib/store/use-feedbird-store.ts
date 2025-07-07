@@ -340,7 +340,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               const formData = new FormData();
               formData.append('file', file);
 
-              const uploadRes = await fetch(`/api/media/upload?platform=${page.platform}`, {
+              const uploadRes = await fetch(`/api/media/upload?platform=${page.platform}&wid=${get().activeWorkspaceId ?? ''}&bid=${brand.id}&pid=${post.id}`, {
                 method: 'POST',
                 body: formData,
               });
@@ -673,6 +673,14 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         const page = brand.socialPages.find((p) => p.id === pageId);
         if (!page) throw new Error(`Page with ID ${pageId} not found in brand.`);
         
+        /* TikTok profile == page; no page-level API available in sandbox.
+         * We therefore skip the remote connect call and simply flip the
+         * staged page to connected=true locally. */
+        if (page.platform === 'tiktok') {
+          set(s => updatePage(s, brandId, pageId, { connected: true, status: 'active' }));
+          return;
+        }
+
         const acct = brand.socialAccounts.find((a) => a.id === page.accountId);
         if (!acct) throw new Error(`Account for page ${pageId} not found.`);
 
@@ -698,7 +706,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                         ...sp,
                         ...finalPage,
                         connected: true,
-                        status: finalPage.status ?? "active",
+                        status: finalPage.status ?? 'active',
                       };
                     }
                     return sp;
