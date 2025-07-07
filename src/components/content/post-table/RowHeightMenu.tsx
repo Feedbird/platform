@@ -11,13 +11,8 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Rows2, Rows3, Rows4, RectangleHorizontal, ChevronDown, ChevronUp } from "lucide-react";
-import ExpandIcon from "@mui/icons-material/Expand";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // example from MUI (or use any other icon)
-import ShortTextIcon from "@mui/icons-material/ShortText"; // example icon
-import HeightIcon from "@mui/icons-material/Height"; // example icon
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { cn } from "@/lib/utils";
-import { Maximize2 } from "lucide-react";
 
 interface RowHeightMenuProps {
   rowHeight: number;
@@ -28,13 +23,56 @@ export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
   // Control whether the dropdown is open or closed
   const [open, setOpen] = React.useState(false);
 
-  // We can define each label + icon
+  // We can define each label + icon (using custom SVGs)
   const possibleHeights = [
-    { value: 40, label: "Short", icon: <Rows4 className="h-3 w-3 text-[#838488]" /> },
-    { value: 48, label: "Medium", icon: <Rows3 className="h-3 w-3 text-[#838488]" /> },
-    { value: 72, label: "Tall", icon: <Rows2 className="h-3 w-3 text-[#838488]" /> },
-    { value: 120, label: "Extra Tall", icon: <RectangleHorizontal className="h-3 w-3 text-[#838488]" /> },
-    // { value: 160, label: "XX-Large", icon: <Maximize2 className="h-3 w-3" /> },
+    {
+      value: 40,
+      label: "Short",
+      icon: (
+        <Image
+          src="/images/row-height/short.svg"
+          alt="Short row height"
+          width={12}
+          height={12}
+        />
+      ),
+    },
+    {
+      value: 48,
+      label: "Medium",
+      icon: (
+        <Image
+          src="/images/row-height/medium.svg"
+          alt="Medium row height"
+          width={12}
+          height={12}
+        />
+      ),
+    },
+    {
+      value: 72,
+      label: "Tall",
+      icon: (
+        <Image
+          src="/images/row-height/tall.svg"
+          alt="Tall row height"
+          width={12}
+          height={12}
+        />
+      ),
+    },
+    {
+      value: 120,
+      label: "Extra Tall",
+      icon: (
+        <Image
+          src="/images/row-height/extra-tall.svg"
+          alt="Extra tall row height"
+          width={12}
+          height={12}
+        />
+      ),
+    },
   ];
 
   // Find the current selected height option
