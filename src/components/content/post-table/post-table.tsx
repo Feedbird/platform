@@ -774,6 +774,7 @@ export function PostTable({
             >
               <BlocksPreview 
                 blocks={post.blocks} 
+                postId={post.id}
                 onFilesSelected={handleFilesSelected}
               />
             </div>
