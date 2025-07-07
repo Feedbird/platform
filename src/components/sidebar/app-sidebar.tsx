@@ -256,6 +256,18 @@ export const RenderNavItems = React.memo(function RenderNavItems({
         {items.map((nav) => {
           const active = nav.href && pathname.startsWith(nav.href);
 
+          /* ----------------------------------------------------------- */
+          /*  ICON SELECTION                                            */
+          /*  For board items, swap in a "-selected" icon when active   */
+          /* ----------------------------------------------------------- */
+          let imageSrc = nav.image;
+          if (isBoard && nav.image) {
+            if (active) {
+              // Insert "-selected" before the .svg extension
+              imageSrc = nav.image.replace(/\.svg$/, "-selected.svg");
+            }
+          }
+
           const RowContent = (
             <SidebarMenuButton
               asChild
@@ -272,9 +284,9 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                   className="flex items-center gap-[6px] w-full"
                   loadingText={`Loading ${nav.label}…`}
                 >
-                  {nav.image && (
+                  {imageSrc && (
                     <img
-                      src={nav.image}
+                      src={imageSrc}
                       alt={nav.label}
                       className="w-[18px] h-[18px]"
                       loading="lazy"
@@ -297,9 +309,9 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                   onClick={nav.onClick}
                   className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none"
                 >
-                  {nav.image && (
+                  {imageSrc && (
                     <img
-                      src={nav.image}
+                      src={imageSrc}
                       alt={nav.label}
                       className={`${isBoard ? "w-[18px] h-[18px]" : "w-[16px] h-[16px]"}`}
                       loading="lazy"
@@ -319,8 +331,8 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                 <Tooltip>
                   <TooltipTrigger asChild>{RowContent}</TooltipTrigger>
                   <TooltipContent side="right" className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md [&>svg]:hidden [&>div]:hidden">
-                    {nav.image && (
-                      <img src={nav.image} alt={nav.label} className="w-4 h-4" />
+                    {imageSrc && (
+                      <img src={imageSrc} alt={nav.label} className="w-4 h-4" />
                     )}
                     <span className="text-sm font-semibold">{nav.label}</span>
                     {isBoard && <BoardCount boardId={nav.id} variant="collapsed" />}
