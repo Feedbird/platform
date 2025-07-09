@@ -228,7 +228,7 @@ export function PublishDateCell({
                   <div>
                     {/* Auto Schedule */}
                     <div
-                      className="px-[10px] py-[8px] cursor-pointer gap-[2px]"
+                      className="px-[10px] py-[8px] cursor-pointer gap-[2px] hover:bg-gray-100 rounded"
                       onClick={handleAutoSchedule}
                     >
                       <div className="text-sm font-medium text-black flex flex-row items-center gap-[6px]">
@@ -249,7 +249,7 @@ export function PublishDateCell({
 
                     {/* Custom Date */}
                     <div
-                      className="px-[10px] py-[8px] cursor-pointer"
+                      className="px-[10px] py-[8px] cursor-pointer hover:bg-gray-100 rounded"
                       onClick={() => setShowSelector(true)}
                     >
                       <div className="flex items-center gap-[6px]">
@@ -265,7 +265,7 @@ export function PublishDateCell({
 
                     {/* Change Workspace Timezone */}
                     <div
-                      className="px-[10px] py-[8px] cursor-pointer"
+                      className="px-[10px] py-[8px] cursor-pointer hover:bg-gray-100 rounded"
                       onClick={() => {
                         setShowPostingPanel(true);
                         setShowSelector(false);
@@ -284,7 +284,7 @@ export function PublishDateCell({
 
                     {/* Allowed Posting Time */}
                     <div
-                      className="px-[10px] py-[8px] cursor-pointer"
+                      className="px-[10px] py-[8px] cursor-pointer hover:bg-gray-100 rounded"
                       onClick={() => {
                         setShowPostingPanel(true);
                         setShowSelector(false);
