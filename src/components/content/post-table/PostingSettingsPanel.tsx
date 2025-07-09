@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { TimezonePicker } from "@/components/ui/timezone-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -26,18 +27,7 @@ export const PostingSettingsPanel: React.FC<Props> = ({ initialTimezone = Intl.D
     const arr:string[]=[]; for(let h=0;h<24;h++){ for(const m of [0,15,30,45]) arr.push(format(new Date(2020,0,1,h,m),"HH:mm")); }
     return arr;
   },[]);
-  const tzOptions = React.useMemo(()=> {
-    const zones = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : [timezone];
-    return zones.map(tz => {
-      const now = new Date();
-      const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-      const offsetMin = (tzDate.getTime() - now.getTime()) / 60000; // ahead positive
-      const sign = offsetMin >= 0 ? "+" : "-";
-      const hours = Math.floor(Math.abs(offsetMin) / 60).toString().padStart(2,'0');
-      const label = `${tz} (UTC ${sign}${hours})`;
-      return { value: tz, label };
-    });
-  }, []);
+  // tzOptions removed – using TimezonePicker instead
 
   function updateDay(day:string, update:DaySlot){ setSlots(prev=>({ ...prev, [day]: update })); }
 
@@ -49,12 +39,7 @@ export const PostingSettingsPanel: React.FC<Props> = ({ initialTimezone = Intl.D
       </div>
 
       {/* Timezone select */}
-      <Select value={timezone} onValueChange={setTimezone}>
-        <SelectTrigger className="w-full h-9 border rounded px-3 py-2 text-sm"><SelectValue/></SelectTrigger>
-        <SelectContent className="max-h-64 overflow-y-auto">
-          {tzOptions.map(opt=> <SelectItem key={opt.value} value={opt.value} className="text-sm h-8">{opt.label}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <TimezonePicker value={timezone} onChange={setTimezone} className="w-full" />
 
       {/* Allowed posting */}
       <div className="flex items-center gap-2 text-sm font-medium mt-5">

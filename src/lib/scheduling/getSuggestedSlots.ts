@@ -87,8 +87,8 @@ export function getSuggestedSlots(
   const now = new Date();
   const takenSlots = new Set(
     allPosts
-      .filter(p => p.status === "Scheduled" && p.id !== post.id)
-      .map(p => toKey(p.publishDate!)) // e.g. "2025-04-25T14"
+      .filter(p => p.status === "Scheduled" && p.id !== post.id && p.publishDate)
+      .map(p => toKey(p.publishDate as Date))
   );
 
   const DAYS_LOOKAHEAD = 30;
@@ -149,5 +149,5 @@ export function getSuggestedSlots(
 
 function toKey(date: Date): string {
   // Rounds to hour precision
-  return date.toISOString().slice(0, 13);
+  return date instanceof Date ? date.toISOString().slice(0, 13) : "";
 }
