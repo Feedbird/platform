@@ -16,15 +16,17 @@ export function ApprovalsInner() {
   const search = useSearchParams();
   const view = search.get("view") === "calendar" ? "calendar" : "table";
 
-  // Pull all store-based posts, then filter for static formats:
+  // Gather posts across *all brands* in the active workspace, filtering for
+  // those that are either Pending Approval or Revised.
   const posts = useStoreWithEqualityFn(
     useFeedbirdStore,
-    (s: FeedbirdStore): Post[] =>
-      s
-        .getActivePosts()
-        .filter(
-          (p) => p.status === 'Pending Approval' as Status || p.status === 'Revised' as Status
-        ),
+    (s: FeedbirdStore): Post[] => {
+      const ws = s.getActiveWorkspace();
+      const allPosts = ws ? ws.brands.flatMap((b) => b.contents) : [];
+      return allPosts.filter(
+        (p) => p.status === "Pending Approval" || p.status === "Revised"
+      );
+    },
     shallow
   );
 
