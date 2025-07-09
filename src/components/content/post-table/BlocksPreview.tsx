@@ -1,10 +1,14 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Block } from "@/lib/store/use-feedbird-store";
+import {
+  Block,
+  useFeedbirdStore,
+  FileKind,
+} from "@/lib/store/use-feedbird-store";
 import { Plus, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { toast } from "sonner";
+import { BlockThumbnail } from "./BlockThumbnail";
 
 /**
  * Renders each block's *current* version in a horizontal strip.
@@ -14,10 +18,12 @@ export function BlocksPreview({
   blocks,
   postId,
   onFilesSelected,
+  rowHeight,
 }: {
   blocks: Block[];
   postId: string;
   onFilesSelected?: (files: File[]) => void;
+  rowHeight: number;
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounter = useRef(0);
@@ -34,6 +40,7 @@ export function BlocksPreview({
     xhr?: XMLHttpRequest;
   };
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [uploadDimensions, setUploadDimensions] = useState<Record<string, { w: number, h: number }>>({});
 
   const wid = useFeedbirdStore((s) => s.activeWorkspaceId);
   const bid = useFeedbirdStore((s) => s.activeBrandId);
@@ -46,6 +53,15 @@ export function BlocksPreview({
     files.forEach((file) => {
       const id = crypto.randomUUID();
       const previewUrl = URL.createObjectURL(file);
+
+      // Pre-calculate dimensions for aspect ratio styling
+      if (file.type.startsWith("image/")) {
+        const img = new Image();
+        img.src = previewUrl;
+        img.onload = () => {
+          setUploadDimensions(d => ({...d, [id]: { w: img.naturalWidth, h: img.naturalHeight }}));
+        };
+      }
 
       const xhr = new XMLHttpRequest();
       const form = new FormData();
@@ -192,67 +208,43 @@ export function BlocksPreview({
     return (
       <div
         className="
+          block-previews-container
           flex flex-row gap-[2px]
           w-full h-full
-          overflow-x-hidden
+          overflow-x-auto
           overflow-y-hidden
         "
       >
-        {blocks.map((block) => {
-          // Find the current version for each block
-          const currentVer = block.versions.find(
-            (v) => v.id === block.currentVersionId
-          );
-          if (!currentVer) {
-            // If no currentVersionId or missing version, skip
-            return null;
-          }
+        {blocks.map((block) => (
+          <BlockThumbnail key={block.id} block={block} height={rowHeight > 10 ? rowHeight - 8 : rowHeight} />
+        ))}
 
-          const url = currentVer.file.url;
-          const isVideo = currentVer.file.kind == "video";
+        {/* Upload in progress */}
+        {uploads.map((up) => {
+          const dims = uploadDimensions[up.id];
+          const isTall = dims && dims.h > dims.w;
 
           return (
             <div
-              key={block.id}
-              className="
-                relative flex-shrink-0
-                rounded-[2px] bg-black/10 overflow-hidden
-              "
-              style={{ aspectRatio: "1 / 1", height: "100%", border: "0.5px solid #D0D5D0", borderRadius: "2px" }}
-            >
-              {isVideo ? (
-                <video
-                  className="absolute inset-0 w-full h-full object-cover"
-                  src={url}
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  crossOrigin="anonymous"
-                />
-              ) : (
-                <img
-                  className="absolute inset-0 w-full h-full object-cover"
-                  src={url}
-                  alt="preview"
-                  loading="lazy"
-                />
+              key={up.id}
+              className={cn(
+                "relative flex-shrink-0 rounded-[2px] bg-black/10 overflow-hidden",
+                !isTall && "aspect-square"
               )}
-            </div>
-          );
-        })}
-
-        {/* Upload in progress */}
-        {uploads.map((up) => (
-          <div
-            key={up.id}
-            className="relative flex-shrink-0 rounded-[2px] bg-black/10 overflow-hidden"
-            style={{ aspectRatio: "1 / 1", height: "100%", border: "0.5px solid #D0D5D0" }}
-          >
-            <img src={up.previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" />
-            {/* Progress overlay */}
-            {up.status === "uploading" && (
-              <>
+              style={{ height: `${rowHeight > 10 ? rowHeight - 8 : rowHeight}px`, border: "0.5px solid #D0D5D0" }}
+            >
+              <img
+                src={up.previewUrl}
+                className={cn(
+                  "block opacity-50",
+                  isTall
+                    ? "h-full w-auto"
+                    : "absolute inset-0 w-full h-full object-cover"
+                )}
+              />
+              {/* Progress overlay */}
+              {up.status === "uploading" && (
+                <>
                 {/* Dim overlay but leave preview visible */}
                 <div className="absolute inset-0 bg-black/40" />
                 {/* Bottom progress bar */}
@@ -277,8 +269,19 @@ export function BlocksPreview({
             {up.status === "processing" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white text-xs gap-2">
                 <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
                 </svg>
               </div>
             )}
@@ -289,9 +292,10 @@ export function BlocksPreview({
               </div>
             )}
           </div>
-        ))}
-      </div>
-    );
+        );
+      })}
+    </div>
+  );
   }
 
   return (

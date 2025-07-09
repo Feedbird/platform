@@ -942,6 +942,7 @@ export function PostTable({
                 blocks={post.blocks} 
                 postId={post.id}
                 onFilesSelected={handleFilesSelected}
+                rowHeight={rowHeight}
               />
             </div>
           );
