@@ -68,9 +68,15 @@ export function PostRecordModal({ postId, open, onClose }:{
     updatePost(post.id, { status: "Needs Revisions" });
   };
 
-  const dateDisplay = post.publishDate.toLocaleString("en-US", {
-    month:"long", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit"
-  });
+  const dateDisplay = post.publishDate
+    ? post.publishDate.toLocaleString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "Unscheduled";
 
   function switchPost(dir:"prev"|"next"){
     // ...

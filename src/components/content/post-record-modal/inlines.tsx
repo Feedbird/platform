@@ -370,8 +370,24 @@ export function ApproveCell({ post }: { post: Post }) {
    Just a read-only "post.updatedAt"
 ------------------------------------------------------------------ */
 export function UpdateDateCell({ post }: { post: Post }) {
-  if (!post.updatedAt) return <span className="text-sm text-muted-foreground">—</span>;
-  const d = new Date(post.updatedAt);
-  const display = format(d, "MMM dd, hh:mm aa"); 
-  return <span className="text-sm">{display}</span>;
+  return (
+    <div className="flex flex-col">
+      <span className="text-sm font-medium">
+        {post.updatedAt
+          ? post.updatedAt.toLocaleString("en-US", {
+              month: "long",
+              day: "numeric",
+            })
+          : "Not updated yet"}
+      </span>
+      <span className="text-xs text-gray-500">
+        {post.updatedAt
+          ? post.updatedAt.toLocaleString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : ""}
+      </span>
+    </div>
+  );
 }
