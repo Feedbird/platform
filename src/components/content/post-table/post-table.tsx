@@ -643,27 +643,31 @@ export function PostTable({
     const end = Math.max(startIndex, endIndex);
 
     if (start !== end) {
-      setTableData(prev => {
-        const next = prev.map((p,i)=> {
-          if(i < start || i > end) return p;
-          if (columnId === 'month') {
-            return { ...p, month: value as number };
-          }
-          if (columnId === 'caption') {
-            return { ...p, caption: value as Post['caption'] };
-          }
-          return p;
-        });
-        next.forEach((p,i)=>{
-          if(i<start || i> end) return;
-          if (columnId === 'month') {
-            updatePost(p.id,{ month: value as number });
-          } else if (columnId === 'caption') {
-            updatePost(p.id,{ caption: value as Post['caption'] });
-          }
-        });
-        return next;
+      // 1) Build new table data without mutating existing state
+      const newData = tableData.map((p, i) => {
+        if (i < start || i > end) return p;
+        if (columnId === 'month') {
+          return { ...p, month: value as number };
+        }
+        if (columnId === 'caption') {
+          return { ...p, caption: value as Post['caption'] };
+        }
+        return p;
       });
+
+      // 2) Apply the optimistic UI update
+      setTableData(newData);
+
+      // 3) Persist changes to the store AFTER state update so we're not inside render
+      for (let i = start; i <= end; i++) {
+        const p = newData[i];
+        if (!p) continue;
+        if (columnId === 'month') {
+          updatePost(p.id, { month: value as number });
+        } else if (columnId === 'caption') {
+          updatePost(p.id, { caption: value as Post['caption'] });
+        }
+      }
     }
 
     fillDragRef.current = null;
@@ -672,7 +676,7 @@ export function PostTable({
     document.removeEventListener("mousemove", handleFillMouseMove);
     setFillDragRange(null);
     setFillDragColumn(null);
-  }, [setTableData, updatePost]);
+  }, [tableData, updatePost]);
 
   function handleFillStartMonth(value: number, startIdx: number) {
     fillDragRef.current = { value, startIndex: startIdx, columnId: 'month' };
