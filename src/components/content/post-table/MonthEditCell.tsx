@@ -60,7 +60,7 @@ export function MonthEditCell({
       <PopoverTrigger asChild>
         <div
           className={cn(
-            "cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] relative",
+            "cursor-pointer inline-flex items-center w-full h-full px-[8px] relative overflow-visible",
             "hover:opacity-90"
           )}
         >
