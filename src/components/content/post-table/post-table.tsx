@@ -88,6 +88,7 @@ import {
 import { format, parse } from "date-fns";
 import Papa from "papaparse";
 import { Platform } from "@/lib/social/platforms/platform-types";
+import { flushSync } from "react-dom";
 
 type FinalGroup = {
   groupValues: Record<string, any>   // e.g. { status: "Pending Approval", channels: "TikTok,LinkedIn" }
@@ -345,8 +346,11 @@ export function PostTable({
       zIndex,
     };
 
+    // Smooth shadow transition
     if (colId === 'status') {
-      styles.boxShadow = '6px 0px 0px -4px rgba(16, 24, 40, 0.05)';
+      // Base transition; actual box-shadow handled by CSS when
+      // the scroll container has `.scrolling-horiz` class.
+      styles.transition = 'box-shadow 0.2s ease-in-out';
     }
   
     return styles;
@@ -392,6 +396,31 @@ export function PostTable({
   });
 
   const [rowHeight, setRowHeight] = React.useState<number>(60);
+
+  // ─────────────────────────────────────────────────────────────
+  //  Instant sticky shadow via CSS class toggling (no React re-render)
+  // ─────────────────────────────────────────────────────────────
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+
+    // Add the class immediately on any horizontal scroll
+    el.classList.add("scrolling-horiz");
+
+    // Clear previous timer and schedule its removal
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      el.classList.remove("scrolling-horiz");
+    }, 150); // duration after scroll stops
+  }
+
+  React.useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
 
   // Filter states
   const [filterOpen, setFilterOpen] = React.useState(false);
@@ -1293,7 +1322,8 @@ export function PostTable({
                   className={cn(
                     "relative text-left border-b border-[#E6E4E2] px-2 py-0",
                     index !== 0 && "border-r",
-                    isSticky(h.id) && 'bg-[#FBFBFB]'
+                    isSticky(h.id) && 'bg-[#FBFBFB]',
+                    h.id === 'status' && 'sticky-status-shadow'
                   )}
                   style={{ width: h.getSize(), ...stickyStyles(h.id, 10)}}
                 >
@@ -1480,7 +1510,8 @@ export function PostTable({
                               ? "align-top"
                               : "align-middle",
                             "px-0 py-0",
-                            index === 0 ? "border-l" : "border-l-0"
+                            index === 0 ? "border-l" : "border-l-0",
+                            cell.column.id === "status" && "sticky-status-shadow"
                           )}
                           style={{
                             height: "inherit",
@@ -1606,7 +1637,8 @@ export function PostTable({
                       key={header.id}
                       className={cn(
                         "relative align-middle text-left border-r border-[#EAE9E9] last:border-r-0 px-2 py-2",
-                        isSticky(header.id) && "bg-[#FBFBFB]"
+                        isSticky(header.id) && "bg-[#FBFBFB]",
+                        header.id === "status" && "sticky-status-shadow"
                       )}
                       style={{
                         width: header.getSize(),
@@ -1764,7 +1796,8 @@ export function PostTable({
                           cell.column.id === "caption" ? "align-top" : "align-middle",
                           "px-0 py-0",
                           "border-t border-[#EAE9E9] last:border-b-0",
-                          isColSticky && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]")
+                          isColSticky && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
+                          cell.column.id === "status" && "sticky-status-shadow"
                         )}
                         style={{
                           height: "inherit",
@@ -1958,6 +1991,7 @@ export function PostTable({
         <CellFocusProvider>
           <div className="flex-1 bg-[#F8F8F8] relative">
             <div 
+              ref={scrollContainerRef}
               className="absolute inset-0 overflow-auto"
               style={{
                 scrollbarWidth: 'thin',
@@ -1965,6 +1999,7 @@ export function PostTable({
               }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleRowDrop}
+              onScroll={handleScroll}
             >
               <style jsx global>{`
                 /* Webkit scrollbar styling */
@@ -1982,6 +2017,16 @@ export function PostTable({
                 }
                 .overflow-auto::-webkit-scrollbar-thumb:hover {
                   background-color: #98A2B3;
+                }
+
+                /* Sticky status shadow handling */
+                .sticky-status-shadow {
+                  transition: box-shadow 0.2s ease-in-out;
+                }
+
+                .scrolling-horiz .sticky-status-shadow {
+                  box-shadow: 5px 0px 0px 0px rgba(16, 24, 40, 0.05);
+                  transition: none;
                 }
               `}</style>
               <div className="min-w-full inline-block">
