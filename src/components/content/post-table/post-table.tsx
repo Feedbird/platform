@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -296,6 +297,35 @@ export function PostTable({
   const updatePost = useFeedbirdStore((s) => s.updatePost);
   const getPageCounts = useFeedbirdStore((s) => s.getPageCounts);
   
+  /* -----------------------------------------------------------
+   *  Determine default content format based on current route
+   * -----------------------------------------------------------*/
+  const pathname = usePathname();
+  const defaultFormat: ContentFormat = React.useMemo(() => {
+    if (pathname?.includes("/short-form-videos")) return "video";
+    if (pathname?.includes("/email-design"))      return "email";
+    return "static-image"; // static posts or fallback
+  }, [pathname]);
+  
+  /* -----------------------------------------------------------
+   *  When no posts exist for this board, seed 3 blank drafts
+   * -----------------------------------------------------------*/
+  React.useEffect(() => {
+    if (posts.length === 0 && pathname?.includes("/content/")) {
+      const created: Post[] = [];
+      for (let i = 0; i < 3; i++) {
+        const np = store.addPost();
+        if (np) {
+          updatePost(np.id, { status: "Draft", format: defaultFormat });
+          created.push({ ...np, status: "Draft", format: defaultFormat });
+        }
+      }
+      if (created.length) {
+        setTableData(created);
+      }
+    }
+  }, [posts, pathname, defaultFormat, store, updatePost]);
+
   React.useEffect(() => {
     setMounted(true);
   }, []);
@@ -519,8 +549,9 @@ export function PostTable({
   function handleAddRowUngrouped() {
     const newPost = store.addPost();
     if (newPost) {
-      newPost.format = "static-image";
-      setTableData((prev) => [...prev, newPost]);
+      updatePost(newPost.id, { format: defaultFormat });
+      const updatedPost = { ...newPost, format: defaultFormat };
+      setTableData((prev) => [...prev, updatedPost]);
     }
   }
 
@@ -541,6 +572,14 @@ export function PostTable({
       }
       // Add other properties as needed based on your grouping columns
     });
+
+    // If format wasn't set via grouping, apply board default
+    if (!('format' in groupValues)) {
+      newPost.format = defaultFormat;
+    }
+
+    // Ensure store reflects any direct mutations
+    updatePost(newPost.id, { format: newPost.format, status: newPost.status });
 
     setTableData((prev) => [...prev, newPost]);
   }

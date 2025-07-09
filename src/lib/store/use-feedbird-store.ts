@@ -99,8 +99,8 @@ export interface Post {
   caption: CaptionData;
   status: Status;
   format: string;
-  publishDate: Date;
-  updatedAt: Date;
+  publishDate: Date | null;
+  updatedAt: Date | null;
   platforms: Platform[];  // Array of platforms this post is for
   pages: string[];  // Array of social page IDs
   billingMonth?: string;
@@ -911,11 +911,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         const newPost: Post = {
           id: pid,
           brandId: brand.id,
-          caption: { synced: true, default: "New Post" },
+          caption: { synced: true, default: "" },
           status: "Draft",
           format: "static-image",
-          publishDate: new Date(),
-          updatedAt: new Date(),
+          publishDate: null,
+          updatedAt: null,
           platforms: [],
           pages: [],
           settings: {},
