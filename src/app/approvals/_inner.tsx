@@ -23,7 +23,7 @@ export function ApprovalsInner() {
       s
         .getActivePosts()
         .filter(
-          (p) => p.status === 'Pending' as Status
+          (p) => p.status === 'Pending Approval' as Status || p.status === 'Revised' as Status
         ),
     shallow
   );
