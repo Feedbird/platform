@@ -182,8 +182,8 @@ function postsToEvents(posts: Post[]) {
   return posts.map((p) => ({
     id: p.id,
     title: p.caption.default,
-    start: p.publishDate,
-    end: p.publishDate,
+    start: p.publishDate || undefined,
+    end: p.publishDate || undefined,
     extendedProps: {
       status: p.status,
       platforms: p.platforms,
