@@ -6,9 +6,9 @@ import { FormatBadge } from "@/components/content/shared/content-post-ui";
 
 /**
  * Example formats from your code: 
- * "static-image", "carousel", "story", "video", "email"
+ * "static", "carousel", "story", "video", "email"
  */
-const formats = ["static-image", "carousel", "story", "video", "email", "blog"] as const;
+const formats = ["static", "carousel", "story", "video", "email", "blog"] as const;
 
 export function FormatSelectPopup({
   value,

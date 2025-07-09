@@ -35,7 +35,7 @@ export type Status =
 // Content Types
 export type FileKind = "image" | "video" | "document" | "other";
 
-export type ContentFormat = "static" | "video" | "story" | "carousel";
+export type ContentFormat = "static" | "video" | "story" | "carousel" | "email";
 
 // Platform Configuration
 export interface SocialPlatformConfig {

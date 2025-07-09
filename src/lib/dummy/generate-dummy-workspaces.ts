@@ -186,8 +186,8 @@ function makeActivity(postId: string): Activity {
 */
 function makePost(brandId: string, brandPlatforms: Platform[]): Post {
   const format = faker.helpers.arrayElement<
-    "static-image" | "carousel" | "story" | "video"
-  >(["static-image", "carousel", "story", "video"]);
+    "static" | "carousel" | "story" | "video"
+  >(["static", "carousel", "story", "video"]);
 
   /* match format → file kind */
   const fileKind: FileKind = format === "video" ? "video" : "image";

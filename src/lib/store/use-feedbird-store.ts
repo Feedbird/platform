@@ -913,7 +913,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           brandId: brand.id,
           caption: { synced: true, default: "" },
           status: "Draft",
-          format: "static-image",
+          format: "static",
           publishDate: null,
           updatedAt: null,
           platforms: [],

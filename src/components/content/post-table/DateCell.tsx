@@ -34,7 +34,7 @@ export function PublishDateCell({
   updatePost: (id: string, updates: Partial<Post>) => void;
   allPosts: Post[];
 }) {
-  const savedDate = post.publishDate ? new Date(post.publishDate) : null;
+  const savedDate = post.publishDate ? new Date(post.publishDate) : undefined;
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
   const [showPostingPanel, setShowPostingPanel] = useState(false);

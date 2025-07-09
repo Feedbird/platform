@@ -116,6 +116,7 @@ const formatDisplayNames: Record<ContentFormat, string> = {
   carousel: "Carousel",
   story: "Story",
   video: "Video",
+  email: "Email",
 };
 
 const statusDisplayNames: Record<Status | 'any', string> = {

@@ -22,7 +22,7 @@ export function StaticPostsInner() {
     (s: FeedbirdStore): Post[] =>
       s
         .getActivePosts()
-        .filter((p) => p.format === "static-image" || p.format === "carousel"),
+        .filter((p) => p.format === "static" || p.format === "carousel"),
     shallow
   );
 

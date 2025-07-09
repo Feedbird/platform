@@ -304,7 +304,7 @@ export function PostTable({
   const defaultFormat: ContentFormat = React.useMemo(() => {
     if (pathname?.includes("/short-form-videos")) return "video";
     if (pathname?.includes("/email-design"))      return "email";
-    return "static-image"; // static posts or fallback
+    return "static"; // static posts or fallback
   }, [pathname]);
   
   /* -----------------------------------------------------------
@@ -1223,7 +1223,7 @@ export function PostTable({
         size: 230,
         enableGrouping: true,
         getGroupingValue: (row) => {
-          return formatYearMonth(row.publishDate);
+          return formatYearMonth(row.publishDate || undefined);
         },
         cell: ({ row }) => {
           const post = row.original;

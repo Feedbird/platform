@@ -101,7 +101,7 @@ export function BlocksPreview({
                   if (vidCnt > 0 && imgCnt === 0) {
                     newFormat = "video";
                   } else if (imgCnt === 1 && vidCnt === 0) {
-                    newFormat = "static-image";
+                    newFormat = "static";
                   } else if (imgCnt >= 2 || (imgCnt >= 1 && vidCnt > 0)) {
                     newFormat = "carousel";
                   }

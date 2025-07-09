@@ -121,7 +121,7 @@ const defaultBoardNav: NavLink[] = [
 /* --------------------------------------------------------------------- */
 
 const boardFormatMap: Record<string, string[]> = {
-  "static-posts": ["static-image", "carousel"],
+  "static-posts": ["static", "carousel"],
   "short-form-videos": ["video"],
   "email-design": ["story"],
 };

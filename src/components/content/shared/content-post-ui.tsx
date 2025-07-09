@@ -182,7 +182,7 @@ export const ChannelIcons = ({
   );
 };
 
-type FormatKind = "carousel" | "video" | "static-image" | "story" | "email" | "blog";
+type FormatKind = "carousel" | "video" | "static" | "story" | "email" | "blog";
 
 const formatConfig: Record<FormatKind, {
   background: string;
@@ -199,7 +199,7 @@ const formatConfig: Record<FormatKind, {
     label: "Video",
     hasBoxShadow: true
   },
-  "static-image": {
+  "static": {
     background: "#DDF9E4",
     label: "Image",
     hasBoxShadow: true
@@ -228,9 +228,9 @@ export function FormatBadge({
   kind: string;
   widthFull: boolean;
 }) {
-  // Default to static-image if kind not found
-  const config = formatConfig[kind as FormatKind] || formatConfig["static-image"];
-  const formatKey = (kind as FormatKind === "static-image") ? "image" : kind;
+  // Default to static if kind not found
+  const config = formatConfig[kind as FormatKind] || formatConfig["static"];
+  const formatKey = (kind as FormatKind === "static") ? "image" : kind;
 
   return (
     <div
