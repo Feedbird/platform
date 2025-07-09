@@ -88,7 +88,6 @@ import {
 import { format, parse } from "date-fns";
 import Papa from "papaparse";
 import { Platform } from "@/lib/social/platforms/platform-types";
-import { flushSync } from "react-dom";
 
 type FinalGroup = {
   groupValues: Record<string, any>   // e.g. { status: "Pending Approval", channels: "TikTok,LinkedIn" }
@@ -1492,6 +1491,7 @@ export function PostTable({
                         "group hover:bg-[#F9FAFB]",
                         row.getIsSelected() && "bg-[#EBF5FF]"
                       )}
+                      onMouseDownCapture={(e) => handleRowClick(e, row)}
                     >
                       {/* ◀ left phantom */}
                       <TableCell
@@ -1770,6 +1770,7 @@ export function PostTable({
                     "hover:bg-[#F9FAFB]",
                     row.getIsSelected() ? "bg-[#EBF5FF]" : ""
                   )}
+                  onMouseDownCapture={(e) => handleRowClick(e, row)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     if (!row.getIsSelected()) {
@@ -1903,6 +1904,64 @@ export function PostTable({
     document.documentElement.style.setProperty('--background', '#FFFFFF');
     document.documentElement.style.setProperty('--background-selected', '#EBF5FF');
   }, []);
+
+  // ─────────────────────────────────────────────────────────────
+  //  Shift-click range selection (anchor + batching)
+  // ─────────────────────────────────────────────────────────────
+  const anchorRowIdRef = React.useRef<string | null>(null);
+
+  const handleRowClick = React.useCallback(
+    (
+      e: React.MouseEvent<HTMLTableRowElement, MouseEvent>,
+      row: Row<Post>
+    ) => {
+      const allRows = table.getRowModel().rows;
+
+      // Shift — select range between anchor and current
+      if (e.shiftKey && anchorRowIdRef.current) {
+        // Prevent browser text-selection artefacts
+        e.preventDefault();
+        window.getSelection?.()?.removeAllRanges();
+        const anchorIndex = allRows.findIndex((r) => r.id === anchorRowIdRef.current);
+        const currentIndex = allRows.findIndex((r) => r.id === row.id);
+
+        if (anchorIndex === -1 || currentIndex === -1) {
+          anchorRowIdRef.current = row.id;
+          return;
+        }
+
+        const start = Math.min(anchorIndex, currentIndex);
+        const end   = Math.max(anchorIndex, currentIndex);
+
+        // Build selection map in one pass for better perf
+        const newSelection: Record<string, boolean> = {};
+        for (let i = start; i <= end; i++) {
+          const rid = allRows[i]?.id;
+          if (rid) newSelection[rid] = true;
+        }
+
+        table.setRowSelection(newSelection as any);
+      } else if (e.metaKey || e.ctrlKey) {
+        // Cmd/Ctrl — toggle the clicked row while preserving others
+        table.setRowSelection((prev: Record<string, boolean>) => {
+          const isSelected = !!prev[row.id];
+          const next = { ...prev } as Record<string, boolean>;
+          if (isSelected) delete next[row.id];
+          else next[row.id] = true;
+          return next;
+        });
+      } else {
+        // Plain click: just set new anchor & clear selection
+        table.setRowSelection({});
+      }
+
+      // When the click is NOT done with Shift held, update the anchor
+      if (!e.shiftKey) {
+        anchorRowIdRef.current = row.id;
+      }
+    },
+    [table]
+  );
 
   if (!mounted) return null;
 
