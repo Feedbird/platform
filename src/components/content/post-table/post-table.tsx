@@ -607,6 +607,101 @@ export function PostTable({
     }));
   }
 
+  // Fill-drag range preview state
+  const [fillDragRange, setFillDragRange] = React.useState<[number, number] | null>(null);
+  // Column currently being fill-dragged (e.g. "month" or "caption")
+  const [fillDragColumn, setFillDragColumn] = React.useState<string | null>(null);
+  // Internal ref to hold data during an active fill-drag operation
+  const fillDragRef = React.useRef<{ value: any; startIndex: number; columnId: string } | null>(null);
+
+  const handleFillMouseMove = React.useCallback((e: MouseEvent) => {
+    const info = fillDragRef.current;
+    if (!info) return;
+
+    const rowEl = (e.target as HTMLElement).closest("tr");
+    const idxStr = rowEl?.getAttribute("data-rowkey");
+    if (!idxStr) return;
+    const hoverIdx = parseInt(idxStr, 10);
+    if (isNaN(hoverIdx)) return;
+
+    const { startIndex } = info;
+    setFillDragRange([Math.min(startIndex, hoverIdx), Math.max(startIndex, hoverIdx)]);
+  }, []);
+
+  const finishFillDrag = React.useCallback((e: MouseEvent) => {
+    const info = fillDragRef.current;
+    if (!info) return;
+
+    const rowEl = (e.target as HTMLElement).closest("tr");
+    const idxStr = rowEl?.getAttribute("data-rowkey");
+    if (!idxStr) return;
+    const endIndex = parseInt(idxStr, 10);
+    if (isNaN(endIndex)) return;
+
+    const { startIndex, value, columnId } = info;
+    const start = Math.min(startIndex, endIndex);
+    const end = Math.max(startIndex, endIndex);
+
+    if (start !== end) {
+      setTableData(prev => {
+        const next = prev.map((p,i)=> {
+          if(i < start || i > end) return p;
+          if (columnId === 'month') {
+            return { ...p, month: value as number };
+          }
+          if (columnId === 'caption') {
+            return { ...p, caption: value as Post['caption'] };
+          }
+          return p;
+        });
+        next.forEach((p,i)=>{
+          if(i<start || i> end) return;
+          if (columnId === 'month') {
+            updatePost(p.id,{ month: value as number });
+          } else if (columnId === 'caption') {
+            updatePost(p.id,{ caption: value as Post['caption'] });
+          }
+        });
+        return next;
+      });
+    }
+
+    fillDragRef.current = null;
+    document.body.style.userSelect = "";
+    document.removeEventListener("mouseup", finishFillDrag);
+    document.removeEventListener("mousemove", handleFillMouseMove);
+    setFillDragRange(null);
+    setFillDragColumn(null);
+  }, [setTableData, updatePost]);
+
+  function handleFillStartMonth(value: number, startIdx: number) {
+    fillDragRef.current = { value, startIndex: startIdx, columnId: 'month' };
+    setFillDragColumn('month');
+    // Disable text selection while dragging
+    document.body.style.userSelect = "none";
+    document.addEventListener("mouseup", finishFillDrag);
+    document.addEventListener("mousemove", handleFillMouseMove);
+    setFillDragRange([startIdx, startIdx]);
+  }
+
+  function handleFillStartCaption(value: Post['caption'], startIdx: number) {
+    fillDragRef.current = { value, startIndex: startIdx, columnId: 'caption' };
+    setFillDragColumn('caption');
+    document.body.style.userSelect = "none";
+    document.addEventListener("mouseup", finishFillDrag);
+    document.addEventListener("mousemove", handleFillMouseMove);
+    setFillDragRange([startIdx, startIdx]);
+  }
+
+  React.useEffect(() => {
+    return () => {
+      // cleanup if unmounted during drag
+      document.body.style.userSelect = "";
+      document.removeEventListener("mouseup", finishFillDrag);
+      document.removeEventListener("mousemove", handleFillMouseMove);
+    };
+  }, [finishFillDrag]);
+
   /** 1) Base columns **/
   const baseColumns: ColumnDef<Post>[] = React.useMemo(() => {
     return [
@@ -851,6 +946,8 @@ export function PostTable({
               captionLocked={captionLocked}
               post={post}
               rowHeight={rowHeight}
+              rowIndex={row.index}
+              onFillStart={handleFillStartCaption}
               isFocused={isFocused}
               isEditing={isEditing}
               exitEdit={exitEdit}
@@ -962,10 +1059,12 @@ export function PostTable({
           return (
             <MonthEditCell
               value={post.month}
+              rowIndex={row.index}
               isFocused={isFocused}
               isEditing={isEditing}
               enterEdit={enterEdit}
               exitEdit={exitEdit}
+              onFillStart={handleFillStartMonth}
               onChange={(newMonth) => {
                 setTableData((prev) =>
                   prev.map((p) =>
@@ -1511,7 +1610,8 @@ export function PostTable({
                               : "align-middle",
                             "px-0 py-0",
                             index === 0 ? "border-l" : "border-l-0",
-                            cell.column.id === "status" && "sticky-status-shadow"
+                            cell.column.id === "status" && "sticky-status-shadow",
+                            fillDragRange && fillDragColumn && cell.column.id === fillDragColumn && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
                           )}
                           style={{
                             height: "inherit",
@@ -1798,7 +1898,8 @@ export function PostTable({
                           "px-0 py-0",
                           "border-t border-[#EAE9E9] last:border-b-0",
                           isColSticky && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
-                          cell.column.id === "status" && "sticky-status-shadow"
+                          cell.column.id === "status" && "sticky-status-shadow",
+                          fillDragRange && fillDragColumn && cell.column.id === fillDragColumn && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
                         )}
                         style={{
                           height: "inherit",
@@ -1915,6 +2016,12 @@ export function PostTable({
       e: React.MouseEvent<HTMLTableRowElement, MouseEvent>,
       row: Row<Post>
     ) => {
+      // If the click originates from the row-selection checkbox (Radix) or its indicator, ignore
+      const targetEl = e.target as HTMLElement;
+      if (targetEl.closest('[data-slot="checkbox"]')) {
+        return;
+      }
+
       const allRows = table.getRowModel().rows;
 
       // Shift — select range between anchor and current

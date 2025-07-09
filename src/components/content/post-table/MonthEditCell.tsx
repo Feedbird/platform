@@ -9,6 +9,10 @@ interface MonthEditCellProps {
   value: number;
   onChange: (v: number) => void;
 
+  // For fill-drag
+  rowIndex: number;
+  onFillStart?: (value: number, startRowIndex: number) => void;
+
   /* injected by <FocusCell> */
   isFocused?: boolean;
   isEditing?: boolean;
@@ -32,6 +36,8 @@ function getBulletColor(month: number): string {
 export function MonthEditCell({
   value,
   onChange,
+  rowIndex,
+  onFillStart,
   isFocused,
   isEditing,
   enterEdit,
@@ -54,7 +60,7 @@ export function MonthEditCell({
       <PopoverTrigger asChild>
         <div
           className={cn(
-            "cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px]",
+            "cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] relative",
             "hover:opacity-90"
           )}
         >
@@ -84,6 +90,23 @@ export function MonthEditCell({
           {isFocused && (
             <ChevronDownIcon
               className="ml-1 h-4 w-4 text-muted-foreground flex-shrink-0"
+            />
+          )}
+
+          {/* Fill-handle */}
+          {isFocused && !isEditing && (
+            <div
+              className="absolute w-[8px] h-[8px] bg-[#FFF] cursor-crosshair"
+              style={{
+                right: "-3px",
+                bottom: "-3px",
+                border: "1px solid #125AFF"
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault(); // stop text selection
+                onFillStart?.(value, rowIndex);
+              }}
             />
           )}
         </div>

@@ -14,6 +14,10 @@ export interface CaptionCellProps {
   post: Post;
   rowHeight: number;
   captionLocked: boolean;
+  // Row index in the table – needed for fill-drag
+  rowIndex: number;
+  // Callback fired when the user starts a fill-drag from this caption cell
+  onFillStart?: (value: Post['caption'], startRowIndex: number) => void;
   isFocused?: boolean;   // from FocusCell
   isEditing?: boolean;   // from FocusCell (not used in this design)
   exitEdit?: () => void; // from FocusCell (not used in this design)
@@ -31,8 +35,13 @@ export interface CaptionCellProps {
  */
 export function CaptionCell(props: CaptionCellProps) {
   const {
-    post, rowHeight, captionLocked,
+    post,
+    rowHeight,
+    captionLocked,
+    rowIndex,
+    onFillStart,
     isFocused,
+    isEditing,
     onEdit,
     onCaptionChange,
     selectedPlatform,
@@ -110,6 +119,7 @@ export function CaptionCell(props: CaptionCellProps) {
         <>{text}</>
       </div>
 
+      {/* The editing overlay with textarea + expand icon */}
       {isFocused && (
         <div 
           className={cn(
@@ -153,6 +163,17 @@ export function CaptionCell(props: CaptionCellProps) {
           >
             <Maximize2 className="w-3 h-3 cursor-pointer" />
           </button>
+
+          {/* Fill-handle (bottom-right, positioned relative to the overlay) */}
+          <div
+            className="absolute w-[8px] h-[8px] bg-white cursor-crosshair z-20"
+            style={{ right: "-3px", bottom: "-3px", border: "1px solid #125AFF" }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onFillStart?.(post.caption, rowIndex);
+            }}
+          />
         </div>
       )}
     </div>
