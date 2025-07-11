@@ -1,12 +1,12 @@
 'use client'
 
 import { Suspense } from 'react'
-import { StaticPostsInner } from './_inner'
+import { BoardInner } from './_inner'
 
-export default function StaticPostsPage() {
+export default function BoardPage() {
   return (
     <Suspense fallback={<div className="p-4">Loading...</div>}>
-      <StaticPostsInner />
+      <BoardInner />
     </Suspense>
   )
-}
+} 

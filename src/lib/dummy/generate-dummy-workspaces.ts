@@ -11,6 +11,7 @@ import {
   BaseComment,
   VersionComment,
   Activity,
+  Board,
 } from "@/lib/store/use-feedbird-store";
 import { 
   Platform, 
@@ -181,10 +182,10 @@ function makeActivity(postId: string): Activity {
   };
 }
 
-/** 
- * Build a single post 
-*/
-function makePost(brandId: string, brandPlatforms: Platform[]): Post {
+/**
+ * Build a single post and assign it to a board
+ */
+function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]): Post {
   const format = faker.helpers.arrayElement<
     "static" | "carousel" | "story" | "video"
   >(["static", "carousel", "story", "video"]);
@@ -202,6 +203,7 @@ function makePost(brandId: string, brandPlatforms: Platform[]): Post {
   return {
     id: nanoid(),
     brandId,
+    boardId,
     caption: {
       synced: true,
       default: faker.lorem.sentence(),
@@ -262,12 +264,8 @@ function makeBrand(): Brand {
     return arr;
   }
   const pages = brandPlatforms.flatMap((c)=> makePagesFor(c));
-  // posts
-  const postCount = rInt(20,30);
+  // posts – boardId will be filled later when workspace boards are known
   const posts: Post[] = [];
-  for (let i=0; i<postCount; i++){
-    posts.push(makePost(bid, brandPlatforms));
-  }
   return {
     id: bid,
     name: faker.company.name(),
@@ -296,10 +294,25 @@ export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
     for (let j=0; j<brandCount; j++){
       brandArr.push(makeBrand());
     }
+
+    // Create boards (clone default boards with unique ids per workspace if needed)
+    const boards = DEFAULT_BOARDS.map((b) => ({ ...b }));
+
+    // Assign posts to boards now – iterate each brand & generate posts
+    for (const brand of brandArr){
+      const postCount = rInt(20, 30);
+      for (let p=0; p<postCount; p++){
+        const boardPick = faker.helpers.arrayElement(boards);
+        const post = makePost(brand.id, boardPick.id, brand.platforms ?? []);
+        brand.contents.push(post);
+      }
+    }
+
     results.push({
       id: wid,
       name: faker.company.name(),
       logo: faker.image.avatarGitHub(),
+      boards,
       brands: brandArr
     });
   }
@@ -315,3 +328,10 @@ function makeComment(author: string): BaseComment {
     revisionRequested: faker.datatype.boolean(),
   };
 }
+
+// Default boards (same as app startup)
+const DEFAULT_BOARDS: Board[] = [
+  { id: "static-posts", name: "Static Posts", image: "/images/boards/static-posts.svg" },
+  { id: "short-form-videos", name: "Short-Form Videos", image: "/images/boards/short-form-videos.svg" },
+  { id: "email-design", name: "Email Design", image: "/images/boards/email-design.svg" },
+];

@@ -120,17 +120,10 @@ const defaultBoardNav: NavLink[] = [
 /*  BOARD-HELPERS                                                        */
 /* --------------------------------------------------------------------- */
 
-const boardFormatMap: Record<string, string[]> = {
-  "static-posts": ["static", "carousel"],
-  "short-form-videos": ["video"],
-  "email-design": ["story"],
-};
-
 function useBoardCount(boardId: string): number | null {
   const count = useFeedbirdStore((s) => {
-    const posts = s.getActivePosts();
-    const formats = boardFormatMap[boardId] ?? [];
-    return posts.filter((p) => formats.includes(p.format)).length;
+    const posts = s.getAllPosts();
+    return posts.filter((p) => p.boardId === boardId).length;
   });
 
   const [isClient, setIsClient] = React.useState(false);

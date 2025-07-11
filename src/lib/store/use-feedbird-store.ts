@@ -96,6 +96,7 @@ export interface Activity {
 export interface Post {
   id: string;
   brandId: string;
+  boardId: string; // <- NEW: permanently associates post with a board
   caption: CaptionData;
   status: Status;
   format: string;
@@ -144,7 +145,15 @@ export interface Workspace {
   id: string;
   name: string;
   logo?: string;
+  boards: Board[];
   brands: Brand[];
+}
+
+export interface Board {
+  id: string;
+  name: string;
+  image?: string;
+  description?: string;
 }
 
 /*─────────────────────────────────────────────────────────────────────*/
@@ -154,6 +163,7 @@ export interface FeedbirdStore {
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
   activeBrandId: string | null;
+  activeBoardId: string | null;
 
   platformNav: NavLink[];
   boardNav: NavLink[];
@@ -166,6 +176,7 @@ export interface FeedbirdStore {
 
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
+  setActiveBoard: (id: string) => void;
   connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => string;
   disconnectSocialAccount: (brandId: string, accountId: string) => void;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
@@ -178,6 +189,7 @@ export interface FeedbirdStore {
   getActiveWorkspace: () => Workspace | undefined;
   getActiveBrand: () => Brand | undefined;
   getActivePosts: () => Post[];
+  getAllPosts: () => Post[];
   syncPostHistory: (brandId: string, pageId: string) => Promise<void>;
   publishPostToAllPages: (postId: string, scheduledTime?: Date) => Promise<void>;
   getPost: (id: string) => Post | undefined;
@@ -190,7 +202,7 @@ export interface FeedbirdStore {
   deletePost: (postId: string) => void;
   approvePost: (id: string) => void;
   requestChanges: (id: string) => void;
-  addPost: () => Post | null;
+  addPost: (boardId?: string) => Post | null;
   duplicatePost: (orig: Post) => Post | null;
   setActivePosts: (posts: Post[]) => void;
   sharePostsToBrand: (postIds: string[], targetBrandId: string) => void;
@@ -200,7 +212,15 @@ export interface FeedbirdStore {
   setCurrentVersion: (postId: string, blockId: string, versionId: string) => void;
   addPostComment: (postId: string, text: string, parentId?: string, revisionRequested?: boolean) => string;
   addBlockComment: (postId: string, blockId: string, text: string, parentId?: string, revisionRequested?: boolean) => string;
-  addVersionComment: (postId: string, blockId: string, verId: string, text: string, rect?: { x: number; y: number; w: number; h: number }, parentId?: string, revisionRequested?: boolean) => string;
+  addVersionComment: (
+    postId: string,
+    blockId: string,
+    verId: string,
+    text: string,
+    rect?: { x: number; y: number; w: number; h: number },
+    parentId?: string,
+    revisionRequested?: boolean
+  ) => string;
   addActivity: (act: Omit<Activity, 'id' | 'at'>) => void;
 }
 
@@ -237,6 +257,16 @@ const defaultPlatformNav: NavLink[] = [
   },
 ];
 
+const defaultBoards: Board[] = [
+  { id: "static-posts",       name: "Static Posts",       image: "/images/boards/static-posts.svg" },
+  { id: "short-form-videos",  name: "Short-Form Videos", image: "/images/boards/short-form-videos.svg" },
+  { id: "email-design",       name: "Email Design",      image: "/images/boards/email-design.svg" },
+];
+
+function boardsToNav(boards: Board[]): NavLink[] {
+  return boards.map((b) => ({ id: b.id, label: b.name, image: b.image, href: `/content/${b.id}` }));
+}
+
 const defaultBoardNav: NavLink[] = [
   {
     id: "static-posts",
@@ -266,9 +296,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       workspaces: [],
       activeWorkspaceId: null,
       activeBrandId: null,
+      activeBoardId: defaultBoards[0].id,
 
       platformNav: defaultPlatformNav,
-      boardNav: defaultBoardNav,
+      boardNav: boardsToNav(defaultBoards),
       postHistory: {},
       syncingPostHistory: {},
       // getters
@@ -281,6 +312,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       },
 
       getActivePosts: () => {
+        const brand = get().getActiveBrand();
+        const bid = get().activeBoardId;
+        return brand?.contents.filter(p => !bid || p.boardId === bid) ?? [];
+      },
+      getAllPosts: () => {
         const brand = get().getActiveBrand();
         return brand?.contents ?? [];
       },
@@ -455,7 +491,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         set((state) => ({
           workspaces: [
             ...state.workspaces,
-            { id: wid, name, logo, brands: [newBrand] },
+            { id: wid, name, logo, boards: [...defaultBoards], brands: [newBrand] },
           ],
         }));
         return wid;
@@ -465,14 +501,17 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const newWs = s.workspaces.filter((w) => w.id !== id);
           let newActiveW = s.activeWorkspaceId;
           let newActiveB = s.activeBrandId;
+          let newActiveBo = s.activeBoardId;
           if (s.activeWorkspaceId === id) {
             newActiveW = null;
             newActiveB = null;
+            newActiveBo = null;
           }
           return {
             workspaces: newWs,
             activeWorkspaceId: newActiveW,
             activeBrandId: newActiveB,
+            activeBoardId: newActiveBo,
           };
         }),
       setActiveWorkspace: (id) =>
@@ -481,6 +520,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           return {
             activeWorkspaceId: id,
             activeBrandId: ws?.brands[0]?.id ?? null,
+            activeBoardId: ws?.boards[0]?.id ?? null,
+            boardNav: boardsToNav(ws?.boards ?? []),
           };
         }),
 
@@ -539,7 +580,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             activeBrandId: brandStillExists ? s.activeBrandId : null,
           };
         }),
-      setActiveBrand: (id) => set({ activeBrandId: id }),
+      setActiveBrand: (id: string) =>
+        set((s) => {
+          const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+          const brand = ws?.brands.find((b) => b.id === id);
+          return { activeBrandId: id };
+        }),
 
       connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => {
         let localReturnId = crypto.randomUUID();
@@ -903,14 +949,17 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       approvePost: (id) => get().updatePost(id, { status: "Approved" }),
       requestChanges: (id) => get().updatePost(id, { status: "Needs Revisions" }),
 
-      addPost: () => {
+      addPost: (boardId?: string) => {
         const st = get();
         const brand = st.getActiveBrand();
         if (!brand) return null;
         const pid = nanoid();
+        const ws = st.getActiveWorkspace();
+        const bId = boardId ?? get().activeBoardId ?? (ws?.boards[0]?.id ?? "default");
         const newPost: Post = {
           id: pid,
           brandId: brand.id,
+          boardId: bId,
           caption: { synced: true, default: "" },
           status: "Draft",
           format: "static",
@@ -1138,7 +1187,13 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         return cid;
       },
       addVersionComment: (
-        postId, blockId, verId, text, rect, parentId, revisionRequested
+        postId: string,
+        blockId: string,
+        verId: string,
+        text: string,
+        rect?: { x: number; y: number; w: number; h: number },
+        parentId?: string,
+        revisionRequested?: boolean
       ) => {
         const cid = nanoid();
         const now = new Date();
@@ -1207,6 +1262,54 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           })),
         }));
       },
+
+      // Boards
+      setActiveBoard: (id) => set({ activeBoardId: id }),
+      addBoard: (name: string, image?: string, description?: string) => {
+        const bid = nanoid();
+        const newBoard: Board = { id: bid, name, image, description };
+        set((s) => {
+          const updatedWs = s.workspaces.map((w) => {
+            if (w.id !== s.activeWorkspaceId) return w;
+            return { ...w, boards: [...w.boards, newBoard] };
+          });
+          const updatedWorkspace = updatedWs.find((w) => w.id === s.activeWorkspaceId);
+          const updatedBoards = updatedWorkspace?.boards ?? [];
+          return {
+            workspaces: updatedWs,
+            boardNav: boardsToNav(updatedBoards),
+            activeBoardId: bid,
+          };
+        });
+        return bid;
+      },
+      updateBoard: (id: string, data: Partial<Board>) =>
+        set((s) => {
+          const updatedWs = s.workspaces.map((w) => {
+            if (w.id !== s.activeWorkspaceId) return w;
+            return {
+              ...w,
+              boards: w.boards.map((board) => (board.id === id ? { ...board, ...data } : board)),
+            };
+          });
+          const updatedBoards = updatedWs.find((w) => w.id === s.activeWorkspaceId)?.boards ?? [];
+          return { workspaces: updatedWs, boardNav: boardsToNav(updatedBoards) };
+        }),
+      removeBoard: (id: string) =>
+        set((s) => {
+          const updatedWs = s.workspaces.map((ws) => {
+            if (ws.id !== s.activeWorkspaceId) return ws;
+            return { ...ws, boards: ws.boards.filter((board) => board.id !== id) };
+          });
+          const updatedBoards = updatedWs.find((w) => w.id === s.activeWorkspaceId)?.boards ?? [];
+          const newActiveBoardId = s.activeBoardId === id ? updatedBoards[0]?.id ?? null : s.activeBoardId;
+
+          return {
+            workspaces: updatedWs,
+            boardNav: boardsToNav(updatedBoards),
+            activeBoardId: newActiveBoardId,
+          };
+        }),
     }),
     {
       name: "feedbird-v5",
