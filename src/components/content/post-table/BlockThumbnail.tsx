@@ -54,7 +54,7 @@ export function BlockThumbnail({ block, height }: { block: Block; height: number
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
-          src={currentVer.file.url}
+          src={`${currentVer.file.url}?v=${currentVer.id}`}
           loop
           muted
           playsInline

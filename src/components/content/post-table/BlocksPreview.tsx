@@ -9,6 +9,7 @@ import { Plus, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { BlockThumbnail } from "./BlockThumbnail";
+import { ClipLoader } from "react-spinners";
 
 /**
  * Renders each block's *current* version in a horizontal strip.
@@ -41,6 +42,8 @@ export function BlocksPreview({
   };
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [uploadDimensions, setUploadDimensions] = useState<Record<string, { w: number, h: number }>>({});
+  const uploadsRef = useRef(uploads);
+  uploadsRef.current = uploads;
 
   const wid = useFeedbirdStore((s) => s.activeWorkspaceId);
   const bid = useFeedbirdStore((s) => s.activeBrandId);
@@ -145,20 +148,24 @@ export function BlocksPreview({
     });
   };
 
-  /* Clean blob URLs */
-  useEffect(() => {
-    return () => {
-      uploads.forEach((u) => URL.revokeObjectURL(u.previewUrl));
-    };
-  }, [uploads]);
-
-  // Auto-remove completed uploads after short delay
+  // Auto-remove completed uploads after short delay and revoke their blob URLs
   useEffect(() => {
     const timer = setInterval(() => {
-      setUploads((prev) => prev.filter((u) => u.status !== "done"));
+      setUploads((prev) => {
+        const kept = prev.filter((u) => u.status !== "done");
+        const removed = prev.filter((u) => u.status === "done");
+        // Revoke URLs for the items we are removing from the display
+        removed.forEach((u) => URL.revokeObjectURL(u.previewUrl));
+        return kept;
+      });
     }, 1500);
-    return () => clearInterval(timer);
-  }, []);
+
+    // On unmount, clear interval and revoke any remaining blob URLs to prevent memory leaks
+    return () => {
+      clearInterval(timer);
+      uploadsRef.current.forEach((u) => URL.revokeObjectURL(u.previewUrl));
+    };
+  }, []); // This effect should only run once on mount
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -223,6 +230,22 @@ export function BlocksPreview({
         {uploads.map((up) => {
           const dims = uploadDimensions[up.id];
           const isTall = dims && dims.h > dims.w;
+          const isVideo = up.file.type.startsWith("video/");
+
+          const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+            const video = e.currentTarget.querySelector("video");
+            if (video) {
+              video.play().catch(() => {});
+            }
+          };
+
+          const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+            const video = e.currentTarget.querySelector("video");
+            if (video) {
+              video.pause();
+              video.currentTime = 0;
+            }
+          };
 
           return (
             <div
@@ -232,70 +255,81 @@ export function BlocksPreview({
                 !isTall && "aspect-square"
               )}
               style={{ height: `${rowHeight > 10 ? rowHeight - 8 : rowHeight}px`, border: "0.5px solid #D0D5D0" }}
+              onMouseEnter={isVideo ? handleMouseEnter : undefined}
+              onMouseLeave={isVideo ? handleMouseLeave : undefined}
             >
-              <img
-                src={up.previewUrl}
-                className={cn(
-                  "block opacity-50",
-                  isTall
-                    ? "h-full w-auto"
-                    : "absolute inset-0 w-full h-full object-cover"
-                )}
-              />
+              {isVideo ? (
+                <video
+                  src={up.previewUrl}
+                  className={cn(
+                    "block opacity-50",
+                    isTall
+                      ? "h-full w-auto"
+                      : "absolute inset-0 w-full h-full object-cover"
+                  )}
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={up.previewUrl}
+                  className={cn(
+                    "block opacity-50",
+                    isTall
+                      ? "h-full w-auto"
+                      : "absolute inset-0 w-full h-full object-cover"
+                  )}
+                />
+              )}
               {/* Progress overlay */}
               {up.status === "uploading" && (
                 <>
-                {/* Dim overlay but leave preview visible */}
-                <div className="absolute inset-0 bg-black/40" />
-                {/* Bottom progress bar */}
-                <div className="absolute left-0 bottom-0 w-full h-[3px] bg-white/20">
-                  <div
-                    className="h-full bg-blue-400 transition-all"
-                    style={{ width: `${up.progress}%` }}
-                  />
+                  {isVideo ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                      <ClipLoader color="#FFFFFF" size={24} />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Dim overlay but leave preview visible */}
+                      <div className="absolute inset-0 bg-black/40" />
+                      {/* Bottom progress bar */}
+                      <div className="absolute left-0 bottom-0 w-full h-[3px] bg-white/20">
+                        <div
+                          className="h-full bg-blue-400 transition-all"
+                          style={{ width: `${up.progress}%` }}
+                        />
+                      </div>
+                      {/* Percent text top-right (hide on very small widths) */}
+                      <span className="absolute top-0 right-0 m-[2px] px-[2px] rounded bg-black/60 text-[10px] text-white leading-none">
+                        {up.progress}%
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
+              {up.status === "error" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-600/80 text-white text-xs gap-2">
+                  <X className="w-6 h-6" />
+                  <span>Error</span>
                 </div>
-                {/* Percent text top-right (hide on very small widths) */}
-                <span className="absolute top-0 right-0 m-[2px] px-[2px] rounded bg-black/60 text-[10px] text-white leading-none">
-                  {up.progress}%
-                </span>
-              </>
-            )}
-            {up.status === "error" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-600/80 text-white text-xs gap-2">
-                <X className="w-6 h-6" />
-                <span>Error</span>
-              </div>
-            )}
-            {up.status === "processing" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white text-xs gap-2">
-                <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  ></path>
-                </svg>
-              </div>
-            )}
-            {up.status === "done" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-600/70 text-white text-xs gap-2">
-                <Check className="w-6 h-6" />
-                <span>Uploaded</span>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+              )}
+              {up.status === "processing" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white text-xs gap-2">
+                  <ClipLoader color="#FFFFFF" size={24} />
+                </div>
+              )}
+              {up.status === "done" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-600/70 text-white text-xs gap-2">
+                  <Check className="w-6 h-6" />
+                  <span>Uploaded</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
   }
 
   return (

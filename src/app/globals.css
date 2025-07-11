@@ -224,3 +224,12 @@ html, body {
 }
 .grouped-table .table-body-pad > tr > td:first-child  { padding-left:16px;  }
 .grouped-table .table-body-pad > tr > td:last-child   { padding-right:16px; }
+
+/* Custom scrollbar for block previews */
+.block-previews-container::-webkit-scrollbar {
+  height: 4px;
+}
+.block-previews-container::-webkit-scrollbar-thumb {
+  background-color: #d1d5db; /* gray-300 */
+  border-radius: 2px;
+}

@@ -9,6 +9,15 @@ import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 
+// Increase the body size limit to 500MB for video uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '500mb',
+    },
+  },
+};
+
 export async function POST(req: NextRequest) {
   console.log('[API /media/upload] Received a request.');
   try {
@@ -54,7 +63,7 @@ export async function POST(req: NextRequest) {
         const unique = crypto.randomUUID();
         const base = path.basename(tempFilePath);
         const fileName = prefix ? `${prefix}${unique}-${base}` : `${unique}-${base}`;
-        r2Url = await uploadToR2(tempFilePath, fileName);
+        r2Url = await uploadToR2(tempFilePath, fileName.split('?')[0]);
       }
     } catch (convErr: any) {
       console.error('[API /media/upload] ❌ Conversion/Upload failed:', convErr);
