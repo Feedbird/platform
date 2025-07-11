@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, Plus } from "lucide-react";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FormatBadge } from "@/components/content/shared/content-post-ui";
@@ -28,6 +28,7 @@ export function FormatEditCell({
 }: FormatEditCellProps) {
   /** Popover visibility is driven entirely by `isEditing` */
   const open = !!isEditing;
+  const hasValue = Boolean(value);
 
   return (
     <Popover
@@ -49,13 +50,28 @@ export function FormatEditCell({
              second click toggles `isEditing` (also handled there) */
         >
           <div className="flex items-center flex-nowrap min-w-0">
-            <div className="flex-shrink-0">
-              <FormatBadge kind={value} widthFull={false} />
-            </div>
+            {hasValue ? (
+              <div className="flex-shrink-0">
+                <FormatBadge kind={value} widthFull={false} />
+              </div>
+            ) : (
+              <div
+                className="flex flex-row items-center gap-1 rounded-[4px] bg-white"
+                style={{
+                  padding: "3px 6px 3px 4px",
+                  boxShadow: "0px 0px 0px 1px #D3D3D3",
+                }}
+              >
+                <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                  <Plus className="w-3 h-3 text-[#5C5E63]" />
+                </div>
+                <span className="text-xs text-[#5C5E63] font-semibold">Select format</span>
+              </div>
+            )}
           </div>
 
-          {/* show chevron only while focused & not editing */}
-          {isFocused && (
+          {/* show chevron only while focused & not editing and has value */}
+          {isFocused && hasValue && (
             <ChevronDownIcon
               className="ml-1 h-4 w-4 text-muted-foreground flex-shrink-0"
             />

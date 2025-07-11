@@ -283,6 +283,34 @@ const statusSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
   return indexA - indexB;
 };
 
+// Sort so that empty socials (no pages) appear AFTER any with pages.
+const platformsSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
+  const a: string[] = rowA.getValue(columnId) as string[];
+  const b: string[] = rowB.getValue(columnId) as string[];
+
+  const emptyA = !a || a.length === 0;
+  const emptyB = !b || b.length === 0;
+  if (emptyA && !emptyB) return 1;  // A empty -> after B
+  if (!emptyA && emptyB) return -1; // B empty -> after A
+
+  // Otherwise compare lexicographically by first platform name for stability
+  const brand = useFeedbirdStore.getState().getActiveBrand();
+  const strA = (a ?? []).map(id => brand?.socialPages.find(p=>p.id===id)?.platform ?? "").join(',');
+  const strB = (b ?? []).map(id => brand?.socialPages.find(p=>p.id===id)?.platform ?? "").join(',');
+  return strA.localeCompare(strB);
+};
+
+// Sort formats so empty appears last
+const formatSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
+  const fmtA = String(rowA.getValue(columnId) || "");
+  const fmtB = String(rowB.getValue(columnId) || "");
+  const emptyA = fmtA === "";
+  const emptyB = fmtB === "";
+  if (emptyA && !emptyB) return 1;
+  if (!emptyA && emptyB) return -1;
+  return fmtA.localeCompare(fmtB);
+};
+
 /** ---------- The PostTable ---------- **/
 export function PostTable({
   posts,
@@ -1025,6 +1053,7 @@ export function PostTable({
         id: "platforms",
         accessorKey: "pages",
         filterFn: platformsFilterFn,
+        sortingFn: platformsSortingFn,
         header: () => (
           <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/socials.svg`} alt="socials" width={14} height={14} />
@@ -1059,6 +1088,7 @@ export function PostTable({
         id: "format",
         accessorKey: "format",
         filterFn: formatFilterFn,
+        sortingFn: formatSortingFn,
         header: () => (
           <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/format.svg`} alt="format" width={14} height={14} />
@@ -1421,12 +1451,49 @@ export function PostTable({
           <StatusChip status={String(val) as Status} widthFull={false} />
         );
       case "platforms": {
-        // val could be an array or a comma-separated string
-        const platforms = Array.isArray(val) ? val : String(val).split(",");
-        return <ChannelIcons channels={platforms as Platform[]} />;
+        // Grouping value may be page IDs – convert to platform names
+        const ids: string[] = Array.isArray(val)
+          ? (val as string[])
+          : String(val || "").split(",").filter(Boolean);
+
+        const brand = useFeedbirdStore.getState().getActiveBrand();
+        const platformsArr: Platform[] = ids
+          .map((id) => brand?.socialPages.find((p) => p.id === id)?.platform)
+          .filter((p): p is Platform => !!p);
+
+        if (platformsArr.length === 0) {
+          // placeholder UI similar to ChannelsEditCell when empty
+          return (
+            <div
+              className="flex flex-row items-center gap-1 rounded-[4px] bg-white"
+              style={{ padding: "3px 6px 3px 4px", boxShadow: "0px 0px 0px 1px #D3D3D3" }}
+            >
+              <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                <PlusIcon className="w-3 h-3 text-[#5C5E63]" />
+              </div>
+              <span className="text-xs text-[#5C5E63] font-semibold">Select socials</span>
+            </div>
+          );
+        }
+        return <ChannelIcons channels={platformsArr} />;
       }
-      case "format":
-        return <FormatBadge kind={val as ContentFormat} widthFull={false} />;
+      case "format": {
+        const fmt = String(val || "");
+        if (!fmt) {
+          return (
+            <div
+              className="flex flex-row items-center gap-1 rounded-[4px] bg-white"
+              style={{ padding: "3px 6px 3px 4px", boxShadow: "0px 0px 0px 1px #D3D3D3" }}
+            >
+              <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                <PlusIcon className="w-3 h-3 text-[#5C5E63]" />
+              </div>
+              <span className="text-xs text-[#5C5E63] font-semibold">Select format</span>
+            </div>
+          );
+        }
+        return <FormatBadge kind={fmt as ContentFormat} widthFull={false} />;
+      }
       case "publishDate":
         if(!val) return <span className="text-base text-muted-foreground font-semibold">No time is set yet</span>;
         return <span className="text-base font-semibold">{String(val)}</span>;
@@ -1547,6 +1614,32 @@ export function PostTable({
   function renderGroupedTable() {
     const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
     const colSpan = table.getVisibleLeafColumns().length;
+
+    // Reorder groups so that the one with empty socials/format appears last
+    if (grouping.length) {
+      const primary = grouping[0];
+      if (primary === "platforms" || primary === "format") {
+        groups.sort((a, b) => {
+          const valA = a.groupValues[primary];
+          const valB = b.groupValues[primary];
+
+          const emptyA =
+            primary === "platforms"
+              ? !valA || (Array.isArray(valA) && valA.length === 0)
+              : String(valA || "") === "";
+          const emptyB =
+            primary === "platforms"
+              ? !valB || (Array.isArray(valB) && valB.length === 0)
+              : String(valB || "") === "";
+
+          if (emptyA && !emptyB) return 1; // A empty → after B
+          if (!emptyA && emptyB) return -1; // B empty → after A
+
+          // Keep existing order otherwise
+          return 0;
+        });
+      }
+    }
 
     return (
       <div className="bg-background mr-sm">
