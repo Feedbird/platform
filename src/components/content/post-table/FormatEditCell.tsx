@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 interface FormatEditCellProps {
   value: string;
   onChange: (v: string) => void;
+  rowIndex: number;
+  onFillStart?: (v: string, startIdx: number) => void;
 
   /* injected by <FocusCell> */
   isFocused?: boolean;
@@ -21,6 +23,8 @@ interface FormatEditCellProps {
 export function FormatEditCell({
   value,
   onChange,
+  rowIndex,
+  onFillStart,
   isFocused,
   isEditing,
   enterEdit,
@@ -69,6 +73,23 @@ export function FormatEditCell({
               </div>
             )}
           </div>
+
+          {/* Fill handle */}
+          {isFocused && !isEditing && (
+            <div
+              className="absolute w-[8px] h-[8px] bg-[#FFF] cursor-crosshair"
+              style={{
+                right: "-3px",
+                bottom: "-3px",
+                border: "1px solid #125AFF",
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onFillStart?.(value, rowIndex);
+              }}
+            />
+          )}
 
           {/* show chevron only while focused & not editing and has value */}
           {isFocused && hasValue && (

@@ -713,6 +713,12 @@ export function PostTable({
         if (columnId === 'caption') {
           return { ...p, caption: value as Post['caption'] };
         }
+        if (columnId === 'platforms') {
+          return { ...p, pages: value as string[] };
+        }
+        if (columnId === 'format') {
+          return { ...p, format: value as string };
+        }
         return p;
       });
 
@@ -727,6 +733,10 @@ export function PostTable({
           updatePost(p.id, { month: value as number });
         } else if (columnId === 'caption') {
           updatePost(p.id, { caption: value as Post['caption'] });
+        } else if (columnId === 'platforms') {
+          updatePost(p.id, { pages: value as string[] });
+        } else if (columnId === 'format') {
+          updatePost(p.id, { format: value as string });
         }
       }
     }
@@ -755,6 +765,24 @@ export function PostTable({
     document.body.style.userSelect = "none";
     document.addEventListener("mouseup", finishFillDrag);
     document.addEventListener("mousemove", handleFillMouseMove);
+    setFillDragRange([startIdx, startIdx]);
+  }
+
+  function handleFillStartPages(value: string[], startIdx: number) {
+    fillDragRef.current = { value, startIndex: startIdx, columnId: 'platforms' };
+    setFillDragColumn('platforms');
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mouseup', finishFillDrag);
+    document.addEventListener('mousemove', handleFillMouseMove);
+    setFillDragRange([startIdx, startIdx]);
+  }
+
+  function handleFillStartFormat(value: string, startIdx: number) {
+    fillDragRef.current = { value, startIndex: startIdx, columnId: 'format' };
+    setFillDragColumn('format');
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mouseup', finishFillDrag);
+    document.addEventListener('mousemove', handleFillMouseMove);
     setFillDragRange([startIdx, startIdx]);
   }
 
@@ -1061,6 +1089,8 @@ export function PostTable({
             <ChannelsEditCell
               getPageCounts={getPageCounts}
               value={post.pages}
+              rowIndex={row.index}
+              onFillStart={handleFillStartPages}
               isFocused={isFocused}
               isEditing={isEditing}
               enterEdit={enterEdit}
@@ -1095,6 +1125,8 @@ export function PostTable({
           return (
             <FormatEditCell
               value={post.format}
+              rowIndex={row.index}
+              onFillStart={handleFillStartFormat}
               isFocused={isFocused}
               isEditing={isEditing}
               enterEdit={enterEdit}

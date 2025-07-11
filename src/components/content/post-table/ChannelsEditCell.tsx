@@ -37,6 +37,10 @@ interface ChannelsEditCellProps {
   getPageCounts: () => Record<Platform, number>;
   /** Called when the user changes page selections */
   onChange: (value: string[]) => void;
+  /** Row index for fill-drag */
+  rowIndex: number;
+  /** Start fill-drag */
+  onFillStart?: (value: string[], startRowIndex: number) => void;
   isFocused?: boolean;
   isEditing?: boolean;
   enterEdit?: () => void;
@@ -47,6 +51,8 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
   value,
   getPageCounts,
   onChange,
+  rowIndex,
+  onFillStart,
   isFocused,
   isEditing,
   enterEdit,
@@ -214,6 +220,23 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
               {isFocused && selectedPageDetails.length > 0 && (
                 <ChevronDownIcon
                   className="ml-1 h-4 w-4 text-muted-foreground flex-shrink-0"
+                />
+              )}
+
+              {/* Fill-handle */}
+              {isFocused && !isEditing && (
+                <div
+                  className="absolute w-[8px] h-[8px] bg-[#FFF] cursor-crosshair"
+                  style={{
+                    right: "-3px",
+                    bottom: "-3px",
+                    border: "1px solid #125AFF",
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onFillStart?.(selectedPages, rowIndex);
+                  }}
                 />
               )}
             </div>
