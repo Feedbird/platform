@@ -51,59 +51,49 @@ export function BlocksPreview({
   const addVersion = useFeedbirdStore((s) => s.addVersion);
   const updatePost = useFeedbirdStore((s) => s.updatePost);
 
-  /**
-   * Start uploading the given files and track progress via direct-to-R2 presigned URLs.
-   */
-  const startUploads = async (files: File[]) => {
-    for (const file of files) {
-      const id = crypto.randomUUID();
-      const previewUrl = URL.createObjectURL(file);
+  /** Start uploading the given files and track progress */
+  const startUploads = (files: File[]) => {
+    // Create all upload items first so they appear in the UI immediately.
+    const newUploads: UploadItem[] = files.map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      progress: 0,
+      status: "uploading",
+    }));
 
-      // Pre-calculate dimensions for aspect-ratio styling
-      if (file.type.startsWith("image/")) {
+    // Pre-calculate dimensions for any images
+    newUploads.forEach(up => {
+      if (up.file.type.startsWith("image/")) {
         const img = new Image();
-        img.src = previewUrl;
+        img.src = up.previewUrl;
         img.onload = () => {
-          setUploadDimensions((d) => ({ ...d, [id]: { w: img.naturalWidth, h: img.naturalHeight } }));
+          setUploadDimensions(d => ({...d, [up.id]: { w: img.naturalWidth, h: img.naturalHeight }}));
         };
       }
+    });
 
-      // Show the item immediately in UI
-      setUploads((u) => [...u, { id, file, previewUrl, progress: 0, status: "uploading" }]);
+    setUploads((u) => [...u, ...newUploads]);
 
+    const uploadPromises = newUploads.map(async (up) => {
       try {
-        /* ----- 1. Request presigned URL ----- */
-        const signRes = await fetch("/api/upload/sign", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-            wid,
-            bid,
-            pid: postId,
-          }),
-        });
+        const form = new FormData();
+        form.append("file", up.file);
 
-        if (!signRes.ok) {
-          throw new Error(`Failed to get upload URL (${signRes.status})`);
-        }
-
-        const { uploadUrl, publicUrl } = (await signRes.json()) as {
-          uploadUrl: string;
-          publicUrl: string;
-        };
-
-        /* ----- 2. PUT file directly to R2 with progress tracking ----- */
-        await new Promise<void>((resolve, reject) => {
+        await new Promise<string>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
+
+          // Attach to the upload item in state for cancellation
+          setUploads((currentUploads) =>
+            currentUploads.map((u) => (u.id === up.id ? { ...u, xhr } : u))
+          );
 
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
               const pct = Math.round((e.loaded / e.total) * 100);
               const newStatus = pct >= 100 ? "processing" : "uploading";
               setUploads((u) =>
-                u.map((it) => (it.id === id ? { ...it, progress: pct, status: newStatus } : it))
+                u.map((it) => (it.id === up.id ? { ...it, progress: pct, status: newStatus } : it))
               );
             }
           };
@@ -111,63 +101,66 @@ export function BlocksPreview({
           xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) {
               if (xhr.status >= 200 && xhr.status < 300) {
-                resolve();
+                resolve(xhr.responseText);
               } else {
-                reject(new Error(`Upload failed with status ${xhr.status}`));
+                reject(new Error(`Server responded with ${xhr.status}`));
               }
             }
           };
+          
+          const qs = new URLSearchParams();
+          if (wid) qs.append("wid", wid);
+          if (bid) qs.append("bid", bid);
+          if (postId) qs.append("pid", postId);
+          const url = `/api/media/upload${qs.toString() ? "?" + qs.toString() : ""}`;
 
-          xhr.open("PUT", uploadUrl, true);
-          xhr.setRequestHeader("Content-Type", file.type);
-          xhr.send(file);
-
-          // attach xhr to UploadItem for potential future cancel support
-          setUploads((u) =>
-            u.map((it) => (it.id === id ? { ...it, xhr } : it))
-          );
-        });
-
-        /* ----- 3. Update global store once uploaded ----- */
-        const kind: "image" | "video" = file.type.startsWith("video") ? "video" : "image";
-        const blockId = addBlock(postId, kind);
-        addVersion(postId, blockId, {
-          by: "Me",
-          caption: "",
-          file: { kind, url: publicUrl },
-        });
-
-        // Determine new post format based on block counts
-        const state = useFeedbirdStore.getState();
-        const post = state.getPost(postId);
-        if (post) {
-          const imgCnt = post.blocks.filter((b) => b.kind === "image").length;
-          const vidCnt = post.blocks.filter((b) => b.kind === "video").length;
-
-          let newFormat = post.format;
-          if (vidCnt > 0 && imgCnt === 0) {
-            newFormat = "video";
-          } else if (imgCnt === 1 && vidCnt === 0) {
-            newFormat = "static";
-          } else if (imgCnt >= 2 || (imgCnt >= 1 && vidCnt > 0)) {
-            newFormat = "carousel";
+          xhr.open("POST", url);
+          xhr.send(form);
+        }).then(responseText => {
+          const resJson = JSON.parse(responseText);
+          const uploadedUrl = resJson.url as string | undefined;
+          if (!uploadedUrl) {
+            throw new Error("No URL returned from server");
           }
+          
+          const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
+          const blockId = addBlock(postId, kind);
+          addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: uploadedUrl } });
 
-          if (newFormat !== post.format) {
-            updatePost(postId, { format: newFormat });
-          }
+          toast.success(`${up.file.name} uploaded`);
+          setUploads((u) => u.map((it) => (it.id === up.id ? { ...it, progress: 100, status: "done" } : it)));
+        });
+      } catch (err: any) {
+        console.error("Upload failed for", up.file.name, err);
+        toast.error(`${up.file.name} failed`, {
+          description: err.message ?? "Unknown error"
+        });
+        setUploads((u) => u.map((it) => (it.id === up.id ? { ...it, status: "error" } : it)));
+      }
+    });
+    
+    // After all uploads are settled, re-evaluate the post format once.
+    Promise.allSettled(uploadPromises).then(() => {
+      const state = useFeedbirdStore.getState();
+      const post = state.getPost(postId);
+      if (post) {
+        const imgCnt = post.blocks.filter((b) => b.kind === "image").length;
+        const vidCnt = post.blocks.filter((b) => b.kind === "video").length;
+
+        let newFormat = post.format;
+        if (vidCnt > 0 && imgCnt === 0) {
+          newFormat = "video";
+        } else if (imgCnt === 1 && vidCnt === 0) {
+          newFormat = "static";
+        } else if (imgCnt >= 2 || (imgCnt >= 1 && vidCnt > 0)) {
+          newFormat = "carousel";
         }
 
-        toast.success(`${file.name} uploaded`);
-        setUploads((u) => u.map((it) => (it.id === id ? { ...it, progress: 100, status: "done" } : it)));
-      } catch (err: any) {
-        console.error("Upload failed", err);
-        toast.error(`${file.name} failed`, {
-          description: err?.message ?? "Unknown error",
-        });
-        setUploads((u) => u.map((it) => (it.id === id ? { ...it, status: "error" } : it)));
+        if (newFormat !== post.format) {
+          updatePost(postId, { format: newFormat });
+        }
       }
-    }
+    });
   };
 
   // Auto-remove completed uploads after short delay and revoke their blob URLs
