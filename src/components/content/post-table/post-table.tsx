@@ -344,8 +344,9 @@ export function PostTable({
       for (let i = 0; i < 3; i++) {
         const np = store.addPost();
         if (np) {
-          updatePost(np.id, { status: "Draft", format: defaultFormat });
-          created.push({ ...np, status: "Draft", format: defaultFormat });
+          // ensure status is Draft but leave format empty
+          updatePost(np.id, { status: "Draft" });
+          created.push({ ...np, status: "Draft" });
         }
       }
       if (created.length) {
@@ -577,9 +578,7 @@ export function PostTable({
   function handleAddRowUngrouped() {
     const newPost = store.addPost();
     if (newPost) {
-      updatePost(newPost.id, { format: defaultFormat });
-      const updatedPost = { ...newPost, format: defaultFormat };
-      setTableData((prev) => [...prev, updatedPost]);
+      setTableData((prev) => [...prev, newPost]);
     }
   }
 
@@ -601,13 +600,8 @@ export function PostTable({
       // Add other properties as needed based on your grouping columns
     });
 
-    // If format wasn't set via grouping, apply board default
-    if (!('format' in groupValues)) {
-      newPost.format = defaultFormat;
-    }
-
     // Ensure store reflects any direct mutations
-    updatePost(newPost.id, { format: newPost.format, status: newPost.status });
+    updatePost(newPost.id, { status: newPost.status });
 
     setTableData((prev) => [...prev, newPost]);
   }

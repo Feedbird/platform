@@ -962,7 +962,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           boardId: bId,
           caption: { synced: true, default: "" },
           status: "Draft",
-          format: "static",
+          format: "",
           publishDate: null,
           updatedAt: null,
           platforms: [],

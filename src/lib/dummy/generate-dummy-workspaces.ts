@@ -186,9 +186,13 @@ function makeActivity(postId: string): Activity {
  * Build a single post and assign it to a board
  */
 function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]): Post {
-  const format = faker.helpers.arrayElement<
-    "static" | "carousel" | "story" | "video"
-  >(["static", "carousel", "story", "video"]);
+  // 20% chance the format is empty (not yet determined)
+  const random = faker.number.int({ min: 0, max: 9 });
+  const format = random < 4
+    ? "" // empty / undetermined format
+    : faker.helpers.arrayElement<
+        "static" | "carousel" | "story" | "video" | "email" | "blog"
+      >(["static", "carousel", "story", "video", "email", "blog"]);
 
   /* match format → file kind */
   const fileKind: FileKind = format === "video" ? "video" : "image";
