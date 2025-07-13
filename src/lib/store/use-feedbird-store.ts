@@ -21,6 +21,7 @@ export interface NavLink {
   id: string;
   label: string;
   image?: string;    // e.g. "/images/public/approvals.svg"
+  selectedImage?: string;
   href?: string;
   onClick?: () => void;
 }
@@ -153,6 +154,7 @@ export interface Board {
   id: string;
   name: string;
   image?: string;
+  selectedImage?: string;
   description?: string;
 }
 
@@ -258,35 +260,15 @@ const defaultPlatformNav: NavLink[] = [
 ];
 
 const defaultBoards: Board[] = [
-  { id: "static-posts",       name: "Static Posts",       image: "/images/boards/static-posts.svg" },
-  { id: "short-form-videos",  name: "Short-Form Videos", image: "/images/boards/short-form-videos.svg" },
-  { id: "email-design",       name: "Email Design",      image: "/images/boards/email-design.svg" },
+  { id: "static-posts",       name: "Static Posts",       image: "/images/boards/static-posts.svg", selectedImage: "/images/boards/static-posts-selected.svg" },
+  { id: "short-form-videos",  name: "Short-Form Videos", image: "/images/boards/short-form-videos.svg", selectedImage: "/images/boards/short-form-videos-selected.svg" },
+  { id: "email-design",       name: "Email Design",      image: "/images/boards/email-design.svg", selectedImage: "/images/boards/email-design-selected.svg" },
 ];
 
 function boardsToNav(boards: Board[]): NavLink[] {
-  return boards.map((b) => ({ id: b.id, label: b.name, image: b.image, href: `/content/${b.id}` }));
+  return boards.map((b) => ({ id: b.id, label: b.name, image: b.image, selectedImage: b.selectedImage, href: `/content/${b.id}` }));
 }
 
-const defaultBoardNav: NavLink[] = [
-  {
-    id: "static-posts",
-    label: "Static Posts",
-    image: "/images/boards/static-posts.svg",
-    href: "/content/static-posts",
-  },
-  {
-    id: "short-form-videos",
-    label: "Short-Form Videos",
-    image: "/images/boards/short-form-videos.svg",
-    href: "/content/short-form-videos",
-  },
-  {
-    id: "email-design",
-    label: "Email Design",
-    image: "/images/boards/email-design.svg",
-    href: "/content/email-design",
-  },
-];
 /*─────────────────────────────────────────────────────────────────────*/
 /*  The Store                                                        */
 /*─────────────────────────────────────────────────────────────────────*/
