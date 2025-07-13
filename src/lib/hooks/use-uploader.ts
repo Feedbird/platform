@@ -50,10 +50,29 @@ export function useUploader({ postId }: { postId: string }) {
 
     const uploadPromises = newUploads.map(async (up) => {
       try {
-        const form = new FormData();
-        form.append("file", up.file);
+        // 1. Get a signed URL from our API
+        const qs = new URLSearchParams();
+        if (wid) qs.append("wid", wid);
+        if (bid) qs.append("bid", bid);
+        if (postId) qs.append("pid", postId);
+        const url = `/api/media/request-upload-url${qs.toString() ? "?" + qs.toString() : ""}`;
 
-        await new Promise<string>((resolve, reject) => {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: up.file.name, fileType: up.file.type }),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.details || `Server responded with ${res.status}`);
+        }
+        
+        const { uploadUrl, publicUrl } = await res.json();
+        if (!uploadUrl || !publicUrl) throw new Error("Invalid response from server");
+
+        // 2. Upload the file to R2 using the signed URL
+        await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           setUploads((current) => current.map((u) => (u.id === up.id ? { ...u, xhr } : u)));
 
@@ -76,31 +95,27 @@ export function useUploader({ postId }: { postId: string }) {
 
           xhr.onreadystatechange = () => {
             if (xhr.readyState === 4) {
-              if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
-              else reject(new Error(`Server responded with ${xhr.status}`));
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve();
+              } else {
+                reject(new Error(`Upload to R2 failed with status ${xhr.status}`));
+              }
             }
           };
 
-          const qs = new URLSearchParams();
-          if (wid) qs.append("wid", wid);
-          if (bid) qs.append("bid", bid);
-          if (postId) qs.append("pid", postId);
-          const url = `/api/media/upload${qs.toString() ? "?" + qs.toString() : ""}`;
-
-          xhr.open("POST", url);
-          xhr.send(form);
-        }).then((responseText) => {
-          const resJson = JSON.parse(responseText);
-          const uploadedUrl = resJson.url as string | undefined;
-          if (!uploadedUrl) throw new Error("No URL returned from server");
-
-          const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
-          const blockId = addBlock(postId, kind);
-          addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: uploadedUrl } });
-          
-          toast.success(`${up.file.name} uploaded`);
-          setUploads((current) => current.map((it) => (it.id === up.id ? { ...it, progress: 100, status: "done" } : it)));
+          xhr.open("PUT", uploadUrl);
+          xhr.setRequestHeader('Content-Type', up.file.type);
+          xhr.send(up.file);
         });
+        
+        // 3. Update the post with the new block
+        const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
+        const blockId = addBlock(postId, kind);
+        addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: publicUrl } });
+        
+        toast.success(`${up.file.name} uploaded`);
+        setUploads((current) => current.map((it) => (it.id === up.id ? { ...it, progress: 100, status: "done" } : it)));
+
       } catch (err: any) {
         console.error("Upload failed for", up.file.name, err);
         toast.error(`${up.file.name} failed`, { description: err.message ?? "Unknown error" });

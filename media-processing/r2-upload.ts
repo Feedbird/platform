@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
@@ -79,5 +80,66 @@ export async function uploadToR2(filePath: string, fileNameOptional?: string): P
                 console.log(`[R2 UPLOAD] ✅ Deleted temporary file: ${filePath}`);
             }
         });
+    }
+}
+
+/**
+ * Generates a pre-signed URL for uploading a file directly to R2 from the client.
+ * @param fileName The name of the file.
+ * @param fileType The MIME type of the file.
+ * @param wid Workspace ID for namespacing.
+ * @param bid Brand ID for namespacing.
+ * @param pid Post ID for namespacing.
+ * @returns An object containing the upload URL and the final public URL of the object.
+ */
+export async function getSignedUploadUrl({
+    fileName,
+    fileType,
+    wid,
+    bid,
+    pid,
+}: {
+    fileName: string;
+    fileType: string;
+    wid: string | null;
+    bid: string | null;
+    pid: string | null;
+}) {
+    console.log(`[R2 UPLOAD] Requesting signed URL for: ${fileName} (${fileType})`);
+
+    const unique = crypto.randomUUID();
+    const baseName = path.basename(fileName);
+
+    // Build structured key prefix: workspace/<wid>/brand/<bid>/post/<pid>
+    const parts = [wid && `workspace-${wid}`, bid && `brand-${bid}`, pid && `post-${pid}`].filter(Boolean);
+    const prefix = parts.length ? parts.join('/') + '/' : '';
+    const key = `${prefix}${unique}-${baseName}`;
+
+    const command = new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+        ContentType: fileType,
+    });
+
+    try {
+        const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 }); // 1 hour
+        console.log(`[R2 UPLOAD] ✅ Successfully created signed URL for key: ${key}`);
+
+        let publicUrl: string;
+        if (R2_PUBLIC_URL) {
+            publicUrl = `${R2_PUBLIC_URL}/${key}`;
+        } else {
+            // This fallback is less ideal for client-side uploads as it generates another signed URL
+            // for viewing, which might not be what's needed. A public URL is preferred.
+            publicUrl = `${R2_ENDPOINT}/${R2_BUCKET_NAME}/${key}`;
+        }
+
+        return {
+            uploadUrl,
+            publicUrl,
+        };
+    } catch (error) {
+        console.error("[R2 UPLOAD] ❌ Error creating signed URL:", error);
+        throw error;
     }
 } 
