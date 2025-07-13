@@ -137,6 +137,7 @@ import { SortMenu } from "./SortMenu";
 import { RowHeightMenu } from "./RowHeightMenu";
 import { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
 import { BlocksPreview } from "./BlocksPreview";
+import { MemoBlocksPreview } from "./MemoBlocksPreview";
 import { StatusEditCell } from "./StatusEditCell";
 import { ChannelsEditCell } from "./ChannelsEditCell";
 import { FormatEditCell } from "./FormatEditCell";
@@ -162,6 +163,116 @@ import { PostContextMenu } from "./PostContextMenu";
 import { CaptionCell } from "./CaptionCell";
 import { SettingsEditCell } from "./SettingsCell";
 import { MonthEditCell } from "./MonthEditCell";
+
+const MemoizedRow = React.memo(
+  ({
+    row,
+    isSelected,
+    isFillTarget,
+    isFillSource,
+    handleRowClick,
+    handleContextMenu,
+    handleRowDragStart,
+    setDragOverIndex,
+    handleRowDrop,
+    isSticky,
+    stickyStyles,
+    table,
+    fillDragColumn,
+    fillDragRange,
+    rowHeight,
+  }: {
+    row: Row<Post>;
+    isSelected: boolean;
+    isFillTarget: (idx: number) => boolean;
+    isFillSource: (idx: number) => boolean;
+    handleRowClick: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => void;
+    handleContextMenu: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => void;
+    handleRowDragStart: (e: React.DragEvent, fromIndex: number) => void;
+    setDragOverIndex: React.Dispatch<React.SetStateAction<number | null>>;
+    handleRowDrop: (e: React.DragEvent) => void;
+    isSticky: (colId: string) => boolean;
+    stickyStyles: (colId: string, z?: number) => React.CSSProperties | undefined;
+    table: ReactTableType<Post>;
+    fillDragColumn: string | null;
+    fillDragRange: [number, number] | null;
+    rowHeight: number;
+  }) => {
+    return (
+      <TableRow
+        key={row.id}
+        data-rowkey={row.index}
+        style={{ height: rowHeight }}
+        className={cn(
+          "group",
+          "hover:bg-[#F9FAFB]",
+          isSelected && "bg-[#EBF5FF]"
+        )}
+        onMouseDownCapture={(e) => handleRowClick(e, row)}
+        onContextMenu={(e) => handleContextMenu(e, row)}
+        onDragStart={(e) => handleRowDragStart(e, row.index)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOverIndex(row.index);
+        }}
+        onDrop={handleRowDrop}
+      >
+        {row.getVisibleCells().map((cell) => {
+          const isColSticky = isSticky(cell.column.id);
+          return (
+            <FocusCell
+              rowId={row.id}
+              colId={cell.id}
+              key={cell.id}
+              className={cn(
+                "text-left",
+                cell.column.id === "caption" ? "align-top" : "align-middle",
+                "px-0 py-0",
+                "border-t border-[#EAE9E9] last:border-b-0",
+                isColSticky && (isSelected ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
+                cell.column.id === "status" && "sticky-status-shadow",
+                fillDragRange && fillDragColumn === cell.column.id && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
+              )}
+              style={{
+                height: "inherit",
+                borderRight: "1px solid #EAE9E9",
+                width: cell.column.getSize(),
+                ...stickyStyles(cell.column.id, 10),
+              }}
+            >
+              {({ isFocused, isEditing, exitEdit, enterEdit }) => {
+                return flexRender(cell.column.columnDef.cell, {
+                  ...cell.getContext(),
+                  isFocused,
+                  isEditing,
+                  exitEdit,
+                  enterEdit,
+                });
+              }}
+            </FocusCell>
+          );
+        })}
+      </TableRow>
+    );
+  },
+  (prevProps, nextProps) => {
+    if (prevProps.isSelected !== nextProps.isSelected) return false;
+    if (prevProps.row.original !== nextProps.row.original) return false;
+    if (prevProps.fillDragColumn !== nextProps.fillDragColumn) return false;
+    if (
+      (prevProps.fillDragRange?.[0] !== nextProps.fillDragRange?.[0]) ||
+      (prevProps.fillDragRange?.[1] !== nextProps.fillDragRange?.[1])
+    ) {
+      // Re-render if row enters/leaves a fill range
+      const isPrevInRange = prevProps.fillDragRange && prevProps.row.index >= prevProps.fillDragRange[0] && prevProps.row.index <= prevProps.fillDragRange[1];
+      const isNextInRange = nextProps.fillDragRange && nextProps.row.index >= nextProps.fillDragRange[0] && nextProps.row.index <= nextProps.fillDragRange[1];
+      if(isPrevInRange !== isNextInRange) return false;
+    }
+    return true; // Props are equal
+  }
+);
+MemoizedRow.displayName = "MemoizedRow";
+
 
 type FocusCellContext<T> = CellContext<T, unknown> & {
   isFocused?: boolean;
@@ -223,7 +334,7 @@ async function importFromCSV(file: File): Promise<Post[]> {
   });
 }
 
-/** ---------- Filter Fns ---------- **/
+/** ---------- Filter Fns (as skeletons) ---------- **/
 const statusFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
   if (!filterValues.length) return true;
   const cellVal = row.getValue(colId) as string;
@@ -238,27 +349,8 @@ const formatFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
 
 const monthFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
   if (!filterValues.length) return true;
-  const cellVal = String(row.getValue(colId)); // Convert number to string for comparison
+  const cellVal = String(row.getValue(colId));
   return filterValues.includes(cellVal);
-};
-
-// Updated to handle platforms instead of pages - filter by the platform of the pages
-const platformsFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
-  if (!filterValues.length) return true;
-  const rowPages = row.getValue(colId) as string[];
-  if (!rowPages || !Array.isArray(rowPages)) return false;
-  
-  // Get the brand to map page IDs to platforms
-  const brand = useFeedbirdStore.getState().getActiveBrand();
-  if (!brand) return false;
-  
-  // Get the platforms of the pages in this row
-  const rowPlatforms = rowPages
-    .map(pageId => brand.socialPages.find(page => page.id === pageId)?.platform)
-    .filter((platform): platform is Platform => platform !== undefined);
-  
-  // Check if any of the row's platforms match any of the filter values
-  return rowPlatforms.some(platform => filterValues.includes(platform));
 };
 
 const statusSortOrder: Status[] = [
@@ -281,23 +373,6 @@ const statusSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
   const indexB = statusSortOrder.indexOf(statusB);
 
   return indexA - indexB;
-};
-
-// Sort so that empty socials (no pages) appear AFTER any with pages.
-const platformsSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
-  const a: string[] = rowA.getValue(columnId) as string[];
-  const b: string[] = rowB.getValue(columnId) as string[];
-
-  const emptyA = !a || a.length === 0;
-  const emptyB = !b || b.length === 0;
-  if (emptyA && !emptyB) return 1;  // A empty -> after B
-  if (!emptyA && emptyB) return -1; // B empty -> after A
-
-  // Otherwise compare lexicographically by first platform name for stability
-  const brand = useFeedbirdStore.getState().getActiveBrand();
-  const strA = (a ?? []).map(id => brand?.socialPages.find(p=>p.id===id)?.platform ?? "").join(',');
-  const strB = (b ?? []).map(id => brand?.socialPages.find(p=>p.id===id)?.platform ?? "").join(',');
-  return strA.localeCompare(strB);
 };
 
 // Sort formats so empty appears last
@@ -556,6 +631,8 @@ export function PostTable({
   }
 
   // Drag & drop reordering of rows
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+
   function handleRowDragStart(e: React.DragEvent, fromIndex: number) {
     e.dataTransfer.setData("text/plain", String(fromIndex));
   }
@@ -634,6 +711,38 @@ export function PostTable({
 
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
 
+  const pageIdToPlatformMap = React.useMemo(() => {
+    if (!brand?.socialPages) return new Map<string, Platform>();
+    return new Map(brand.socialPages.map(p => [p.id, p.platform]));
+  }, [brand?.socialPages]);
+
+  // Now we define the functions INSIDE the component, so they have access to the map
+  const platformsFilterFn: FilterFn<Post> = React.useCallback((row, colId, filterValues: string[]) => {
+    if (!filterValues.length) return true;
+    const rowPages = row.getValue(colId) as string[];
+    if (!rowPages || !Array.isArray(rowPages)) return false;
+
+    const rowPlatforms = rowPages
+      .map(pageId => pageIdToPlatformMap.get(pageId))
+      .filter((platform): platform is Platform => platform !== undefined);
+
+    return rowPlatforms.some(platform => filterValues.includes(platform));
+  }, [pageIdToPlatformMap]);
+
+  const platformsSortingFn: SortingFn<Post> = React.useCallback((rowA, rowB, columnId) => {
+    const a: string[] = rowA.getValue(columnId) as string[];
+    const b: string[] = rowB.getValue(columnId) as string[];
+
+    const emptyA = !a || a.length === 0;
+    const emptyB = !b || b.length === 0;
+    if (emptyA && !emptyB) return 1;
+    if (!emptyA && emptyB) return -1;
+
+    const strA = (a ?? []).map(id => pageIdToPlatformMap.get(id) ?? "").join(',');
+    const strB = (b ?? []).map(id => pageIdToPlatformMap.get(id) ?? "").join(',');
+    return strA.localeCompare(strB);
+  }, [pageIdToPlatformMap]);
+
   const availablePlatforms = React.useMemo(() => {
     if (!brand) return [];
     
@@ -679,6 +788,16 @@ export function PostTable({
   const [fillDragColumn, setFillDragColumn] = React.useState<string | null>(null);
   // Internal ref to hold data during an active fill-drag operation
   const fillDragRef = React.useRef<{ value: any; startIndex: number; columnId: string } | null>(null);
+
+  /* ⇢ NEW helper fns — used for styling rows during fill-drag and for MemoizedRow */
+  const isFillSource = React.useCallback(
+    (idx: number) => !!fillDragRange && idx === fillDragRange[0],
+    [fillDragRange],
+  );
+  const isFillTarget = React.useCallback(
+    (idx: number) => !!fillDragRange && idx === fillDragRange[1],
+    [fillDragRange],
+  );
 
   const handleFillMouseMove = React.useCallback((e: MouseEvent) => {
     const info = fillDragRef.current;
@@ -976,9 +1095,7 @@ export function PostTable({
         cell: ({ row }) => {
           const post = row.original;
           
-          const handleFilesSelected = async (files: File[]) => {
-            // Handle file upload logic here
-            // For now, we'll just log the files
+          const handleFilesSelected = React.useCallback((files: File[]) => {
             // In a real implementation, you'd upload to your API and update the post
             console.log('Files selected for post:', post.id, files);
             
@@ -986,20 +1103,15 @@ export function PostTable({
             // 1. Upload files to /api/media/upload
             // 2. Create blocks from uploaded files
             // 3. Update post with new blocks
-          };
+          }, [post.id]);
 
           return (
             <div
               className="flex flex-1 px-[4px] py-[4px] h-full"
-              onClick={(e) => {
-                // Only open modal if there are blocks to view
-                if (post.blocks.length > 0) {
-                  onOpen?.(post.id);
-                }
-              }}
+              onClick={() => post.blocks.length && onOpen?.(post.id)}
             >
-              <BlocksPreview 
-                blocks={post.blocks} 
+              <MemoBlocksPreview
+                blocks={post.blocks}
                 postId={post.id}
                 onFilesSelected={handleFilesSelected}
                 rowHeight={rowHeight}
@@ -1326,7 +1438,7 @@ export function PostTable({
       },
       
     ];
-  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked]);
+  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn]);
 
   /** 2) user-defined columns **/
   const userColumnDefs: ColumnDef<Post>[] = React.useMemo(() => {
@@ -1492,9 +1604,8 @@ export function PostTable({
           ? (val as string[])
           : String(val || "").split(",").filter(Boolean);
 
-        const brand = useFeedbirdStore.getState().getActiveBrand();
         const platformsArr: Platform[] = ids
-          .map((id) => brand?.socialPages.find((p) => p.id === id)?.platform)
+          .map((id) => pageIdToPlatformMap.get(id))
           .filter((p): p is Platform => !!p);
 
         if (platformsArr.length === 0) {
@@ -2034,66 +2145,24 @@ export function PostTable({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
+                <MemoizedRow
                   key={row.id}
-                  data-rowkey={row.index}
-                  style={{ height: rowHeight }}
-                  className={cn(
-                    "group",
-                    "hover:bg-[#F9FAFB]",
-                    row.getIsSelected() ? "bg-[#EBF5FF]" : ""
-                  )}
-                  onMouseDownCapture={(e) => handleRowClick(e, row)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (!row.getIsSelected()) {
-                      table.resetRowSelection();
-                      row.toggleSelected(true);
-                    }
-                    setContextMenuOpen(false);
-                    setContextMenuRow(row);
-                    setContextMenuPosition({ x: e.clientX, y: e.clientY });
-                    requestAnimationFrame(() => {
-                      setContextMenuOpen(true);
-                    });
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const isColSticky = isSticky(cell.column.id);
-                    return (
-                      <FocusCell
-                        rowId={row.id}
-                        colId={cell.id}
-                        key={cell.id}
-                        className={cn(
-                          "text-left",
-                          cell.column.id === "caption" ? "align-top" : "align-middle",
-                          "px-0 py-0",
-                          "border-t border-[#EAE9E9] last:border-b-0",
-                          isColSticky && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
-                          cell.column.id === "status" && "sticky-status-shadow",
-                          fillDragRange && fillDragColumn && cell.column.id === fillDragColumn && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
-                        )}
-                        style={{
-                          height: "inherit",
-                          borderRight: "1px solid #EAE9E9",
-                          width: cell.column.getSize(),
-                          ...stickyStyles(cell.column.id, 10)
-                        }}
-                      >
-                        {({isFocused, isEditing, exitEdit, enterEdit}) => {
-                          return flexRender(cell.column.columnDef.cell, {
-                            ...cell.getContext(),
-                            isFocused,
-                            isEditing,
-                            exitEdit,
-                            enterEdit
-                          });
-                        }}
-                      </FocusCell>
-                    );
-                  })}
-                </TableRow>
+                  row={row}
+                  isSelected={row.getIsSelected()}
+                  isFillTarget={isFillTarget}
+                  isFillSource={isFillSource}
+                  handleRowClick={handleRowClick}
+                  handleContextMenu={handleContextMenu}
+                  handleRowDragStart={handleRowDragStart}
+                  setDragOverIndex={setDragOverIndex}
+                  handleRowDrop={handleRowDrop}
+                  isSticky={isSticky}
+                  stickyStyles={stickyStyles}
+                  table={table}
+                  fillDragColumn={fillDragColumn}
+                  fillDragRange={fillDragRange}
+                  rowHeight={rowHeight}
+                />
               ))
             ) : (
               <TableRow>
@@ -2158,6 +2227,20 @@ export function PostTable({
 
 
   // handle context menu actions
+  const handleContextMenu = React.useCallback((e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => {
+    e.preventDefault();
+    if (!row.getIsSelected()) {
+      table.resetRowSelection();
+      row.toggleSelected(true);
+    }
+    setContextMenuOpen(false);
+    setContextMenuRow(row);
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    requestAnimationFrame(() => {
+      setContextMenuOpen(true);
+    });
+  }, [table]);
+
   function handleEditPost(post: Post) {
     onOpen?.(post.id);
   }

@@ -903,7 +903,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               ...br,
               contents: br.contents.map((p) => {
                 if (p.id !== pid) return p;
+      
+                // Create the updated post object
                 const updated = { ...p, ...data };
+      
+                // If the blocks haven't changed, reuse the original blocks array
+                // to preserve reference equality for memoized components.
+                if (data.blocks === undefined) {
+                  updated.blocks = p.blocks;
+                }
+      
                 // auto-update updatedAt if not final
                 const nonFinal = new Set([
                   "Draft","Pending Approval","Needs Revisions",
