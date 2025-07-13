@@ -460,18 +460,23 @@ export function PostTable({
   // ─────────────────────────────────────────────────────────────
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrollLeftRef = React.useRef(0);
 
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
 
-    // Add the class immediately on any horizontal scroll
-    el.classList.add("scrolling-horiz");
+    if (el.scrollLeft !== lastScrollLeftRef.current) {
+      // Add the class immediately on any horizontal scroll
+      el.classList.add("scrolling-horiz");
 
-    // Clear previous timer and schedule its removal
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => {
-      el.classList.remove("scrolling-horiz");
-    }, 150); // duration after scroll stops
+      // Clear previous timer and schedule its removal
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        el.classList.remove("scrolling-horiz");
+      }, 150); // duration after scroll stops
+    }
+
+    lastScrollLeftRef.current = el.scrollLeft;
   }
 
   React.useEffect(() => {
