@@ -897,7 +897,12 @@ export function PostTable({
               >
                 <Checkbox
                   checked={isSelected}
-                  onCheckedChange={(val) => row.toggleSelected(!!val)}
+                  onCheckedChange={(val) => {
+                    row.toggleSelected(!!val);
+                    anchorRowIdRef.current = row.id;
+                  }}
+                  onClick={(e) => handleCheckboxClick(e, row)}
+                  data-slot="checkbox"
                   className={cn(
                     // base
                     "h-4 w-4 rounded-none border border-[#D0D5DD] transition-colors duration-150 ease-in-out rounded-[3px]",
@@ -2237,6 +2242,45 @@ export function PostTable({
     },
     [table]
   );
+
+  const handleCheckboxClick = (e: React.MouseEvent, row: Row<Post>) => {
+    const table = tableRef.current;
+    if (!table || !e.shiftKey || !anchorRowIdRef.current) {
+      return;
+    }
+
+    e.preventDefault();
+    window.getSelection()?.removeAllRanges();
+
+    const allRows = table.getRowModel().rows;
+    const isChecking = !row.getIsSelected();
+
+    const anchorIndex = allRows.findIndex(
+      (r) => r.id === anchorRowIdRef.current
+    );
+    const currentIndex = row.index;
+
+    if (anchorIndex === -1) {
+      return;
+    }
+
+    const start = Math.min(anchorIndex, currentIndex);
+    const end = Math.max(anchorIndex, currentIndex);
+
+    const newSelection = { ...table.getState().rowSelection };
+
+    for (let i = start; i <= end; i++) {
+      const rowInRange = allRows[i];
+      if (rowInRange) {
+        if (isChecking) {
+          newSelection[rowInRange.id] = true;
+        } else {
+          delete newSelection[rowInRange.id];
+        }
+      }
+    }
+    table.setRowSelection(newSelection);
+  };
 
   if (!mounted) return null;
 
