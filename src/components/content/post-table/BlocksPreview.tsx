@@ -1,21 +1,17 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import {
-  Block,
-  useFeedbirdStore,
-  FileKind,
-} from "@/lib/store/use-feedbird-store";
+import { Block } from "@/lib/store/use-feedbird-store";
 import { Plus, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { BlockThumbnail } from "./BlockThumbnail";
 import ClipLoader from "react-spinners/ClipLoader";
+import { useUploader } from "@/lib/hooks/use-uploader";
 
 /**
  * Renders each block's *current* version in a horizontal strip.
  * Each thumbnail has a 1:1 aspect ratio, so it fits nicely in a row or table cell.
  */
-export function BlocksPreview({ 
+export function BlocksPreview({
   blocks,
   postId,
   onFilesSelected,
@@ -30,41 +26,14 @@ export function BlocksPreview({
   const dragCounter = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-
-  /*────────────────── Upload state ──────────────────*/
-  type UploadItem = {
-    id: string;
-    file: File;
-    previewUrl: string;
-    progress: number;   // 0-100
-    status: "uploading" | "processing" | "done" | "error";
-    xhr?: XMLHttpRequest;
-  };
-  const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [uploadDimensions, setUploadDimensions] = useState<Record<string, { w: number, h: number }>>({});
-  const uploadsRef = useRef(uploads);
-  uploadsRef.current = uploads;
 
-  const wid = useFeedbirdStore((s) => s.activeWorkspaceId);
-  const bid = useFeedbirdStore((s) => s.activeBrandId);
-  const addBlock = useFeedbirdStore((s) => s.addBlock);
-  const addVersion = useFeedbirdStore((s) => s.addVersion);
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const { uploads, startUploads } = useUploader({ postId });
 
-  /** Start uploading the given files and track progress */
-  const startUploads = (files: File[]) => {
-    // Create all upload items first so they appear in the UI immediately.
-    const newUploads: UploadItem[] = files.map((file) => ({
-      id: crypto.randomUUID(),
-      file,
-      previewUrl: URL.createObjectURL(file),
-      progress: 0,
-      status: "uploading",
-    }));
-
-    // Pre-calculate dimensions for any images
-    newUploads.forEach(up => {
-      if (up.file.type.startsWith("image/")) {
+  // Effect to calculate dimensions for image uploads
+  useEffect(() => {
+    uploads.forEach(up => {
+      if (up.file.type.startsWith("image/") && !uploadDimensions[up.id]) {
         const img = new Image();
         img.src = up.previewUrl;
         img.onload = () => {
@@ -72,115 +41,7 @@ export function BlocksPreview({
         };
       }
     });
-
-    setUploads((u) => [...u, ...newUploads]);
-
-    const uploadPromises = newUploads.map(async (up) => {
-      try {
-        const form = new FormData();
-        form.append("file", up.file);
-
-        await new Promise<string>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-
-          // Attach to the upload item in state for cancellation
-          setUploads((currentUploads) =>
-            currentUploads.map((u) => (u.id === up.id ? { ...u, xhr } : u))
-          );
-
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              const pct = Math.round((e.loaded / e.total) * 100);
-              const newStatus = pct >= 100 ? "processing" : "uploading";
-              setUploads((u) =>
-                u.map((it) => (it.id === up.id ? { ...it, progress: pct, status: newStatus } : it))
-              );
-            }
-          };
-
-          xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4) {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                resolve(xhr.responseText);
-              } else {
-                reject(new Error(`Server responded with ${xhr.status}`));
-              }
-            }
-          };
-          
-          const qs = new URLSearchParams();
-          if (wid) qs.append("wid", wid);
-          if (bid) qs.append("bid", bid);
-          if (postId) qs.append("pid", postId);
-          const url = `/api/media/upload${qs.toString() ? "?" + qs.toString() : ""}`;
-
-          xhr.open("POST", url);
-          xhr.send(form);
-        }).then(responseText => {
-          const resJson = JSON.parse(responseText);
-          const uploadedUrl = resJson.url as string | undefined;
-          if (!uploadedUrl) {
-            throw new Error("No URL returned from server");
-          }
-          
-          const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
-          const blockId = addBlock(postId, kind);
-          addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: uploadedUrl } });
-
-          toast.success(`${up.file.name} uploaded`);
-          setUploads((u) => u.map((it) => (it.id === up.id ? { ...it, progress: 100, status: "done" } : it)));
-        });
-      } catch (err: any) {
-        console.error("Upload failed for", up.file.name, err);
-        toast.error(`${up.file.name} failed`, {
-          description: err.message ?? "Unknown error"
-        });
-        setUploads((u) => u.map((it) => (it.id === up.id ? { ...it, status: "error" } : it)));
-      }
-    });
-    
-    // After all uploads are settled, re-evaluate the post format once.
-    Promise.allSettled(uploadPromises).then(() => {
-      const state = useFeedbirdStore.getState();
-      const post = state.getPost(postId);
-      if (post) {
-        const imgCnt = post.blocks.filter((b) => b.kind === "image").length;
-        const vidCnt = post.blocks.filter((b) => b.kind === "video").length;
-
-        let newFormat = post.format;
-        if (vidCnt > 0 && imgCnt === 0) {
-          newFormat = "video";
-        } else if (imgCnt === 1 && vidCnt === 0) {
-          newFormat = "static";
-        } else if (imgCnt >= 2 || (imgCnt >= 1 && vidCnt > 0)) {
-          newFormat = "carousel";
-        }
-
-        if (newFormat !== post.format) {
-          updatePost(postId, { format: newFormat });
-        }
-      }
-    });
-  };
-
-  // Auto-remove completed uploads after short delay and revoke their blob URLs
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setUploads((prev) => {
-        const kept = prev.filter((u) => u.status !== "done");
-        const removed = prev.filter((u) => u.status === "done");
-        // Revoke URLs for the items we are removing from the display
-        removed.forEach((u) => URL.revokeObjectURL(u.previewUrl));
-        return kept;
-      });
-    }, 1500);
-
-    // On unmount, clear interval and revoke any remaining blob URLs to prevent memory leaks
-    return () => {
-      clearInterval(timer);
-      uploadsRef.current.forEach((u) => URL.revokeObjectURL(u.previewUrl));
-    };
-  }, []); // This effect should only run once on mount
+  }, [uploads, uploadDimensions]);
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -302,7 +163,7 @@ export function BlocksPreview({
                 <>
                   {isVideo ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                      <ClipLoader color="#FFFFFF" size={24} />
+                      <ClipLoader color="#FF0000" size={24} />
                     </div>
                   ) : (
                     <>
@@ -331,7 +192,7 @@ export function BlocksPreview({
               )}
               {up.status === "processing" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white text-xs gap-2">
-                  <ClipLoader color="#FFFFFF" size={24} />
+                  <ClipLoader color="#FF0000" size={24} />
                 </div>
               )}
               {up.status === "done" && (

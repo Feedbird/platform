@@ -163,6 +163,118 @@ import { CaptionCell } from "./CaptionCell";
 import { SettingsEditCell } from "./SettingsCell";
 import { MonthEditCell } from "./MonthEditCell";
 
+const MemoizedRow = React.memo(
+  ({
+    row,
+    isSelected,
+    isFillTarget,
+    isFillSource,
+    handleRowClick,
+    handleContextMenu,
+    handleRowDragStart,
+    setDragOverIndex,
+    handleRowDrop,
+    isSticky,
+    stickyStyles,
+    table,
+    fillDragColumn,
+    fillDragRange,
+    rowHeight,
+  }: {
+    row: Row<Post>;
+    isSelected: boolean;
+    isFillTarget: (idx: number) => boolean;
+    isFillSource: (idx: number) => boolean;
+    handleRowClick: (e: React.MouseEvent, row: Row<Post>) => void;
+    handleContextMenu: (e: React.MouseEvent, row: Row<Post>) => void;
+    handleRowDragStart: (e: React.DragEvent, fromIndex: number) => void;
+    setDragOverIndex: React.Dispatch<React.SetStateAction<number | null>>;
+    handleRowDrop: (e: React.DragEvent) => void;
+    isSticky: (colId: string) => boolean;
+    stickyStyles: (colId: string, z?: number) => React.CSSProperties | undefined;
+    table: ReactTableType<Post>;
+    fillDragColumn: string | null;
+    fillDragRange: [number, number] | null;
+    rowHeight: number;
+  }) => {
+    return (
+      <TableRow
+        key={row.id}
+        data-rowkey={row.index}
+        style={{ height: rowHeight }}
+        className={cn(
+          "group",
+          "hover:bg-[#F9FAFB]",
+          isSelected ? "bg-[#EBF5FF]" : "",
+          isFillTarget(row.index) && "bg-blue-50",
+          isFillSource(row.index) && "bg-blue-100"
+        )}
+        onMouseDownCapture={(e) => handleRowClick(e, row)}
+        onContextMenu={(e) => handleContextMenu(e, row)}
+        onDragStart={(e) => handleRowDragStart(e, row.index)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOverIndex(row.index);
+        }}
+        onDrop={handleRowDrop}
+      >
+        {row.getVisibleCells().map((cell) => {
+          const isColSticky = isSticky(cell.column.id);
+          return (
+            <FocusCell
+              rowId={row.id}
+              colId={cell.id}
+              key={cell.id}
+              className={cn(
+                "text-left",
+                cell.column.id === "caption" ? "align-top" : "align-middle",
+                "px-0 py-0",
+                "border-t border-[#EAE9E9] last:border-b-0",
+                isColSticky && (isSelected ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
+                cell.column.id === "status" && "sticky-status-shadow",
+                fillDragRange && fillDragColumn === cell.column.id && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
+              )}
+              style={{
+                height: "inherit",
+                borderRight: "1px solid #EAE9E9",
+                width: cell.column.getSize(),
+                ...stickyStyles(cell.column.id, 10),
+              }}
+            >
+              {({ isFocused, isEditing, exitEdit, enterEdit }) => {
+                return flexRender(cell.column.columnDef.cell, {
+                  ...cell.getContext(),
+                  isFocused,
+                  isEditing,
+                  exitEdit,
+                  enterEdit,
+                });
+              }}
+            </FocusCell>
+          );
+        })}
+      </TableRow>
+    );
+  },
+  (prevProps, nextProps) => {
+    if (prevProps.isSelected !== nextProps.isSelected) return false;
+    if (prevProps.row.original !== nextProps.row.original) return false;
+    if (prevProps.fillDragColumn !== nextProps.fillDragColumn) return false;
+    if (
+      (prevProps.fillDragRange?.[0] !== nextProps.fillDragRange?.[0]) ||
+      (prevProps.fillDragRange?.[1] !== nextProps.fillDragRange?.[1])
+    ) {
+      // Re-render if row enters/leaves a fill range
+      const isPrevInRange = prevProps.fillDragRange && prevProps.row.index >= prevProps.fillDragRange[0] && prevProps.row.index <= prevProps.fillDragRange[1];
+      const isNextInRange = nextProps.fillDragRange && nextProps.row.index >= nextProps.fillDragRange[0] && nextProps.row.index <= nextProps.fillDragRange[1];
+      if(isPrevInRange !== isNextInRange) return false;
+    }
+    return true; // Props are equal
+  }
+);
+MemoizedRow.displayName = "MemoizedRow";
+
+
 type FocusCellContext<T> = CellContext<T, unknown> & {
   isFocused?: boolean;
   isEditing?: boolean;
@@ -551,6 +663,8 @@ export function PostTable({
   }
 
   // Drag & drop reordering of rows
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+
   function handleRowDragStart(e: React.DragEvent, fromIndex: number) {
     e.dataTransfer.setData("text/plain", String(fromIndex));
   }
@@ -674,6 +788,16 @@ export function PostTable({
   const [fillDragColumn, setFillDragColumn] = React.useState<string | null>(null);
   // Internal ref to hold data during an active fill-drag operation
   const fillDragRef = React.useRef<{ value: any; startIndex: number; columnId: string } | null>(null);
+
+  /* ⇢ NEW helper fns — used for styling rows during fill-drag and for MemoizedRow */
+  const isFillSource = React.useCallback(
+    (idx: number) => !!fillDragRange && idx === fillDragRange[0],
+    [fillDragRange],
+  );
+  const isFillTarget = React.useCallback(
+    (idx: number) => !!fillDragRange && idx === fillDragRange[1],
+    [fillDragRange],
+  );
 
   const handleFillMouseMove = React.useCallback((e: MouseEvent) => {
     const info = fillDragRef.current;
@@ -2024,66 +2148,24 @@ export function PostTable({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
+                <MemoizedRow
                   key={row.id}
-                  data-rowkey={row.index}
-                  style={{ height: rowHeight }}
-                  className={cn(
-                    "group",
-                    "hover:bg-[#F9FAFB]",
-                    row.getIsSelected() ? "bg-[#EBF5FF]" : ""
-                  )}
-                  onMouseDownCapture={(e) => handleRowClick(e, row)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (!row.getIsSelected()) {
-                      table.resetRowSelection();
-                      row.toggleSelected(true);
-                    }
-                    setContextMenuOpen(false);
-                    setContextMenuRow(row);
-                    setContextMenuPosition({ x: e.clientX, y: e.clientY });
-                    requestAnimationFrame(() => {
-                      setContextMenuOpen(true);
-                    });
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const isColSticky = isSticky(cell.column.id);
-                    return (
-                      <FocusCell
-                        rowId={row.id}
-                        colId={cell.id}
-                        key={cell.id}
-                        className={cn(
-                          "text-left",
-                          cell.column.id === "caption" ? "align-top" : "align-middle",
-                          "px-0 py-0",
-                          "border-t border-[#EAE9E9] last:border-b-0",
-                          isColSticky && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
-                          cell.column.id === "status" && "sticky-status-shadow",
-                          fillDragRange && fillDragColumn && cell.column.id === fillDragColumn && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
-                        )}
-                        style={{
-                          height: "inherit",
-                          borderRight: "1px solid #EAE9E9",
-                          width: cell.column.getSize(),
-                          ...stickyStyles(cell.column.id, 10)
-                        }}
-                      >
-                        {({isFocused, isEditing, exitEdit, enterEdit}) => {
-                          return flexRender(cell.column.columnDef.cell, {
-                            ...cell.getContext(),
-                            isFocused,
-                            isEditing,
-                            exitEdit,
-                            enterEdit
-                          });
-                        }}
-                      </FocusCell>
-                    );
-                  })}
-                </TableRow>
+                  row={row}
+                  isSelected={row.getIsSelected()}
+                  isFillTarget={isFillTarget}
+                  isFillSource={isFillSource}
+                  handleRowClick={handleRowClick}
+                  handleContextMenu={handleContextMenu}
+                  handleRowDragStart={handleRowDragStart}
+                  setDragOverIndex={setDragOverIndex}
+                  handleRowDrop={handleRowDrop}
+                  isSticky={isSticky}
+                  stickyStyles={stickyStyles}
+                  table={table}
+                  fillDragColumn={fillDragColumn}
+                  fillDragRange={fillDragRange}
+                  rowHeight={rowHeight}
+                />
               ))
             ) : (
               <TableRow>
@@ -2148,6 +2230,20 @@ export function PostTable({
 
 
   // handle context menu actions
+  const handleContextMenu = React.useCallback((e: React.MouseEvent, row: Row<Post>) => {
+    e.preventDefault();
+    if (!row.getIsSelected()) {
+      table.resetRowSelection();
+      row.toggleSelected(true);
+    }
+    setContextMenuOpen(false);
+    setContextMenuRow(row);
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    requestAnimationFrame(() => {
+      setContextMenuOpen(true);
+    });
+  }, [table]);
+
   function handleEditPost(post: Post) {
     onOpen?.(post.id);
   }
