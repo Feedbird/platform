@@ -124,6 +124,7 @@ export function useUploader({ postId }: { postId: string }) {
   };
 
   useEffect(() => {
+    const currentUploads = uploadsRef.current;
     const timer = setInterval(() => {
       setUploads((prev) => {
         const kept = prev.filter((u) => u.status !== "done");
@@ -135,7 +136,13 @@ export function useUploader({ postId }: { postId: string }) {
 
     return () => {
       clearInterval(timer);
-      uploadsRef.current.forEach((u) => URL.revokeObjectURL(u.previewUrl));
+      // Abort any pending uploads and revoke all blob URLs
+      currentUploads.forEach((u) => {
+        if (u.xhr && u.status === "uploading") {
+          u.xhr.abort();
+        }
+        URL.revokeObjectURL(u.previewUrl);
+      });
     };
   }, []);
 

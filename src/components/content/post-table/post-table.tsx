@@ -137,6 +137,7 @@ import { SortMenu } from "./SortMenu";
 import { RowHeightMenu } from "./RowHeightMenu";
 import { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
 import { BlocksPreview } from "./BlocksPreview";
+import { MemoBlocksPreview } from "./MemoBlocksPreview";
 import { StatusEditCell } from "./StatusEditCell";
 import { ChannelsEditCell } from "./ChannelsEditCell";
 import { FormatEditCell } from "./FormatEditCell";
@@ -185,8 +186,8 @@ const MemoizedRow = React.memo(
     isSelected: boolean;
     isFillTarget: (idx: number) => boolean;
     isFillSource: (idx: number) => boolean;
-    handleRowClick: (e: React.MouseEvent, row: Row<Post>) => void;
-    handleContextMenu: (e: React.MouseEvent, row: Row<Post>) => void;
+    handleRowClick: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => void;
+    handleContextMenu: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => void;
     handleRowDragStart: (e: React.DragEvent, fromIndex: number) => void;
     setDragOverIndex: React.Dispatch<React.SetStateAction<number | null>>;
     handleRowDrop: (e: React.DragEvent) => void;
@@ -205,9 +206,7 @@ const MemoizedRow = React.memo(
         className={cn(
           "group",
           "hover:bg-[#F9FAFB]",
-          isSelected ? "bg-[#EBF5FF]" : "",
-          isFillTarget(row.index) && "bg-blue-50",
-          isFillSource(row.index) && "bg-blue-100"
+          isSelected && "bg-[#EBF5FF]"
         )}
         onMouseDownCapture={(e) => handleRowClick(e, row)}
         onContextMenu={(e) => handleContextMenu(e, row)}
@@ -335,7 +334,7 @@ async function importFromCSV(file: File): Promise<Post[]> {
   });
 }
 
-/** ---------- Filter Fns ---------- **/
+/** ---------- Filter Fns (as skeletons) ---------- **/
 const statusFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
   if (!filterValues.length) return true;
   const cellVal = row.getValue(colId) as string;
@@ -350,27 +349,8 @@ const formatFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
 
 const monthFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
   if (!filterValues.length) return true;
-  const cellVal = String(row.getValue(colId)); // Convert number to string for comparison
+  const cellVal = String(row.getValue(colId));
   return filterValues.includes(cellVal);
-};
-
-// Updated to handle platforms instead of pages - filter by the platform of the pages
-const platformsFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
-  if (!filterValues.length) return true;
-  const rowPages = row.getValue(colId) as string[];
-  if (!rowPages || !Array.isArray(rowPages)) return false;
-  
-  // Get the brand to map page IDs to platforms
-  const brand = useFeedbirdStore.getState().getActiveBrand();
-  if (!brand) return false;
-  
-  // Get the platforms of the pages in this row
-  const rowPlatforms = rowPages
-    .map(pageId => brand.socialPages.find(page => page.id === pageId)?.platform)
-    .filter((platform): platform is Platform => platform !== undefined);
-  
-  // Check if any of the row's platforms match any of the filter values
-  return rowPlatforms.some(platform => filterValues.includes(platform));
 };
 
 const statusSortOrder: Status[] = [
@@ -393,23 +373,6 @@ const statusSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
   const indexB = statusSortOrder.indexOf(statusB);
 
   return indexA - indexB;
-};
-
-// Sort so that empty socials (no pages) appear AFTER any with pages.
-const platformsSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
-  const a: string[] = rowA.getValue(columnId) as string[];
-  const b: string[] = rowB.getValue(columnId) as string[];
-
-  const emptyA = !a || a.length === 0;
-  const emptyB = !b || b.length === 0;
-  if (emptyA && !emptyB) return 1;  // A empty -> after B
-  if (!emptyA && emptyB) return -1; // B empty -> after A
-
-  // Otherwise compare lexicographically by first platform name for stability
-  const brand = useFeedbirdStore.getState().getActiveBrand();
-  const strA = (a ?? []).map(id => brand?.socialPages.find(p=>p.id===id)?.platform ?? "").join(',');
-  const strB = (b ?? []).map(id => brand?.socialPages.find(p=>p.id===id)?.platform ?? "").join(',');
-  return strA.localeCompare(strB);
 };
 
 // Sort formats so empty appears last
@@ -742,6 +705,38 @@ export function PostTable({
   },[captionLocked]);
 
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
+
+  const pageIdToPlatformMap = React.useMemo(() => {
+    if (!brand?.socialPages) return new Map<string, Platform>();
+    return new Map(brand.socialPages.map(p => [p.id, p.platform]));
+  }, [brand?.socialPages]);
+
+  // Now we define the functions INSIDE the component, so they have access to the map
+  const platformsFilterFn: FilterFn<Post> = React.useCallback((row, colId, filterValues: string[]) => {
+    if (!filterValues.length) return true;
+    const rowPages = row.getValue(colId) as string[];
+    if (!rowPages || !Array.isArray(rowPages)) return false;
+
+    const rowPlatforms = rowPages
+      .map(pageId => pageIdToPlatformMap.get(pageId))
+      .filter((platform): platform is Platform => platform !== undefined);
+
+    return rowPlatforms.some(platform => filterValues.includes(platform));
+  }, [pageIdToPlatformMap]);
+
+  const platformsSortingFn: SortingFn<Post> = React.useCallback((rowA, rowB, columnId) => {
+    const a: string[] = rowA.getValue(columnId) as string[];
+    const b: string[] = rowB.getValue(columnId) as string[];
+
+    const emptyA = !a || a.length === 0;
+    const emptyB = !b || b.length === 0;
+    if (emptyA && !emptyB) return 1;
+    if (!emptyA && emptyB) return -1;
+
+    const strA = (a ?? []).map(id => pageIdToPlatformMap.get(id) ?? "").join(',');
+    const strB = (b ?? []).map(id => pageIdToPlatformMap.get(id) ?? "").join(',');
+    return strA.localeCompare(strB);
+  }, [pageIdToPlatformMap]);
 
   const availablePlatforms = React.useMemo(() => {
     if (!brand) return [];
@@ -1090,9 +1085,7 @@ export function PostTable({
         cell: ({ row }) => {
           const post = row.original;
           
-          const handleFilesSelected = async (files: File[]) => {
-            // Handle file upload logic here
-            // For now, we'll just log the files
+          const handleFilesSelected = React.useCallback((files: File[]) => {
             // In a real implementation, you'd upload to your API and update the post
             console.log('Files selected for post:', post.id, files);
             
@@ -1100,20 +1093,15 @@ export function PostTable({
             // 1. Upload files to /api/media/upload
             // 2. Create blocks from uploaded files
             // 3. Update post with new blocks
-          };
+          }, [post.id]);
 
           return (
             <div
               className="flex flex-1 px-[4px] py-[4px] h-full"
-              onClick={(e) => {
-                // Only open modal if there are blocks to view
-                if (post.blocks.length > 0) {
-                  onOpen?.(post.id);
-                }
-              }}
+              onClick={() => post.blocks.length && onOpen?.(post.id)}
             >
-              <BlocksPreview 
-                blocks={post.blocks} 
+              <MemoBlocksPreview
+                blocks={post.blocks}
                 postId={post.id}
                 onFilesSelected={handleFilesSelected}
                 rowHeight={rowHeight}
@@ -1440,7 +1428,7 @@ export function PostTable({
       },
       
     ];
-  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked]);
+  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn]);
 
   /** 2) user-defined columns **/
   const userColumnDefs: ColumnDef<Post>[] = React.useMemo(() => {
@@ -1606,9 +1594,8 @@ export function PostTable({
           ? (val as string[])
           : String(val || "").split(",").filter(Boolean);
 
-        const brand = useFeedbirdStore.getState().getActiveBrand();
         const platformsArr: Platform[] = ids
-          .map((id) => brand?.socialPages.find((p) => p.id === id)?.platform)
+          .map((id) => pageIdToPlatformMap.get(id))
           .filter((p): p is Platform => !!p);
 
         if (platformsArr.length === 0) {
@@ -2230,7 +2217,7 @@ export function PostTable({
 
 
   // handle context menu actions
-  const handleContextMenu = React.useCallback((e: React.MouseEvent, row: Row<Post>) => {
+  const handleContextMenu = React.useCallback((e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => {
     e.preventDefault();
     if (!row.getIsSelected()) {
       table.resetRowSelection();

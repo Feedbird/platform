@@ -163,7 +163,7 @@ export function BlocksPreview({
                 <>
                   {isVideo ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                      <ClipLoader color="#FF0000" size={24} />
+                      <ClipLoader color="#FFFFFF" size={24} />
                     </div>
                   ) : (
                     <>
@@ -176,10 +176,6 @@ export function BlocksPreview({
                           style={{ width: `${up.progress}%` }}
                         />
                       </div>
-                      {/* Percent text top-right (hide on very small widths) */}
-                      <span className="absolute top-0 right-0 m-[2px] px-[2px] rounded bg-black/60 text-[10px] text-white leading-none">
-                        {up.progress}%
-                      </span>
                     </>
                   )}
                 </>
@@ -192,7 +188,7 @@ export function BlocksPreview({
               )}
               {up.status === "processing" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white text-xs gap-2">
-                  <ClipLoader color="#FF0000" size={24} />
+                  <ClipLoader color="#FFFFFF" size={24} />
                 </div>
               )}
               {up.status === "done" && (
