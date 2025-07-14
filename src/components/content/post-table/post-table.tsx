@@ -256,6 +256,7 @@ const MemoizedRow = React.memo(
     );
   },
   (prevProps, nextProps) => {
+    if (prevProps.rowHeight !== nextProps.rowHeight) return false;
     if (prevProps.isSelected !== nextProps.isSelected) return false;
     if (prevProps.row.original !== nextProps.row.original) return false;
     if (prevProps.fillDragColumn !== nextProps.fillDragColumn) return false;
