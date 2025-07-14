@@ -161,23 +161,18 @@ export function BlocksPreview({
               {/* Progress overlay */}
               {up.status === "uploading" && (
                 <>
-                  {isVideo ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                      <ClipLoader color="#FFFFFF" size={24} />
-                    </div>
-                  ) : (
-                    <>
-                      {/* Dim overlay but leave preview visible */}
-                      <div className="absolute inset-0 bg-black/40" />
-                      {/* Bottom progress bar */}
-                      <div className="absolute left-0 bottom-0 w-full h-[3px] bg-white/20">
-                        <div
-                          className="h-full bg-blue-400 transition-all"
-                          style={{ width: `${up.progress}%` }}
-                        />
-                      </div>
-                    </>
-                  )}
+                  {/* Dim overlay */}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    {/* Clip loader always visible while uploading */}
+                    <ClipLoader color="#FFFFFF" size={24} />
+                  </div>
+                  {/* Bottom progress bar */}
+                  <div className="absolute left-0 bottom-0 w-full h-[3px] bg-white/20">
+                    <div
+                      className="h-full bg-blue-400 transition-all"
+                      style={{ width: `${up.progress}%` }}
+                    />
+                  </div>
                 </>
               )}
               {up.status === "error" && (
