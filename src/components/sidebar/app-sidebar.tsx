@@ -35,6 +35,11 @@ import {
 import WorkspaceSwitcher from "@/components/workspace/workspace-switcher";
 import SocialShortcuts from "@/components/sidebar/social-shortcuts";
 import { LoadingLink } from "@/components/layout/navigation-loader";
+import { AddBoardModal } from "@/components/board/add-board-modal";
+import { BoardRulesModal } from "@/components/board/board-rules-modal";
+import { ColorAndIconDialog } from "@/components/board/color-and-icon-dialog";
+import { RenameBoardDialog } from "@/components/board/rename-board-dialog";
+import { NavLink as NavLinkType, BoardRules } from "@/lib/store/use-feedbird-store";
 
 import {
   useFeedbirdStore,
@@ -147,6 +152,8 @@ function BoardDropdownMenu({
   item: NavLink;
   onAction: (action: string, item: NavLink) => void;
 }) {
+  const [open, setOpen] = React.useState(false);
+  
   const menu = [
     { id: "rename", label: "Rename", icon: "rename" },
     { id: "share", label: "Share", icon: "share" },
@@ -158,8 +165,13 @@ function BoardDropdownMenu({
     { id: "delete", label: "Delete board", icon: "delete"},
   ];
 
+  const handleAction = (actionId: string) => {
+    onAction(actionId, item);
+    setOpen(false);
+  };
+
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
           /* visible only when THIS row is hovered (group/row) */
@@ -172,15 +184,20 @@ function BoardDropdownMenu({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-40 flex flex-col p-[4px] rounded-[6px] border border-[1px] border-[#EAECF0] bg-white"
+      <DropdownMenuContent 
+        align="end" 
+        className="w-40 flex flex-col p-[4px] rounded-[6px] border border-[1px] border-[#EAECF0] bg-white"
         style={{
           boxShadow: "0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03)",
-        }}>
+        }}
+        onEscapeKeyDown={() => setOpen(false)}
+        onInteractOutside={() => setOpen(false)}
+      >
         {menu.map(({ id, label, icon }) => (
           <React.Fragment key={id}>
             {id === "delete" && <DropdownMenuSeparator className="mx-auto w-[132px]" />}
             <DropdownMenuItem
-              onClick={(e) => {e.stopPropagation(); onAction(id, item)}}
+              onClick={(e) => {e.stopPropagation(); handleAction(id);}}
               className={
                 cn("flex px-[10px] py-[7px] gap-2 font-medium text-sm text-primary-foreground cursor-pointer",
                   "h-[30px]",
@@ -227,21 +244,29 @@ const BoardCount = ({ boardId, variant = 'expanded' }: { boardId: string; varian
 export const RenderNavItems = React.memo(function RenderNavItems({
   items,
   isBoard = false,
+  onBoardAction,
 }: {
   items: NavLink[];
   isBoard?: boolean;
+  onBoardAction?: (action: string, item: NavLink) => void;
 }) {
   const pathname = usePathname();
   const { state } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
+  const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
+  const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
 
   const handleBoardAction = React.useCallback((action: string, item: NavLink) => {
-    alert(`${action} → ${item.label}`); // replace with real logic
-  }, []);
+    if (onBoardAction) {
+      onBoardAction(action, item);
+    } else {
+      alert(`${action} → ${item.label}`); // fallback
+    }
+  }, [onBoardAction]);
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -250,25 +275,24 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           const active = nav.href && pathname.startsWith(nav.href);
 
           /* ----------------------------------------------------------- */
-          /*  ICON SELECTION                                            */
-          /*  For board items, swap in a "-selected" icon when active   */
+          /*  GET BOARD DATA FOR COLOR STYLING                           */
           /* ----------------------------------------------------------- */
-          let imageSrc = nav.image;
-          if (isBoard && nav.image) {
-            if (active) {
-              // Insert "-selected" before the .svg extension
-              imageSrc = nav.image.replace(/\.svg$/, "-selected.svg");
-            }
-          }
+          const boardColor = isBoard ? nav.color : null;
+
+          /* ----------------------------------------------------------- */
+          /*  ICON SELECTION                                            */
+          /*  Use the original image and apply color styling instead    */
+          /* ----------------------------------------------------------- */
+          const imageSrc = nav.image;
 
           const RowContent = (
             <SidebarMenuButton
               asChild
               className={cn(
-                active && "bg-[#D7E9FF]",
-                "group/row gap-[6px] p-[6px] text-black text-sm font-semibold",
+                "group/row gap-[6px] p-[6px] text-sm font-semibold",
                 "cursor-pointer focus:outline-none",
-                "hover:bg-[#F4F5F6]"
+                active ? "bg-[#D7E9FF]" : "hover:bg-[#F4F5F6]",
+                "text-black"
               )}
             >
               {nav.href ? (
@@ -278,12 +302,25 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                   loadingText={`Loading ${nav.label}…`}
                 >
                   {imageSrc && (
-                    <img
-                      src={imageSrc}
-                      alt={nav.label}
-                      className="w-[18px] h-[18px]"
-                      loading="lazy"
-                    />
+                    <div 
+                      className={cn(
+                        "w-[18px] h-[18px] rounded flex items-center justify-center",
+                        // Apply board color as background to icon container when active
+                        active && isBoard && boardColor ? "" : "bg-transparent"
+                      )}
+                      style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                    >
+                      <img
+                        src={imageSrc}
+                        alt={nav.label}
+                        className={cn(
+                          "w-[16px] h-[16px]",
+                          // Make icon white when board is active and has a colored background
+                          active && isBoard && boardColor && "filter brightness-0 invert"
+                        )}
+                        loading="lazy"
+                      />
+                    </div>
                   )}
                   <span className="flex-1 truncate">{nav.label}</span>
 
@@ -303,12 +340,26 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                   className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none"
                 >
                   {imageSrc && (
-                    <img
-                      src={imageSrc}
-                      alt={nav.label}
-                      className={`${isBoard ? "w-[18px] h-[18px]" : "w-[16px] h-[16px]"}`}
-                      loading="lazy"
-                    />
+                    <div 
+                      className={cn(
+                        "rounded flex items-center justify-center",
+                        isBoard ? "w-[18px] h-[18px]" : "w-[16px] h-[16px]",
+                        // Apply board color as background to icon container when active
+                        active && isBoard && boardColor ? "" : "bg-transparent"
+                      )}
+                      style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                    >
+                      <img
+                        src={imageSrc}
+                        alt={nav.label}
+                        className={cn(
+                          isBoard ? "w-[16px] h-[16px]" : "w-[14px] h-[14px]",
+                          // Make icon white when board is active and has a colored background
+                          active && isBoard && boardColor && "filter brightness-0 invert"
+                        )}
+                        loading="lazy"
+                      />
+                    </div>
                   )}
                   <span className="flex-1">{nav.label}</span>
                 </button>
@@ -325,7 +376,24 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                   <TooltipTrigger asChild>{RowContent}</TooltipTrigger>
                   <TooltipContent side="right" className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md [&>svg]:hidden [&>div]:hidden">
                     {imageSrc && (
-                      <img src={imageSrc} alt={nav.label} className="w-4 h-4" />
+                      <div 
+                        className={cn(
+                          "w-4 h-4 rounded flex items-center justify-center",
+                          // Apply board color as background to icon container when active
+                          active && isBoard && boardColor ? "" : "bg-transparent"
+                        )}
+                        style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                      >
+                        <img 
+                          src={imageSrc} 
+                          alt={nav.label} 
+                          className={cn(
+                            "w-3 h-3",
+                            // Make icon white when board is active and has a colored background
+                            active && isBoard && boardColor && "filter brightness-0 invert"
+                          )} 
+                        />
+                      </div>
                     )}
                     <span className="text-sm font-semibold">{nav.label}</span>
                     {isBoard && <BoardCount boardId={nav.id} variant="collapsed" />}
@@ -348,13 +416,29 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
+  const [isAddBoardModalOpen, setIsAddBoardModalOpen] = React.useState(false);
+  const [isRulesModalOpen, setIsRulesModalOpen] = React.useState(false);
+  const [pendingBoardData, setPendingBoardData] = React.useState<{
+    name: string;
+    description: string;
+    icon: string | undefined;
+    color: string | undefined;
+    rules?: BoardRules;
+  } | null>(null);
+
+  const { updateBoard, addBoard, removeBoard } = useFeedbirdStore();
+  const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
+  const [colorIconTarget, setColorIconTarget] = React.useState<NavLinkType | null>(null);
+  const [renameTarget, setRenameTarget] = React.useState<NavLinkType | null>(null);
+
+  const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
 
   const platformNav = React.useMemo(() => defaultPlatformNav, []);
-  const boardNav    = React.useMemo(() => defaultBoardNav, []);
+  const boardNav    = useFeedbirdStore(s => s.boardNav);
 
   /* open / collapse state for the two accordion groups */
   const [boardsOpen, setBoardsOpen] = React.useState(true);
@@ -373,6 +457,111 @@ export function AppSidebar() {
       setSocialOpen(true);
     }
   }, [pathname]);
+
+  const handleBoardAction = (action: string, item: NavLinkType) => {
+    if (action === 'color-icon') {
+      setColorIconTarget(item);
+    } else if (action === 'rename') {
+      setRenameTarget(item);
+    } else if (action === 'share') {
+      // TODO: Implement share functionality
+      alert(`Share board: ${item.label}`);
+    } else if (action === 'settings') {
+      // TODO: Navigate to board settings or open settings modal
+      alert(`Open settings for: ${item.label}`);
+    } else if (action === 'favorites') {
+      // TODO: Add to favorites functionality
+      alert(`Add ${item.label} to favorites`);
+    } else if (action === 'duplicate') {
+      const duplicatedBoard = useFeedbirdStore.getState().workspaces
+        .flatMap(w => w.boards)
+        .find(b => b.id === item.id);
+      
+      if (duplicatedBoard) {
+        const newName = `${duplicatedBoard.name} (Copy)`;
+        addBoard(
+          newName,
+          duplicatedBoard.description,
+          duplicatedBoard.image,
+          duplicatedBoard.color,
+          duplicatedBoard.rules
+        );
+      }
+    } else if (action === 'archive') {
+      // TODO: Implement archive functionality
+      alert(`Archive board: ${item.label}`);
+    } else if (action === 'delete') {
+        removeBoard(item.id);
+    } else {
+      alert(`${action} on ${item.label}`);
+    }
+  };
+
+  const handleUpdateBoardColorAndIcon = (icon: string, color: string) => {
+    if (colorIconTarget) {
+      updateBoard(colorIconTarget.id, { image: icon, color: color });
+      
+      setColorIconTarget(null); // Clear the target after updating
+    }
+  };
+
+  const handleRenameBoard = (newName: string) => {
+    if (renameTarget) {
+      updateBoard(renameTarget.id, { name: newName });
+      setRenameTarget(null); // Clear the target after updating
+    }
+  };
+
+  // Handle board creation flow
+  const handleBoardDataReady = React.useCallback((data: {
+    name: string;
+    description: string;
+    icon: string | undefined;
+    color: string | undefined;
+    rules?: BoardRules;
+  }) => {
+    setPendingBoardData(data);
+    setIsAddBoardModalOpen(false);
+    setIsRulesModalOpen(true);
+  }, []);
+
+  const handleUseTemplate = React.useCallback((data: {
+    name: string;
+    description: string;
+    icon: string | undefined;
+    color: string | undefined;
+    rules?: BoardRules;
+  }) => {
+    // Create board directly with template rules, bypassing the rules modal
+    addBoard(
+      data.name,
+      data.description,
+      data.icon,
+      data.color,
+      data.rules
+    );
+    setIsAddBoardModalOpen(false);
+  }, [addBoard]);
+
+  const handleRulesSave = React.useCallback((rules: BoardRules) => {
+    if (pendingBoardData) {
+      addBoard(
+        pendingBoardData.name,
+        pendingBoardData.description,
+        pendingBoardData.icon,
+        pendingBoardData.color,
+        rules
+      );
+      setPendingBoardData(null); // Clear the data after board is created
+      setIsRulesModalOpen(false);
+    }
+  }, [pendingBoardData, addBoard]);
+
+  const handleRulesBack = React.useCallback(() => {
+    setIsRulesModalOpen(false);
+    // Don't clear pendingBoardData - keep it so the add-board-modal can restore the form state
+    setIsAddBoardModalOpen(true);
+  }, []);
 
   return (
     <Sidebar
@@ -400,7 +589,7 @@ export function AppSidebar() {
         {isClient && (
         <SidebarGroup>
           <SidebarGroupLabel>
-            <div className="flex items-center justify-between w-full cursor-pointer pr-1.5">
+            <div className="flex items-center justify-between w-full cursor-pointer">
               <div
                 className="flex items-center text-[#75777C] gap-1.5"
                 onClick={() => setBoardsOpen((o) => !o)}
@@ -408,7 +597,7 @@ export function AppSidebar() {
                 {boardsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 <span className="text-[10px] font-semibold tracking-wide">BOARDS</span>
               </div>
-              <button onClick={() => alert("Add board")} className="p-1 hover:bg-gray-100 rounded">
+              <button onClick={() => setIsAddBoardModalOpen(true)} className="hover:bg-gray-100 rounded">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -416,7 +605,7 @@ export function AppSidebar() {
 
           {boardsOpen && (
             <div className="mt-1">
-              <RenderNavItems items={boardNav} isBoard />
+              <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
             </div>
           )}
         </SidebarGroup>
@@ -426,7 +615,7 @@ export function AppSidebar() {
         {isClient && (
         <SidebarGroup>
           <SidebarGroupLabel>
-            <div className="flex items-center justify-between w-full cursor-pointer pr-1.5">
+            <div className="flex items-center justify-between w-full cursor-pointer">
               <div
                 className="flex items-center text-[#75777C] gap-1.5"
                 onClick={() => setSocialOpen((o) => !o)}
@@ -434,7 +623,7 @@ export function AppSidebar() {
                 {socialOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 <span className="text-[10px] font-semibold tracking-wide">SOCIALS</span>
               </div>
-              <button onClick={() => alert("Add social")} className="p-1 hover:bg-gray-100 rounded">
+              <button onClick={() => alert("Add social")} className="hover:bg-gray-100 rounded">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -450,6 +639,36 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>{/* Optional footer items */}</SidebarFooter>
+
+      <AddBoardModal 
+        isOpen={isAddBoardModalOpen} 
+        onClose={() => setIsAddBoardModalOpen(false)}
+        onBoardDataReady={handleBoardDataReady}
+        onUseTemplate={handleUseTemplate}
+        pendingBoardData={pendingBoardData}
+      />
+      <ColorAndIconDialog
+        isOpen={!!colorIconTarget}
+        onClose={() => setColorIconTarget(null)}
+        icon={colorIconTarget?.image}
+        color={colorIconTarget?.color}
+        onSave={handleUpdateBoardColorAndIcon}
+      />
+
+      <RenameBoardDialog
+        isOpen={!!renameTarget}
+        onClose={() => setRenameTarget(null)}
+        currentName={renameTarget?.label || ''}
+        onRename={handleRenameBoard}
+      />
+
+      <BoardRulesModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
+        onBack={handleRulesBack}
+        onSave={handleRulesSave}
+        initialRules={pendingBoardData?.rules}
+      />
     </Sidebar>
   );
 }

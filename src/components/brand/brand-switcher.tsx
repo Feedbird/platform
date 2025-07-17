@@ -18,10 +18,14 @@ import { useState, useEffect } from 'react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { useLoading } from '@/lib/providers/loading-provider'
 import { startTransition } from 'react'
+import React from 'react'
 
 export default function BrandSwitcher() {
   const [isClient, setIsClient] = useState(false);
-  const ws       = useFeedbirdStore(s => s.getActiveWorkspace())
+  const workspaces = useFeedbirdStore(s => s.workspaces)
+  const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId)
+  const ws = React.useMemo(() => workspaces.find(w => w.id === activeWorkspaceId), [workspaces, activeWorkspaceId])
+
   const activeId = useFeedbirdStore(s => s.activeBrandId)
   const setBrand = useFeedbirdStore(s => s.setActiveBrand)
   const { show, hide } = useLoading()

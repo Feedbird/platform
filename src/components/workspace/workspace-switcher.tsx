@@ -60,6 +60,17 @@ export default function WorkspaceSwitcher() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [search,     setSearch]     = useState('')
 
+  // Initialize default workspace if none exists
+  React.useEffect(() => {
+    console.log('Workspace Init:', { isMounted, workspacesCount: workspaces.length, activeId });
+    if (isMounted && workspaces.length === 0) {
+      console.log('Creating default workspace...');
+      const wsId = addWorkspace("My Workspace");
+      console.log('Workspace created:', wsId);
+      setActive(wsId);
+    }
+  }, [isMounted, workspaces.length, addWorkspace, setActive]);
+
   const filtered = workspaces.filter(ws =>
     ws.name.toLowerCase().includes(search.toLowerCase())
   )

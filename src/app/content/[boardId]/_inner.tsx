@@ -31,6 +31,7 @@ export function BoardInner() {
   // 2. Ensure the correct board is active in the global store so that nav etc. update.
   const setActiveBoard = useFeedbirdStore((s) => s.setActiveBoard);
   useEffect(() => {
+    console.log('BoardInner: Setting active board to', boardId);
     if (boardId) setActiveBoard(boardId);
   }, [setActiveBoard, boardId]);
 

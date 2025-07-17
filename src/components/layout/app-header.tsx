@@ -118,21 +118,15 @@ function HeaderInner() {
                 text-black
               "
             >
-              {
-                (() => {
-                  const boardImg = activeBoard?.selectedImage;
-                  if (!boardImg) return null;
-                  return (
-                    <Image
-                      src={boardImg}
-                      alt={activeBoard?.label || 'Board'}
-                      width={24}
-                      height={24}
-                      className="shrink-0"
-                    />
-                  );
-                })()
-              }
+              {activeBoard?.image && (
+                <Image
+                  src={activeBoard.image}
+                  alt={activeBoard.label || 'Board'}
+                  width={24}
+                  height={24}
+                  className="shrink-0"
+                />
+              )}
               <span className="font-semibold text-lg tracking-[-0.6px]">{activeBoard?.label ?? 'Select board'}</span>
               <ChevronDown className="size-4 opacity-60" />
             </button>

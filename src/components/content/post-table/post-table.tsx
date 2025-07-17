@@ -401,6 +401,14 @@ export function PostTable({
   const updatePost = useFeedbirdStore((s) => s.updatePost);
   const getPageCounts = useFeedbirdStore((s) => s.getPageCounts);
   
+  // Get current board and its rules
+  const activeBoardId = useFeedbirdStore(s => s.activeBoardId);
+  const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
+  const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
+  const currentBoard = React.useMemo(() => activeWorkspace?.boards.find(b => b.id === activeBoardId), [activeWorkspace, activeBoardId]);
+  const boardRules = currentBoard?.rules;
+  
+  
   /* -----------------------------------------------------------
    *  Determine default content format based on current route
    * -----------------------------------------------------------*/
@@ -530,6 +538,24 @@ export function PostTable({
   });
 
   const [rowHeight, setRowHeight] = React.useState<number>(60);
+
+  // Update table state when board rules change
+  React.useEffect(() => {
+    if (boardRules) {
+      // Always apply board rules when they become available
+      if (boardRules.sortBy) {
+        setSorting([{ id: boardRules.sortBy, desc: false }]);
+      }
+      
+      if (boardRules.groupBy) {
+        setGrouping([boardRules.groupBy]);
+      }
+      
+      if (boardRules.rowHeight) {
+        setRowHeight(boardRules.rowHeight);
+      }
+    }
+  }, [boardRules]); // Remove other dependencies to ensure it runs when boardRules changes
 
   // ─────────────────────────────────────────────────────────────
   //  Instant sticky shadow via CSS class toggling (no React re-render)
@@ -2393,37 +2419,43 @@ export function PostTable({
         {/* Top Bar */}
         <div className="flex flex-wrap items-center justify-between py-[10px] border-b border-border-primary">
           <div className="flex gap-[6px] relative pl-[14px]">
-            <FilterPopover
-              open={filterOpen}
-              onOpenChange={setFilterOpen}
-              columns={filterableColumns as ColumnMeta[]}
-              rootGroup={filterTree}
-              setRootGroup={setFilterTree}
-              hasFilters={hasActiveFilters}
-            />
-            <GroupMenu
-              grouping={grouping as string[]}
-              setGrouping={setGrouping}
-            />
-            <SortMenu
-              sorting={sorting}
-              setSorting={setSorting}
-              columnNames={columnNames}
-              columns={table.getAllLeafColumns().map((col) => ({
-                id: col.id,
-                getCanSort: col.getCanSort.bind(col),
-              }))}
-            />
-            <RowHeightMenu rowHeight={rowHeight} setRowHeight={setRowHeight} />
-            <ColumnVisibilityMenu
-              table={table}
-              hiddenCount={
-                Object.values(columnVisibility).filter((v) => v === false).length
-              }
-              colVisOpen={colVisOpen}
-              setColVisOpen={setColVisOpen}
-              columnNames={columnNames}
-            />
+            {/* Toolbar */}
+            <div className="flex items-center justify-between gap-2 p-2 bg-white border-b border-[#D3D3D3]">
+              <div className="flex items-center gap-2">
+                
+                <FilterPopover
+                  open={filterOpen}
+                  onOpenChange={setFilterOpen}
+                  columns={filterableColumns as ColumnMeta[]}
+                  rootGroup={filterTree}
+                  setRootGroup={setFilterTree}
+                  hasFilters={hasActiveFilters}
+                />
+              </div>
+              <GroupMenu
+                grouping={grouping as string[]}
+                setGrouping={setGrouping}
+              />
+              <SortMenu
+                sorting={sorting}
+                setSorting={setSorting}
+                columnNames={columnNames}
+                columns={table.getAllLeafColumns().map((col) => ({
+                  id: col.id,
+                  getCanSort: col.getCanSort.bind(col),
+                }))}
+              />
+              <RowHeightMenu rowHeight={rowHeight} setRowHeight={setRowHeight} />
+              <ColumnVisibilityMenu
+                table={table}
+                hiddenCount={
+                  Object.values(columnVisibility).filter((v) => v === false).length
+                }
+                colVisOpen={colVisOpen}
+                setColVisOpen={setColVisOpen}
+                columnNames={columnNames}
+              />
+            </div>
           </div>
             
           <div className="pr-[10px]">

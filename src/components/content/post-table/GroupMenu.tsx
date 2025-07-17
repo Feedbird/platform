@@ -55,7 +55,14 @@ export function GroupMenu({
           )}
         >
           <Image src="/images/icons/table-toolbar-group.svg" alt="Group" width={12} height={12} />
-          <span className="text-sm font-medium text-black leading-[16px]">{grouping.length > 0 ? `Grouped by ${grouping.length} fields` : "Group"}</span>
+          <span className="text-sm font-medium text-black leading-[16px]">
+            {grouping.length === 1 
+              ? `Grouped by ${GROUP_OPTIONS.find(opt => opt.id === grouping[0])?.label || grouping[0]}`
+              : grouping.length > 1 
+                ? `Grouped by ${grouping.length} fields` 
+                : "Group"
+            }
+          </span>
           {/* {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} */}
         </div>
       </DropdownMenuTrigger>
