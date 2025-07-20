@@ -51,6 +51,8 @@ export function ApproveCell({
     });
   };
 
+  const [isHovering, setIsHovering] = React.useState(false);
+
   return (
     <div
       className={cn(
@@ -58,6 +60,8 @@ export function ApproveCell({
         canPerformApprovalAction ? "cursor-pointer" : "cursor-not-allowed opacity-50"
       )}
       onClick={handleClick}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
       <div className="flex items-center flex-nowrap min-w-0">
         <div className="flex-shrink-0">
@@ -72,7 +76,7 @@ export function ApproveCell({
                 border: "1px solid rgba(28, 29, 31, 0.05)",
                 background: "#DDF9E4",
               }}
-              className="text-xs font-semibold leading-[18px] relative group"
+              className="text-xs font-semibold leading-[18px] relative"
             >
               <Image src="/images/status/approved.svg" alt="approved" width={14} height={14} />
               <span>Approved</span>
@@ -80,7 +84,10 @@ export function ApproveCell({
               {/* X icon that appears on hover when approved */}
               {isApproved && (
                 <div 
-                  className="absolute -top-1 -right-1 w-4 h-4 bg-black rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                  className={cn(
+                    "absolute -top-1 -right-1 w-4 h-4 bg-black rounded-full flex items-center justify-center transition-opacity duration-200 cursor-pointer",
+                    isHovering ? "opacity-100" : "opacity-0"
+                  )}
                   onClick={handleRemoveApproval}
                   title="Remove approval"
                 >
@@ -113,10 +120,36 @@ export function ApproveCell({
                 border: "1px solid rgba(28, 29, 31, 0.05)",
                 background: "#FCE4E5",
               }}
-              className="text-xs font-semibold leading-[18px]"
+              className="text-xs font-semibold leading-[18px] relative"
             >
               <Image src="/images/status/needs-revision.svg" alt="needs revision" width={14} height={14} />
               <span>Revision</span>
+              
+              {/* X icon that appears on hover when in revision */}
+              <div 
+                className={cn(
+                  "absolute -top-1 -right-1 w-4 h-4 bg-black rounded-full flex items-center justify-center transition-opacity duration-200 cursor-pointer",
+                  isHovering ? "opacity-100" : "opacity-0"
+                )}
+                onClick={handleRemoveApproval}
+                title="Remove revision status"
+              >
+                <svg 
+                  width="8" 
+                  height="8" 
+                  viewBox="0 0 8 8" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path 
+                    d="M1 1L7 7M7 1L1 7" 
+                    stroke="white" 
+                    strokeWidth="1.2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
             </div>
           ) : (
             <div
