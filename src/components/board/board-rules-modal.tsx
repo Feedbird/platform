@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ImageIcon, X } from "lucide-react";
+import { ImageIcon, X, Rows4, Rows3, Rows2, RectangleHorizontal, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, FolderOpen, Columns2, ChevronDown, ChevronUp, ListPlus, Film, EditIcon } from "lucide-react";
 
@@ -81,55 +81,32 @@ const SORT_OPTIONS = [
 ] as const;
 
 const possibleHeights = [
-    {
-      value: 40,
-      label: "Short",
-      icon: (
-        <Image
-          src="/images/row-height/short.svg"
-          alt="Short row height"
-          width={16}
-          height={16}
-        />
-      ),
-    },
-    {
-      value: 48,
-      label: "Medium",
-      icon: (
-        <Image
-          src="/images/row-height/medium.svg"
-          alt="Medium row height"
-          width={16}
-          height={16}
-        />
-      ),
-    },
-    {
-      value: 72,
-      label: "Tall",
-      icon: (
-        <Image
-          src="/images/row-height/tall.svg"
-          alt="Tall row height"
-          width={16}
-          height={16}
-        />
-      ),
-    },
-    {
-      value: 120,
-      label: "Extra Tall",
-      icon: (
-        <Image
-          src="/images/row-height/extra-tall.svg"
-          alt="Extra tall row height"
-          width={16}
-          height={16}
-        />
-      ),
-    },
-  ];
+  {
+    value: 40,
+    label: "Small",
+    icon: <Rows4 fontSize="small"/>,
+  },
+  {
+    value: 60,
+    label: "Medium",
+    icon: <Rows3 fontSize="small"/>,
+  },
+  {
+    value: 90,
+    label: "Large",
+    icon: <Rows2 fontSize="small"/>,
+  },
+  {
+    value: 130,
+    label: "X-Large",
+    icon: <RectangleHorizontal fontSize="small"/>,
+  },
+  {
+    value: 160,
+    label: "XX-Large",
+    icon: <Maximize2 fontSize="small"/>,
+  },
+];
 
 export interface BoardRules {
   autoSchedule: boolean;

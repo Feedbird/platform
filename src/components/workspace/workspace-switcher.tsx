@@ -92,6 +92,15 @@ export default function WorkspaceSwitcher() {
     return null
   }
 
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map(word => word[0]!)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+
   /* -------- render -------- */
   return (
     <>
@@ -114,7 +123,13 @@ export default function WorkspaceSwitcher() {
                 {active?.logo
                   ? <Image src={active.logo} alt={active.name} width={24} height={24}
                            className="rounded-md object-contain"/>
-                  : <div className="size-8 rounded-md bg-muted" />
+                  : (
+                      <div className="size-8 rounded-md bg-muted flex items-center justify-center">
+                        <span className="text-xs font-semibold uppercase text-[#5C5E63]">
+                          {active?.name ? getInitials(active.name) : ""}
+                        </span>
+                      </div>
+                    )
                 }
                 <span className="truncate font-semibold text-sm text-black flex-1">
                   {active?.name ?? 'Select workspace'}
@@ -177,8 +192,8 @@ export default function WorkspaceSwitcher() {
                   Workspaces ({filtered.length})
                 </DropdownMenuLabel>
 
-                {/* list */}
-                <div className="max-h-60 overflow-y-auto">
+                {/* show max 3 items then scroll */}
+                <div className="max-h-[120px] overflow-y-auto">
                   {filtered.map(ws => (
                     <DropdownMenuItem
                       key={ws.id}
@@ -194,8 +209,14 @@ export default function WorkspaceSwitcher() {
                         {ws.logo
                           ? <Image src={ws.logo} alt={ws.name} width={24} height={24}
                                   className="rounded-md object-contain flex-shrink-0"/>
-                          : <div className="size-6 rounded-md bg-muted flex-shrink-0" />
-                        }
+                          : (
+                              <div className="size-6 rounded-md bg-muted flex-shrink-0 flex items-center justify-center">
+                                <span className="text-[10px] font-semibold uppercase text-[#5C5E63]">
+                                  {getInitials(ws.name)}
+                                </span>
+                              </div>
+                            )
+                         }
                         <span className="truncate">{ws.name}</span>
                       </div>
 

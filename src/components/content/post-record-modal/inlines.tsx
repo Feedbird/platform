@@ -337,6 +337,16 @@ export function ApproveCell({ post }: { post: Post }) {
   const isInRevision = post.status === "Needs Revisions";
   const isScheduledOrPosted = post.status === "Scheduled" || post.status === "Published";
 
+  // Define which statuses allow approval/revision actions
+  const allowedStatusesForApproval = [
+    "Pending Approval",
+    "Revised", 
+    "Needs Revisions",
+    "Approved"
+  ];
+  
+  const canPerformApprovalAction = allowedStatusesForApproval.includes(post.status);
+
   // Determine the appropriate checkmark icon based on status
   let checkmarkSrc = "/checkmark/checkmark_draft.svg"; // Default to draft
   if (isApproved || isScheduledOrPosted) {
@@ -345,16 +355,33 @@ export function ApproveCell({ post }: { post: Post }) {
     checkmarkSrc = "/checkmark/checkmark_revision.svg";
   }
 
+  const handleClick = () => {
+    if (!canPerformApprovalAction) {
+      return; // Do nothing if not allowed
+    }
+
+    if (isApproved) {
+      // If currently approved, change to "Needs Revisions"
+      updatePost(post.id, {
+        status: "Needs Revisions",
+      });
+    } else {
+      // For any other allowed status, approve it
+      updatePost(post.id, {
+        status: "Approved",
+      });
+    }
+  };
+
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="p-0 ml-[-8px] cursor-pointer"
-      onClick={() => {
-        updatePost(post.id, {
-          status: isApproved ? "Draft" : "Approved",
-        });
-      }}
+      className={cn(
+        "p-0 ml-[-8px]",
+        canPerformApprovalAction ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+      )}
+      onClick={handleClick}
     >
       {
         !isInRevision ?

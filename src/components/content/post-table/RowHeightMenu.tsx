@@ -13,11 +13,13 @@ import {
 import { Button } from "@/components/ui/button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { cn } from "@/lib/utils";
+import { Rows4, Rows3, Rows2, RectangleHorizontal, Maximize2 } from "lucide-react";
 
 interface RowHeightMenuProps {
   rowHeight: number;
   setRowHeight: React.Dispatch<React.SetStateAction<number>>;
 }
+
 
 export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
   // Control whether the dropdown is open or closed
@@ -27,51 +29,28 @@ export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
   const possibleHeights = [
     {
       value: 40,
-      label: "Short",
-      icon: (
-        <Image
-          src="/images/row-height/short.svg"
-          alt="Short row height"
-          width={12}
-          height={12}
-        />
-      ),
+      label: "Small",
+      icon: <Rows4 fontSize="small" width={12} height={12} />,
     },
     {
-      value: 48,
+      value: 60,
       label: "Medium",
-      icon: (
-        <Image
-          src="/images/row-height/medium.svg"
-          alt="Medium row height"
-          width={12}
-          height={12}
-        />
-      ),
+      icon: <Rows3 fontSize="small" width={12} height={12} />,
     },
     {
-      value: 72,
-      label: "Tall",
-      icon: (
-        <Image
-          src="/images/row-height/tall.svg"
-          alt="Tall row height"
-          width={12}
-          height={12}
-        />
-      ),
+      value: 90,
+      label: "Large",
+      icon: <Rows2 fontSize="small" width={12} height={12} />,
     },
     {
-      value: 120,
-      label: "Extra Tall",
-      icon: (
-        <Image
-          src="/images/row-height/extra-tall.svg"
-          alt="Extra tall row height"
-          width={12}
-          height={12}
-        />
-      ),
+      value: 130,
+      label: "X-Large",
+      icon: <RectangleHorizontal fontSize="small" width={12} height={12} />,
+    },
+    {
+      value: 160,
+      label: "XX-Large",
+      icon: <Maximize2 fontSize="small" width={12} height={12} />,
     },
   ];
 

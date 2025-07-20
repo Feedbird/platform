@@ -308,7 +308,7 @@ const defaultBoards: Board[] = [
       approvalDeadline: false,
       groupBy: "month",
       sortBy: "status",
-      rowHeight: 120,
+      rowHeight: 130,
     }
   },
   { 
@@ -323,7 +323,7 @@ const defaultBoards: Board[] = [
       approvalDeadline: false,
       groupBy: "month",
       sortBy: "status",
-      rowHeight: 48,
+      rowHeight: 60,
     }
   },
   { 
@@ -338,7 +338,7 @@ const defaultBoards: Board[] = [
       approvalDeadline: false,
       groupBy: "month",
       sortBy: "status",
-      rowHeight: 48,
+      rowHeight: 60,
     }
   },
 ];
@@ -402,7 +402,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "status",
-              rowHeight: 48,
+              rowHeight: 60,
               firstMonth: 3,
               ongoingMonth: 2,
               approvalDays: 7,
@@ -435,7 +435,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "publishDate",
-              rowHeight: 72,
+              rowHeight: 90,
               firstMonth: 5,
               ongoingMonth: 3,
               approvalDays: 14,
@@ -453,7 +453,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: false,
               groupBy: "status",
               sortBy: "publishDate",
-              rowHeight: 48,
+              rowHeight: 60,
             }
           },
           { 
@@ -468,7 +468,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "status",
-              rowHeight: 48,
+              rowHeight: 60,
               firstMonth: 2,
               ongoingMonth: 1,
               approvalDays: 30,
@@ -486,7 +486,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "publishDate",
-              rowHeight: 72,
+              rowHeight: 90,
               firstMonth: 6,
               ongoingMonth: 3,
               approvalDays: 60,
@@ -504,7 +504,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "publishDate",
-              rowHeight: 120,
+              rowHeight: 130,
               firstMonth: 5,
               ongoingMonth: 2,
               approvalDays: 14,
@@ -522,7 +522,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "status",
               sortBy: "updatedAt",
-              rowHeight: 48,
+              rowHeight: 60,
               firstMonth: 3,
               ongoingMonth: 1,
               approvalDays: 30,
@@ -540,7 +540,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "platforms",
               sortBy: "status",
-              rowHeight: 48,
+              rowHeight: 60,
               firstMonth: 4,
               ongoingMonth: 2,
               approvalDays: 7,
@@ -1224,8 +1224,40 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               })),
             })),
           })),
-        approvePost: (id) => get().updatePost(id, { status: "Approved" }),
-        requestChanges: (id) => get().updatePost(id, { status: "Needs Revisions" }),
+        approvePost: (id) => {
+          const post = get().getPost(id);
+          if (!post) return;
+          
+          // Define which statuses allow approval actions
+          const allowedStatusesForApproval = [
+            "Pending Approval",
+            "Revised", 
+            "Needs Revisions",
+            "Approved"
+          ];
+          
+          // Only approve if the status allows it
+          if (allowedStatusesForApproval.includes(post.status)) {
+            get().updatePost(id, { status: "Approved" });
+          }
+        },
+        requestChanges: (id) => {
+          const post = get().getPost(id);
+          if (!post) return;
+          
+          // Define which statuses allow revision actions
+          const allowedStatusesForRevision = [
+            "Pending Approval",
+            "Revised", 
+            "Needs Revisions",
+            "Approved"
+          ];
+          
+          // Only request changes if the status allows it
+          if (allowedStatusesForRevision.includes(post.status)) {
+            get().updatePost(id, { status: "Needs Revisions" });
+          }
+        },
 
         addPost: (boardId?: string) => {
           const st = get();

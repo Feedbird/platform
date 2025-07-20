@@ -61,11 +61,33 @@ export function PostRecordModal({ postId, open, onClose }:{
 
   // actions
   const approve = () => {
-    updatePost(post.id, { status: "Approved" });
-    setSlots(getSuggestedSlots(post, posts));
+    // Define which statuses allow approval actions
+    const allowedStatusesForApproval = [
+      "Pending Approval",
+      "Revised", 
+      "Needs Revisions",
+      "Approved"
+    ];
+    
+    // Only approve if the status allows it
+    if (allowedStatusesForApproval.includes(post.status)) {
+      updatePost(post.id, { status: "Approved" });
+      setSlots(getSuggestedSlots(post, posts));
+    }
   };
   const requestChange = () => {
-    updatePost(post.id, { status: "Needs Revisions" });
+    // Define which statuses allow revision actions
+    const allowedStatusesForRevision = [
+      "Pending Approval",
+      "Revised", 
+      "Needs Revisions",
+      "Approved"
+    ];
+    
+    // Only request changes if the status allows it
+    if (allowedStatusesForRevision.includes(post.status)) {
+      updatePost(post.id, { status: "Needs Revisions" });
+    }
   };
 
   const dateDisplay = post.publishDate

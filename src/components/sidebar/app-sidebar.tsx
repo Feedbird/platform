@@ -40,6 +40,7 @@ import { BoardRulesModal } from "@/components/board/board-rules-modal";
 import { ColorAndIconDialog } from "@/components/board/color-and-icon-dialog";
 import { RenameBoardDialog } from "@/components/board/rename-board-dialog";
 import { NavLink as NavLinkType, BoardRules } from "@/lib/store/use-feedbird-store";
+import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 
 import {
   useFeedbirdStore,
@@ -430,8 +431,10 @@ export function AppSidebar() {
   const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
   const [colorIconTarget, setColorIconTarget] = React.useState<NavLinkType | null>(null);
   const [renameTarget, setRenameTarget] = React.useState<NavLinkType | null>(null);
+  const [isManageSocialsOpen, setIsManageSocialsOpen] = React.useState(false);
 
   const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
+  const activeBrand = useFeedbirdStore((s) => s.getActiveBrand());
 
   React.useEffect(() => {
     setIsClient(true);
@@ -623,7 +626,7 @@ export function AppSidebar() {
                 {socialOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 <span className="text-[10px] font-semibold tracking-wide">SOCIALS</span>
               </div>
-              <button onClick={() => alert("Add social")} className="hover:bg-gray-100 rounded">
+              <button onClick={() => setIsManageSocialsOpen(true)} className="hover:bg-gray-100 rounded">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -669,6 +672,14 @@ export function AppSidebar() {
         onSave={handleRulesSave}
         initialRules={pendingBoardData?.rules}
       />
+
+      {activeBrand && (
+        <ManageSocialsDialog
+          brandId={activeBrand.id}
+          open={isManageSocialsOpen}
+          onOpenChange={setIsManageSocialsOpen}
+        />
+      )}
     </Sidebar>
   );
 }

@@ -199,7 +199,7 @@ function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]):
 
   /* now build blocks with the chosen kind */
   const blocks = Array.from(
-    { length: faker.number.int({ min: 0, max: 0 }) },
+    { length: faker.number.int({ min: 1, max: 3 }) },
     () => makeBlock(fileKind),
   );
 
@@ -215,7 +215,8 @@ function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]):
     },
     status: faker.helpers.arrayElement(STATUSES),
     format,
-    publishDate: null as unknown as Date,
+    // publishDate: null as unknown as Date,
+    publishDate: faker.date.recent({ days: 3 }),
     updatedAt: null as unknown as Date,
     platforms: faker.helpers.arrayElements(brandPlatforms, { min: 1, max: 3 }),
     pages: [],

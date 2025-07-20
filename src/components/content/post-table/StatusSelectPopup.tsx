@@ -41,7 +41,7 @@ export function StatusSelectPopup({
 
       {/* Label */}
       <div className="px-2 pt-1 pb-1 text-sm font-semibold text-black">
-        Select Status
+        Status
       </div>
 
       {/* Status options */}

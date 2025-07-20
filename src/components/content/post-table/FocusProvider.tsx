@@ -44,6 +44,9 @@ export function CellFocusProvider({ children }: { children: React.ReactNode }) {
  * <FocusCell> 
  *   1) first click => setsFocus => show ring
  *   2) second click => if already focused => sets inEdit=>true
+ *   
+ *   If singleClickEdit is true:
+ *   1) first click => setsFocus AND sets inEdit=true => show ring + open popup
  */
 export function FocusCell({
   rowId,
@@ -51,6 +54,7 @@ export function FocusCell({
   children,
   className,
   style,
+  singleClickEdit = false,
 }: {
   rowId: string;
   colId: string;
@@ -62,6 +66,7 @@ export function FocusCell({
   }) => React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  singleClickEdit?: boolean;
 }) {
   const { focused, setFocused } = React.useContext(CellFocusContext);
   
@@ -72,10 +77,15 @@ export function FocusCell({
     e.stopPropagation();
     if(!isFocused) {
       // first click => focus
-      setFocused({ rowId, colId, inEdit: false });
+      if (singleClickEdit) {
+        // For cells that should open popup on first click, set both focus and edit
+        setFocused({ rowId, colId, inEdit: true });
+      } else {
+        setFocused({ rowId, colId, inEdit: false });
+      }
     } else {
-      // second click => set inEdit = true
-      if(!isEditing) {
+      // second click => set inEdit = true (only for non-singleClickEdit cells)
+      if(!isEditing && !singleClickEdit) {
         setFocused({ rowId, colId, inEdit: true });
       }
     }

@@ -224,6 +224,7 @@ const MemoizedRow = React.memo(
               rowId={row.id}
               colId={cell.id}
               key={cell.id}
+              singleClickEdit={cell.column.id === "platforms" || cell.column.id === "format"}
               className={cn(
                 "text-left",
                 cell.column.id === "caption" ? "align-top" : "align-middle",
@@ -1339,23 +1340,40 @@ export function PostTable({
         enableSorting: false,
         cell: ({ row }) => {
           const post = row.original;
+          
+          // Define which statuses allow revision actions
+          const allowedStatusesForRevision = [
+            "Pending Approval",
+            "Revised", 
+            "Needs Revisions",
+            "Approved"
+          ];
+          
+          const canPerformRevisionAction = allowedStatusesForRevision.includes(post.status);
+          
           return (
-            <div className="cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]">
+            <div className={cn(
+              "inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
+              canPerformRevisionAction ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+            )}>
               <div className="flex items-center flex-nowrap min-w-0">
                 <div className="flex-shrink-0">
                   <div
-                    className="flex items-center rounded-[4px] px-[8px] py-[6px] gap-[4px] cursor-pointer"
+                    className="flex items-center rounded-[4px] px-[8px] py-[6px] gap-[4px]"
                     style={{
                       boxShadow: "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)"
                     }}
                     onClick={() => {
-                      setTableData((prev) =>
-                        prev.map((p) =>
-                          p.id === post.id ? { ...p, status: "Needs Revisions" } : p
-                        )
-                      );
-                      updatePost(post.id, { status: "Needs Revisions" });
-                      handleEditPost(post);
+                      // Only request changes if the status allows it
+                      if (canPerformRevisionAction) {
+                        setTableData((prev) =>
+                          prev.map((p) =>
+                            p.id === post.id ? { ...p, status: "Needs Revisions" } : p
+                          )
+                        );
+                        updatePost(post.id, { status: "Needs Revisions" });
+                        handleEditPost(post);
+                      }
                     }}
                   >
                     <Image src={`/images/columns/request.svg`} alt="revision" width={14} height={14} />
@@ -1913,6 +1931,7 @@ export function PostTable({
                           key={cell.id}
                           rowId={row.id}
                           colId={cell.id}
+                          singleClickEdit={cell.column.id === "platforms" || cell.column.id === "format"}
                           className={cn(
                             "text-left",
                             isSticky(cell.column.id) && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
@@ -2305,15 +2324,27 @@ export function PostTable({
         return;
       }
 
-      const allRows = table.getRowModel().rows;
-
       // Shift — select range between anchor and current
       if (e.shiftKey && anchorRowIdRef.current) {
         // Prevent browser text-selection artefacts
         e.preventDefault();
         window.getSelection?.()?.removeAllRanges();
-        const anchorIndex = allRows.findIndex((r) => r.id === anchorRowIdRef.current);
-        const currentIndex = allRows.findIndex((r) => r.id === row.id);
+        
+        let anchorIndex = -1;
+        let currentIndex = -1;
+        let allRows: Row<Post>[] = [];
+
+        if (grouping.length > 0) {
+          // For grouped tables, get all leaf rows from all groups
+          const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+          allRows = groups.flatMap(group => group.leafRows);
+        } else {
+          // For ungrouped tables, use the regular row model
+          allRows = table.getRowModel().rows;
+        }
+
+        anchorIndex = allRows.findIndex((r) => r.id === anchorRowIdRef.current);
+        currentIndex = allRows.findIndex((r) => r.id === row.id);
 
         if (anchorIndex === -1 || currentIndex === -1) {
           anchorRowIdRef.current = row.id;
@@ -2350,7 +2381,7 @@ export function PostTable({
         anchorRowIdRef.current = row.id;
       }
     },
-    [table]
+    [table, grouping]
   );
 
   const handleCheckboxClick = (e: React.MouseEvent, row: Row<Post>) => {
@@ -2362,13 +2393,23 @@ export function PostTable({
     e.preventDefault();
     window.getSelection()?.removeAllRanges();
 
-    const allRows = table.getRowModel().rows;
-    const isChecking = !row.getIsSelected();
+    let allRows: Row<Post>[] = [];
+    let anchorIndex = -1;
+    let currentIndex = -1;
 
-    const anchorIndex = allRows.findIndex(
+    if (grouping.length > 0) {
+      // For grouped tables, get all leaf rows from all groups
+      const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+      allRows = groups.flatMap(group => group.leafRows);
+    } else {
+      // For ungrouped tables, use the regular row model
+      allRows = table.getRowModel().rows;
+    }
+
+    anchorIndex = allRows.findIndex(
       (r) => r.id === anchorRowIdRef.current
     );
-    const currentIndex = row.index;
+    currentIndex = allRows.findIndex((r) => r.id === row.id);
 
     if (anchorIndex === -1) {
       return;
@@ -2378,6 +2419,7 @@ export function PostTable({
     const end = Math.max(anchorIndex, currentIndex);
 
     const newSelection = { ...table.getState().rowSelection };
+    const isChecking = !row.getIsSelected();
 
     for (let i = start; i <= end; i++) {
       const rowInRange = allRows[i];
@@ -2624,8 +2666,19 @@ export function PostTable({
             size="sm"
             variant="ghost"
             onClick={() => {
+              // Define which statuses allow approval actions
+              const allowedStatusesForApproval = [
+                "Pending Approval",
+                "Revised", 
+                "Needs Revisions",
+                "Approved"
+              ];
+              
               selectedPosts.forEach(post => {
-                updatePost(post.id, { status: "Approved" });
+                // Only approve if the status allows it
+                if (allowedStatusesForApproval.includes(post.status)) {
+                  updatePost(post.id, { status: "Approved" });
+                }
               });
               table.resetRowSelection();
             }}

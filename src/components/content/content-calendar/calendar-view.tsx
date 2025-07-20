@@ -16,19 +16,13 @@ import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
-  CalendarIcon,
   Trash2,
   Copy,
   Send,
 } from "lucide-react";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// Toggle import for view mode toggle group
+import { Toggle } from "@/components/ui/toggle";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
@@ -44,7 +38,7 @@ import {
   ChannelIcons,
   statusConfig,
 } from "@/components/content/shared/content-post-ui";
-import { cn } from "@/lib/utils";
+import { cn }                 from '@/lib/utils'
 
 /* ------------------------------------------------------------------
    CSS overrides for FullCalendar
@@ -211,7 +205,8 @@ export default function CalendarView({
   const [viewId, setViewId] = useState("dayGridMonth");
   const [showWeekends, setShowWeekends] = useState(true);
 
-  const [titleHTML, setTitleHTML] = useState("");
+  // const [titleHTML, setTitleHTML] = useState(""); // Removed unused title state
+  const [periodLabel, setPeriodLabel] = useState<string>("");
 
   // Local "post record" dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -224,13 +219,17 @@ export default function CalendarView({
 
   /** On date range change => parse e.g. "May 2025" => bold "May." */
   function handleDatesSet(arg: any) {
-    const splitted = arg.view.title.split(" ");
-    if (splitted.length === 2) {
-      const [month, year] = splitted;
-      setTitleHTML(`<strong>${month}</strong> ${year}`);
-    } else {
-      setTitleHTML(arg.view.title);
-    }
+    // Previously updated titleHTML for bold month-year, now unused
+
+    // Compute period range label (e.g., "1 Jun - 30 Jun")
+    const startDate: Date = arg.view.activeStart || arg.start || new Date();
+    // activeEnd is exclusive – subtract 1 day
+    const endExclusive: Date = arg.view.activeEnd || arg.end || new Date();
+    const endDate = new Date(endExclusive.getTime() - 1);
+
+    const startFmt = format(startDate, "d MMM");
+    const endFmt = format(endDate, "d MMM");
+    setPeriodLabel(`${startFmt} - ${endFmt}`);
   }
   function handleDatesSetAndReset(arg: any) {
     handleDatesSet(arg);
@@ -438,57 +437,72 @@ export default function CalendarView({
     <div className="w-full flex justify-center relative h-full">
       <style>{calendarStyles}</style>
 
-      <div className="max-w-6xl my-6 rounded-lg bg-background text-foreground shadow-sm p-6 flex flex-col relative gap-6">
+      <div className="rounded-lg bg-background text-foreground shadow-sm flex flex-col relative">
         {/* Top toolbar */}
-        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-1">
-          {/* Left: bold month-year */}
-          <div
-            className="text-sm"
-            dangerouslySetInnerHTML={{ __html: titleHTML }}
-          />
-
-          {/* Right: controls */}
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-2.5">
+          {/* Left side controls */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+              onClick={() => goto("today")}
+            >
+              Today
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => goto("prev")}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
+            {/* Period label */}
+            <div className="text-sm font-medium whitespace-nowrap">
+              {periodLabel}
+            </div>
             <Button variant="ghost" size="icon" onClick={() => goto("next")}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => goto("today")}>
-              Today
-            </Button>
-            <Button variant="ghost" size="icon">
-              <CalendarIcon className="h-4 w-4" />
-            </Button>
+          </div>
 
-            {/* View selection */}
-            <Select value={viewId} onValueChange={handleChangeView}>
-              <SelectTrigger className="w-[130px] h-8 text-sm">
-                <SelectValue placeholder="View" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dayGridMonth">Month</SelectItem>
-                <SelectItem value="timeGridThreeDay">3 Day</SelectItem>
-                <SelectItem value="timeGridWeek">Week</SelectItem>
-                <SelectItem value="dayGridTwoWeeks">2 Week</SelectItem>
-                <SelectItem value="listMonth">List</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Show/hide weekends */}
-            <Select
-              value={showWeekends ? "show" : "hide"}
-              onValueChange={handleToggleWeekends}
+          {/* Right side view toggles */}
+          <div className="flex items-center gap-[4px] p-[2px] bg-[#F4F5F6] rounded-[6px] h-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleChangeView("timeGridWeek")}
+              className={cn(
+                'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
+                viewId === 'timeGridWeek'
+                  ? 'bg-white shadow'
+                  : ''
+              )}
             >
-              <SelectTrigger className="w-[140px] h-8 text-sm">
-                <SelectValue placeholder="Weekends?" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="show">Show Weekends</SelectItem>
-                <SelectItem value="hide">Hide Weekends</SelectItem>
-              </SelectContent>
-            </Select>
+              Week
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleChangeView("dayGridMonth")}
+              className={cn(
+                'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
+                viewId === 'dayGridMonth'
+                  ? 'bg-white shadow'
+                  : ''
+              )}
+            >
+              Month
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleChangeView("listMonth")}
+              className={cn(
+                'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
+                viewId === 'listMonth'
+                  ? 'bg-white shadow'
+                  : ''
+              )}
+            >
+              Compact
+            </Button>
           </div>
         </div>
 
