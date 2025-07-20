@@ -2462,7 +2462,7 @@ export function PostTable({
         <div className="flex flex-wrap items-center justify-between py-[10px] border-b border-border-primary">
           <div className="flex gap-[6px] relative pl-[14px]">
             {/* Toolbar */}
-            <div className="flex items-center justify-between gap-2 p-2 bg-white border-b border-[#D3D3D3]">
+            <div className="flex items-center justify-between gap-2 p-2 bg-white">
               <div className="flex items-center gap-2">
                 
                 <FilterPopover

@@ -263,26 +263,7 @@ export function PublishDateCell({
                       </div>
                     </div>
 
-                    {/* Change Workspace Timezone */}
-                    <div
-                      className="px-[10px] py-[8px] cursor-pointer hover:bg-gray-100 rounded"
-                      onClick={() => {
-                        setShowPostingPanel(true);
-                        setShowSelector(false);
-                      }}
-                    >
-                      <div className="flex items-center gap-[6px]">
-                        <Image
-                          src={"/images/publish/timezone.svg"}
-                          alt="Change workspace time zone"
-                          width={14}
-                          height={14}
-                        />
-                        <div className="text-sm font-medium text-black">Change workspace time zone</div>
-                      </div>
-                    </div>
-
-                    {/* Allowed Posting Time */}
+                    {/* Change workspace Time Zone & Allowed Posting Time */}
                     <div
                       className="px-[10px] py-[8px] cursor-pointer hover:bg-gray-100 rounded"
                       onClick={() => {
@@ -297,7 +278,7 @@ export function PublishDateCell({
                           width={14}
                           height={14}
                         />
-                        <div className="text-sm font-medium text-black">Allowed posting time</div>
+                        <div className="text-sm font-medium text-black">Time Zone & Posting Times</div>
                       </div>
                     </div>
                   </div>
