@@ -12,6 +12,13 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Toaster } from "@/components/ui/sonner"
 import "nprogress/nprogress.css";
 import { TopProgressBar } from "@/components/layout/top-progress-bar";
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  icons: {
+    icon: '/images/logo/logo.svg',
+  },
+}
 
 const inter = Inter({ subsets: ['latin'] })
 

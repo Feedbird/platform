@@ -40,6 +40,7 @@ import BrandSwitcher          from '@/components/brand/brand-switcher'
 import BrandSocialIcons       from '@/components/brand/brand-social-icons'
 import NotificationBell       from '@/components/notifications/notification-bell'
 import BrandKitDrawer         from '@/components/brand/brand-kit-drawer'
+import UploadProgressInline from "@/components/content/post-table/UploadProgressInline";
 
 import { useFeedbirdStore }   from '@/lib/store/use-feedbird-store'
 import Link                   from 'next/link'
@@ -98,7 +99,7 @@ function HeaderInner() {
 
   /* ------------------------------------------------------------ */
   return (
-    <header className="
+    <header className="relative
       h-[48px] flex justify-center border-b border-border-primary pl-[16px] pr-[10px] py-[9px] gap-4 bg-white
     ">
       {/* sidebar trigger */}
@@ -392,6 +393,9 @@ function HeaderInner() {
           Share
         </Button>
       </div>
+
+      {/* centered upload progress */}
+      <UploadProgressInline className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2" />
 
       <BrandKitDrawer open={drawer} onOpenChange={setDrawer} />
     </header>

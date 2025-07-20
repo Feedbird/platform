@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useMemo } from "react";
+// equality function not supported in our zustand version
 import { useFeedbirdStore, FileKind } from "@/lib/store/use-feedbird-store";
 import { toast } from "sonner";
+import { useUploadStore, UploadStatus } from "@/lib/store/upload-store";
 
 export type UploadItem = {
   id: string;
@@ -14,15 +16,16 @@ export type UploadItem = {
 };
 
 export function useUploader({ postId }: { postId: string }) {
-  const [uploads, setUploads] = useState<UploadItem[]>([]);
-  const uploadsRef = useRef(uploads);
-  uploadsRef.current = uploads;
+  const allUploads = useUploadStore((state) => state.uploads);
+  const uploads = useMemo(() => allUploads.filter((u) => u.postId === postId), [allUploads, postId]);
+  const uploadActions = useUploadStore.getState();
 
   const wid = useFeedbirdStore((s) => s.activeWorkspaceId);
   const bid = useFeedbirdStore((s) => s.activeBrandId);
   const addBlock = useFeedbirdStore((s) => s.addBlock);
   const addVersion = useFeedbirdStore((s) => s.addVersion);
   const updatePost = useFeedbirdStore((s) => s.updatePost);
+  // const uploadStore = useUploadStore.getState(); // no longer needed
 
   const startUploads = (files: File[]) => {
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -46,7 +49,16 @@ export function useUploader({ postId }: { postId: string }) {
       status: "uploading",
     }));
 
-    setUploads((u) => [...u, ...newUploads]);
+    newUploads.forEach((up) =>
+      uploadActions.addUpload({
+        id: up.id,
+        postId,
+        file: up.file,
+        previewUrl: up.previewUrl,
+        progress: 0,
+        status: "uploading",
+      })
+    );
 
     const uploadPromises = newUploads.map(async (up) => {
       try {
@@ -74,7 +86,6 @@ export function useUploader({ postId }: { postId: string }) {
         // 2. Upload the file to R2 using the signed URL
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          setUploads((current) => current.map((u) => (u.id === up.id ? { ...u, xhr } : u)));
 
           let lastUpdateTime = 0;
           const throttleInterval = 250; // ms
@@ -86,9 +97,7 @@ export function useUploader({ postId }: { postId: string }) {
                 lastUpdateTime = now;
                 const pct = Math.round((e.loaded / e.total) * 100);
                 const newStatus = pct >= 100 ? "processing" : "uploading";
-                setUploads((current) =>
-                  current.map((it) => (it.id === up.id ? { ...it, progress: pct, status: newStatus } : it))
-                );
+                uploadActions.updateUpload(up.id, { progress: pct, status: newStatus as UploadStatus });
               }
             }
           };
@@ -114,12 +123,15 @@ export function useUploader({ postId }: { postId: string }) {
         addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: publicUrl } });
         
         toast.success(`${up.file.name} uploaded`);
-        setUploads((current) => current.map((it) => (it.id === up.id ? { ...it, progress: 100, status: "done" } : it)));
+        uploadActions.updateUpload(up.id, { progress: 100, status: "done" });
+        // keep still for preview maybe until removed by external cleanup; we can remove after short delay? We'll keep until done and components can hide maybe; For now remove upload after 1.5s like old cleanup timer.
+        setTimeout(() => uploadActions.removeUpload(up.id), 1500);
 
       } catch (err: any) {
         console.error("Upload failed for", up.file.name, err);
         toast.error(`${up.file.name} failed`, { description: err.message ?? "Unknown error" });
-        setUploads((current) => current.map((it) => (it.id === up.id ? { ...it, status: "error" } : it)));
+        uploadActions.updateUpload(up.id, { status: "error" });
+        setTimeout(() => uploadActions.removeUpload(up.id), 3000);
       }
     });
 
@@ -139,25 +151,8 @@ export function useUploader({ postId }: { postId: string }) {
   };
 
   useEffect(() => {
-    const currentUploads = uploadsRef.current;
-    const timer = setInterval(() => {
-      setUploads((prev) => {
-        const kept = prev.filter((u) => u.status !== "done");
-        const removed = prev.filter((u) => u.status === "done");
-        removed.forEach((u) => URL.revokeObjectURL(u.previewUrl));
-        return kept;
-      });
-    }, 1500);
-
     return () => {
-      clearInterval(timer);
-      // Abort any pending uploads and revoke all blob URLs
-      currentUploads.forEach((u) => {
-        if (u.xhr && u.status === "uploading") {
-          u.xhr.abort();
-        }
-        URL.revokeObjectURL(u.previewUrl);
-      });
+      // On unmount, nothing to do because uploads are tracked globally.
     };
   }, []);
 

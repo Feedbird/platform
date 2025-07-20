@@ -30,15 +30,26 @@ export function BlocksPreview({
 
   const { uploads, startUploads } = useUploader({ postId });
 
-  // Effect to calculate dimensions for image uploads
+  // Effect to calculate dimensions for image and video uploads
   useEffect(() => {
     uploads.forEach(up => {
-      if (up.file.type.startsWith("image/") && !uploadDimensions[up.id]) {
+      // Skip if we already have dimensions for this upload
+      if (uploadDimensions[up.id]) return;
+
+      if (up.file.type.startsWith("image/")) {
         const img = new Image();
         img.src = up.previewUrl;
         img.onload = () => {
-          setUploadDimensions(d => ({...d, [up.id]: { w: img.naturalWidth, h: img.naturalHeight }}));
+          setUploadDimensions(d => ({ ...d, [up.id]: { w: img.naturalWidth, h: img.naturalHeight } }));
         };
+      } else if (up.file.type.startsWith("video/")) {
+        const videoEl = document.createElement("video");
+        videoEl.preload = "metadata";
+        videoEl.muted = true;
+        videoEl.src = up.previewUrl;
+        videoEl.addEventListener("loadedmetadata", () => {
+          setUploadDimensions(d => ({ ...d, [up.id]: { w: videoEl.videoWidth, h: videoEl.videoHeight } }));
+        });
       }
     });
   }, [uploads, uploadDimensions]);
@@ -94,9 +105,10 @@ export function BlocksPreview({
           block-previews-container
           flex flex-row gap-[2px]
           w-full h-full
-          overflow-x-auto
+          overflow-x-hidden
           overflow-y-hidden
         "
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {blocks.map((block) => (
           <BlockThumbnail key={block.id} block={block} height={rowHeight > 10 ? rowHeight - 8 : rowHeight} />
@@ -105,7 +117,13 @@ export function BlocksPreview({
         {/* Upload in progress */}
         {uploads.map((up) => {
           const dims = uploadDimensions[up.id];
-          const isTall = dims && dims.h > dims.w;
+          const orientation = dims
+            ? dims.w > dims.h
+              ? "landscape"
+              : dims.h > dims.w
+              ? "portrait"
+              : "square"
+            : "square";
           const isVideo = up.file.type.startsWith("video/");
 
           const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -123,14 +141,26 @@ export function BlocksPreview({
             }
           };
 
+          const thumbHeight = rowHeight > 10 ? rowHeight - 8 : rowHeight;
+          const widthStyle = (() => {
+            switch (orientation) {
+              case "landscape":
+                return { width: `${(thumbHeight * 16) / 9}px` };
+              case "portrait":
+                return { width: `${(thumbHeight * 9) / 16}px` };
+              default:
+                return {};
+            }
+          })();
+
           return (
             <div
               key={up.id}
               className={cn(
                 "relative flex-shrink-0 rounded-[2px] bg-black/10 overflow-hidden",
-                !isTall && "aspect-square"
+                orientation === "square" && "aspect-square"
               )}
-              style={{ height: `${rowHeight > 10 ? rowHeight - 8 : rowHeight}px`, border: "0.5px solid #D0D5D0" }}
+              style={{ height: `${thumbHeight}px`, ...widthStyle, border: "0.5px solid #D0D5D0" }}
               onMouseEnter={isVideo ? handleMouseEnter : undefined}
               onMouseLeave={isVideo ? handleMouseLeave : undefined}
             >
@@ -139,7 +169,7 @@ export function BlocksPreview({
                   src={up.previewUrl}
                   className={cn(
                     "block opacity-50",
-                    isTall
+                    orientation === "portrait"
                       ? "h-full w-auto"
                       : "absolute inset-0 w-full h-full object-cover"
                   )}
@@ -152,7 +182,7 @@ export function BlocksPreview({
                   src={up.previewUrl}
                   className={cn(
                     "block opacity-50",
-                    isTall
+                    orientation === "portrait"
                       ? "h-full w-auto"
                       : "absolute inset-0 w-full h-full object-cover"
                   )}

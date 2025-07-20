@@ -1738,47 +1738,59 @@ export function PostTable({
                     const headerContent = flexRender(h.column.columnDef.header, h.getContext());
 
                     return (
-                      <div
-                        className="flex cursor-pointer select-none items-center justify-between gap-2 h-full"
-                        onClick={(e) => {
-                          if (h.column.getCanSort() && e.detail === 1) {
-                            const handler = h.column.getToggleSortingHandler();
-                            if (typeof handler === 'function') handler(e);
-                          }
-                        }}
-                        draggable={canDrag}
-                        onDragStart={(e) => {
-                          if (!canDrag) return;
-                          e.dataTransfer.setData('text/plain', h.id);
-                        }}
-                        onDragOver={(e) => {
-                          if (!canDrag) return;
-                          e.preventDefault();
-                        }}
-                        onDrop={(e) => {
-                          if (!canDrag) return;
-                          const fromId = e.dataTransfer.getData('text/plain');
-                          if (!fromId) return;
-                          setColumnOrder((prev) => {
-                            const newOrder = [...prev];
-                            const fromIndex = newOrder.indexOf(fromId);
-                            const toIndex = newOrder.indexOf(h.id);
-                            if (fromIndex < 0 || toIndex < 0) return prev;
-                            newOrder.splice(toIndex, 0, newOrder.splice(fromIndex, 1)[0]);
-                            return newOrder;
-                          });
-                        }}
-                      >
-                        <div className="flex items-center gap-1 text-black w-full">
-                          {headerContent}
+                      <>
+                        <div
+                          className="flex cursor-pointer select-none items-center justify-between gap-2 h-full"
+                          onClick={(e) => {
+                            if (h.column.getCanSort() && e.detail === 1) {
+                              const handler = h.column.getToggleSortingHandler();
+                              if (typeof handler === 'function') handler(e);
+                            }
+                          }}
+                          draggable={canDrag}
+                          onDragStart={(e) => {
+                            if (!canDrag) return;
+                            e.dataTransfer.setData('text/plain', h.id);
+                          }}
+                          onDragOver={(e) => {
+                            if (!canDrag) return;
+                            e.preventDefault();
+                          }}
+                          onDrop={(e) => {
+                            if (!canDrag) return;
+                            const fromId = e.dataTransfer.getData('text/plain');
+                            if (!fromId) return;
+                            setColumnOrder((prev) => {
+                              const newOrder = [...prev];
+                              const fromIndex = newOrder.indexOf(fromId);
+                              const toIndex = newOrder.indexOf(h.id);
+                              if (fromIndex < 0 || toIndex < 0) return prev;
+                              newOrder.splice(toIndex, 0, newOrder.splice(fromIndex, 1)[0]);
+                              return newOrder;
+                            });
+                          }}
+                        >
+                          <div className="flex items-center gap-1 text-black w-full">
+                            {headerContent}
+                          </div>
+                          {sortStatus === 'asc' && (
+                            <ChevronUpIcon size={16} className="text-blue-600" />
+                          )}
+                          {sortStatus === 'desc' && (
+                            <ChevronDownIcon size={16} className="text-blue-600" />
+                          )}
                         </div>
-                        {sortStatus === 'asc' && (
-                          <ChevronUpIcon size={16} className="text-blue-600" />
+
+                        {/* Resizer Handle */}
+                        {h.column.getCanResize() && (
+                          <div
+                            onDoubleClick={() => h.column.resetSize()}
+                            onMouseDown={h.getResizeHandler()}
+                            onTouchStart={h.getResizeHandler()}
+                            className="absolute top-0 h-full w-2 cursor-col-resize -right-1 z-10"
+                          />
                         )}
-                        {sortStatus === 'desc' && (
-                          <ChevronDownIcon size={16} className="text-blue-600" />
-                        )}
-                      </div>
+                      </>
                     );
                   })()}
                 </TableHead>
@@ -2552,7 +2564,6 @@ export function PostTable({
               />
             </div>
           </div>
-            
           <div className="pr-[10px]">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
