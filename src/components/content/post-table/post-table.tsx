@@ -181,6 +181,7 @@ const MemoizedRow = React.memo(
     fillDragColumn,
     fillDragRange,
     rowHeight,
+    columnOrder,
   }: {
     row: Row<Post>;
     isSelected: boolean;
@@ -197,6 +198,7 @@ const MemoizedRow = React.memo(
     fillDragColumn: string | null;
     fillDragRange: [number, number] | null;
     rowHeight: number;
+    columnOrder: string[];
   }) => {
     return (
       <TableRow
@@ -270,6 +272,8 @@ const MemoizedRow = React.memo(
       const isNextInRange = nextProps.fillDragRange && nextProps.row.index >= nextProps.fillDragRange[0] && nextProps.row.index <= nextProps.fillDragRange[1];
       if(isPrevInRange !== isNextInRange) return false;
     }
+    // Re-render when column order changes so the cells re-align
+    if (prevProps.columnOrder !== nextProps.columnOrder) return false;
     return true; // Props are equal
   }
 );
@@ -1728,7 +1732,55 @@ export function PostTable({
                   )}
                   style={{ width: h.getSize(), ...stickyStyles(h.id, 10)}}
                 >
-                  {flexRender(h.column.columnDef.header, h.getContext())}
+                  {(() => {
+                    const canDrag = h.id !== "rowIndex" && h.id !== "drag";
+                    const sortStatus = h.column.getIsSorted();
+                    const headerContent = flexRender(h.column.columnDef.header, h.getContext());
+
+                    return (
+                      <div
+                        className="flex cursor-pointer select-none items-center justify-between gap-2 h-full"
+                        onClick={(e) => {
+                          if (h.column.getCanSort() && e.detail === 1) {
+                            const handler = h.column.getToggleSortingHandler();
+                            if (typeof handler === 'function') handler(e);
+                          }
+                        }}
+                        draggable={canDrag}
+                        onDragStart={(e) => {
+                          if (!canDrag) return;
+                          e.dataTransfer.setData('text/plain', h.id);
+                        }}
+                        onDragOver={(e) => {
+                          if (!canDrag) return;
+                          e.preventDefault();
+                        }}
+                        onDrop={(e) => {
+                          if (!canDrag) return;
+                          const fromId = e.dataTransfer.getData('text/plain');
+                          if (!fromId) return;
+                          setColumnOrder((prev) => {
+                            const newOrder = [...prev];
+                            const fromIndex = newOrder.indexOf(fromId);
+                            const toIndex = newOrder.indexOf(h.id);
+                            if (fromIndex < 0 || toIndex < 0) return prev;
+                            newOrder.splice(toIndex, 0, newOrder.splice(fromIndex, 1)[0]);
+                            return newOrder;
+                          });
+                        }}
+                      >
+                        <div className="flex items-center gap-1 text-black w-full">
+                          {headerContent}
+                        </div>
+                        {sortStatus === 'asc' && (
+                          <ChevronUpIcon size={16} className="text-blue-600" />
+                        )}
+                        {sortStatus === 'desc' && (
+                          <ChevronDownIcon size={16} className="text-blue-600" />
+                        )}
+                      </div>
+                    );
+                  })()}
                 </TableHead>
               )
             )}
@@ -2192,7 +2244,7 @@ export function PostTable({
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <MemoizedRow
-                  key={row.id}
+                  key={`${row.id}-${columnOrder.join('-')}`}
                   row={row}
                   isSelected={row.getIsSelected()}
                   isFillTarget={isFillTarget}
@@ -2208,6 +2260,7 @@ export function PostTable({
                   fillDragColumn={fillDragColumn}
                   fillDragRange={fillDragRange}
                   rowHeight={rowHeight}
+                  columnOrder={columnOrder}
                 />
               ))
             ) : (
