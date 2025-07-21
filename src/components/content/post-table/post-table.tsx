@@ -52,7 +52,6 @@ import {
   CircleChevronDown,
   Type,
   SquareCheckBig,
-  Clock,
   ArrowDownToLine,
   ArrowUpFromLine,
   SlidersHorizontal,
@@ -2782,7 +2781,7 @@ export function PostTable({
             }}
             className="gap-1"
           >
-            <Clock className="w-4 h-4" />
+            <XIcon className="w-4 h-4" />
             Unschedule
           </Button>
 

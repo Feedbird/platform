@@ -9,7 +9,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -354,12 +354,7 @@ export function PublishDateCell({
                     className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={handleUnschedule}
                   >
-                    <Image
-                      src="/images/publish/unschedule.svg"
-                      alt="Unschedule"
-                      width={16}
-                      height={16}
-                    />
+                    <X className="w-4 h-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent
