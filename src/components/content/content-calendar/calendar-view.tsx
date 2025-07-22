@@ -67,11 +67,15 @@ const calendarStyles = `
     display: none !important;
   }
 
-  /* Monday–Friday => white; Sat/Sun => light grey */
-  .fc-day-mon, .fc-day-tue, .fc-day-wed, .fc-day-thu, .fc-day-fri {
+  /* All days => white background */
+  .fc-day-mon, .fc-day-tue, .fc-day-wed, .fc-day-thu, .fc-day-fri,
+  .fc-day-sat, .fc-day-sun {
     background-color: #fff !important;
   }
-  .fc-day-sat, .fc-day-sun {
+
+  /* Past days => light grey */
+  .fc-day-past,
+  .fc-past {
     background-color: #f2f2f2 !important;
   }
 
@@ -114,8 +118,17 @@ const calendarStyles = `
     border-radius: 9999px;
     transform: translateY(-100%);
   }
+  /* Highlight current day number in blue */
+  .fc-day-today .dom {
+    color: #2563eb; /* Tailwind blue-600 */
+  }
+  /* Grey color for past days */
+  .fc-day-past .dom,
+  .dow {
+    color: #9ca3af; /* Tailwind gray-400 */
+  }
 
-  /* ------------------------------------------------------------------
+  /* -------------------------------------------------------------
      Event appearance tweaks
      ------------------------------------------------------------------ */
   /* Remove FullCalendar's default blue background & border so only our custom card shows */
@@ -526,7 +539,7 @@ export default function CalendarView({
     const renderPlatforms = (size: "lg" | "sm") => {
       const total = eprops.platforms.length;
       const maxIcons = 5;
-      const iconClass = size === "lg" ? "w-7 h-7" : "w-5 h-5";
+      const iconClass = size === "lg" ? "w-6 h-6" : "w-5 h-5";
       const displayed = total > maxIcons ? eprops.platforms.slice(0, 4) : eprops.platforms;
 
       return (
@@ -786,10 +799,23 @@ export default function CalendarView({
             className="my-event-item"
             onClick={() => handleEventClick(arg)}
           >
-            {/* Status badge overlay */}
-            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-white rounded flex items-center gap-1 shadow-sm" style={{pointerEvents:'none', zIndex:10}}>
-              <img src={statusConfig[eprops.status].icon} alt={eprops.status} className="w-[14px] h-[14px]" />
-              <span className="text-xs font-semibold text-black leading-none whitespace-nowrap">
+            {/* Status badge overlay – use same colours as table view */}
+            <div
+              className="absolute top-2 left-2 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm"
+              style={{
+                pointerEvents: 'none',
+                zIndex: 10,
+                backgroundColor: statusConfig[eprops.status].bgColor,
+                border: `1px solid ${statusConfig[eprops.status].borderColor}`,
+                color: statusConfig[eprops.status].textColor,
+              }}
+            >
+              <img
+                src={statusConfig[eprops.status].icon}
+                alt={eprops.status}
+                className="w-[14px] h-[14px]"
+              />
+              <span className="text-xs font-semibold leading-none whitespace-nowrap">
                 {eprops.status}
               </span>
             </div>
@@ -864,7 +890,7 @@ export default function CalendarView({
                   <img
                     src="/images/columns/updated-time.svg"
                     alt="time"
-                    className="time-icon w-5 h-5 object-contain"
+                    className="time-icon w-3.5 h-3.5 object-contain"
                   />
                   <span className="text-blue-600 leading-none text-sm">{timeLabel}</span>
                 </div>
@@ -872,7 +898,7 @@ export default function CalendarView({
                 <img
                   src={`/images/format/${eprops.format}.svg`}
                   alt={eprops.format}
-                  className="w-6 h-6 object-contain"
+                  className="w-5.5 h-5.5 object-contain"
                 />
                 )}
               </div>
