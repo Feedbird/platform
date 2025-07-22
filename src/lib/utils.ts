@@ -62,3 +62,48 @@ export function getAspectRatioType(width: number, height: number): "1:1" | "4:5"
   
   return nearestRatio.name;
 }
+
+export function getPageName(pathname: string): string {
+  // Remove leading slash and split by '/'
+  const segments = pathname.replace(/^\//, '').split('/');
+  
+  // Handle root path
+  if (segments.length === 0 || segments[0] === '') {
+    return 'Dashboard';
+  }
+
+  // Handle content pages with board names
+  if (segments[0] === 'content' && segments[1]) {
+    const boardId = segments[1];
+    // Map board IDs to readable names
+    const boardNameMap: Record<string, string> = {
+      'static-posts': 'Static Posts',
+      'short-form-videos': 'Short-Form Videos',
+      'email-design': 'Email Design',
+    };
+    return boardNameMap[boardId] || 'Content';
+  }
+
+  // Handle other main pages
+  const pageNameMap: Record<string, string> = {
+    'analytics': 'Analytics',
+    'brands': 'Brands',
+    'approvals': 'Approvals',
+    'notifications': 'Notifications',
+    'settings': 'Settings',
+    'social': 'Social',
+  };
+
+  const pageName = pageNameMap[segments[0]];
+  if (pageName) {
+    return pageName;
+  }
+
+  // Handle social pages with page IDs
+  if (segments[0] === 'social' && segments[1]) {
+    return 'Social Posts';
+  }
+
+  // Default fallback
+  return 'Dashboard';
+}

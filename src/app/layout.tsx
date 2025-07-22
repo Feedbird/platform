@@ -12,6 +12,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Toaster } from "@/components/ui/sonner"
 import "nprogress/nprogress.css";
 import { TopProgressBar } from "@/components/layout/top-progress-bar";
+import { DynamicTitle } from "@/components/layout/dynamic-title";
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Suspense fallback={null}>
                 <TopProgressBar />
               </Suspense>
+              <DynamicTitle />
               <AppSidebar />
               <SidebarInset>
                 <AppHeader />
