@@ -1,18 +1,19 @@
 "use client";
 
 import { Block } from "@/lib/store/use-feedbird-store";
-import { cn } from "@/lib/utils";
+import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
 
-type Orientation = "square" | "portrait" | "landscape";
+type AspectRatioType = "1:1" | "4:5" | "9:16";
 
 export function BlockThumbnail({ block, height }: { block: Block; height: number }) {
   const currentVer = block.versions.find((v) => v.id === block.currentVersionId);
-  const [orientation, setOrientation] = useState<Orientation>("square");
+  const [aspectRatioType, setAspectRatioType] = useState<AspectRatioType>("1:1");
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Determine orientation for images as soon as they load
+  // Determine aspect ratio for images as soon as they load
   useEffect(() => {
     if (!currentVer) return;
 
@@ -20,18 +21,14 @@ export function BlockThumbnail({ block, height }: { block: Block; height: number
       const img = new Image();
       img.src = currentVer.file.url;
       img.onload = () => {
-        if (img.naturalWidth > img.naturalHeight) {
-          setOrientation("landscape");
-        } else if (img.naturalHeight > img.naturalWidth) {
-          setOrientation("portrait");
-        } else {
-          setOrientation("square");
-        }
+        const aspectType = getAspectRatioType(img.naturalWidth, img.naturalHeight);
+        setAspectRatioType(aspectType);
+        setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
       };
     }
   }, [currentVer]);
 
-  // Determine orientation for videos via metadata
+  // Determine aspect ratio for videos via metadata
   useEffect(() => {
     if (!currentVer || currentVer.file.kind !== "video") return;
 
@@ -41,13 +38,9 @@ export function BlockThumbnail({ block, height }: { block: Block; height: number
     const handleMeta = () => {
       const vw = vid.videoWidth;
       const vh = vid.videoHeight;
-      if (vw > vh) {
-        setOrientation("landscape");
-      } else if (vh > vw) {
-        setOrientation("portrait");
-      } else {
-        setOrientation("square");
-      }
+      const aspectType = getAspectRatioType(vw, vh);
+      setAspectRatioType(aspectType);
+      setDimensions({ width: vw, height: vh });
     };
 
     // Metadata might already be available
@@ -79,22 +72,22 @@ export function BlockThumbnail({ block, height }: { block: Block; height: number
 
   const isVideo = currentVer.file.kind === "video";
 
+  // Calculate width based on the nearest aspect ratio
   const widthStyle = (() => {
-    switch (orientation) {
-      case "landscape":
-        return { width: `${(height * 16) / 9}px` };
-      case "portrait":
-        return { width: `${(height * 9) / 16}px` };
-      default:
-        return {};
+    if (!dimensions) {
+      // Fallback to square if dimensions not available
+      return {};
     }
+    
+    const calculatedWidth = calculateAspectRatioWidth(dimensions.width, dimensions.height, height);
+    return { width: `${calculatedWidth}px` };
   })();
 
   return (
     <div
       className={cn(
         "relative flex-shrink-0 rounded-[2px] bg-black/10 overflow-hidden",
-        orientation === "square" && "aspect-square"
+        aspectRatioType === "1:1" && "aspect-square"
       )}
       style={{ height: `${height}px`, ...widthStyle, border: "0.5px solid #D0D5D0" }}
       onMouseEnter={isVideo ? handleMouseEnter : undefined}
@@ -119,12 +112,7 @@ export function BlockThumbnail({ block, height }: { block: Block; height: number
         </>
       ) : (
         <img
-          className={cn(
-            "block",
-            orientation === "portrait"
-              ? "h-full w-auto"
-              : "absolute inset-0 w-full h-full object-cover"
-          )}
+          className="absolute inset-0 w-full h-full object-cover"
           src={currentVer.file.url}
           alt="preview"
           loading="lazy"

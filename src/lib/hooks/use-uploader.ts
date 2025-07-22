@@ -143,7 +143,7 @@ export function useUploader({ postId }: { postId: string }) {
         const vidCnt = post.blocks.filter((b) => b.kind === "video").length;
         let newFormat = post.format;
         if (vidCnt > 0 && imgCnt === 0) newFormat = "video";
-        else if (imgCnt === 1 && vidCnt === 0) newFormat = "static";
+        else if (imgCnt === 1 && vidCnt === 0) newFormat = "image";
         else if (imgCnt >= 2 || (imgCnt >= 1 && vidCnt > 0)) newFormat = "carousel";
         if (newFormat !== post.format) updatePost(postId, { format: newFormat });
       }

@@ -7,9 +7,9 @@ import { Plus } from "lucide-react";
 
 /**
  * Example formats from your code: 
- * "static", "carousel", "story", "video", "email"
+ * "image", "carousel", "story", "video", "email"
  */
-const formats = ["static", "carousel", "story", "video", "email", "blog"] as const;
+const formats = ["image", "carousel", "story", "video", "email", "blog"] as const;
 
 export function FormatSelectPopup({
   value,

@@ -98,7 +98,7 @@ const platformOptions: Platform[] = [
 ];
 
 const formatOptions: ContentFormat[] = [
-  "static",
+  "image",
   "carousel",
   "story",
   "video",
@@ -112,7 +112,7 @@ function getMonthColor(month: number): string {
 }
 
 const formatDisplayNames: Record<ContentFormat, string> = {
-  static: "Static Image",
+  image: "Static Image",
   carousel: "Carousel",
   story: "Story",
   video: "Video",

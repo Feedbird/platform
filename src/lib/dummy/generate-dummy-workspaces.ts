@@ -191,8 +191,8 @@ function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]):
   const format = random < 4
     ? "" // empty / undetermined format
     : faker.helpers.arrayElement<
-        "static" | "carousel" | "story" | "video" | "email" | "blog"
-      >(["static", "carousel", "story", "video", "email", "blog"]);
+        "image" | "carousel" | "story" | "video" | "email" | "blog"
+      >(["image", "carousel", "story", "video", "email", "blog"]);
 
   /* match format → file kind */
   const fileKind: FileKind = format === "video" ? "video" : "image";

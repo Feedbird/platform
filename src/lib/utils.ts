@@ -4,3 +4,61 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+/**
+ * Calculate the nearest aspect ratio from the target ratios (1:1, 4:5, 9:16)
+ * and return the appropriate width for a given height
+ */
+export function calculateAspectRatioWidth(width: number, height: number, targetHeight: number): number {
+  const aspectRatio = width / height;
+  
+  // Target aspect ratios: 1:1, 4:5, 9:16
+  const targetRatios = [
+    { ratio: 1, name: "1:1" },      // Square
+    { ratio: 4/5, name: "4:5" },    // Portrait
+    { ratio: 9/16, name: "9:16" }   // Portrait
+  ];
+  
+  // Find the nearest target ratio
+  let nearestRatio = targetRatios[0];
+  let minDifference = Math.abs(aspectRatio - targetRatios[0].ratio);
+  
+  for (const target of targetRatios) {
+    const difference = Math.abs(aspectRatio - target.ratio);
+    if (difference < minDifference) {
+      minDifference = difference;
+      nearestRatio = target;
+    }
+  }
+  
+  // Calculate width based on target height and nearest ratio
+  return targetHeight * nearestRatio.ratio;
+}
+
+/**
+ * Get the aspect ratio type (1:1, 4:5, 9:16) for a given width and height
+ */
+export function getAspectRatioType(width: number, height: number): "1:1" | "4:5" | "9:16" {
+  const aspectRatio = width / height;
+  
+  // Target aspect ratios: 1:1, 4:5, 9:16
+  const targetRatios = [
+    { ratio: 1, name: "1:1" as const },
+    { ratio: 4/5, name: "4:5" as const },
+    { ratio: 9/16, name: "9:16" as const }
+  ];
+  
+  // Find the nearest target ratio
+  let nearestRatio = targetRatios[0];
+  let minDifference = Math.abs(aspectRatio - targetRatios[0].ratio);
+  
+  for (const target of targetRatios) {
+    const difference = Math.abs(aspectRatio - target.ratio);
+    if (difference < minDifference) {
+      minDifference = difference;
+      nearestRatio = target;
+    }
+  }
+  
+  return nearestRatio.name;
+}

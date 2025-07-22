@@ -22,8 +22,8 @@ export interface BoardRules {
   autoSchedule: boolean;
   revisionRules: boolean;
   approvalDeadline: boolean;
-  groupBy: string;
-  sortBy: string;
+  groupBy: string | null;
+  sortBy: string | null;
   rowHeight: number;
   firstMonth?: number;
   ongoingMonth?: number;
@@ -306,8 +306,8 @@ const defaultBoards: Board[] = [
       autoSchedule: false,
       revisionRules: false,
       approvalDeadline: false,
-      groupBy: "month",
-      sortBy: "status",
+      groupBy: null,
+      sortBy: null,
       rowHeight: 130,
     }
   },
@@ -321,8 +321,8 @@ const defaultBoards: Board[] = [
       autoSchedule: false,
       revisionRules: false,
       approvalDeadline: false,
-      groupBy: "month",
-      sortBy: "status",
+      groupBy: null,
+      sortBy: null,
       rowHeight: 60,
     }
   },
@@ -336,8 +336,8 @@ const defaultBoards: Board[] = [
       autoSchedule: false,
       revisionRules: false,
       approvalDeadline: false,
-      groupBy: "month",
-      sortBy: "status",
+      groupBy: null,
+      sortBy: null,
       rowHeight: 60,
     }
   },

@@ -2,10 +2,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Block } from "@/lib/store/use-feedbird-store";
 import { Plus, Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
 import { BlockThumbnail } from "./BlockThumbnail";
 import ClipLoader from "react-spinners/ClipLoader";
 import { useUploader } from "@/lib/hooks/use-uploader";
+
+type AspectRatioType = "1:1" | "4:5" | "9:16";
 
 /**
  * Renders each block's *current* version in a horizontal strip.
@@ -117,13 +119,7 @@ export function BlocksPreview({
         {/* Upload in progress */}
         {uploads.map((up) => {
           const dims = uploadDimensions[up.id];
-          const orientation = dims
-            ? dims.w > dims.h
-              ? "landscape"
-              : dims.h > dims.w
-              ? "portrait"
-              : "square"
-            : "square";
+          const aspectRatioType = dims ? getAspectRatioType(dims.w, dims.h) : "1:1";
           const isVideo = up.file.type.startsWith("video/");
 
           const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -143,14 +139,13 @@ export function BlocksPreview({
 
           const thumbHeight = rowHeight > 10 ? rowHeight - 8 : rowHeight;
           const widthStyle = (() => {
-            switch (orientation) {
-              case "landscape":
-                return { width: `${(thumbHeight * 16) / 9}px` };
-              case "portrait":
-                return { width: `${(thumbHeight * 9) / 16}px` };
-              default:
-                return {};
+            if (!dims) {
+              // Fallback to square if dimensions not available
+              return {};
             }
+            
+            const calculatedWidth = calculateAspectRatioWidth(dims.w, dims.h, thumbHeight);
+            return { width: `${calculatedWidth}px` };
           })();
 
           return (
@@ -158,7 +153,7 @@ export function BlocksPreview({
               key={up.id}
               className={cn(
                 "relative flex-shrink-0 rounded-[2px] bg-black/10 overflow-hidden",
-                orientation === "square" && "aspect-square"
+                aspectRatioType === "1:1" && "aspect-square"
               )}
               style={{ height: `${thumbHeight}px`, ...widthStyle, border: "0.5px solid #D0D5D0" }}
               onMouseEnter={isVideo ? handleMouseEnter : undefined}
@@ -167,12 +162,7 @@ export function BlocksPreview({
               {isVideo ? (
                 <video
                   src={up.previewUrl}
-                  className={cn(
-                    "block opacity-50",
-                    orientation === "portrait"
-                      ? "h-full w-auto"
-                      : "absolute inset-0 w-full h-full object-cover"
-                  )}
+                  className="absolute inset-0 w-full h-full object-cover opacity-50"
                   loop
                   muted
                   playsInline
@@ -180,12 +170,7 @@ export function BlocksPreview({
               ) : (
                 <img
                   src={up.previewUrl}
-                  className={cn(
-                    "block opacity-50",
-                    orientation === "portrait"
-                      ? "h-full w-auto"
-                      : "absolute inset-0 w-full h-full object-cover"
-                  )}
+                  className="absolute inset-0 w-full h-full object-cover opacity-50"
                 />
               )}
               {/* Progress overlay */}

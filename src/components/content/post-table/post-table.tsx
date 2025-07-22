@@ -150,6 +150,7 @@ import {
   useFeedbirdStore,
   UserColumn,
   ColumnType,
+  BoardRules,
 } from "@/lib/store/use-feedbird-store";
 import {
   StatusChip,
@@ -403,6 +404,7 @@ export function PostTable({
   const [tableData, setTableData] = React.useState<Post[]>(posts);
   const store = useFeedbirdStore();
   const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const updateBoard = useFeedbirdStore((s) => s.updateBoard);
   const getPageCounts = useFeedbirdStore((s) => s.getPageCounts);
   
   // Get current board and its rules
@@ -420,7 +422,7 @@ export function PostTable({
   const defaultFormat: ContentFormat = React.useMemo(() => {
     if (pathname?.includes("/short-form-videos")) return "video";
     if (pathname?.includes("/email-design"))      return "email";
-    return "static"; // static posts or fallback
+    return "image"; // static posts or fallback
   }, [pathname]);
   
   /* -----------------------------------------------------------
@@ -543,16 +545,28 @@ export function PostTable({
 
   const [rowHeight, setRowHeight] = React.useState<number>(60);
 
+  // Track if changes are user-initiated vs board switching
+  const userInitiatedChangeRef = React.useRef(false);
+  const lastBoardIdRef = React.useRef<string | null>(null);
+
   // Update table state when board rules change
   React.useEffect(() => {
     if (boardRules) {
+      // Reset user-initiated flag when switching boards
+      userInitiatedChangeRef.current = false;
+      lastBoardIdRef.current = activeBoardId;
+
       // Always apply board rules when they become available
       if (boardRules.sortBy) {
         setSorting([{ id: boardRules.sortBy, desc: false }]);
+      } else {
+        setSorting([]);
       }
       
       if (boardRules.groupBy) {
         setGrouping([boardRules.groupBy]);
+      } else {
+        setGrouping([]);
       }
       
       if (boardRules.rowHeight) {
@@ -560,6 +574,52 @@ export function PostTable({
       }
     }
   }, [boardRules]); // Remove other dependencies to ensure it runs when boardRules changes
+
+  /* --- Persist board rule changes on user actions --- */
+  React.useEffect(() => {
+    if (!currentBoard || !activeBoardId || !userInitiatedChangeRef.current) return;
+    
+    // Only persist if we're still on the same board where the change was initiated
+    if (lastBoardIdRef.current !== activeBoardId) return;
+
+    const newGroupBy = grouping[0] ?? null;
+    const newSortBy = sorting.length ? sorting[0].id : null;
+    const newRowH = rowHeight;
+
+    const prevRules: BoardRules | undefined = currentBoard.rules;
+
+    // If nothing changed, skip update
+    if (
+      prevRules &&
+      prevRules.groupBy === newGroupBy &&
+      prevRules.sortBy === newSortBy &&
+      prevRules.rowHeight === newRowH
+    ) {
+      return;
+    }
+
+    // Build a complete BoardRules object, preserving other existing rule fields or defaulting to false/undefined
+    const mergedRules: BoardRules = {
+      autoSchedule: prevRules?.autoSchedule ?? false,
+      revisionRules: prevRules?.revisionRules ?? false,
+      approvalDeadline: prevRules?.approvalDeadline ?? false,
+      firstMonth: prevRules?.firstMonth,
+      ongoingMonth: prevRules?.ongoingMonth,
+      approvalDays: prevRules?.approvalDays,
+      groupBy: newGroupBy,
+      sortBy: newSortBy,
+      rowHeight: newRowH,
+    };
+
+    updateBoard(activeBoardId, { rules: mergedRules });
+  }, [grouping, sorting, rowHeight, currentBoard, activeBoardId, updateBoard]);
+
+  // Mark user-initiated changes
+  React.useEffect(() => {
+    if (lastBoardIdRef.current === activeBoardId) {
+      userInitiatedChangeRef.current = true;
+    }
+  }, [grouping, sorting, rowHeight]);
 
   // ─────────────────────────────────────────────────────────────
   //  Instant sticky shadow via CSS class toggling (no React re-render)
