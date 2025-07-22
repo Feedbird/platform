@@ -115,8 +115,8 @@ export interface BoardRules {
   groupBy: string | null;
   sortBy: string | null;
   rowHeight: number;
-  firstMonth?: number;
-  ongoingMonth?: number;
+  firstMonth?: number; // -1 represents "Unlimited"
+  ongoingMonth?: number; // -1 represents "Unlimited"
   approvalDays?: number; // 7,14,30,60,custom
   approvalCustom?: string;
 }
@@ -287,8 +287,8 @@ export function BoardRulesModal({
                     <span className="text-[13px] font-medium text-black leading-none text-left">First month</span>
                     <div className="flex items-center gap-2">
                       <Select
-                        value={rules.firstMonth ? String(rules.firstMonth) : ''}
-                        onValueChange={(val) => updateRule('firstMonth', Number(val))}
+                        value={rules.firstMonth ? (rules.firstMonth === -1 ? 'Unlimited' : String(rules.firstMonth)) : ''}
+                        onValueChange={(val) => updateRule('firstMonth', val === 'Unlimited' ? -1 : Number(val))}
                       >
                         <SelectTrigger className="w-full px-2.5 py-2 text-[13px] bg-white rounded-md border border-[#D3D3D3] shadow-sm text-left">
                           <SelectValue placeholder="Select how many revision" />
@@ -310,8 +310,8 @@ export function BoardRulesModal({
                     <span className="text-[13px] font-medium text-black leading-none text-left">Ongoing months</span>
                     <div className="flex items-center gap-2">
                       <Select
-                        value={rules.ongoingMonth ? String(rules.ongoingMonth) : ''}
-                        onValueChange={(val) => updateRule('ongoingMonth', Number(val))}
+                        value={rules.ongoingMonth ? (rules.ongoingMonth === -1 ? 'Unlimited' : String(rules.ongoingMonth)) : ''}
+                        onValueChange={(val) => updateRule('ongoingMonth', val === 'Unlimited' ? -1 : Number(val))}
                       >
                         <SelectTrigger className="w-full px-2.5 py-2 text-[13px] bg-white rounded-md border border-[#D3D3D3] shadow-sm text-left">
                           <SelectValue placeholder="Select how many revision" />
@@ -401,7 +401,7 @@ export function BoardRulesModal({
               <div className="flex-1 flex flex-col gap-2">
                 <div className="text-[13px] font-medium text-black leading-none">Group by</div>
                 <div className="w-full">
-                  <Select value={rules.groupBy || ""} onValueChange={(value) => handleGroupByChange(value === "" ? null : value)}>
+                  <Select value={rules.groupBy || "none"} onValueChange={(value) => handleGroupByChange(value === "none" ? null : value)}>
                     <SelectTrigger className="w-full px-3 py-2 bg-white rounded-md shadow-[0px_2px_2px_-1px_rgba(7,10,22,0.06)] shadow-[0px_1px_2px_-1px_rgba(7,10,22,0.02)] shadow-[0px_0px_1px_0px_rgba(224,224,224,1.00)] border border-[#D3D3D3] flex items-center gap-2 overflow-hidden text-left">
                       {(() => {
                         const current = GROUP_OPTIONS.find(opt => opt.id === rules.groupBy);
@@ -418,7 +418,7 @@ export function BoardRulesModal({
                       })()}
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="none">
                         <div className="flex items-center gap-1">
                           <span className="text-[#75777C]">None</span>
                         </div>
@@ -440,7 +440,7 @@ export function BoardRulesModal({
               <div className="flex-1 flex flex-col gap-2">
                 <div className="text-[13px] font-medium text-black leading-none">Sort by</div>
                 <div className="w-full">
-                  <Select value={rules.sortBy || ""} onValueChange={(value) => handleSortByChange(value === "" ? null : value)}>
+                  <Select value={rules.sortBy || "none"} onValueChange={(value) => handleSortByChange(value === "none" ? null : value)}>
                     <SelectTrigger className="w-full px-3 py-2 bg-white rounded-md shadow-[0px_2px_2px_-1px_rgba(7,10,22,0.06)] shadow-[0px_1px_2px_-1px_rgba(7,10,22,0.02)] shadow-[0px_0px_1px_0px_rgba(224,224,224,1.00)] border border-[#D3D3D3] flex items-center gap-2 overflow-hidden text-left">
                       {(() => {
                         const current = SORT_OPTIONS.find(opt => opt.id === rules.sortBy);
@@ -457,7 +457,7 @@ export function BoardRulesModal({
                       })()}
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="none">
                         <div className="flex items-center gap-1">
                           <span className="text-[#75777C]">None</span>
                         </div>

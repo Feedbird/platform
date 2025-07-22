@@ -336,7 +336,49 @@ function makeComment(author: string): BaseComment {
 
 // Default boards (same as app startup)
 const DEFAULT_BOARDS: Board[] = [
-  { id: "static-posts", name: "Static Posts", image: "/images/boards/static-posts.svg" },
-  { id: "short-form-videos", name: "Short-Form Videos", image: "/images/boards/short-form-videos.svg" },
-  { id: "email-design", name: "Email Design", image: "/images/boards/email-design.svg" },
+  { 
+    id: "static-posts", 
+    name: "Static Posts", 
+    image: "/images/boards/static-posts.svg", 
+    selectedImage: "/images/boards/static-posts-selected.svg",
+    color: "#125AFF",
+    rules: {
+      autoSchedule: false,
+      revisionRules: false,
+      approvalDeadline: false,
+      groupBy: null,
+      sortBy: null,
+      rowHeight: 130,
+    }
+  },
+  { 
+    id: "short-form-videos", 
+    name: "Short-Form Videos", 
+    image: "/images/boards/short-form-videos.svg", 
+    selectedImage: "/images/boards/short-form-videos-selected.svg",
+    color: "#125AFF",
+    rules: {
+      autoSchedule: false,
+      revisionRules: false,
+      approvalDeadline: false,
+      groupBy: null,
+      sortBy: null,
+      rowHeight: 60,
+    }
+  },
+  { 
+    id: "email-design", 
+    name: "Email Design", 
+    image: "/images/boards/email-design.svg", 
+    selectedImage: "/images/boards/email-design-selected.svg",
+    color: "#125AFF",
+    rules: {
+      autoSchedule: false,
+      revisionRules: false,
+      approvalDeadline: false,
+      groupBy: null,
+      sortBy: null,
+      rowHeight: 60,
+    }
+  },
 ];

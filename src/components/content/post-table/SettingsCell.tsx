@@ -225,15 +225,15 @@ export function SettingsEditCell({
 
           <Tabs defaultValue="location" className="w-full mt-0 flex flex-col gap-6">
             <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
-              <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium data-[state=active]:bg-white data-[state=active]:shadow-[0_0_0_1px_rgba(33,33,38,0.05),0_1px_1px_rgba(0,0,0,0.05),0_4px_6px_rgba(34,42,53,0.04)]">
-                <MapPin className="h-4 w-4 text-primary"/> Location Tag
+              <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                {ICONS.location} Location Tag
               </TabsTrigger>
-              <TabsTrigger value="tags" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium data-[state=active]:bg-white data-[state=active]:shadow-[0_0_0_1px_rgba(33,33,38,0.05),0_1px_1px_rgba(0,0,0,0.05),0_4px_6px_rgba(34,42,53,0.04)]">
-                <AtSign className="h-4 w-4 text-primary"/>
+              <TabsTrigger value="tags" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                {ICONS.tagAccounts}
                 Tag Accounts
               </TabsTrigger>
-              <TabsTrigger value="thumb" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium data-[state=active]:bg-white data-[state=active]:shadow-[0_0_0_1px_rgba(33,33,38,0.05),0_1px_1px_rgba(0,0,0,0.05),0_4px_6px_rgba(34,42,53,0.04)]">
-                <ImageIcon className="h-4 w-4"/>
+              <TabsTrigger value="thumb" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                {ICONS.thumbnail}
                 Custom Thumbnail
               </TabsTrigger>
             </TabsList>

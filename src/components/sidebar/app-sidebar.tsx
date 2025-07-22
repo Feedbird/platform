@@ -305,7 +305,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                   {imageSrc && (
                     <div 
                       className={cn(
-                        "w-[18px] h-[18px] rounded flex items-center justify-center",
+                        "w-5.5 h-5.5 rounded flex items-center justify-center",
                         // Apply board color as background to icon container when active
                         active && isBoard && boardColor ? "" : "bg-transparent"
                       )}
@@ -315,7 +315,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         src={imageSrc}
                         alt={nav.label}
                         className={cn(
-                          "w-[16px] h-[16px]",
+                          "w-4 h-4",
                           // Make icon white when board is active and has a colored background
                           active && isBoard && boardColor && "filter brightness-0 invert"
                         )}
@@ -342,25 +342,24 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                 >
                   {imageSrc && (
                     <div 
+                    className={cn(
+                      "w-5.5 h-5.5 rounded flex items-center justify-center",
+                      // Apply board color as background to icon container when active
+                      active && isBoard && boardColor ? "" : "bg-transparent"
+                    )}
+                    style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                  >
+                    <img
+                      src={imageSrc}
+                      alt={nav.label}
                       className={cn(
-                        "rounded flex items-center justify-center",
-                        isBoard ? "w-[18px] h-[18px]" : "w-[16px] h-[16px]",
-                        // Apply board color as background to icon container when active
-                        active && isBoard && boardColor ? "" : "bg-transparent"
+                        "w-4 h-4",
+                        // Make icon white when board is active and has a colored background
+                        active && isBoard && boardColor && "filter brightness-0 invert"
                       )}
-                      style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
-                    >
-                      <img
-                        src={imageSrc}
-                        alt={nav.label}
-                        className={cn(
-                          isBoard ? "w-[16px] h-[16px]" : "w-[14px] h-[14px]",
-                          // Make icon white when board is active and has a colored background
-                          active && isBoard && boardColor && "filter brightness-0 invert"
-                        )}
-                        loading="lazy"
-                      />
-                    </div>
+                      loading="lazy"
+                    />
+                  </div>
                   )}
                   <span className="flex-1">{nav.label}</span>
                 </button>

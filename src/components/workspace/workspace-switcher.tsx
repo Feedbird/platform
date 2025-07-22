@@ -122,9 +122,9 @@ export default function WorkspaceSwitcher() {
               >
                 {active?.logo
                   ? <Image src={active.logo} alt={active.name} width={24} height={24}
-                           className="rounded-md object-contain"/>
+                           className="rounded object-contain"/>
                   : (
-                      <div className="size-8 rounded-md bg-muted flex items-center justify-center">
+                      <div className="size-8 rounded bg-muted flex items-center justify-center">
                         <span className="text-xs font-semibold uppercase text-[#5C5E63]">
                           {active?.name ? getInitials(active.name) : ""}
                         </span>
@@ -208,9 +208,9 @@ export default function WorkspaceSwitcher() {
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {ws.logo
                           ? <Image src={ws.logo} alt={ws.name} width={24} height={24}
-                                  className="rounded-md object-contain flex-shrink-0"/>
+                                  className="rounded object-contain flex-shrink-0"/>
                           : (
-                              <div className="size-6 rounded-md bg-muted flex-shrink-0 flex items-center justify-center">
+                              <div className="size-6 rounded bg-muted flex-shrink-0 flex items-center justify-center">
                                 <span className="text-[10px] font-semibold uppercase text-[#5C5E63]">
                                   {getInitials(ws.name)}
                                 </span>
@@ -258,7 +258,7 @@ export default function WorkspaceSwitcher() {
                   className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-[24px] h-[24px] flex items-center justify-center p-[5px] rounded-[5px] border border-[1px] border-[#1C1D1F1D]">
+                    <div className="w-[24px] h-[24px] flex items-center justify-center p-[5px] rounded border border-[1px] border-[#1C1D1F1D]">
                       <Plus className="size-3.5 text-[#5C5E63]"/>
                     </div>
                     Create new workspace

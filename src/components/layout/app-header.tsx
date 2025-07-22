@@ -121,13 +121,25 @@ function HeaderInner() {
               "
             >
               {activeBoard?.image && (
-                <Image
-                  src={activeBoard.image}
-                  alt={activeBoard.label || 'Board'}
-                  width={24}
-                  height={24}
-                  className="shrink-0"
-                />
+                <div 
+                  className={cn(
+                    "w-6 h-6 rounded flex items-center justify-center",
+                    // Apply board color as background to icon container when active
+                    activeBoard?.color ? "" : "bg-transparent"
+                  )}
+                  style={activeBoard?.color ? { backgroundColor: activeBoard.color } : undefined}
+                >
+                  <img
+                    src={activeBoard?.image}  
+                    alt={activeBoard?.label}
+                    className={cn(
+                      "w-4 h-4",
+                      // Make icon white when board is active and has a colored background
+                      activeBoard?.color && "filter brightness-0 invert"
+                    )}
+                    loading="lazy"
+                  />
+                </div>
               )}
               <span className="font-semibold text-lg tracking-[-0.6px]">{activeBoard?.label ?? 'Select board'}</span>
               <ChevronDown className="size-4 opacity-60" />
