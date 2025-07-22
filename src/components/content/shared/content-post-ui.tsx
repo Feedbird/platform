@@ -225,9 +225,10 @@ export function FormatBadge({
   kind,
   widthFull = false,
 }: {
-  kind: string;
+  kind?: string;
   widthFull: boolean;
 }) {
+  if (!kind) return null;
   // Default to static if kind not found
   const config = formatConfig[kind as FormatKind] || formatConfig["image"];
   const formatKey = kind;

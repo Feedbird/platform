@@ -17,6 +17,11 @@ const CalendarView = dynamic(() => import("@/components/content/content-calendar
   ssr: false,
   loading: () => <div className="p-4">Loading calendar...</div>,
 });
+
+const GridView = dynamic(() => import("@/components/content/content-grid/grid-view"), {
+  ssr: false,
+  loading: () => <div className="p-4">Loading grid...</div>,
+});
 import { PostRecordModal } from "@/components/content/post-record-modal/post-record-modal";
 
 /**
@@ -35,9 +40,10 @@ export function BoardInner() {
     if (boardId) setActiveBoard(boardId);
   }, [setActiveBoard, boardId]);
 
-  // 3. Decide which view: `table` (default) or `calendar` based on query param.
+  // 3. Decide which view: `table` (default), `calendar`, or `grid` based on query param.
   const search = useSearchParams();
-  const view = search.get("view") === "calendar" ? "calendar" : "table";
+  const view = search.get("view") === "calendar" ? "calendar" : 
+               search.get("view") === "grid" ? "grid" : "table";
 
   // 4. Pull all posts for the current brand, filtered by the active board.
   // Grab the entire contents array of the active brand once. Because the array
@@ -56,11 +62,13 @@ export function BoardInner() {
   // 5. For opening the record modal.
   const [openPostId, setOpenPostId] = useState<string | null>(null);
 
-  // 6. Render either the calendar or the table, plus the modal if needed.
+  // 6. Render the appropriate view, plus the modal if needed.
   return (
     <>
       {view === "calendar" ? (
         <CalendarView posts={posts} onOpen={(id) => setOpenPostId(id)} />
+      ) : view === "grid" ? (
+        <GridView posts={posts} onOpen={(id) => setOpenPostId(id)} />
       ) : (
         <PostTable posts={posts} onOpen={(id) => setOpenPostId(id)} />
       )}

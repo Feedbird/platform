@@ -77,11 +77,12 @@ function HeaderInner() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
 
-  /* view switcher (table | calendar) --------------------------- */
+  /* view switcher (table | calendar | grid) --------------------------- */
   const inContent = pathname.startsWith('/content/')
                  || pathname.startsWith('/approvals')
-  const view      = searchParams.get('view') === 'calendar' ? 'calendar' : 'table'
-  const setView   = (v:'table'|'calendar') => {
+  const view      = searchParams.get('view') === 'calendar' ? 'calendar' : 
+                   searchParams.get('view') === 'grid' ? 'grid' : 'table'
+  const setView   = (v:'table'|'calendar'|'grid') => {
     const p = new URLSearchParams(searchParams)
     p.set('view', v)
     router.replace(`${pathname}?${p.toString()}`)
@@ -380,6 +381,20 @@ function HeaderInner() {
           >
             <Image src="/images/icons/header-calendar.svg" alt="Calendar" width={14} height={14} />
             Calendar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setView('grid')}
+            className={cn(
+              'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
+              view === 'grid'
+                ? 'bg-white shadow'
+                : ''
+            )}
+          >
+            <Image src="/images/icons/header-grid.svg" alt="Calendar" width={14} height={14} />
+            Grid
           </Button>
         </div>
       )}
