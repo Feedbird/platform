@@ -265,6 +265,12 @@ export interface FeedbirdStore {
 
 const defaultPlatformNav: NavLink[] = [
   {
+    id: "messages",
+    label: "Messages",
+    image: "/images/sidebar/messages-on.svg",
+    href: "/messages",
+  },
+  {
     id: "notifications",
     label: "Notifications",
     image: "/images/sidebar/notifications-on.svg",
@@ -288,12 +294,12 @@ const defaultPlatformNav: NavLink[] = [
     image: "/images/sidebar/analytics.svg",
     href: "/analytics",
   },
-  {
-    id: "settings",
-    label: "Settings",
-    image: "/images/sidebar/settings.svg",
-    href: "/settings",
-  },
+  // {
+  //   id: "settings",
+  //   label: "Settings",
+  //   image: "/images/sidebar/settings.svg",
+  //   href: "/settings",
+  // },
 ];
 
 const defaultBoards: Board[] = [

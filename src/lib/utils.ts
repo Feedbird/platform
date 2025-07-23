@@ -86,6 +86,7 @@ export function getPageName(pathname: string): string {
 
   // Handle other main pages
   const pageNameMap: Record<string, string> = {
+    'messages': 'Messages',
     'analytics': 'Analytics',
     'brands': 'Brands',
     'approvals': 'Approvals',

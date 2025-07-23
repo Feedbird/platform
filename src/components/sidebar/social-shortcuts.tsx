@@ -45,7 +45,9 @@ export default function SocialShortcuts() {
     <TooltipProvider delayDuration={0}>
       {pages.map((page) => {
         const active = pathname.includes(page.id);
-        const content = (
+        
+        // Expanded content with text
+        const expandedContent = (
           <SidebarMenuButton
             asChild
             className={cn(
@@ -70,16 +72,39 @@ export default function SocialShortcuts() {
           </SidebarMenuButton>
         );
 
+        // Collapsed content with only icon
+        const collapsedContent = (
+          <SidebarMenuButton
+            asChild
+            className={cn(
+              active && "bg-[#D7E9FF]",
+              "p-[6px] text-black text-sm font-medium"
+            )}
+          >
+            <Link
+              href={`/social/${page.id}`}
+              className="flex items-center justify-center w-full"
+            >
+              <Image
+                src={`/images/platforms/${page.platform}.svg`}
+                alt={page.name}
+                width={18}
+                height={18}
+              />
+            </Link>
+          </SidebarMenuButton>
+        );
+
         return (
           <SidebarMenuItem key={page.id}>
             {state === 'collapsed' ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  {content}
+                  {collapsedContent}
                 </TooltipTrigger>
                 <TooltipContent
                   side="right" 
-                  className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md [&>svg]:hidden [&>div]:hidden"
+                  className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md"
                 >
                   <Image
                     src={`/images/platforms/${page.platform}.svg`}
@@ -91,7 +116,7 @@ export default function SocialShortcuts() {
                 </TooltipContent>
               </Tooltip>
             ) : (
-              content
+              expandedContent
             )}
           </SidebarMenuItem>
         );

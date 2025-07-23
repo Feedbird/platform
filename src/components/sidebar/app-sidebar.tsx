@@ -16,6 +16,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -71,6 +72,12 @@ import { BorderAll, BorderColor } from "@mui/icons-material";
 
 const defaultPlatformNav: NavLink[] = [
   {
+    id: "messages",
+    label: "Messages",
+    image: "/images/sidebar/messages-on.svg",
+    href: "/messages",
+  },
+  {
     id: "notifications",
     label: "Notifications",
     image: "/images/sidebar/notifications-on.svg",
@@ -94,12 +101,12 @@ const defaultPlatformNav: NavLink[] = [
     image: "/images/sidebar/analytics.svg",
     href: "/analytics",
   },
-  {
-    id: "settings",
-    label: "Settings",
-    image: "/images/sidebar/settings.svg",
-    href: "/settings",
-  },
+  // {
+  //   id: "settings",
+  //   label: "Settings",
+  //   image: "/images/sidebar/settings.svg",
+  //   href: "/settings",
+  // },
 ];
 
 const defaultBoardNav: NavLink[] = [
@@ -235,22 +242,17 @@ const BoardCount = ({
 }) => {
   const count = useBoardCount(boardId);
 
-  const styles = {
-    expanded: cn(
-      "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none",
-      isActive && boardColor 
-        ? "text-white" 
-        : "text-[#5C5E63]"
-    ),
-    collapsed: "text-[10px] font-semibold text-gray-500 bg-gray-100 px-1 py-0.5 rounded ml-1"
-  };
+  const styles = cn(
+    "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none",
+    isActive && boardColor ? "text-white" : "text-[#5C5E63]"
+  );
 
   if (count === null) {
     return null;
   }
 
   return (
-    <span className={styles[variant]}>
+    <span className={styles}>
       {count}
     </span>
   );
@@ -302,7 +304,8 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           /* ----------------------------------------------------------- */
           const imageSrc = nav.image;
 
-          const RowContent = (
+          // Create separate content for expanded and collapsed states
+          const ExpandedContent = (
             <SidebarMenuButton
               asChild
               className={cn(
@@ -395,14 +398,83 @@ export const RenderNavItems = React.memo(function RenderNavItems({
             </SidebarMenuButton>
           );
 
+          // Create collapsed content that only shows the icon
+          const CollapsedContent = (
+            <SidebarMenuButton
+              asChild
+              className={cn(
+                "group/row p-[6px] text-sm font-semibold",
+                "cursor-pointer focus:outline-none",
+                "text-black"
+              )}
+            >
+              {nav.href ? (
+                <LoadingLink
+                  href={nav.href}
+                  className="flex items-center justify-center w-full"
+                  loadingText={`Loading ${nav.label}…`}
+                >
+                  {imageSrc && (
+                    <div 
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center",
+                        // Apply board color as background to icon container when active
+                        active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
+                      )}
+                      style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                    >
+                      <img
+                        src={imageSrc}
+                        alt={nav.label}
+                        className={cn(
+                          isBoard ? "w-3.5 h-3.5" : "w-4.5 h-4.5",
+                          // Make icon white when board is active and has a colored background
+                          active && isBoard && boardColor && "filter brightness-0 invert"
+                        )}
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                </LoadingLink>
+              ) : (
+                <button
+                  onClick={nav.onClick}
+                  className="flex items-center justify-center w-full cursor-pointer focus:outline-none"
+                >
+                  {imageSrc && (
+                    <div 
+                    className={cn(
+                      "w-5 h-5 rounded flex items-center justify-center",
+                      // Apply board color as background to icon container when active
+                      active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
+                    )}
+                    style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                  >
+                    <img
+                      src={imageSrc}
+                      alt={nav.label}
+                      className={cn(
+                        isBoard ? "w-3.5 h-3.5" : "w-4.5 h-4.5",
+                        // Make icon white when board is active and has a colored background
+                        active && isBoard && boardColor && "filter brightness-0 invert"
+                      )}
+                      loading="lazy"
+                    />
+                  </div>
+                  )}
+                </button>
+              )}
+            </SidebarMenuButton>
+          );
+
           return (
             <SidebarMenuItem key={nav.id} className={isBoard ? "group/row" : undefined}>
               {!isClient || state !== 'collapsed' ? (
-                RowContent
+                ExpandedContent
               ) : (
                 <Tooltip>
-                  <TooltipTrigger asChild>{RowContent}</TooltipTrigger>
-                  <TooltipContent side="right" className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md [&>svg]:hidden [&>div]:hidden">
+                  <TooltipTrigger asChild>{CollapsedContent}</TooltipTrigger>
+                  <TooltipContent side="right" className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md">
                     {imageSrc && (
                       <div 
                         className={cn(
@@ -424,7 +496,20 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       </div>
                     )}
                     <span className="text-sm font-medium">{nav.label}</span>
-                    {isBoard && <BoardCount boardId={nav.id} variant="collapsed" />}
+                    {isBoard && 
+                      <div
+                        className={cn(
+                          "flex items-center rounded",
+                          active && boardColor ? "text-white" : "text-black"
+                        )}
+                        style={
+                          active && boardColor
+                            ? { backgroundColor: boardColor }
+                            : undefined
+                        }
+                      >
+                        <BoardCount boardId={nav.id} isActive={!!active} boardColor={boardColor} />
+                      </div>}
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -618,25 +703,31 @@ export function AppSidebar() {
         {/* -------------------- BOARDS ------------------------------- */}
         {isClient && (
         <SidebarGroup>
-          <SidebarGroupLabel>
-            <div className="flex items-center justify-between w-full cursor-pointer">
-              <div
-                className="flex items-center text-[#75777C] gap-1.5"
-                onClick={() => setBoardsOpen((o) => !o)}
-              >
-                {boardsOpen ? <ChevronDown className="w-4.5 h-4.5" /> : <ChevronRight className="w-4.5 h-4.5" />}
-                <span className="text-[10px] font-semibold tracking-wide">BOARDS</span>
-              </div>
-              <button onClick={() => setIsAddBoardModalOpen(true)} className="hover:bg-gray-100 rounded">
-                <Image
-                  src={`/images/sidebar/plus.svg`}
-                  alt="board plus"
-                  width={18}
-                  height={18}
-                />
-              </button>
+          {state === 'collapsed' ? (
+            <div className="px-1 py-1">
+              <SidebarSeparator className="bg-gray-200" />
             </div>
-          </SidebarGroupLabel>
+          ) : (
+            <SidebarGroupLabel>
+              <div className="flex items-center justify-between w-full cursor-pointer">
+                <div
+                  className="flex items-center text-[#75777C] gap-1.5"
+                  onClick={() => setBoardsOpen((o) => !o)}
+                >
+                  {boardsOpen ? <ChevronDown className="w-4.5 h-4.5" /> : <ChevronRight className="w-4.5 h-4.5" />}
+                  <span className="text-[10px] font-semibold tracking-wide">BOARDS</span>
+                </div>
+                <button onClick={() => setIsAddBoardModalOpen(true)} className="hover:bg-gray-100 rounded">
+                  <Image
+                    src={`/images/sidebar/plus.svg`}
+                    alt="board plus"
+                    width={18}
+                    height={18}
+                  />
+                </button>
+              </div>
+            </SidebarGroupLabel>
+          )}
 
           {boardsOpen && (
             <div className="mt-1">
@@ -649,25 +740,31 @@ export function AppSidebar() {
         {/* -------------------- SOCIALS ------------------------------ */}
         {isClient && (
         <SidebarGroup>
-          <SidebarGroupLabel>
-            <div className="flex items-center justify-between w-full cursor-pointer">
-              <div
-                className="flex items-center text-[#75777C] gap-1.5"
-                onClick={() => setSocialOpen((o) => !o)}
-              >
-                {socialOpen ? <ChevronDown className="w-4.5 h-4.5" /> : <ChevronRight className="w-4.5 h-4.5" />}
-                <span className="text-[10px] font-semibold tracking-wide">SOCIALS</span>
-              </div>
-              <button onClick={() => setIsManageSocialsOpen(true)} className="hover:bg-gray-100 rounded">
-                <Image
-                  src={`/images/sidebar/plus.svg`}
-                  alt="social plus"
-                  width={18}
-                  height={18}
-                />
-              </button>
+          {state === 'collapsed' ? (
+            <div className="px-1 py-1">
+              <SidebarSeparator className="bg-gray-200" />
             </div>
-          </SidebarGroupLabel>
+          ) : (
+            <SidebarGroupLabel>
+              <div className="flex items-center justify-between w-full cursor-pointer">
+                <div
+                  className="flex items-center text-[#75777C] gap-1.5"
+                  onClick={() => setSocialOpen((o) => !o)}
+                >
+                  {socialOpen ? <ChevronDown className="w-4.5 h-4.5" /> : <ChevronRight className="w-4.5 h-4.5" />}
+                  <span className="text-[10px] font-semibold tracking-wide">SOCIALS</span>
+                </div>
+                <button onClick={() => setIsManageSocialsOpen(true)} className="hover:bg-gray-100 rounded">
+                  <Image
+                    src={`/images/sidebar/plus.svg`}
+                    alt="social plus"
+                    width={18}
+                    height={18}
+                  />
+                </button>
+              </div>
+            </SidebarGroupLabel>
+          )}
 
           {socialOpen && (
             <SidebarMenu className="mt-1">
