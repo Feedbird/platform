@@ -107,3 +107,44 @@ export function getPageName(pathname: string): string {
   // Default fallback
   return 'Dashboard';
 }
+
+/**
+ * Row height configuration and utilities
+ */
+export const ROW_HEIGHT_CONFIG = {
+  "Small": 40,
+  "Medium": 48,
+  "Large": 72,
+  "X-Large": 120,
+  "XX-Large": 308,
+} as const;
+
+export type RowHeightType = keyof typeof ROW_HEIGHT_CONFIG;
+
+/**
+ * Convert row height string to pixel value
+ */
+export function getRowHeightPixels(rowHeight: RowHeightType): number {
+  return ROW_HEIGHT_CONFIG[rowHeight];
+}
+
+/**
+ * Convert pixel value to row height string
+ */
+export function getRowHeightString(pixels: number): RowHeightType {
+  const entries = Object.entries(ROW_HEIGHT_CONFIG);
+  const closest = entries.reduce((prev, curr) => {
+    return Math.abs(curr[1] - pixels) < Math.abs(prev[1] - pixels) ? curr : prev;
+  });
+  return closest[0] as RowHeightType;
+}
+
+/**
+ * Get all available row height options
+ */
+export function getRowHeightOptions() {
+  return Object.entries(ROW_HEIGHT_CONFIG).map(([label, value]) => ({
+    label,
+    value,
+  }));
+}

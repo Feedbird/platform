@@ -3,12 +3,13 @@
 import * as React from 'react';
 import { BlocksPreview } from './BlocksPreview';
 import { Block } from '@/lib/store/use-feedbird-store';
+import { RowHeightType } from "@/lib/utils";
 
 export type BlocksPreviewProps = {
   blocks: Block[];
   postId: string;
   onFilesSelected?: (files: File[]) => void;
-  rowHeight: number;
+  rowHeight: RowHeightType;
 };
 
 export const MemoBlocksPreview = React.memo(

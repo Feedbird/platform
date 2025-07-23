@@ -348,7 +348,7 @@ const DEFAULT_BOARDS: Board[] = [
       approvalDeadline: false,
       groupBy: null,
       sortBy: null,
-      rowHeight: 130,
+      rowHeight: "Large",
     }
   },
   { 
@@ -363,7 +363,7 @@ const DEFAULT_BOARDS: Board[] = [
       approvalDeadline: false,
       groupBy: null,
       sortBy: null,
-      rowHeight: 60,
+      rowHeight: "Medium",
     }
   },
   { 
@@ -378,7 +378,7 @@ const DEFAULT_BOARDS: Board[] = [
       approvalDeadline: false,
       groupBy: null,
       sortBy: null,
-      rowHeight: 60,
+      rowHeight: "Medium",
     }
   },
 ];

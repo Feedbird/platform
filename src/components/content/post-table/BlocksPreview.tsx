@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Block } from "@/lib/store/use-feedbird-store";
 import { Plus, Check, X } from "lucide-react";
-import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
+import { cn, calculateAspectRatioWidth, getAspectRatioType, RowHeightType, getRowHeightPixels } from "@/lib/utils";
 import { BlockThumbnail } from "./BlockThumbnail";
 import ClipLoader from "react-spinners/ClipLoader";
 import { useUploader } from "@/lib/hooks/use-uploader";
@@ -22,7 +22,7 @@ export function BlocksPreview({
   blocks: Block[];
   postId: string;
   onFilesSelected?: (files: File[]) => void;
-  rowHeight: number;
+  rowHeight: RowHeightType;
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -148,7 +148,7 @@ export function BlocksPreview({
               }
             };
 
-            const thumbHeight = rowHeight > 10 ? rowHeight - 8 : rowHeight;
+            const thumbHeight = getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight);
             const widthStyle = (() => {
               if (!dims) {
                 // Fallback to square if dimensions not available
@@ -224,7 +224,7 @@ export function BlocksPreview({
 
           {/* Existing blocks - shown after uploads */}
           {blocks.map((block) => (
-            <BlockThumbnail key={block.id} block={block} height={rowHeight > 10 ? rowHeight - 8 : rowHeight} />
+            <BlockThumbnail key={block.id} block={block} height={getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight)} />
           ))}
         </div>
       )}

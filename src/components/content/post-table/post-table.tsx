@@ -88,6 +88,7 @@ import {
 import { format, parse } from "date-fns";
 import Papa from "papaparse";
 import { Platform } from "@/lib/social/platforms/platform-types";
+import { RowHeightType, getRowHeightPixels } from "@/lib/utils";
 
 type FinalGroup = {
   groupValues: Record<string, any>   // e.g. { status: "Pending Approval", channels: "TikTok,LinkedIn" }
@@ -197,14 +198,14 @@ const MemoizedRow = React.memo(
     table: ReactTableType<Post>;
     fillDragColumn: string | null;
     fillDragRange: [number, number] | null;
-    rowHeight: number;
+    rowHeight: RowHeightType;
     columnOrder: string[];
   }) => {
     return (
       <TableRow
         key={row.id}
         data-rowkey={row.index}
-        style={{ height: rowHeight }}
+        style={{ height: getRowHeightPixels(rowHeight) }}
         className={cn(
           "group",
           "hover:bg-[#F9FAFB]",
@@ -402,6 +403,15 @@ export function PostTable({
 }) {
   const [mounted, setMounted] = React.useState(false);
   const [tableData, setTableData] = React.useState<Post[]>(posts);
+  const [trashedPosts, setTrashedPosts] = React.useState<Post[]>([]);
+  const [showUndoMessage, setShowUndoMessage] = React.useState(false);
+  const [lastTrashedCount, setLastTrashedCount] = React.useState(0);
+  const undoTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  const [duplicatedPosts, setDuplicatedPosts] = React.useState<Post[]>([]);
+  const [showDuplicateUndoMessage, setShowDuplicateUndoMessage] = React.useState(false);
+  const [lastDuplicatedCount, setLastDuplicatedCount] = React.useState(0);
+  const duplicateUndoTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const store = useFeedbirdStore();
   const updatePost = useFeedbirdStore((s) => s.updatePost);
   const updateBoard = useFeedbirdStore((s) => s.updateBoard);
@@ -543,7 +553,7 @@ export function PostTable({
     startSize: null
   });
 
-  const [rowHeight, setRowHeight] = React.useState<number>(60);
+  const [rowHeight, setRowHeight] = React.useState<RowHeightType>("Medium");
 
   // Track if changes are user-initiated vs board switching
   const userInitiatedChangeRef = React.useRef(false);
@@ -780,12 +790,48 @@ export function PostTable({
   }
 
   function handleDuplicatePosts(posts: Post[]) {
+    // Clear any existing timeout
+    if (duplicateUndoTimeoutRef.current) {
+      clearTimeout(duplicateUndoTimeoutRef.current);
+    }
+
+    const duplicatedPosts: Post[] = [];
     posts.forEach((orig) => {
       const dup = store.duplicatePost(orig);
       if (dup) {
+        duplicatedPosts.push(dup);
         setTableData((prev) => [...prev, dup]);
       }
     });
+
+    // Store duplicated posts and show undo message
+    setDuplicatedPosts(prev => [...prev, ...duplicatedPosts]);
+    setLastDuplicatedCount(duplicatedPosts.length);
+    setShowDuplicateUndoMessage(true);
+    table.resetRowSelection();
+
+    // Auto-hide duplicate undo message after 5 seconds
+    duplicateUndoTimeoutRef.current = setTimeout(() => {
+      setShowDuplicateUndoMessage(false);
+    }, 5000);
+  }
+
+  function handleUndoDuplicate() {
+    // Clear the timeout
+    if (duplicateUndoTimeoutRef.current) {
+      clearTimeout(duplicateUndoTimeoutRef.current);
+      duplicateUndoTimeoutRef.current = null;
+    }
+
+    // Remove the last duplicated posts
+    const postsToRemove = duplicatedPosts.slice(-lastDuplicatedCount);
+    setDuplicatedPosts(prev => prev.slice(0, -lastDuplicatedCount));
+    setTableData(prev => prev.filter(p => !postsToRemove.map(dp => dp.id).includes(p.id)));
+    
+    // Update the store to reflect the removed posts - use deletePost for each post
+    postsToRemove.forEach(post => store.deletePost(post.id));
+    
+    setShowDuplicateUndoMessage(false);
   }
 
   // "Caption Editor" states
@@ -1195,7 +1241,6 @@ export function PostTable({
             // 2. Create blocks from uploaded files
             // 3. Update post with new blocks
           }, [post.id]);
-
           return (
             <div
               className="flex flex-1 px-[4px] py-[4px] h-full"
@@ -1252,7 +1297,7 @@ export function PostTable({
             <CaptionCell
               captionLocked={captionLocked}
               post={post}
-              rowHeight={rowHeight}
+              rowHeight={getRowHeightPixels(rowHeight)}
               rowIndex={row.index}
               onFillStart={handleFillStartCaption}
               isFocused={isFocused}
@@ -2037,7 +2082,7 @@ export function PostTable({
                     <TableRow
                       key={row.id}
                       data-rowkey={row.index}
-                      style={{ height: rowHeight }}
+                      style={{ height: getRowHeightPixels(rowHeight) }}
                       className={cn(
                         "group hover:bg-[#F9FAFB]",
                         row.getIsSelected() && "bg-[#EBF5FF]"
@@ -2415,9 +2460,42 @@ export function PostTable({
     onOpen?.(post.id);
   }
   function handleDeletePosts(selected: Post[]) {
-    selected.forEach((p) => store.deletePost(p.id));
+    // Clear any existing timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+
+    // Move posts to trash instead of permanently deleting
+    setTrashedPosts(prev => [...prev, ...selected]);
     setTableData((prev) => prev.filter((p) => !selected.map((xx) => xx.id).includes(p.id)));
+    setLastTrashedCount(selected.length);
+    setShowUndoMessage(true);
     table.resetRowSelection();
+
+    // Auto-hide undo message after 5 seconds
+    undoTimeoutRef.current = setTimeout(() => {
+      setShowUndoMessage(false);
+      // When timeout expires, permanently delete the posts from store
+      selected.forEach((p) => store.deletePost(p.id));
+    }, 5000);
+  }
+
+  function handleUndoTrash() {
+    // Clear the timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = null;
+    }
+
+    // Restore the last trashed posts
+    const postsToRestore = trashedPosts.slice(-lastTrashedCount);
+    setTrashedPosts(prev => prev.slice(0, -lastTrashedCount));
+    setTableData(prev => [...prev, ...postsToRestore]);
+    
+    // The posts are already in the store (they were just moved to trash locally)
+    // No need to update the store - just restore them to the table display
+    
+    setShowUndoMessage(false);
   }
 
   const selectedRows = table.getSelectedRowModel().flatRows;
@@ -2430,6 +2508,18 @@ export function PostTable({
   React.useEffect(() => {
     document.documentElement.style.setProperty('--background', '#FFFFFF');
     document.documentElement.style.setProperty('--background-selected', '#EBF5FF');
+  }, []);
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+      if (duplicateUndoTimeoutRef.current) {
+        clearTimeout(duplicateUndoTimeoutRef.current);
+      }
+    };
   }, []);
 
   // ─────────────────────────────────────────────────────────────
@@ -2767,114 +2857,162 @@ export function PostTable({
       {/* ────────────────────────────────────────────────────────────────
           Bulk-action toolbar – shows up when rows are selected
       ────────────────────────────────────────────────────────────────── */}
-      {selectedPosts.length > 0 && (
+      {selectedPosts.length > 0 && !showUndoMessage && !showDuplicateUndoMessage && (
         <div
           className="
             fixed bottom-4 left-1/2 -translate-x-1/2 z-50
             flex items-center gap-4
             bg-black border rounded-lg shadow-xl
-            px-5 py-3 text-white
+            pl-2 pr-3 py-1.5 text-white gap-3
           "
         >
           {/* how many rows? */}
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium whitespace-nowrap">
-              {selectedPosts.length} selected
-            </span>
-            <div className="h-4 w-[1px] bg-white/20" />
-          </div>
-
-          {/* approve */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              // Define which statuses allow approval actions
-              const allowedStatusesForApproval = [
-                "Pending Approval",
-                "Revised", 
-                "Needs Revisions",
-                "Approved"
-              ];
-              
-              selectedPosts.forEach(post => {
-                // Only approve if the status allows it
-                if (allowedStatusesForApproval.includes(post.status)) {
-                  updatePost(post.id, { status: "Approved" });
-                }
-              });
-              table.resetRowSelection();
-            }}
-            className="gap-1"
-          >
-            <CheckIcon className="w-4 h-4" />
-            Approve
-          </Button>
-
-          {/* auto-schedule */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              selectedPosts.forEach(post => {
-                // Add your auto-schedule logic here
-                updatePost(post.id, { status: "Scheduled" });
-              });
-              table.resetRowSelection();
-            }}
-            className="gap-1"
-          >
-            <CalendarIcon className="w-4 h-4" />
-            Auto-Schedule
-          </Button>
-
-          {/* unschedule */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              selectedPosts.forEach(post => {
-                // Add your unschedule logic here
-                updatePost(post.id, { status: "Draft" });
-              });
-              table.resetRowSelection();
-            }}
-            className="gap-1"
-          >
-            <XIcon className="w-4 h-4" />
-            Unschedule
-          </Button>
-
-          {/* duplicate */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => handleDuplicatePosts(selectedPosts)}
-            className="gap-1"
-          >
-            <Copy className="w-4 h-4" />
-            Duplicate
-          </Button>
-
-          {/* delete */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => handleDeletePosts(selectedPosts)}
-            className="gap-1"
-          >
-            <Trash2Icon className="w-4 h-4" />
-            Delete
-          </Button>
-
-          {/* clear selection */}
-          <Button
-            size="icon"
-            variant="ghost"
+          <div 
+            className="py-2 px-3 rounded-md outline outline-1 outline-offset-[-1px] outline-white/20 inline-flex justify-start items-center gap-1 cursor-pointer" 
             onClick={() => table.resetRowSelection()}
-            title="Clear selection"
           >
-            <XIcon className="w-4 h-4" />
+            <span className="text-sm font-medium whitespace-nowrap">
+              {selectedPosts.length} Selected
+            </span>
+            <XIcon className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex justify-start items-center">
+            {/* approve */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                // Define which statuses allow approval actions
+                const allowedStatusesForApproval = [
+                  "Pending Approval",
+                  "Revised", 
+                  "Needs Revisions",
+                  "Approved"
+                ];
+                
+                selectedPosts.forEach(post => {
+                  // Only approve if the status allows it
+                  if (allowedStatusesForApproval.includes(post.status)) {
+                    updatePost(post.id, { status: "Approved" });
+                  }
+                });
+                table.resetRowSelection();
+              }}
+              className="gap-1.5 text-sm cursor-pointer"
+            >
+              <Image src="/images/status/approved.svg" alt="approved" width={16} height={16} />
+              Approve
+            </Button>
+
+            {/* auto-schedule */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                selectedPosts.forEach(post => {
+                  // Add your auto-schedule logic here
+                  updatePost(post.id, { status: "Scheduled" });
+                });
+                table.resetRowSelection();
+              }}
+              className="gap-1 cursor-pointer"
+            >
+              <Image src="/images/publish/clock-check.svg" alt="approved" width={16} height={16} />
+              Auto-Schedule
+            </Button>
+
+            {/* unschedule */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                selectedPosts.forEach(post => {
+                  // Add your unschedule logic here
+                  updatePost(post.id, { status: "Draft" });
+                });
+                table.resetRowSelection();
+              }}
+              className="gap-1 cursor-pointer"
+            >
+              <Image src="/images/publish/clock-plus.svg" alt="approved" width={16} height={16} />
+              Unschedule
+            </Button>
+
+            {/* duplicate */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDuplicatePosts(selectedPosts)}
+              className="gap-1 cursor-pointer"
+            >
+              <Image src="/images/boards/duplicate.svg" alt="approved" width={16} height={16} />
+              Duplicate
+            </Button>
+
+            {/* delete */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDeletePosts(selectedPosts)}
+              className="gap-1 cursor-pointer"
+            >
+              <Image src="/images/boards/delete-red.svg" alt="approved" width={16} height={16} />
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────
+          Undo message – shows up when posts are moved to trash
+      ────────────────────────────────────────────────────────────────── */}
+      {showUndoMessage && (
+        <div
+          className="
+            absolute bottom-4 left-4 z-50
+            flex items-center
+            bg-black border rounded-lg shadow-xl
+            pl-4 pr-1 py-2 text-white gap-1
+          "
+        >
+          <span className="text-sm font-medium whitespace-nowrap mr-3">
+            {lastTrashedCount} record{lastTrashedCount > 1 ? 's' : ''} moved to trash
+          </span>
+          <div className="h-[16px] w-[1px] bg-white/20" />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleUndoTrash}
+            className="gap-1 cursor-pointer hover:text-black"
+          >
+            <span className="text-sm">Undo</span>
+          </Button>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────
+          Duplicate undo message – shows up when posts are duplicated
+      ────────────────────────────────────────────────────────────────── */}
+      {showDuplicateUndoMessage && (
+        <div
+          className="
+            absolute bottom-4 left-4 z-50
+            flex items-center
+            bg-black border rounded-lg shadow-xl
+            pl-4 pr-1 py-2 text-white gap-1
+          "
+        >
+          <span className="text-sm font-medium whitespace-nowrap mr-3">
+            {lastDuplicatedCount} record{lastDuplicatedCount > 1 ? 's' : ''} duplicated
+          </span>
+          <div className="h-[16px] w-[1px] bg-white/20" />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleUndoDuplicate}
+            className="gap-1 cursor-pointer hover:text-black"
+          >
+            <span className="text-sm">Undo</span>
           </Button>
         </div>
       )}

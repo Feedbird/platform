@@ -17,6 +17,7 @@ import { getPlatformOperations } from "../social/platforms";
 import { handleError } from "../utils/error-handler";
 import { BaseError } from "../utils/exceptions/base-error";
 import { withLoading } from "../utils/loading/loading-store";
+import { RowHeightType } from "../utils";
 
 export interface BoardRules {
   autoSchedule: boolean;
@@ -24,7 +25,7 @@ export interface BoardRules {
   approvalDeadline: boolean;
   groupBy: string | null;
   sortBy: string | null;
-  rowHeight: number;
+  rowHeight: RowHeightType;
   firstMonth?: number;
   ongoingMonth?: number;
   approvalDays?: number;
@@ -308,7 +309,7 @@ const defaultBoards: Board[] = [
       approvalDeadline: false,
       groupBy: null,
       sortBy: null,
-      rowHeight: 130,
+      rowHeight: "Large",
     }
   },
   { 
@@ -323,7 +324,7 @@ const defaultBoards: Board[] = [
       approvalDeadline: false,
       groupBy: null,
       sortBy: null,
-      rowHeight: 60,
+      rowHeight: "Medium",
     }
   },
   { 
@@ -338,7 +339,7 @@ const defaultBoards: Board[] = [
       approvalDeadline: false,
       groupBy: null,
       sortBy: null,
-      rowHeight: 60,
+      rowHeight: "Medium",
     }
   },
 ];
@@ -402,7 +403,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "status",
-              rowHeight: 60,
+              rowHeight: "Large",
               firstMonth: 3,
               ongoingMonth: 2,
               approvalDays: 7,
@@ -420,7 +421,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: false,
               groupBy: "month",
               sortBy: "publishDate",
-              rowHeight: 40,
+              rowHeight: "Small",
             }
           },
           { 
@@ -435,7 +436,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "publishDate",
-              rowHeight: 90,
+              rowHeight: "X-Large",
               firstMonth: 5,
               ongoingMonth: 3,
               approvalDays: 14,
@@ -453,7 +454,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: false,
               groupBy: "status",
               sortBy: "publishDate",
-              rowHeight: 60,
+              rowHeight: "Large",
             }
           },
           { 
@@ -468,7 +469,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "status",
-              rowHeight: 60,
+              rowHeight: "Large",
               firstMonth: 2,
               ongoingMonth: 1,
               approvalDays: 30,
@@ -486,7 +487,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "publishDate",
-              rowHeight: 90,
+              rowHeight: "X-Large",
               firstMonth: 6,
               ongoingMonth: 3,
               approvalDays: 60,
@@ -504,7 +505,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "month",
               sortBy: "publishDate",
-              rowHeight: 130,
+              rowHeight: "XX-Large",
               firstMonth: 5,
               ongoingMonth: 2,
               approvalDays: 14,
@@ -522,7 +523,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               approvalDeadline: true,
               groupBy: "status",
               sortBy: "updatedAt",
-              rowHeight: 60,
+              rowHeight: "Large",
               firstMonth: 3,
               ongoingMonth: 1,
               approvalDays: 30,
@@ -538,9 +539,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               autoSchedule: true,
               revisionRules: true,
               approvalDeadline: true,
-              groupBy: "platforms",
-              sortBy: "status",
-              rowHeight: 60,
+              groupBy: "month",
+              sortBy: "publishDate",
+              rowHeight: "X-Large",
               firstMonth: 4,
               ongoingMonth: 2,
               approvalDays: 7,

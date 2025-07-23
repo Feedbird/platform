@@ -39,7 +39,7 @@ export default function BrandSwitcher() {
     // Render a placeholder or null on the server and initial client render
     return (
       <div className="relative">
-        <span className='py-0 text-xs absolute top-[-8px] left-[10px] text-grey bg-background leading-none'>Brand</span>
+        <span className='py-0 text-xs absolute top-[-6px] left-[10px] text-grey bg-background leading-none'>Brand</span>
         <button className="flex items-center gap-[8px] cursor-pointer rounded-[6px] border border-border-button px-[8px] py-[5px] text-sm h-[38px] w-[150px]">
           <span className="font-medium text-sm text-gray-500">Loading…</span>
         </button>
@@ -60,7 +60,7 @@ export default function BrandSwitcher() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild className='cursor-pointer p-0'>
         <div className="relative">
-          <span className='py-0 text-xs absolute top-[-8px] left-[10px] text-grey bg-background leading-none'>Brand</span>
+          <span className='py-0 text-xs absolute top-[-6px] left-[10px] text-grey bg-background leading-none'>Brand</span>
           <button className="flex items-center gap-[8px] cursor-pointer rounded-[6px] border border-border-button px-[8px] py-[5px] text-sm">
             {active?.logo && (
               <Image

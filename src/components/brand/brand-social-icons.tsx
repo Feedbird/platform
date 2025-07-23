@@ -57,7 +57,7 @@ export default function BrandSocialIcons() {
         <HoverCard openDelay={120}>
           <HoverCardTrigger asChild className='cursor-pointer p-0'>
             <div className="relative" onClick={() => setDialogOpen(true)}>
-              <span className="py-0 text-xs absolute top-[-8px] left-[10px] text-grey bg-background leading-none">
+              <span className="py-0 text-xs absolute top-[-6px] left-[10px] text-grey bg-background leading-none">
                 Socials
               </span>
               <div className="flex items-center text-sm justify-center px-[8px] py-[5px] rounded-[6px] cursor-pointer border border-border-button">

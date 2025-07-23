@@ -14,12 +14,12 @@ import { Button } from "@/components/ui/button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { cn } from "@/lib/utils";
 import { Rows4, Rows3, Rows2, RectangleHorizontal, Maximize2 } from "lucide-react";
+import { ROW_HEIGHT_CONFIG, RowHeightType } from "@/lib/utils";
 
 interface RowHeightMenuProps {
-  rowHeight: number;
-  setRowHeight: React.Dispatch<React.SetStateAction<number>>;
+  rowHeight: RowHeightType;
+  setRowHeight: React.Dispatch<React.SetStateAction<RowHeightType>>;
 }
-
 
 export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
   // Control whether the dropdown is open or closed
@@ -28,27 +28,27 @@ export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
   // We can define each label + icon (using custom SVGs)
   const possibleHeights = [
     {
-      value: 40,
+      value: "Small" as RowHeightType,
       label: "Small",
       icon: <Rows4 fontSize="small" width={12} height={12} />,
     },
     {
-      value: 60,
+      value: "Medium" as RowHeightType,
       label: "Medium",
       icon: <Rows3 fontSize="small" width={12} height={12} />,
     },
     {
-      value: 90,
+      value: "Large" as RowHeightType,
       label: "Large",
       icon: <Rows2 fontSize="small" width={12} height={12} />,
     },
     {
-      value: 130,
+      value: "X-Large" as RowHeightType,
       label: "X-Large",
       icon: <RectangleHorizontal fontSize="small" width={12} height={12} />,
     },
     {
-      value: 160,
+      value: "XX-Large" as RowHeightType,
       label: "XX-Large",
       icon: <Maximize2 fontSize="small" width={12} height={12} />,
     },
@@ -85,11 +85,9 @@ export function RowHeightMenu({ rowHeight, setRowHeight }: RowHeightMenuProps) {
             className="flex items-center justify-between"
           >
             <div className="flex items-center gap-2">
-              {/* Left icon */}
               {item.icon}
               <span>{item.label}</span>
             </div>
-            {/* Right icon to show current selection */}
             {rowHeight === item.value && (
               <CheckCircleIcon fontSize="small" sx={{ color: "#00c951" }} />
             )}

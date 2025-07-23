@@ -18,6 +18,7 @@ import {
 import { ImageIcon, X, Rows4, Rows3, Rows2, RectangleHorizontal, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, FolderOpen, Columns2, ChevronDown, ChevronUp, ListPlus, Film, EditIcon } from "lucide-react";
+import { ROW_HEIGHT_CONFIG, RowHeightType } from "@/lib/utils";
 
 const GROUP_OPTIONS = [
     {
@@ -82,27 +83,27 @@ const SORT_OPTIONS = [
 
 const possibleHeights = [
   {
-    value: 40,
+    value: "Small",
     label: "Small",
     icon: <Rows4 fontSize="small"/>,
   },
   {
-    value: 60,
+    value: "Medium",
     label: "Medium",
     icon: <Rows3 fontSize="small"/>,
   },
   {
-    value: 90,
+    value: "Large",
     label: "Large",
     icon: <Rows2 fontSize="small"/>,
   },
   {
-    value: 130,
+    value: "X-Large",
     label: "X-Large",
     icon: <RectangleHorizontal fontSize="small"/>,
   },
   {
-    value: 160,
+    value: "XX-Large",
     label: "XX-Large",
     icon: <Maximize2 fontSize="small"/>,
   },
@@ -114,7 +115,7 @@ export interface BoardRules {
   approvalDeadline: boolean;
   groupBy: string | null;
   sortBy: string | null;
-  rowHeight: number;
+  rowHeight: RowHeightType;
   firstMonth?: number; // -1 represents "Unlimited"
   ongoingMonth?: number; // -1 represents "Unlimited"
   approvalDays?: number; // 7,14,30,60,custom
@@ -142,7 +143,7 @@ export function BoardRulesModal({
     approvalDeadline: false,
     groupBy: null,
     sortBy: null,
-    rowHeight: 48,
+    rowHeight: "Medium",
     ...initialRules,
   });
 
@@ -154,7 +155,7 @@ export function BoardRulesModal({
         approvalDeadline: false,
         groupBy: "month",
         sortBy: "status",
-        rowHeight: 48,
+        rowHeight: "Medium",
         ...initialRules,
       });
     } else {
@@ -165,7 +166,7 @@ export function BoardRulesModal({
         approvalDeadline: false,
         groupBy: null,
         sortBy: null,
-        rowHeight: 48,
+        rowHeight: "Medium",
       });
     }
   }, [isOpen]); // Remove initialRules from dependency array
@@ -480,8 +481,8 @@ export function BoardRulesModal({
                 <div className="text-[13px] font-medium text-black leading-none">Row Height</div>
                 <div className="w-full">
                   <Select
-                    value={String(rules.rowHeight)}
-                    onValueChange={(val) => updateRule('rowHeight', Number(val))}
+                    value={rules.rowHeight}
+                    onValueChange={(val) => updateRule('rowHeight', val as RowHeightType)}
                   >
                     <SelectTrigger className="w-full px-3 py-2 bg-white rounded-md shadow-[0px_2px_2px_-1px_rgba(7,10,22,0.06)] shadow-[0px_1px_2px_-1px_rgba(7,10,22,0.02)] shadow-[0px_0px_1px_0px_rgba(224,224,224,1.00)] border border-[#D3D3D3] flex justify-start items-center gap-2 overflow-hidden">
                       {(() => {
@@ -500,7 +501,7 @@ export function BoardRulesModal({
                     </SelectTrigger>
                     <SelectContent>
                       {possibleHeights.map(h => (
-                        <SelectItem key={h.value} value={String(h.value)}>
+                        <SelectItem key={h.value} value={h.value}>
                           <div className="flex items-center gap-2">
                             {h.icon}
                             {h.label}
