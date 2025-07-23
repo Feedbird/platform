@@ -205,7 +205,7 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
                   style={{ filter: "invert(1) brightness(2)" }}
                 />
                 <span className="text-xs">
-                  {post.publishDate ? format(new Date(post.publishDate), "p") : "Not scheduled"}
+                  {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
                 </span>
               </div>
 
@@ -278,7 +278,7 @@ function DragOverlayItem({ post }: { post: Post }) {
   };
 
   return (
-    <div className="relative w-54 h-71.5 bg-white border border-gray-200 overflow-hidden shadow-xl rounded-lg transform rotate-1">
+    <div className="relative w-54 h-71.5 bg-white border border-gray-200">
       <div className="relative w-full h-full">
         {isVideo(post) ? (
           <video
