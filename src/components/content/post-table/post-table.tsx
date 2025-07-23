@@ -555,6 +555,9 @@ export function PostTable({
 
   const [rowHeight, setRowHeight] = React.useState<RowHeightType>("Medium");
 
+  // State to track if scrolling is needed
+  const [isScrollable, setIsScrollable] = React.useState(false);
+
   // Track if changes are user-initiated vs board switching
   const userInitiatedChangeRef = React.useRef(false);
   const lastBoardIdRef = React.useRef<string | null>(null);
@@ -655,11 +658,37 @@ export function PostTable({
     lastScrollLeftRef.current = el.scrollLeft;
   }
 
+  // Function to check if scrolling is needed
+  const checkIfScrollable = React.useCallback(() => {
+    if (!scrollContainerRef.current) return;
+    
+    const container = scrollContainerRef.current;
+    const isScrollableNow = container.scrollHeight > container.clientHeight;
+    setIsScrollable(isScrollableNow);
+  }, []);
+
   React.useEffect(() => {
     return () => {
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, []);
+
+  // Check if scrolling is needed when table data changes
+  React.useEffect(() => {
+    // Use a small delay to ensure the DOM has updated
+    const timer = setTimeout(checkIfScrollable, 100);
+    return () => clearTimeout(timer);
+  }, [tableData, checkIfScrollable]);
+
+  // Check if scrolling is needed when window resizes
+  React.useEffect(() => {
+    const handleResize = () => {
+      checkIfScrollable();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [checkIfScrollable]);
 
   // Filter states
   const [filterOpen, setFilterOpen] = React.useState(false);
@@ -2389,51 +2418,54 @@ export function PostTable({
                 </TableCell>
               </TableRow>
             )}
-            <TableRow 
-              className="group hover:bg-[#F9FAFB]"
-            >
-              {(() => {
-                const visibleColumns = table.getVisibleLeafColumns();
-                const firstCol = visibleColumns[0];
-                const secondCol = visibleColumns[1];
-                const thirdCol = visibleColumns[2];
 
-                const stickyWidth = firstCol.getSize() + secondCol.getSize() + thirdCol.getSize();
-                const restOfCols = visibleColumns.slice(3);
+            {/* "Add new record" row - only show when not scrollable */}
+            {!isScrollable && (
+              <TableRow className="group hover:bg-[#F9FAFB]">
+                {(() => {
+                  const visibleColumns = table.getVisibleLeafColumns();
+                  const firstCol = visibleColumns[0];
+                  const secondCol = visibleColumns[1];
+                  const thirdCol = visibleColumns[2];
 
-                return (
-                  <>
-                    <TableCell
-                      colSpan={3}
-                      className="px-3 py-3 bg-white border-t border-[#EAE9E9]"
-                      style={{
-                        ...stickyStyles('drag', 10),
-                        width: stickyWidth,
-                      }}
-                    >
-                      <button
-                        className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
-                        onClick={handleAddRowUngrouped}
-                      >
-                        <PlusIcon size={16} />
-                        Add new record
-                      </button>
-                    </TableCell>
-                    {restOfCols.map((col, index) => (
+                  const stickyWidth = firstCol.getSize() + secondCol.getSize() + thirdCol.getSize();
+                  const restOfCols = visibleColumns.slice(3);
+
+                  return (
+                    <>
                       <TableCell
-                        key={col.id}
-                        className={cn(
-                          "px-3 py-3 bg-white border-t border-[#EAE9E9]",
-                        )}
+                        colSpan={3}
+                        className="px-3 py-3 bg-white border-t border-[#EAE9E9]"
                         style={{
-                          width: col.getSize(),
+                          ...stickyStyles('drag', 10),
+                          width: stickyWidth,
                         }}
-                      />
-                    ))}
-                  </>
-                );
-              })()}
-            </TableRow>
+                      >
+                        <button
+                          className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
+                          onClick={handleAddRowUngrouped}
+                        >
+                          <PlusIcon size={16} />
+                          Add new record
+                        </button>
+                      </TableCell>
+                      {restOfCols.map((col, index) => (
+                        <TableCell
+                          key={col.id}
+                          className={cn(
+                            "px-3 py-3 bg-white border-t border-[#EAE9E9]",
+                          )}
+                          style={{
+                            width: col.getSize(),
+                          }}
+                        />
+                      ))}
+                    </>
+                  );
+                })()}
+              </TableRow>
+            )}
+
           </TableBody>
         </table>
       </div>
@@ -2745,6 +2777,7 @@ export function PostTable({
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#D0D5DD #F9FAFB',
+                paddingBottom: grouping.length === 0 && isScrollable ? '20px' : '0px', // Add padding for fixed button only when scrollable
               }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleRowDrop}
@@ -2786,6 +2819,23 @@ export function PostTable({
                 )}
               </div>
             </div>
+            
+            {/* Fixed "Add new record" button for ungrouped view - only when scrollable */}
+            {grouping.length === 0 && isScrollable && (
+              <div 
+                className="absolute bottom-0 px-3 py-3 left-1 right-0 bg-white border-t border-[#EAE9E9] z-20"
+              >
+                <div className="flex items-center h-full">
+                  <button
+                    className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
+                    onClick={handleAddRowUngrouped}
+                  >
+                    <PlusIcon size={16} />
+                    Add new record
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </CellFocusProvider>
 
