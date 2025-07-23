@@ -63,7 +63,7 @@ export default function SocialShortcuts() {
                 width={18}
                 height={18}
               />
-              <span className="font-semibold truncate text-black">
+              <span className="font-medium truncate text-black">
                 {page.name}
               </span>
             </Link>
