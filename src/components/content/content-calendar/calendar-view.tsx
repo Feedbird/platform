@@ -41,7 +41,7 @@ import {
   ChannelIcons,
   statusConfig,
 } from "@/components/content/shared/content-post-ui";
-import { cn } from '@/lib/utils'
+import { cn, getMonthColor, getBulletColor } from '@/lib/utils'
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 // Reuse existing thumbnail component for consistent video/image preview
 
@@ -418,17 +418,7 @@ export default function CalendarView({
     /* Reserved for potential future use (e.g. highlighting). */
   }
 
-  // Function to generate a unique color for each month
-  function getMonthColor(month: number): string {
-    // Using HSL color space for better color distribution
-    const hue = (month * 7) % 360; // Spread colors across the hue spectrum
-    return `hsl(${hue}, 70%, 90%)`; // Light pastel colors
-  }
-  // Darker variant for the bullet
-  function getBulletColor(month: number): string {
-    const hue = (month * 7) % 360;
-    return `hsl(${hue}, 70%, 40%)`;          // same hue, lower lightness
-  }
+
 
   /**
    * When a user drags a post to a new date we:

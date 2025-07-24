@@ -27,7 +27,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Post, Status } from "@/lib/store/use-feedbird-store";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { ChannelIcons, statusConfig, StatusChip, FormatBadge } from "@/components/content/shared/content-post-ui";
-import { cn } from "@/lib/utils";
+import { cn, getMonthColor, getBulletColor } from "@/lib/utils";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 interface GridViewProps {
@@ -35,16 +35,7 @@ interface GridViewProps {
   onOpen?: (postId: string) => void;
 }
 
-// Month color helpers (same as MonthEditCell)
-function getMonthColor(month: number): string {
-  const hue = (month * 7) % 360;
-  return `hsl(${hue}, 70%, 90%)`;
-}
 
-function getBulletColor(month: number): string {
-  const hue = (month * 7) % 360;
-  return `hsl(${hue}, 70%, 40%)`;
-}
 
 // Sortable grid item component
 function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: string) => void }) {

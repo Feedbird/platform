@@ -149,3 +149,31 @@ export function getRowHeightOptions() {
     value,
   }));
 }
+
+/**
+ * Generate a unique color for each month with better distribution
+ * Uses a combination of hue rotation and saturation/lightness variations
+ * to ensure months close together have very different colors
+ */
+export function getMonthColor(month: number): string {
+  // Use a larger multiplier to spread colors more widely
+  const baseHue = (month * 30) % 360; // 30 degrees apart instead of 7
+  
+  // Add variation based on month position to create more distinct colors
+  const saturation = 60 + (month % 3) * 15; // 60%, 75%, or 90%
+  const lightness = 85 + (month % 2) * 10;  // 85% or 95%
+  
+  return `hsl(${baseHue}, ${saturation}%, ${lightness}%)`;
+}
+
+/**
+ * Generate a darker variant of the month color for bullets/indicators
+ * Uses the same hue but with lower lightness for contrast
+ */
+export function getBulletColor(month: number): string {
+  const baseHue = (month * 30) % 360;
+  const saturation = 60 + (month % 3) * 15;
+  const lightness = 35 + (month % 2) * 10; // 35% or 45% for darker variant
+  
+  return `hsl(${baseHue}, ${saturation}%, ${lightness}%)`;
+}

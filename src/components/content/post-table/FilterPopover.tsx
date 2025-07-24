@@ -35,7 +35,7 @@ import {
   ChevronUp,
   Check,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getMonthColor } from "@/lib/utils";
 
 import {
   StatusChip,
@@ -106,10 +106,7 @@ const formatOptions: ContentFormat[] = [
 
 const monthOptions = Array.from({ length: 50 }, (_, i) => (i + 1).toString());
 
-function getMonthColor(month: number): string {
-  const hue = (month * 7) % 360;
-  return `hsl(${hue}, 70%, 90%)`;
-}
+
 
 const formatDisplayNames: Record<ContentFormat, string> = {
   image: "Static Image",

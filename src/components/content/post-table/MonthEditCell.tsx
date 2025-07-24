@@ -3,7 +3,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDownIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, getMonthColor, getBulletColor } from "@/lib/utils";
 
 interface MonthEditCellProps {
   value: number;
@@ -20,18 +20,7 @@ interface MonthEditCellProps {
   exitEdit?: () => void;
 }
 
-// Function to generate a unique color for each month
-function getMonthColor(month: number): string {
-  // Using HSL color space for better color distribution
-  const hue = (month * 7) % 360; // Spread colors across the hue spectrum
-  return `hsl(${hue}, 70%, 90%)`; // Light pastel colors
-}
 
-// Darker variant for the bullet
-function getBulletColor(month: number): string {
-  const hue = (month * 7) % 360;
-  return `hsl(${hue}, 70%, 40%)`;          // same hue, lower lightness
-}
 
 export function MonthEditCell({
   value,
