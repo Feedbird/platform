@@ -130,113 +130,129 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
         )}
       </div>
 
-      {/* Hover Overlay */}
-      <div className="absolute inset-0 bg-black/0">
-        {/* Top-right Format badge (hover) */}
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <FormatBadge kind={post.format} widthFull={false} />
-        </div>
+       {/* Always visible post time */}
+       <div className="absolute bottom-2 left-2 pointer-events-none opacity-100 group-hover:opacity-0 transition-opacity duration-200">
+         <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md">
+           <Image
+             src="/images/columns/post-time.svg"
+             alt="Time"
+             width={10}
+             height={10}
+             style={{ filter: "invert(1) brightness(2)" }}
+           />
+           <span className="text-xs text-white font-medium">
+             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+           </span>
+         </div>
+       </div>
 
-        {/* Month pill (hover) */}
-        <div
-          className="absolute top-2 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          style={{ pointerEvents: 'none' }}
-        >
-          <div
-            style={{
-              display: 'inline-flex',
-              padding: '2px 8px',
-              alignItems: 'center',
-              borderRadius: '100px',
-              border: '1px solid rgba(28, 29, 31, 0.05)',
-              background: getMonthColor(post.month),
-            }}
-            className="text-xs font-semibold text-black gap-1"
-          >
-            <span
-              className="w-[6px] h-[6px] rounded-full"
-              style={{ background: getBulletColor(post.month) }}
-            />
-            <span>{`Month ${post.month}`}</span>
-          </div>
-        </div>
+       {/* Hover Overlay */}
+       <div className="absolute inset-0 bg-black/0">
+         {/* Top-right Format badge (hover) */}
+         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+           <FormatBadge kind={post.format} widthFull={false} />
+         </div>
 
-        {/* Bottom Section - Blurred area with details */}
-        <div className="absolute bottom-0 left-0 right-0 h-29 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-[4px] flex flex-col">
-          <div className="flex flex-col h-full absolute bottom-0 left-0 right-0 p-3 text-white">
-            {/* Status chip at the top */}
-            <div className="mb-2 flex-shrink-0">
-              <StatusChip status={post.status as Status} widthFull={false} />
-            </div>
+         {/* Month pill (hover) */}
+         <div
+           className="absolute top-2 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+           style={{ pointerEvents: 'none' }}
+         >
+           <div
+             style={{
+               display: 'inline-flex',
+               padding: '2px 8px',
+               alignItems: 'center',
+               borderRadius: '100px',
+               border: '1px solid rgba(28, 29, 31, 0.05)',
+               background: getMonthColor(post.month),
+             }}
+             className="text-xs font-semibold text-black gap-1"
+           >
+             <span
+               className="w-[6px] h-[6px] rounded-full"
+               style={{ background: getBulletColor(post.month) }}
+             />
+             <span>{`Month ${post.month}`}</span>
+           </div>
+         </div>
 
-            {/* Caption fills the available space */}
-            <div className="flex-1 flex items-center">
-              <p
-                className="text-xs leading-tight overflow-hidden"
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  width: '100%',
-                }}
-              >
-                {post.caption?.default || "No caption"}
-              </p>
-            </div>
+         {/* Bottom Section - Blurred area with details */}
+         <div className="absolute bottom-0 left-0 right-0 h-29 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-[4px] flex flex-col">
+           <div className="flex flex-col h-full absolute bottom-0 left-0 right-0 p-3 text-white">
+             {/* Status chip at the top */}
+             <div className="mb-2 flex-shrink-0">
+               <StatusChip status={post.status as Status} widthFull={false} />
+             </div>
 
-            {/* Bottom row - Post time and platforms */}
-            <div className="flex justify-between items-center mt-2 flex-shrink-0">
-              {/* Post time */}
-              <div className="flex items-center gap-1">
-                <Image
-                  src="/images/columns/post-time.svg"
-                  alt="Time"
-                  width={12}
-                  height={12}
-                  style={{ filter: "invert(1) brightness(2)" }}
-                />
-                <span className="text-xs">
-                  {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
-                </span>
-              </div>
+             {/* Caption fills the available space */}
+             <div className="flex-1 flex items-center">
+               <p
+                 className="text-xs leading-tight overflow-hidden"
+                 style={{
+                   display: '-webkit-box',
+                   WebkitLineClamp: 2,
+                   WebkitBoxOrient: 'vertical',
+                   width: '100%',
+                 }}
+               >
+                 {post.caption?.default || "No caption"}
+               </p>
+             </div>
 
-              {/* Platform icons */}
-              <div className="flex items-center">
-                {(() => {
-                  const plats = post.platforms || [];
-                  const showAll = plats.length <= 5;
-                  const displayed = showAll ? plats : plats.slice(0,4);
-                  return displayed.map((platform, idx) => (
-                    <div
-                      key={platform}
-                      className={cn(
-                        idx === 0 ? '' : '-ml-1',
-                        'w-4.5 h-4.5'
-                      )}
-                    >
-                      <ChannelIcons
-                        channels={[platform]}
-                        size={18}
-                        whiteBorder={true}
-                      />
-                    </div>
-                  ));
-                })()}
-                {post.platforms && post.platforms.length > 5 && (
-                  <span
-                    className={cn(
-                      '-ml-1 w-4.5 h-4.5 flex items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-gray-700 relative z-10'
-                    )}
-                    style={{ lineHeight: '18px' }}
-                  >
-                    {post.platforms.length - 4}+
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+             {/* Bottom row - Post time and platforms */}
+             <div className="flex justify-between items-center mt-2 flex-shrink-0">
+               {/* Post time */}
+               <div className="flex items-center gap-1">
+                 <Image
+                   src="/images/columns/post-time.svg"
+                   alt="Time"
+                   width={12}
+                   height={12}
+                   style={{ filter: "invert(1) brightness(2)" }}
+                 />
+                 <span className="text-xs">
+                   {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+                 </span>
+               </div>
+
+               {/* Platform icons */}
+               <div className="flex items-center">
+                 {(() => {
+                   const plats = post.platforms || [];
+                   const showAll = plats.length <= 5;
+                   const displayed = showAll ? plats : plats.slice(0,4);
+                   return displayed.map((platform, idx) => (
+                     <div
+                       key={platform}
+                       className={cn(
+                         idx === 0 ? '' : '-ml-1',
+                         'w-4.5 h-4.5'
+                       )}
+                     >
+                       <ChannelIcons
+                         channels={[platform]}
+                         size={18}
+                         whiteBorder={true}
+                       />
+                     </div>
+                   ));
+                 })()}
+                 {post.platforms && post.platforms.length > 5 && (
+                   <span
+                     className={cn(
+                       '-ml-1 w-4.5 h-4.5 flex items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-gray-700 relative z-10'
+                     )}
+                     style={{ lineHeight: '18px' }}
+                   >
+                     {post.platforms.length - 4}+
+                   </span>
+                 )}
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
     </div>
   );
 }
@@ -288,6 +304,20 @@ function DragOverlayItem({ post }: { post: Post }) {
             className="w-full h-full object-cover"
           />
         )}
+        <div className="absolute bottom-2 left-2 pointer-events-none">
+         <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md">
+           <Image
+             src="/images/columns/post-time.svg"
+             alt="Time"
+             width={10}
+             height={10}
+             style={{ filter: "invert(1) brightness(2)" }}
+           />
+           <span className="text-xs text-white font-medium">
+             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+           </span>
+         </div>
+       </div>
       </div>
     </div>
   );
