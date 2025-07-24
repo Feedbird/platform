@@ -24,7 +24,6 @@ export function BlocksPreview({
   onFilesSelected?: (files: File[]) => void;
   rowHeight: RowHeightType;
 }) {
-  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -63,7 +62,6 @@ export function BlocksPreview({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
@@ -81,6 +79,13 @@ export function BlocksPreview({
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    // If there are existing items, let the parent handle the click
+    if (blocks.length > 0 || uploads.length > 0) {
+      // Don't stop propagation - let the parent handle showing detail view
+      return;
+    }
+    
+    // Only stop propagation and open file browser when cell is empty
     e.stopPropagation();
     fileInputRef.current?.click();
   };
@@ -95,28 +100,25 @@ export function BlocksPreview({
   };
 
   const handleMouseEnter = () => {
-    setIsHovered(true);
-    checkWidthAndUpdateText();
+    // Only show hover effect when there are no existing items
+    if (blocks.length === 0 && uploads.length === 0) {
+      setIsHovered(true);
+      checkWidthAndUpdateText();
+    }
   };
 
   return (
     <div
       ref={containerRef}
-      className={cn(
-        "relative flex items-center w-full h-full cursor-pointer transition-colors duration-150",
-        (isHovered || isDragOver) && "border border-dashed rounded-[2px]",
-        (isHovered || isDragOver) && "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-      )}
+      className="relative flex items-center w-full h-full cursor-pointer transition-colors duration-150"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
-      onDragEnter={() => setIsDragOver(true)}
-      onDragLeave={() => setIsDragOver(false)}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onClick={handleClick}
     >
       {/* Blocks and uploads container */}
-      {(blocks.length > 0 || uploads.length > 0) && !isHovered && !isDragOver && (
+      {(blocks.length > 0 || uploads.length > 0) && !isHovered && (
         <div
           className="
             block-previews-container
@@ -229,16 +231,14 @@ export function BlocksPreview({
         </div>
       )}
 
-      {/* Action group: plus button + optional text - always visible when hovering */}
-      {(isHovered || isDragOver) && (
+      {/* Action group: plus button + optional text - only visible when hovering and no existing items */}
+      {isHovered && (blocks.length === 0 && uploads.length === 0) && (
         <div
           className={cn(
             "flex flex-row items-center gap-2",
             "absolute transition-all duration-200",
-            isDragOver || isHovered ? "left-1/2 -translate-x-1/2" : "left-0 translate-x-0"
+            "left-1/2 -translate-x-1/2"
           )}
-          // Disable pointer events during drag so nested elements don't cause flicker
-          style={{ pointerEvents: isDragOver ? "none" : "auto" }}
         >
           <div
             className="flex flex-row items-center px-[4px] py-[1px] h-5 w-5 rounded-[4px] bg-white"

@@ -12,10 +12,10 @@ import {
   VersionComment,
   Activity,
   Board,
+  Status,
 } from "@/lib/store/use-feedbird-store";
 import { 
   Platform, 
-  Status, 
   FileKind,
   SocialPage as SocialPageType 
 } from "@/lib/social/platforms/platform-types";
@@ -50,6 +50,45 @@ const STATUSES: Status[] = [
   "Published",
   "Failed Publishing",
 ];
+
+/**
+ * Determines the correct post status based on publish date and current status
+ * If publish date is in the past, status should be 'Published' or 'Failed Publishing'
+ * If publish date is in the future or null, status should be one of the other statuses
+ */
+function determineCorrectStatus(currentStatus: Status, publishDate: Date | null): Status {
+  // If no publish date, keep current status
+  if (!publishDate) {
+    return currentStatus;
+  }
+
+  // Convert to Date object if it's a string (due to JSON serialization)
+  const publishDateObj = publishDate instanceof Date ? publishDate : new Date(publishDate);
+  
+  // Check if the date is valid
+  if (isNaN(publishDateObj.getTime())) {
+    return currentStatus;
+  }
+
+  const now = new Date();
+  const isPast = publishDateObj < now;
+  if (isPast) {
+    // If publish date is in the past, status should be 'Published' or 'Failed Publishing'
+    // Only change if current status is not already one of these
+    if (currentStatus === "Published" || currentStatus === "Failed Publishing") {
+      return currentStatus; // Keep as is
+    }
+    // For other statuses, change to Published (unless it was Failed Publishing)
+    return "Published";
+  } else {
+    // If publish date is in the future, keep current status
+    // Only change if current status is past-related and publish date is in future
+    if (currentStatus === "Published" || currentStatus === "Failed Publishing") {
+      return "Scheduled";
+    }
+    return currentStatus;
+  }
+}
 
 function rInt(min: number, max: number) {
   return faker.number.int({ min, max });
@@ -188,9 +227,7 @@ function makeActivity(postId: string): Activity {
 function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]): Post {
   // 20% chance the format is empty (not yet determined)
   const random = faker.number.int({ min: 0, max: 9 });
-  const format = random < 4
-    ? "" // empty / undetermined format
-    : faker.helpers.arrayElement<
+  const format = faker.helpers.arrayElement<
         "image" | "carousel" | "story" | "video" | "email" | "blog"
       >(["image", "carousel", "story", "video", "email", "blog"]);
 
@@ -204,19 +241,62 @@ function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]):
   );
 
   /* … everything else stays exactly the same … */
+  
+  // If preview (blocks) and caption exist, status should not be "Draft"
+  const captionText = faker.lorem.sentence();
+  const hasContent = blocks.length > 0 && captionText.trim().length > 0;
+  
+  // Generate initial status based on content availability
+  let initialStatus: Status;
+  if (!hasContent) {
+    initialStatus = "Draft";
+  } else {
+    // For posts with content, choose from non-draft statuses
+    const nonDraftStatuses = STATUSES.filter(status => status !== "Draft");
+    initialStatus = faker.helpers.arrayElement(nonDraftStatuses);
+  }
+  
+  // Generate publish date based on status requirements
+  let publishDate: Date | null = null;
+  const now = new Date();
+  const oneMonthAgo = new Date(now);
+  oneMonthAgo.setMonth(now.getMonth() - 1);
+  const oneMonthAhead = new Date(now);
+  oneMonthAhead.setMonth(now.getMonth() + 1);
+  
+  // If status requires a publish date, generate one
+  if (initialStatus === "Scheduled" || initialStatus === "Published" || initialStatus === "Failed Publishing") {
+    if (initialStatus === "Scheduled") {
+      // Scheduled posts should have future dates
+      publishDate = faker.date.between({ from: now, to: oneMonthAhead });
+    } else {
+      // Published or Failed Publishing should have past dates
+      publishDate = faker.date.between({ from: oneMonthAgo, to: now });
+    }
+  } else {
+    // For other statuses, randomly decide whether to have a publish date
+    publishDate = faker.helpers.arrayElement([
+      faker.date.between({ from: oneMonthAgo, to: now }), // Past date within 1 month
+      faker.date.between({ from: now, to: oneMonthAhead }), // Future date within 1 month
+      null, // No date
+    ]);
+  }
+  
+  // Apply the business rule: determine correct status based on publish date
+  const finalStatus = determineCorrectStatus(initialStatus, publishDate);
+  
   return {
     id: nanoid(),
     brandId,
     boardId,
     caption: {
       synced: true,
-      default: faker.lorem.sentence(),
+      default: captionText,
       perPlatform: {},
     },
-    status: faker.helpers.arrayElement(STATUSES),
+    status: finalStatus,
     format,
-    // publishDate: null as unknown as Date,
-    publishDate: faker.date.recent({ days: 3 }),
+    publishDate,
     updatedAt: null as unknown as Date,
     platforms: faker.helpers.arrayElements(brandPlatforms, { min: 1, max: 3 }),
     pages: [],

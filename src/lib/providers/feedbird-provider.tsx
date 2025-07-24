@@ -2,10 +2,13 @@
 
 import { useEffect } from 'react'
 import { generateDummyWorkspaces } from '@/lib/dummy/generate-dummy-workspaces'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useFeedbirdStore, usePostStatusTimeUpdater } from '@/lib/store/use-feedbird-store'
 
 export default function FeedbirdProvider({ children }: { children: React.ReactNode }) {
   const workspaces = useFeedbirdStore(s => s.workspaces)
+
+  // Initialize post status time updater
+  usePostStatusTimeUpdater();
 
   useEffect(() => {
     if (workspaces.length === 0) {

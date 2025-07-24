@@ -34,7 +34,7 @@ export function ApproveCell({
     if (isApproved) {
       // If currently approved, change to "Needs Revisions"
       updatePost(post.id, {
-        status: "Needs Revisions",
+        status: "Pending Approval",
       });
     } else {
       // For any other allowed status, approve it
@@ -47,7 +47,7 @@ export function ApproveCell({
   const handleRemoveApproval = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the main click handler
     updatePost(post.id, {
-      status: "Needs Revisions",
+      status: "Pending Approval",
     });
   };
 

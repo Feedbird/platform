@@ -227,6 +227,7 @@ export interface FeedbirdStore {
   publishPostToAllPages: (postId: string, scheduledTime?: Date) => Promise<void>;
   getPost: (id: string) => Post | undefined;
   updatePost: (pid: string, data: Partial<Post>) => void;
+  updatePostStatusesBasedOnTime: () => void;
   addWorkspace: (name: string, logo?: string) => string;
   removeWorkspace: (id: string) => void;
   addBrand: (name: string, logo?: string, styleGuide?: Brand['styleGuide'], link?: string, voice?: string, prefs?: string) => string;
@@ -385,6 +386,8 @@ function boardsToNav(boards: Board[]): NavLink[] {
     color: b.color // Add color to NavLink
   }));
 }
+
+
 
 /*─────────────────────────────────────────────────────────────────────*/
 /*  The Store                                                        */
@@ -1207,12 +1210,31 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     updated.blocks = p.blocks;
                   }
           
+                  // Business rule: If post is in "Draft" status and both blocks and caption are added,
+                  // automatically change status to "Pending Approval"
+                  if (p.status === "Draft") {
+                    const hasBlocks = updated.blocks && updated.blocks.length > 0;
+                    const hasCaption = updated.caption && 
+                      (updated.caption.default?.trim().length > 0 || 
+                       Object.values(updated.caption.perPlatform || {}).some(text => text?.trim().length > 0));
+                    
+                    if (hasBlocks && hasCaption) {
+                      updated.status = "Pending Approval";
+                    }
+                  }
+          
+                  // Business rule: Determine correct status based on publish date
+                  const correctStatus = determineCorrectStatus(updated.status, updated.publishDate);
+                  if (correctStatus !== updated.status) {
+                    updated.status = correctStatus;
+                  }
+          
                   // auto-update updatedAt if not final
                   const nonFinal = new Set([
                     "Draft","Pending Approval","Needs Revisions",
                     "Revised","Approved","Scheduled"
                   ]);
-                  if (nonFinal.has(p.status)) {
+                  if (nonFinal.has(updated.status)) {
                     updated.updatedAt = new Date();
                   }
                   return updated;
@@ -1303,6 +1325,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             id: "dup-" + nanoid(),
             updatedAt: new Date(),
           };
+          
+          // Apply business rule to duplicated post
+          const correctStatus = determineCorrectStatus(copy.status, copy.publishDate);
+          copy.status = correctStatus;
+          
           brand.contents.push(copy);
           set({ workspaces: [...st.workspaces] });
           return copy;
@@ -1310,8 +1337,13 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         setActivePosts: (posts) => {
           set((s) => {
             const brand = s.getActiveBrand();
-            if (!brand) return {};
-            brand.contents = posts;
+            const currentBoardId = s.activeBoardId;
+            if (!brand || !currentBoardId) return {};
+            
+            // Preserve posts from other boards and only update posts for the current board
+            const otherBoardPosts = brand.contents.filter(p => p.boardId !== currentBoardId);
+            brand.contents = [...otherBoardPosts, ...posts];
+            
             return { workspaces: [...s.workspaces] };
           });
         },
@@ -1336,6 +1368,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               brandId: targ.id,
               updatedAt: new Date(),
             };
+            
+            // Apply business rule to shared post
+            const correctStatus = determineCorrectStatus(cloned.status, cloned.publishDate);
+            cloned.status = correctStatus;
+            
             newArr.push(cloned);
           }
           if (newArr.length) {
@@ -1645,6 +1682,31 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             boardTemplates: s.boardTemplates.filter(t => t.id !== id)
           }));
         },
+
+        updatePostStatusesBasedOnTime: () => {
+          set((s) => {
+            let updatedCount = 0;
+            const newWs = s.workspaces.map((ws) => ({
+              ...ws,
+              brands: ws.brands.map((br) => ({
+                ...br,
+                contents: br.contents.map((p) => {
+                  const correctStatus = determineCorrectStatus(p.status, p.publishDate);
+                  if (correctStatus !== p.status) {
+                    console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publishDate: ${p.publishDate})`);
+                    updatedCount++;
+                    return { ...p, status: correctStatus };
+                  }
+                  return p;
+                }),
+              })),
+            }));
+            if (updatedCount > 0) {
+              console.log(`Updated ${updatedCount} post statuses based on time`);
+            }
+            return { workspaces: newWs };
+          });
+        },
       }),
       {
         name: "feedbird-v5",
@@ -1692,6 +1754,29 @@ export const useFeedbirdStoreWithHydration = <T>(selector: (state: FeedbirdStore
   return result;
 };
 
+// Hook to periodically update post statuses based on time
+export const usePostStatusTimeUpdater = () => {
+  const updatePostStatusesBasedOnTime = useFeedbirdStore(s => s.updatePostStatusesBasedOnTime);
+  
+  React.useEffect(() => {
+    console.log("PostStatusTimeUpdater: Initializing...");
+    
+    // Update immediately on mount
+    updatePostStatusesBasedOnTime();
+    
+    // Set up interval to check every 10 seconds for testing
+    const interval = setInterval(() => {
+      console.log("PostStatusTimeUpdater: Running periodic update...");
+      updatePostStatusesBasedOnTime();
+    }, 10000); // 10 seconds for testing
+    
+    return () => {
+      console.log("PostStatusTimeUpdater: Cleaning up...");
+      clearInterval(interval);
+    };
+  }, [updatePostStatusesBasedOnTime]);
+};
+
 /* Helper: Extract URLs from post.blocks that contain images, etc. */
 function extractMediaUrls(blocks: Block[]): string[] {
   if (!blocks?.length) return [];
@@ -1720,6 +1805,46 @@ const findPage = (brand: Brand | undefined, pageId: string) =>
 
 const findAccount = (brand: Brand | undefined, accountId: string) =>
   brand?.socialAccounts.find(a => a.id === accountId);
+
+/**
+ * Determines the correct post status based on publish date and current status
+ * If publish date is in the past, status should be 'Published' or 'Failed Publishing'
+ * If publish date is in the future or null, status should be one of the other statuses
+ */
+function determineCorrectStatus(currentStatus: Status, publishDate: Date | null): Status {
+  // If no publish date, keep current status
+  if (!publishDate) {
+    return currentStatus;
+  }
+
+  // Convert to Date object if it's a string (due to JSON serialization)
+  const publishDateObj = publishDate instanceof Date ? publishDate : new Date(publishDate);
+  
+  // Check if the date is valid
+  if (isNaN(publishDateObj.getTime())) {
+    return currentStatus;
+  }
+
+  const now = new Date();
+  const isPast = publishDateObj < now;
+
+  if (isPast) {
+    // If publish date is in the past, status should be 'Published' or 'Failed Publishing'
+    // Only change if current status is not already one of these
+    if (currentStatus === "Published" || currentStatus === "Failed Publishing") {
+      return currentStatus; // Keep as is
+    }
+    // For other statuses, change to Published (unless it was Failed Publishing)
+    return "Published";
+  } else {
+    // If publish date is in the future, keep current status
+    // Only change if current status is past-related and publish date is in future
+    if (currentStatus === "Published" || currentStatus === "Failed Publishing") {
+      return "Scheduled";
+    }
+    return currentStatus;
+  }
+}
 
 // A generic function to update a specific page within the nested state
 function updatePage(

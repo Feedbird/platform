@@ -48,6 +48,7 @@ export function CaptionCell(props: CaptionCellProps) {
   } = props;
 
   const [editedText, setEditedText] = React.useState("");
+  const [hasScroll, setHasScroll] = React.useState(false);
   const prevIsFocused = React.useRef(isFocused);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -76,13 +77,25 @@ export function CaptionCell(props: CaptionCellProps) {
     prevIsFocused.current = isFocused;
   }, [isFocused, editedText, text, onCaptionChange]);
 
-  React.useLayoutEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "inherit";
-      const newHeight = Math.max(textareaRef.current.scrollHeight, rowHeight - 12);
-      textareaRef.current.style.height = `${newHeight}px`;
+  // Check if textarea has scroll
+  React.useEffect(() => {
+    if (textareaRef.current && isFocused) {
+      const checkScroll = () => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const hasVerticalScroll = textarea.scrollHeight > textarea.clientHeight;
+          setHasScroll(hasVerticalScroll);
+        }
+      };
+      
+      checkScroll();
+      // Check again after a short delay to account for content changes
+      const timeoutId = setTimeout(checkScroll, 100);
+      return () => clearTimeout(timeoutId);
     }
-  }, [isFocused, editedText, rowHeight]);
+  }, [isFocused, editedText]);
+
+
 
   // 1) line-clamp logic
   React.useEffect(() => {
@@ -103,38 +116,39 @@ export function CaptionCell(props: CaptionCellProps) {
 
   return (
     <div ref={cellRef} className="relative w-full h-full">
-      <div
-        ref={ref}
-        className={cn(
-          isFocused ? "text-[#125AFF] bg-[#EDF6FF]" : "",
-          "px-[8px] py-[6px]",
-          "w-full h-full text-xs font-normal relative",
-          "whitespace-pre-wrap break-words overflow-hidden",
-          "tracking-[-0.24px]",
-          "[display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:var(--clamp)]",
-          showOrangeRing ? "ring-2 ring-orange-400" : ""
-        )}
-        title={errMsg || ""}
-      >
-        <>{text}</>
-      </div>
+        <div
+          ref={ref}
+          className={cn(
+            
+            "px-[8px] py-[6px]",
+            "w-full h-full text-xs font-normal relative",
+            "whitespace-pre-wrap break-words overflow-hidden",
+            "tracking-[-0.24px]",
+            "[display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:var(--clamp)]",
+            showOrangeRing ? "ring-2 ring-orange-400" : ""
+          )}
+          title={errMsg || ""}
+        >
+          <>{text}</>
+        </div>
 
       {/* The editing overlay with textarea + expand icon */}
       {isFocused && (
-        <div 
-          className={cn(
-            "absolute z-10 left-[-2px] top-[-3px] border border-[2px] border-[#125AFF]",
-            "min-w-[calc(100%+20px)]",
-            `min-h-[calc(100%+20px)]`,
-            "bg-[#EDF6FF] px-[8px] py-[6px]",
-            "whitespace-pre-wrap break-words",
-            "text-[#125AFF] text-xs font-normal",
-            "flex flex-row",
-            "justify-between"
-          )}
+                 <div
+           className={cn(
+             "absolute z-10 left-[-2px] top-[-3px] border border-[2px] border-[#125AFF]",
+             "min-w-[calc(100%+5px)]",
+             `min-h-[calc(100%+20px)]`,
+             "bg-white pl-[8px] py-[6px]",
+             "whitespace-pre-wrap break-words",
+             "text-xs font-normal",
+             !hasScroll && "pr-2"
+           )}
           style={{
             width: 'max-content',
             maxWidth: '400px',
+            maxHeight: `${rowHeight + 20}px`,
+            position: 'absolute'
           }}
         >
           <textarea
@@ -148,32 +162,25 @@ export function CaptionCell(props: CaptionCellProps) {
                 e.currentTarget.blur();
               }
             }}
-            className="flex-grow bg-transparent resize-none border-none focus:outline-none text-[#125AFF] text-xs font-normal"
+            className="w-full h-full bg-transparent resize-none border-none focus:outline-none text-xs font-normal"
+            style={{
+              minHeight: `${rowHeight}px`,
+              overflow: "auto"
+            }}
           />
           <button
             onClick={(e) => {
               e.stopPropagation();
               onEdit?.(post);
             }}
-            className="inline-flex rounded
-                        hover:bg-blue-50 active:bg-blue-100 text-blue-600
-                        border border-transparent 
-                        focus:outline-none focus:bg-transparent w-3 h-3 ml-2 self-start"
+            className="absolute top-1 right-1 inline-flex rounded
+            hover:bg-blue-50 active:bg-blue-100 text-blue-600
+            border border-transparent 
+            focus:outline-none focus:bg-transparent w-4 h-4 z-20"
             title="Open caption editor"
           >
-            <Maximize2 className="w-3 h-3 cursor-pointer" />
+            <Maximize2 className="w-4 h-4 cursor-pointer" />
           </button>
-
-          {/* Fill-handle (bottom-right, positioned relative to the overlay) */}
-          <div
-            className="absolute w-[8px] h-[8px] bg-white cursor-crosshair z-20"
-            style={{ right: "-3px", bottom: "-3px", border: "1px solid #125AFF" }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onFillStart?.(post.caption, rowIndex);
-            }}
-          />
         </div>
       )}
     </div>
