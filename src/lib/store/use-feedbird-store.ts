@@ -269,30 +269,34 @@ const defaultPlatformNav: NavLink[] = [
     id: "messages",
     label: "Messages",
     image: "/images/sidebar/messages-on.svg",
+    selectedImage: "/images/sidebar/messages-on-active.svg",
     href: "/messages",
   },
   {
     id: "notifications",
     label: "Notifications",
     image: "/images/sidebar/notifications-on.svg",
+    selectedImage: "/images/sidebar/notifications-on-active.svg",
     href: "/notifications",
   },
   {
     id: "approvals",
     label: "Approvals",
     image: "/images/sidebar/approvals.svg",
+    selectedImage: "/images/sidebar/approvals-active.svg",
     href: "/approvals",
   },
-  {
-    id: "brands",
-    label: "Brands",
-    image: "/images/sidebar/brands.svg",
-    href: "/brands",
-  },
+  // {
+  //   id: "brands",
+  //   label: "Brands",
+  //   image: "/images/sidebar/brands.svg",
+  //   href: "/brands",
+  // },
   {
     id: "analytics",
     label: "Analytics",
     image: "/images/sidebar/analytics.svg",
+    selectedImage: "/images/sidebar/analytics-active.svg",
     href: "/analytics",
   },
   // {
@@ -308,7 +312,6 @@ const defaultBoards: Board[] = [
     id: "static-posts", 
     name: "Static Posts", 
     image: "/images/boards/static-posts.svg", 
-    selectedImage: "/images/boards/static-posts-selected.svg",
     color: "#125AFF",
     rules: {
       autoSchedule: false,
@@ -323,7 +326,6 @@ const defaultBoards: Board[] = [
     id: "short-form-videos", 
     name: "Short-Form Videos", 
     image: "/images/boards/short-form-videos.svg", 
-    selectedImage: "/images/boards/short-form-videos-selected.svg",
     color: "#125AFF",
     rules: {
       autoSchedule: false,
@@ -338,7 +340,6 @@ const defaultBoards: Board[] = [
     id: "email-design", 
     name: "Email Design", 
     image: "/images/boards/email-design.svg", 
-    selectedImage: "/images/boards/email-design-selected.svg",
     color: "#125AFF",
     rules: {
       autoSchedule: false,

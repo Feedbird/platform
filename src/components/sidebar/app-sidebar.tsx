@@ -75,30 +75,34 @@ const defaultPlatformNav: NavLink[] = [
     id: "messages",
     label: "Messages",
     image: "/images/sidebar/messages-on.svg",
+    selectedImage: "/images/sidebar/messages-on-active.svg",
     href: "/messages",
   },
   {
     id: "notifications",
     label: "Notifications",
     image: "/images/sidebar/notifications-on.svg",
+    selectedImage: "/images/sidebar/notifications-on-active.svg",
     href: "/notifications",
   },
   {
     id: "approvals",
     label: "Approvals",
     image: "/images/sidebar/approvals.svg",
+    selectedImage: "/images/sidebar/approvals-active.svg",
     href: "/approvals",
   },
-  {
-    id: "brands",
-    label: "Brands",
-    image: "/images/sidebar/brands.svg",
-    href: "/brands",
-  },
+  // {
+  //   id: "brands",
+  //   label: "Brands",
+  //   image: "/images/sidebar/brands.svg",
+  //   href: "/brands",
+  // },
   {
     id: "analytics",
     label: "Analytics",
     image: "/images/sidebar/analytics.svg",
+    selectedImage: "/images/sidebar/analytics-active.svg",
     href: "/analytics",
   },
   // {
@@ -302,7 +306,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           /*  ICON SELECTION                                            */
           /*  Use the original image and apply color styling instead    */
           /* ----------------------------------------------------------- */
-          const imageSrc = nav.image;
+          const imageSrc = active && nav.selectedImage ? nav.selectedImage : nav.image;
 
           // Create separate content for expanded and collapsed states
           const ExpandedContent = (
