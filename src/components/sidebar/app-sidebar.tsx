@@ -342,7 +342,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       />
                     </div>
                   )}
-                  <span className="flex-1 truncate text-sm font-medium">{nav.label}</span>
+                  <span className={cn("text-sm font-medium", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
 
                   {isBoard && (
                     <div className="flex items-center gap-1 ml-auto">
@@ -392,7 +392,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     />
                   </div>
                   )}
-                  <span className="flex-1 text-sm font-medium">{nav.label}</span>
+                  <span className={cn("text-sm font-medium", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
                 </button>
               )}
             </SidebarMenuButton>
@@ -495,7 +495,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         />
                       </div>
                     )}
-                    <span className="text-sm font-medium">{nav.label}</span>
+                    <span className={cn("text-sm font-medium", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
                     {isBoard && 
                       <div
                         className={cn(

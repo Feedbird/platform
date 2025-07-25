@@ -66,6 +66,7 @@ import {
 import { nanoid } from "nanoid";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state/empty-state";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -436,24 +437,8 @@ export function PostTable({
   }, [pathname]);
   
   /* -----------------------------------------------------------
-   *  When no posts exist for this board, seed 3 blank drafts
+   *  Auto-creation of draft posts has been disabled
    * -----------------------------------------------------------*/
-  React.useEffect(() => {
-    if (posts.length === 0 && pathname?.includes("/content/")) {
-      const created: Post[] = [];
-      for (let i = 0; i < 3; i++) {
-        const np = store.addPost();
-        if (np) {
-          // ensure status is Draft but leave format empty
-          updatePost(np.id, { status: "Draft" });
-          created.push({ ...np, status: "Draft" });
-        }
-      }
-      if (created.length) {
-        setTableData(created);
-      }
-    }
-  }, [posts, pathname, defaultFormat, store, updatePost]);
 
   React.useEffect(() => {
     setMounted(true);
@@ -788,9 +773,27 @@ export function PostTable({
 
   // For "Add Row" logic
   function handleAddRowUngrouped() {
-    const newPost = store.addPost();
-    if (newPost) {
-      setTableData((prev) => [...prev, newPost]);
+    console.log("@@@@@@@@@@@@@@@@@@@@@@handleAddRowUngrouped");
+    // Only create 3 posts if there are no posts at all
+    if (tableData.length === 0) {
+      const newPosts: Post[] = [];
+      for (let i = 0; i < 3; i++) {
+        const np = store.addPost();
+        if (np) {
+          // ensure status is Draft but leave format empty
+          updatePost(np.id, { status: "Draft" });
+          newPosts.push({ ...np, status: "Draft" });
+        }
+      }
+      if (newPosts.length > 0) {
+        console.log("@@@@@@@@@@@@@@@@@@@@@@newPosts: ", newPosts.length);
+        setTableData(newPosts);
+      }
+    } else {
+      const newPost = store.addPost();
+      if (newPost) {
+        setTableData((prev) => [...prev, newPost]);
+      }
     }
   }
 
@@ -2055,7 +2058,7 @@ export function PostTable({
           </tbody>
 
           {/* ─── One <tbody> per final group ────────────────────── */}
-          {groups.map((group, idx) => {
+          {groups.length > 0 && groups.map((group, idx) => {
             const key = JSON.stringify(group.groupValues);
             const isExpanded = !!flatGroupExpanded[key];
 
@@ -2386,8 +2389,7 @@ export function PostTable({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
+            {table.getRowModel().rows.length > 0 && table.getRowModel().rows.map((row) => (
                 <MemoizedRow
                   key={`${row.id}-${columnOrder.join('-')}`}
                   row={row}
@@ -2407,17 +2409,7 @@ export function PostTable({
                   rowHeight={rowHeight}
                   columnOrder={columnOrder}
                 />
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-20 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
+            ))}
 
             {/* "Add new record" row - only show when not scrollable */}
             {!isScrollable && (
@@ -2705,7 +2697,7 @@ export function PostTable({
         </DropdownMenu>
 
         {/* Top Bar */}
-        <div className="flex flex-wrap items-center justify-between py-[10px] border-b border-border-primary">
+        <div className="flex flex-wrap items-center justify-between border-b border-border-primary">
           <div className="flex gap-[6px] relative pl-[14px]">
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-2 p-2 bg-white">
@@ -2818,7 +2810,42 @@ export function PostTable({
                   renderUngroupedTable()
                 )}
               </div>
+              
+              {/* Empty state displayed below table when no posts */}
+              {table.getRowModel().rows.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-40">
+                  <div className="relative w-[120px] h-[120px] flex items-center justify-center">
+                    <Image
+                      src="/images/boards/comment-container.svg"
+                      alt="No records"
+                      width={120}
+                      height={120}
+                    />
+                    <div
+                      className="absolute w-4 h-4 bg-white/80"
+                      style={{
+                        top: 13,
+                        right: 13,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 4px rgba(16,24,40,0.08)',
+                        border: '1px solid rgb(212, 214, 216)',
+                      }}
+                    >
+                      <PlusIcon size={12} className="text-darkGrey"/>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="text-xl font-semibold mb-2">No records yet</div>
+                    <div className="text-sm font-normal text-darkGrey">No record created yet. Start by creating</div>
+                    <div className="text-sm font-normal text-darkGrey">your first record.</div>
+                  </div>
+                </div>
+              )}
             </div>
+
             
             {/* Fixed "Add new record" button for ungrouped view - only when scrollable */}
             {grouping.length === 0 && isScrollable && (
@@ -2834,11 +2861,12 @@ export function PostTable({
                     Add new record
                   </button>
                 </div>
+                
               </div>
+              
             )}
           </div>
         </CellFocusProvider>
-
         {/* AddColumn Dialog */}
         <AddColumnDialog
           open={addColumnOpen}

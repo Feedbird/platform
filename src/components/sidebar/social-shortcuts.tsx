@@ -65,7 +65,7 @@ export default function SocialShortcuts() {
                 width={18}
                 height={18}
               />
-              <span className="font-medium truncate text-black">
+              <span className={cn("font-medium truncate text-sm", active ? "text-black" : "text-darkGrey")}>
                 {page.name}
               </span>
             </Link>
@@ -112,7 +112,9 @@ export default function SocialShortcuts() {
                     width={16}
                     height={16}
                   />
-                  <span className="text-sm font-semibold">{page.name}</span>
+                  <span className={cn("font-medium truncate text-sm", active ? "text-black" : "text-darkGrey")}>
+                    {page.name}
+                  </span>
                 </TooltipContent>
               </Tooltip>
             ) : (

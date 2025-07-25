@@ -16,12 +16,13 @@ module.exports = {
         background: '#FFFFFF', // Default background color
         border: "#EAECF0",
         black: '#1C1D1F',
-        grey: '#9099A6',
+        grey: '#838488',
         feedbird: '#125AFF',
         borderPrimary: '#EAE9E9',
         borderButton: '#E6E7EA',
         card: '#FFFFFF',
         cardForeground: '#1C1D1F',
+        darkGrey: '#5C5E63',
       },
       // Set default border color to primary
       borderColor: ({ theme }) => ({
