@@ -27,6 +27,7 @@ export function BlocksPreview({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [uploadDimensions, setUploadDimensions] = useState<Record<string, { w: number, h: number }>>({});
   const [showText, setShowText] = useState(false);
 
@@ -58,10 +59,23 @@ export function BlocksPreview({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    // Check if the drag contains files
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    // Only set drag over to false if we're leaving the container entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragOver(false);
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
@@ -107,6 +121,9 @@ export function BlocksPreview({
     }
   };
 
+  // Show drop overlay when dragging files over the cell
+  const shouldShowDropOverlay = isDragOver;
+
   return (
     <div
       ref={containerRef}
@@ -114,11 +131,38 @@ export function BlocksPreview({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={handleClick}
     >
+      {/* Drop overlay - shown when dragging files over the cell */}
+      {shouldShowDropOverlay && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div
+            className={cn(
+              "flex flex-row items-center gap-2",
+              "absolute transition-all duration-200",
+              "left-1/2 -translate-x-1/2"
+            )}
+          >
+            <div
+              className="flex flex-row items-center px-[4px] py-[1px] h-5 w-5 rounded-[4px] bg-white"
+              style={{
+                boxShadow:
+                  "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
+              }}
+            >
+              <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
+            </div>
+            <span className="text-xs text-[#5C5E63] font-normal whitespace-nowrap">
+              Drop files here
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Blocks and uploads container */}
-      {(blocks.length > 0 || uploads.length > 0) && !isHovered && (
+      {(blocks.length > 0 || uploads.length > 0) && !isHovered && !shouldShowDropOverlay && (
         <div
           className="
             block-previews-container
@@ -232,7 +276,7 @@ export function BlocksPreview({
       )}
 
       {/* Action group: plus button + optional text - only visible when hovering and no existing items */}
-      {isHovered && (blocks.length === 0 && uploads.length === 0) && (
+      {isHovered && (blocks.length === 0 && uploads.length === 0) && !shouldShowDropOverlay && (
         <div
           className={cn(
             "flex flex-row items-center gap-2",
