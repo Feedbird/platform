@@ -117,15 +117,19 @@ export function useUploader({ postId }: { postId: string }) {
           xhr.send(up.file);
         });
         
-        // 3. Update the post with the new block
-        const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
-        const blockId = addBlock(postId, kind);
-        addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: publicUrl } });
-        
         toast.success(`${up.file.name} uploaded`);
         uploadActions.updateUpload(up.id, { progress: 100, status: "done" });
-        // keep still for preview maybe until removed by external cleanup; we can remove after short delay? We'll keep until done and components can hide maybe; For now remove upload after 1.5s like old cleanup timer.
-        setTimeout(() => uploadActions.removeUpload(up.id), 1500);
+        
+        // Show "Uploaded" status for 2 seconds, then add the block and remove the upload
+        setTimeout(() => {
+          // 3. Update the post with the new block
+          const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
+          const blockId = addBlock(postId, kind);
+          addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: publicUrl } });
+          
+          // Remove the upload immediately after adding the block
+          uploadActions.removeUpload(up.id);
+        }, 2000);
 
       } catch (err: any) {
         console.error("Upload failed for", up.file.name, err);
