@@ -60,7 +60,8 @@ import {
   X as XIcon,
   Copy,
   ChevronDown,
-  MoreHorizontal
+  MoreHorizontal,
+  CircleArrowOutDownRight
 } from "lucide-react";
 
 import { nanoid } from "nanoid";
@@ -70,6 +71,7 @@ import { EmptyState } from "@/components/empty-state/empty-state";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   Table,
   TableHeader,
@@ -153,6 +155,9 @@ import {
   UserColumn,
   ColumnType,
   BoardRules,
+  BoardGroupData,
+  GroupComment,
+  GroupMessage,
 } from "@/lib/store/use-feedbird-store";
 import {
   StatusChip,
@@ -1946,13 +1951,73 @@ export function PostTable({
    *  ------------------------------------------------------------*/
   function GroupDivider({
     children,
+    rowCount,
+    groupPosts,
+    groupData,
+    boardRules,
+    isGroupedByMonth,
   }: {
     children: React.ReactNode;
+    rowCount?: number;
+    groupPosts?: Post[];
+    groupData?: BoardGroupData;
+    boardRules?: BoardRules;
+    isGroupedByMonth?: boolean;
   }) {
     const visibleLeafColumns = table.getVisibleLeafColumns();
     const stickyCols = visibleLeafColumns.filter(c => isSticky(c.id));
     const nonStickyCols = visibleLeafColumns.filter(c => !isSticky(c.id));
-  
+    const { state } = useSidebar();
+    
+    // Calculate available width based on sidebar state
+    const sidebarWidth = state === "expanded" ? 256 : 56; // 16rem = 256px, 3.5rem = 56px
+    const availableWidth = typeof window !== 'undefined' ? window.innerWidth - sidebarWidth : 1200; // fallback width
+    
+    // Calculate approval status and deadline information
+    const approvalInfo = React.useMemo(() => {
+      if (!groupPosts || groupPosts.length === 0) return null;
+      // Check if all posts are approved
+      const allApproved = groupPosts.every(post => post.status === "Approved" || post.status === "Published" || post.status === "Scheduled");
+      if (allApproved) {
+        // Find the latest approval date (most recent updatedAt among approved posts)
+        const latestApprovalDate = groupPosts
+          .filter(post => post.status === "Approved" && post.updatedAt)
+          .reduce((latest, post) => {
+            const postDate = post.updatedAt instanceof Date ? post.updatedAt : new Date(post.updatedAt!);
+            return postDate > latest ? postDate : latest;
+          }, new Date(0));
+        
+        return {
+          type: 'approved' as const,
+          date: latestApprovalDate,
+        };
+      }
+      // Check if approval deadline is enabled in board rules
+      if (boardRules?.approvalDeadline && boardRules?.approvalDays) {
+        // Find the latest updatedAt time among all posts in the group
+        let latestUpdatedAt = groupPosts
+          .filter(post => post.updatedAt)
+          .reduce((latest, post) => {
+            const postDate = post.updatedAt instanceof Date ? post.updatedAt : new Date(post.updatedAt!);
+            return postDate > latest ? postDate : latest;
+          }, new Date(0));
+        if (latestUpdatedAt.getTime() == 0)
+          latestUpdatedAt = new Date();
+          // Calculate days left
+        const now = new Date();
+        const deadlineDate = new Date(latestUpdatedAt.getTime() + (boardRules.approvalDays * 24 * 60 * 60 * 1000));
+        const daysLeft = Math.ceil((deadlineDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+        if (daysLeft > 0) {
+          return {
+            type: 'deadline' as const,
+            daysLeft,
+          };
+        }
+      }
+      
+      return null;
+    }, [groupPosts, boardRules]);
+    
     return (
       <tr>
         {/* ◀ left phantom sticky */}
@@ -1962,32 +2027,186 @@ export function PostTable({
             left: 0,
             width: 20,
             background: "#F8F8F8",
-            zIndex: 4, // Higher than cell zIndex
           }}
         />
         
         <td
           className="bg-white border-t border-l border-b border-[#E6E4E2]"
-          colSpan={stickyCols.length}
+          colSpan={8}
           style={{
             borderRadius: "4px 0px 0px 0px",
-            ...stickyStyles("drag", 10), // Higher than row zIndex
+            ...stickyStyles("drag", 0), // Lower than cell zIndex to avoid covering borders
           }}
         >
           <div className="flex items-center gap-2 px-[12px] py-[10px] font-medium text-sm">
             {children}
+          {isGroupedByMonth && groupPosts && groupPosts.length > 0 && (
+            <div className="flex items-center gap-2">
+              <StatusChip 
+                status={groupPosts.every(post => post.status === "Approved") ? "Approved" : "Pending Approval"} 
+                widthFull={false} 
+              />
+              {/* Revision Rules Display */}
+              {boardRules?.revisionRules && boardRules.firstMonth && (
+                <>
+                  <span className="text-[#EEEFF2] select-none">|</span>
+                  {boardRules.firstMonth === -1 ? (
+                    <div className="px-2 py-[5px] bg-White rounded outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidde">
+                      <img
+                        src="/images/boards/unlimited.svg"
+                        alt="Unlimited Revisions"
+                        className="w-4 h-4"
+                      />
+                      <span className="text-xs font-medium">Unlimited Revisions</span>
+                    </div>
+                  ) : boardRules.firstMonth > 0 ? (
+                    <div className="px-2 py-[5px] bg-White rounded outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidde">
+                      <CircleArrowOutDownRight className="w-4 h-4 text-[#2183FF]" />
+                      <span className="text-xs font-medium">
+                        {boardRules.firstMonth} Revision Round{boardRules.firstMonth > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {/* Group Comments/Review Button */}
+              {(() => {
+                // Use the groupData prop which has the correct type BoardGroupData
+                const groupComments: GroupComment[] = groupData?.comments || [];
+                let unresolvedCount = 0;
+                let totalCount = 0;
+                let latestUnresolved: GroupComment | null = null;
+
+                totalCount = groupComments.length;
+                unresolvedCount = groupComments.filter((c: GroupComment) => !c.resolved).length;
+                if (unresolvedCount > 0) {
+                  latestUnresolved = groupComments
+                    .filter((c: GroupComment) => !c.resolved)
+                    .sort((a: GroupComment, b: GroupComment) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                }
+
+                // Helper: format time ago
+                function timeAgo(date: Date | string) {
+                  const now = new Date();
+                  const d = typeof date === "string" ? new Date(date) : date;
+                  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+                  if (diff < 60) return `${diff}s ago`;
+                  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                  return `${Math.floor(diff / 86400)}d ago`;
+                }
+
+                if (unresolvedCount > 0 && latestUnresolved) {
+                  return (
+                    <div className="flex items-center gap-1 pl-2 pr-1 py-1 bg-white rounded outline outline-1 outline-offset-[-1px] outline-main">
+                      <img
+                        src="/images/boards/message-chat-square-on.svg"
+                        alt="Unresolved Group Comment"
+                        className="w-4 h-4"
+                      />
+                      <span className="text-xs font-medium text-main">
+                        {latestUnresolved.author} left group comments {timeAgo(latestUnresolved.createdAt)}
+                      </span>
+                      <button
+                        className="px-1 py-[1px] rounded bg-main text-white text-xs font-semibold"
+                        style={{ border: "1px solid #2183FF" }}
+                        type="button"
+                      >
+                        Review
+                      </button>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="flex items-center gap-1 pl-2 pr-1 py-1 bg-white rounded outline outline-1 outline-offset-[-1px] outline-main">
+                      <img
+                        src="/images/boards/message-chat-square.svg"
+                        alt="Group Comments"
+                        className="w-4 h-4"
+                      />
+                      <span className="text-xs font-medium">
+                        Group Comments:
+                      </span>
+                      <span className="text-xs font-medium text-grey">
+                        {totalCount}
+                      </span>
+                      <button
+                        className="px-1 py-[1px] h-4.5 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
+                        style={{ border: "1px solid #2183FF" }}
+                        type="button"
+                      >
+                        Comment
+                      </button>
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          )}
           </div>
+          
+          {/* Row count positioned from the left using availableWidth */}
+          {rowCount && (
+            <div 
+              style={{
+                position: 'absolute',
+                left: `${availableWidth - 420}px`, // Position from left using availableWidth, with some padding
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 1, // Lower than cell zIndex to avoid covering popups
+              }}
+            className="flex items-center justify-end w-[380px] gap-2"
+            >
+              {/* Approval status or deadline information - only show when grouped by month */}
+              {isGroupedByMonth && approvalInfo && (
+                <div className="flex items-center">
+                  {approvalInfo.type === 'approved' ? (
+                    <div className="px-2 py-[5px] bg-White rounded outline outline-1 outline-offset-[-1px] outline-emerald-100 flex justify-center items-center gap-1 overflow-hidden">
+                      <img 
+                        src="/images/publish/check-circle.svg" 
+                        alt="approved" 
+                        className="w-4 h-4"
+                      />
+                      <span className="text-xs font-semibold leading-none">
+                        {approvalInfo.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                      <span className="text-xs text-emerald-600 font-medium">
+                        APPROVED
+                      </span>
+                    </div>
+                  ) : approvalInfo.type === 'deadline' ? (
+                    <div className="px-2 py-[5px] bg-White rounded outline outline-1 outline-offset-[-1px] outline-orange-100 flex justify-center items-center gap-1 overflow-hidden">
+                      <img 
+                        src="/images/publish/clock-fast-forward.svg" 
+                        alt="deadline" 
+                        className="w-4 h-4"
+                      />
+                      <span className="text-xs font-medium">
+                        {approvalInfo.daysLeft} DAYS LEFT TO REVIEW
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+              
+              <span className="inline-flex items-center text-sm leading-none text-center text-nowrap">
+                Count : 
+              </span>
+              <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#F2F4F7] text-[#475467] text-xs leading-none text-center text-nowrap">
+                {rowCount}
+              </span>
+            </div>
+          )}
         </td>
   
         <td
-          colSpan={nonStickyCols.length}
+          colSpan={visibleLeafColumns.length - 8}
           className="bg-white border-t border-b border-r border-[#E6E4E2]"
           style={{
             borderRadius: "0px 4px 0px 0px",
           }}
-        >
-          &nbsp;
-        </td>
+        />
   
         {/* ▶ right phantom */}
         <th
@@ -2076,36 +2295,34 @@ export function PostTable({
                 )}
 
                 {/* Group-header row */}
-                <GroupDivider>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-1 py-0 w-6 h-6"
-                    onClick={() =>
-                      setFlatGroupExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
-                  >
-                    {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                  </Button>
+                <GroupDivider 
+                  rowCount={group.rowCount} 
+                  groupPosts={group.leafRows.map(row => row.original)} 
+                  groupData={currentBoard?.groupData?.find(gd => gd.month === group.groupValues.month) as BoardGroupData}
+                  boardRules={boardRules}
+                  isGroupedByMonth={grouping.includes("month")}
+                >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="px-1 py-0 w-6 h-6"
+                      onClick={() =>
+                        setFlatGroupExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
+                    >
+                      {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                    </Button>
 
-                  {/* labels */}
-                  <span className="flex items-center gap-2">
-                    {group.groupingColumns.map((c, i) => (
-                      <React.Fragment key={c}>
-                        {renderGroupValue(c, group.groupValues[c])}
-                        {i < group.groupingColumns.length - 1 && (
-                          <span className="px-1 text-gray-400">|</span>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </span>
-
-                  {/* row-count badge – make it inline-flex so it
-                      can sit on the same line without wrapping */}
-                  <span className="ml-2 inline-flex items-center justify-center
-                                  w-[22px] h-[22px] rounded-full bg-[#F2F4F7]
-                                  text-[#475467] text-xs leading-none">
-                    {group.rowCount}
-                  </span>
+                    {/* labels */}
+                    <span className="flex items-center gap-2">
+                      {group.groupingColumns.map((c, i) => (
+                        <React.Fragment key={c}>
+                          {renderGroupValue(c, group.groupValues[c])}
+                          {i < group.groupingColumns.length - 1 && (
+                            <span className="px-1 text-gray-400">|</span>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </span>
                 </GroupDivider>
 
                 {/* Leaf rows */}

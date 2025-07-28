@@ -155,7 +155,7 @@ export function ApproveCell({
             <div
               style={{
                 display: "inline-flex",
-                padding: "6px",
+                padding: "4px",
                 alignItems: "center",
                 gap: "10px",
                 borderRadius: "6px",
@@ -164,7 +164,7 @@ export function ApproveCell({
               }}
               className="border border-border-button"
             >
-              <Image src="/images/sidebar/approvals.svg" alt="approve" width={14} height={14} />
+              <Image src="/images/sidebar/approvals.svg" alt="approve" width={18} height={18} />
             </div>
           )}
         </div>

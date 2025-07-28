@@ -23,6 +23,7 @@ module.exports = {
         card: '#FFFFFF',
         cardForeground: '#1C1D1F',
         darkGrey: '#5C5E63',
+        main: '#4670F9',
       },
       // Set default border color to primary
       borderColor: ({ theme }) => ({

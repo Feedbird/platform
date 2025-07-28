@@ -31,6 +31,35 @@ export interface BoardRules {
   approvalDays?: number;
 }
 
+// New types for BoardGroupData
+export interface GroupMessage {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  replies: GroupMessage[]; // Recursive structure for nested replies
+}
+
+export interface GroupComment {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+  resolvedBy?: string;
+  aiSummary?: string;
+  messages: GroupMessage[]; // Direct replies to this comment
+}
+
+export interface BoardGroupData {
+  month: number; // 1-50
+  comments: GroupComment[];
+  revisionCount: number;
+}
+
 /** A small interface for your centralized nav items. */
 export interface NavLink {
   id: string;
@@ -177,6 +206,8 @@ export interface Board {
   description?: string;
   color?: string;
   rules?: BoardRules;
+  groupData?: BoardGroupData[]; // Array of group data for months 1-50
+  createdAt: Date;
 }
 
 export interface BoardTemplate {
@@ -239,6 +270,17 @@ export interface FeedbirdStore {
   addBoardTemplate: (template: Omit<BoardTemplate, 'id'>) => string;
   updateBoardTemplate: (id: string, data: Partial<BoardTemplate>) => void;
   removeBoardTemplate: (id: string) => void;
+  
+  // Group data methods
+  addGroupComment: (boardId: string, month: number, text: string, author: string) => string;
+  updateGroupComment: (boardId: string, month: number, commentId: string, data: Partial<GroupComment>) => void;
+  deleteGroupComment: (boardId: string, month: number, commentId: string) => void;
+  resolveGroupComment: (boardId: string, month: number, commentId: string, resolvedBy: string) => void;
+  addGroupMessage: (boardId: string, month: number, commentId: string, text: string, author: string, parentMessageId?: string) => string;
+  updateGroupMessage: (boardId: string, month: number, commentId: string, messageId: string, data: Partial<GroupMessage>) => void;
+  deleteGroupMessage: (boardId: string, month: number, commentId: string, messageId: string) => void;
+  updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string) => void;
+  
   deletePost: (postId: string) => void;
   approvePost: (id: string) => void;
   requestChanges: (id: string) => void;
@@ -314,13 +356,17 @@ const defaultBoards: Board[] = [
     image: "/images/boards/static-posts.svg", 
     color: "#125AFF",
     rules: {
-      autoSchedule: false,
-      revisionRules: false,
-      approvalDeadline: false,
-      groupBy: null,
-      sortBy: null,
+      autoSchedule: true,
+      revisionRules: true,
+      approvalDeadline: true,
+      groupBy: "month",
+      sortBy: "status",
       rowHeight: "Large",
-    }
+      firstMonth: -1,
+      ongoingMonth: -1,
+      approvalDays: 7,
+    },
+    createdAt: new Date('2025-01-01'),
   },
   { 
     id: "short-form-videos", 
@@ -328,13 +374,17 @@ const defaultBoards: Board[] = [
     image: "/images/boards/short-form-videos.svg", 
     color: "#125AFF",
     rules: {
-      autoSchedule: false,
-      revisionRules: false,
-      approvalDeadline: false,
-      groupBy: null,
-      sortBy: null,
-      rowHeight: "Medium",
-    }
+      autoSchedule: true,
+      revisionRules: true,
+      approvalDeadline: true,
+      groupBy: "month",
+      sortBy: "status",
+      rowHeight: "Large",
+      firstMonth: 3,
+      ongoingMonth: 2,
+      approvalDays: 7,
+    },
+    createdAt: new Date('2025-01-01'),
   },
   { 
     id: "email-design", 
@@ -342,13 +392,17 @@ const defaultBoards: Board[] = [
     image: "/images/boards/email-design.svg", 
     color: "#125AFF",
     rules: {
-      autoSchedule: false,
-      revisionRules: false,
-      approvalDeadline: false,
-      groupBy: null,
-      sortBy: null,
-      rowHeight: "Medium",
-    }
+      autoSchedule: true,
+      revisionRules: true,
+      approvalDeadline: true,
+      groupBy: "month",
+      sortBy: "status",
+      rowHeight: "Large",
+      firstMonth: 3,
+      ongoingMonth: 2,
+      approvalDays: 7,
+    },
+    createdAt: new Date('2025-01-01'),
   },
 ];
 
@@ -1622,7 +1676,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         setActiveBoard: (id) => set({ activeBoardId: id }),
         addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => {
           const bid = nanoid();
-          const newBoard: Board = { id: bid, name, image, description, color, rules };
+          const newBoard: Board = { id: bid, name, image, description, color, rules, createdAt: new Date() };
           set((s) => {
             const updatedWs = s.workspaces.map((w) => {
               if (w.id !== s.activeWorkspaceId) return w;
@@ -1681,6 +1735,293 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         removeBoardTemplate: (id) => {
           set(s => ({
             boardTemplates: s.boardTemplates.filter(t => t.id !== id)
+          }));
+        },
+
+        // Group data methods implementation
+        addGroupComment: (boardId, month, text, author) => {
+          const commentId = nanoid();
+          const newComment: GroupComment = {
+            id: commentId,
+            author,
+            text,
+            createdAt: new Date(),
+            resolved: false,
+            messages: []
+          };
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const existingGroupData = board.groupData || [];
+                const monthGroupData = existingGroupData.find(gd => gd.month === month);
+                
+                if (monthGroupData) {
+                  // Update existing month group data
+                  const updatedGroupData = existingGroupData.map(gd => 
+                    gd.month === month 
+                      ? { ...gd, comments: [...gd.comments, newComment] }
+                      : gd
+                  );
+                  return { ...board, groupData: updatedGroupData };
+                } else {
+                  // Create new month group data
+                  const newGroupData: BoardGroupData = {
+                    month,
+                    comments: [newComment],
+                    revisionCount: 0
+                  };
+                  return { ...board, groupData: [...existingGroupData, newGroupData] };
+                }
+              })
+            }))
+          }));
+          
+          return commentId;
+        },
+
+        updateGroupComment: (boardId, month, commentId, data) => {
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const updatedGroupData = (board.groupData || []).map(gd => {
+                  if (gd.month !== month) return gd;
+                  
+                  return {
+                    ...gd,
+                    comments: gd.comments.map(comment => 
+                      comment.id === commentId 
+                        ? { ...comment, ...data, updatedAt: new Date() }
+                        : comment
+                    )
+                  };
+                });
+                
+                return { ...board, groupData: updatedGroupData };
+              })
+            }))
+          }));
+        },
+
+        deleteGroupComment: (boardId, month, commentId) => {
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const updatedGroupData = (board.groupData || []).map(gd => {
+                  if (gd.month !== month) return gd;
+                  
+                  return {
+                    ...gd,
+                    comments: gd.comments.filter(comment => comment.id !== commentId)
+                  };
+                });
+                
+                return { ...board, groupData: updatedGroupData };
+              })
+            }))
+          }));
+        },
+
+        resolveGroupComment: (boardId, month, commentId, resolvedBy) => {
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const updatedGroupData = (board.groupData || []).map(gd => {
+                  if (gd.month !== month) return gd;
+                  
+                  return {
+                    ...gd,
+                    comments: gd.comments.map(comment => 
+                      comment.id === commentId 
+                        ? { 
+                            ...comment, 
+                            resolved: true, 
+                            resolvedAt: new Date(), 
+                            resolvedBy,
+                            updatedAt: new Date()
+                          }
+                        : comment
+                    )
+                  };
+                });
+                
+                return { ...board, groupData: updatedGroupData };
+              })
+            }))
+          }));
+        },
+
+        addGroupMessage: (boardId, month, commentId, text, author, parentMessageId) => {
+          const messageId = nanoid();
+          const newMessage: GroupMessage = {
+            id: messageId,
+            author,
+            text,
+            createdAt: new Date(),
+            replies: []
+          };
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const updatedGroupData = (board.groupData || []).map(gd => {
+                  if (gd.month !== month) return gd;
+                  
+                  return {
+                    ...gd,
+                    comments: gd.comments.map(comment => {
+                      if (comment.id !== commentId) return comment;
+                      
+                      if (!parentMessageId) {
+                        // Add as direct reply to comment
+                        return {
+                          ...comment,
+                          messages: [...comment.messages, newMessage]
+                        };
+                      } else {
+                        // Add as reply to a specific message
+                        const addMessageToReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                          return messages.map(msg => {
+                            if (msg.id === parentMessageId) {
+                              return { ...msg, replies: [...msg.replies, newMessage] };
+                            } else {
+                              return { ...msg, replies: addMessageToReplies(msg.replies) };
+                            }
+                          });
+                        };
+                        
+                        return {
+                          ...comment,
+                          messages: addMessageToReplies(comment.messages)
+                        };
+                      }
+                    })
+                  };
+                });
+                
+                return { ...board, groupData: updatedGroupData };
+              })
+            }))
+          }));
+          
+          return messageId;
+        },
+
+        updateGroupMessage: (boardId, month, commentId, messageId, data) => {
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const updatedGroupData = (board.groupData || []).map(gd => {
+                  if (gd.month !== month) return gd;
+                  
+                  const updateMessageInReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                    return messages.map(msg => {
+                      if (msg.id === messageId) {
+                        return { ...msg, ...data, updatedAt: new Date() };
+                      } else {
+                        return { ...msg, replies: updateMessageInReplies(msg.replies) };
+                      }
+                    });
+                  };
+                  
+                  return {
+                    ...gd,
+                    comments: gd.comments.map(comment => {
+                      if (comment.id !== commentId) return comment;
+                      
+                      return {
+                        ...comment,
+                        messages: updateMessageInReplies(comment.messages)
+                      };
+                    })
+                  };
+                });
+                
+                return { ...board, groupData: updatedGroupData };
+              })
+            }))
+          }));
+        },
+
+        deleteGroupMessage: (boardId, month, commentId, messageId) => {
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const updatedGroupData = (board.groupData || []).map(gd => {
+                  if (gd.month !== month) return gd;
+                  
+                  const deleteMessageFromReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                    return messages
+                      .filter(msg => msg.id !== messageId)
+                      .map(msg => ({
+                        ...msg,
+                        replies: deleteMessageFromReplies(msg.replies)
+                      }));
+                  };
+                  
+                  return {
+                    ...gd,
+                    comments: gd.comments.map(comment => {
+                      if (comment.id !== commentId) return comment;
+                      
+                      return {
+                        ...comment,
+                        messages: deleteMessageFromReplies(comment.messages)
+                      };
+                    })
+                  };
+                });
+                
+                return { ...board, groupData: updatedGroupData };
+              })
+            }))
+          }));
+        },
+
+        updateGroupCommentAiSummary: (boardId, month, commentId, aiSummary) => {
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((board) => {
+                if (board.id !== boardId) return board;
+                
+                const updatedGroupData = (board.groupData || []).map(gd => {
+                  if (gd.month !== month) return gd;
+                  
+                  return {
+                    ...gd,
+                    comments: gd.comments.map(comment => 
+                      comment.id === commentId 
+                        ? { ...comment, aiSummary, updatedAt: new Date() }
+                        : comment
+                    )
+                  };
+                });
+                
+                return { ...board, groupData: updatedGroupData };
+              })
+            }))
           }));
         },
 
