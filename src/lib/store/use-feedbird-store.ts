@@ -50,7 +50,7 @@ export interface GroupComment {
   resolved: boolean;
   resolvedAt?: Date;
   resolvedBy?: string;
-  aiSummary?: string;
+  aiSummary?: string[];
   messages: GroupMessage[]; // Direct replies to this comment
 }
 
@@ -279,7 +279,8 @@ export interface FeedbirdStore {
   addGroupMessage: (boardId: string, month: number, commentId: string, text: string, author: string, parentMessageId?: string) => string;
   updateGroupMessage: (boardId: string, month: number, commentId: string, messageId: string, data: Partial<GroupMessage>) => void;
   deleteGroupMessage: (boardId: string, month: number, commentId: string, messageId: string) => void;
-  updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string) => void;
+  updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string[]) => void;
+  deleteGroupCommentAiSummaryItem: (boardId: string, month: number, commentId: string, summaryIndex: number) => void;
   
   deletePost: (postId: string) => void;
   approvePost: (id: string) => void;
@@ -1747,37 +1748,47 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             text,
             createdAt: new Date(),
             resolved: false,
-            messages: []
+            messages: [],
+            aiSummary: [
+              "Love the overall vibe, but the first 3 seconds felt a bit slow to grab attention.",
+              "Typography is nice but hard to read on mobile due to size.",
+              "Maybe reduce the pink saturation slightly—it's overpowering the visuals."
+            ]
           };
 
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const existingGroupData = board.groupData || [];
-                const monthGroupData = existingGroupData.find(gd => gd.month === month);
-                
-                if (monthGroupData) {
-                  // Update existing month group data
-                  const updatedGroupData = existingGroupData.map(gd => 
-                    gd.month === month 
-                      ? { ...gd, comments: [...gd.comments, newComment] }
-                      : gd
-                  );
-                  return { ...board, groupData: updatedGroupData };
-                } else {
-                  // Create new month group data
-                  const newGroupData: BoardGroupData = {
-                    month,
-                    comments: [newComment],
-                    revisionCount: 0
-                  };
-                  return { ...board, groupData: [...existingGroupData, newGroupData] };
-                }
-              })
-            }))
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
+                  
+                  const existingGroupData = board.groupData || [];
+                  const monthGroupData = existingGroupData.find(gd => gd.month === month);
+                  
+                  if (monthGroupData) {
+                    // Update existing month group data
+                    const updatedGroupData = existingGroupData.map(gd => 
+                      gd.month === month 
+                        ? { ...gd, comments: [...gd.comments, newComment] }
+                        : gd
+                    );
+                    return { ...board, groupData: updatedGroupData };
+                  } else {
+                    // Create new month group data
+                    const newGroupData: BoardGroupData = {
+                      month,
+                      comments: [newComment],
+                      revisionCount: 0
+                    };
+                    return { ...board, groupData: [...existingGroupData, newGroupData] };
+                  }
+                })
+              };
+            })
           }));
           
           return commentId;
@@ -1785,81 +1796,96 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         updateGroupComment: (boardId, month, commentId, data) => {
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const updatedGroupData = (board.groupData || []).map(gd => {
-                  if (gd.month !== month) return gd;
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
                   
-                  return {
-                    ...gd,
-                    comments: gd.comments.map(comment => 
-                      comment.id === commentId 
-                        ? { ...comment, ...data, updatedAt: new Date() }
-                        : comment
-                    )
-                  };
-                });
-                
-                return { ...board, groupData: updatedGroupData };
-              })
-            }))
+                  const updatedGroupData = (board.groupData || []).map(gd => {
+                    if (gd.month !== month) return gd;
+                    
+                    return {
+                      ...gd,
+                      comments: gd.comments.map(comment => 
+                        comment.id === commentId 
+                          ? { ...comment, ...data, updatedAt: new Date() }
+                          : comment
+                      )
+                    };
+                  });
+                  
+                  return { ...board, groupData: updatedGroupData };
+                })
+              };
+            })
           }));
         },
 
         deleteGroupComment: (boardId, month, commentId) => {
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const updatedGroupData = (board.groupData || []).map(gd => {
-                  if (gd.month !== month) return gd;
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
                   
-                  return {
-                    ...gd,
-                    comments: gd.comments.filter(comment => comment.id !== commentId)
-                  };
-                });
-                
-                return { ...board, groupData: updatedGroupData };
-              })
-            }))
+                  const updatedGroupData = (board.groupData || []).map(gd => {
+                    if (gd.month !== month) return gd;
+                    
+                    return {
+                      ...gd,
+                      comments: gd.comments.filter(comment => comment.id !== commentId)
+                    };
+                  });
+                  
+                  return { ...board, groupData: updatedGroupData };
+                })
+              };
+            })
           }));
         },
 
         resolveGroupComment: (boardId, month, commentId, resolvedBy) => {
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const updatedGroupData = (board.groupData || []).map(gd => {
-                  if (gd.month !== month) return gd;
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
                   
-                  return {
-                    ...gd,
-                    comments: gd.comments.map(comment => 
-                      comment.id === commentId 
-                        ? { 
-                            ...comment, 
-                            resolved: true, 
-                            resolvedAt: new Date(), 
-                            resolvedBy,
-                            updatedAt: new Date()
-                          }
-                        : comment
-                    )
-                  };
-                });
-                
-                return { ...board, groupData: updatedGroupData };
-              })
-            }))
+                  const updatedGroupData = (board.groupData || []).map(gd => {
+                    if (gd.month !== month) return gd;
+                    
+                    return {
+                      ...gd,
+                      comments: gd.comments.map(comment => 
+                        comment.id === commentId 
+                          ? { 
+                              ...comment, 
+                              resolved: true, 
+                              resolvedAt: new Date(), 
+                              resolvedBy,
+                              updatedAt: new Date()
+                            }
+                          : comment
+                      )
+                    };
+                  });
+                  
+                  return { ...board, groupData: updatedGroupData };
+                })
+              };
+            })
           }));
         },
 
@@ -1874,49 +1900,54 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           };
 
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const updatedGroupData = (board.groupData || []).map(gd => {
-                  if (gd.month !== month) return gd;
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
                   
-                  return {
-                    ...gd,
-                    comments: gd.comments.map(comment => {
-                      if (comment.id !== commentId) return comment;
-                      
-                      if (!parentMessageId) {
-                        // Add as direct reply to comment
-                        return {
-                          ...comment,
-                          messages: [...comment.messages, newMessage]
-                        };
-                      } else {
-                        // Add as reply to a specific message
-                        const addMessageToReplies = (messages: GroupMessage[]): GroupMessage[] => {
-                          return messages.map(msg => {
-                            if (msg.id === parentMessageId) {
-                              return { ...msg, replies: [...msg.replies, newMessage] };
-                            } else {
-                              return { ...msg, replies: addMessageToReplies(msg.replies) };
-                            }
-                          });
-                        };
+                  const updatedGroupData = (board.groupData || []).map(gd => {
+                    if (gd.month !== month) return gd;
+                    
+                    return {
+                      ...gd,
+                      comments: gd.comments.map(comment => {
+                        if (comment.id !== commentId) return comment;
                         
-                        return {
-                          ...comment,
-                          messages: addMessageToReplies(comment.messages)
-                        };
-                      }
-                    })
-                  };
-                });
-                
-                return { ...board, groupData: updatedGroupData };
-              })
-            }))
+                        if (!parentMessageId) {
+                          // Add as direct reply to comment
+                          return {
+                            ...comment,
+                            messages: [...comment.messages, newMessage]
+                          };
+                        } else {
+                          // Add as reply to a specific message
+                          const addMessageToReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                            return messages.map(msg => {
+                              if (msg.id === parentMessageId) {
+                                return { ...msg, replies: [...msg.replies, newMessage] };
+                              } else {
+                                return { ...msg, replies: addMessageToReplies(msg.replies) };
+                              }
+                            });
+                          };
+                          
+                          return {
+                            ...comment,
+                            messages: addMessageToReplies(comment.messages)
+                          };
+                        }
+                      })
+                    };
+                  });
+                  
+                  return { ...board, groupData: updatedGroupData };
+                })
+              };
+            })
           }));
           
           return messageId;
@@ -1924,129 +1955,189 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         updateGroupMessage: (boardId, month, commentId, messageId, data) => {
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const updatedGroupData = (board.groupData || []).map(gd => {
-                  if (gd.month !== month) return gd;
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
                   
-                  const updateMessageInReplies = (messages: GroupMessage[]): GroupMessage[] => {
-                    return messages.map(msg => {
-                      if (msg.id === messageId) {
-                        return { ...msg, ...data, updatedAt: new Date() };
-                      } else {
-                        return { ...msg, replies: updateMessageInReplies(msg.replies) };
-                      }
-                    });
-                  };
+                  const updatedGroupData = (board.groupData || []).map(gd => {
+                    if (gd.month !== month) return gd;
+                    
+                    const updateMessageInReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                      return messages.map(msg => {
+                        if (msg.id === messageId) {
+                          return { ...msg, ...data, updatedAt: new Date() };
+                        } else {
+                          return { ...msg, replies: updateMessageInReplies(msg.replies) };
+                        }
+                      });
+                    };
+                    
+                    return {
+                      ...gd,
+                      comments: gd.comments.map(comment => {
+                        if (comment.id !== commentId) return comment;
+                        
+                        return {
+                          ...comment,
+                          messages: updateMessageInReplies(comment.messages)
+                        };
+                      })
+                    };
+                  });
                   
-                  return {
-                    ...gd,
-                    comments: gd.comments.map(comment => {
-                      if (comment.id !== commentId) return comment;
-                      
-                      return {
-                        ...comment,
-                        messages: updateMessageInReplies(comment.messages)
-                      };
-                    })
-                  };
-                });
-                
-                return { ...board, groupData: updatedGroupData };
-              })
-            }))
+                  return { ...board, groupData: updatedGroupData };
+                })
+              };
+            })
           }));
         },
 
         deleteGroupMessage: (boardId, month, commentId, messageId) => {
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const updatedGroupData = (board.groupData || []).map(gd => {
-                  if (gd.month !== month) return gd;
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
                   
-                  const deleteMessageFromReplies = (messages: GroupMessage[]): GroupMessage[] => {
-                    return messages
-                      .filter(msg => msg.id !== messageId)
-                      .map(msg => ({
-                        ...msg,
-                        replies: deleteMessageFromReplies(msg.replies)
-                      }));
-                  };
+                  const updatedGroupData = (board.groupData || []).map(gd => {
+                    if (gd.month !== month) return gd;
+                    
+                    const deleteMessageFromReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                      return messages
+                        .filter(msg => msg.id !== messageId)
+                        .map(msg => ({
+                          ...msg,
+                          replies: deleteMessageFromReplies(msg.replies)
+                        }));
+                    };
+                    
+                    return {
+                      ...gd,
+                      comments: gd.comments.map(comment => {
+                        if (comment.id !== commentId) return comment;
+                        
+                        return {
+                          ...comment,
+                          messages: deleteMessageFromReplies(comment.messages)
+                        };
+                      })
+                    };
+                  });
                   
-                  return {
-                    ...gd,
-                    comments: gd.comments.map(comment => {
-                      if (comment.id !== commentId) return comment;
-                      
-                      return {
-                        ...comment,
-                        messages: deleteMessageFromReplies(comment.messages)
-                      };
-                    })
-                  };
-                });
-                
-                return { ...board, groupData: updatedGroupData };
-              })
-            }))
+                  return { ...board, groupData: updatedGroupData };
+                })
+              };
+            })
           }));
         },
 
         updateGroupCommentAiSummary: (boardId, month, commentId, aiSummary) => {
           set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((board) => {
-                if (board.id !== boardId) return board;
-                
-                const updatedGroupData = (board.groupData || []).map(gd => {
-                  if (gd.month !== month) return gd;
+            workspaces: s.workspaces.map((ws) => {
+              // Only update the active workspace
+              if (ws.id !== s.activeWorkspaceId) return ws;
+              
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
                   
-                  return {
-                    ...gd,
-                    comments: gd.comments.map(comment => 
-                      comment.id === commentId 
-                        ? { ...comment, aiSummary, updatedAt: new Date() }
-                        : comment
-                    )
-                  };
-                });
-                
-                return { ...board, groupData: updatedGroupData };
-              })
-            }))
+                  const updatedGroupData = (board.groupData || []).map(gd => {
+                    if (gd.month !== month) return gd;
+                    
+                    return {
+                      ...gd,
+                      comments: gd.comments.map(comment => 
+                        comment.id === commentId 
+                          ? { ...comment, aiSummary, updatedAt: new Date() }
+                          : comment
+                      )
+                    };
+                  });
+                  
+                  return { ...board, groupData: updatedGroupData };
+                })
+              };
+            })
+          }));
+        },
+
+        deleteGroupCommentAiSummaryItem: (boardId, month, commentId, summaryIndex) => {
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => {
+              if (ws.id !== s.activeWorkspaceId) return ws;
+        
+              return {
+                ...ws,
+                boards: ws.boards.map((board) => {
+                  if (board.id !== boardId) return board;
+        
+                  const updatedGroupData = (board.groupData || []).map((gd) => {
+                    if (gd.month !== month) return gd;
+        
+                    return {
+                      ...gd,
+                      comments: gd.comments.map((comment) => {
+                        if (comment.id === commentId && comment.aiSummary) {
+                          const newAiSummary = [...comment.aiSummary];
+                          newAiSummary.splice(summaryIndex, 1);
+                          return { ...comment, aiSummary: newAiSummary, updatedAt: new Date() };
+                        }
+                        return comment;
+                      }),
+                    };
+                  });
+        
+                  return { ...board, groupData: updatedGroupData };
+                }),
+              };
+            }),
           }));
         },
 
         updatePostStatusesBasedOnTime: () => {
           set((s) => {
             let updatedCount = 0;
+            let hasChanges = false;
+            
             const newWs = s.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
+              brands: ws.brands.map((br) => {
+                const updatedContents = br.contents.map((p) => {
                   const correctStatus = determineCorrectStatus(p.status, p.publishDate);
                   if (correctStatus !== p.status) {
                     console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publishDate: ${p.publishDate})`);
                     updatedCount++;
+                    hasChanges = true;
                     return { ...p, status: correctStatus };
                   }
                   return p;
-                }),
-              })),
+                });
+                
+                // Only create new brand object if contents changed
+                if (hasChanges) {
+                  return { ...br, contents: updatedContents };
+                }
+                return br;
+              }),
             }));
+            
             if (updatedCount > 0) {
               console.log(`Updated ${updatedCount} post statuses based on time`);
+              return { workspaces: newWs };
             }
-            return { workspaces: newWs };
+            
+            // If no changes, return the same state to prevent unnecessary re-renders
+            return s;
           });
         },
       }),
@@ -2099,6 +2190,30 @@ export const useFeedbirdStoreWithHydration = <T>(selector: (state: FeedbirdStore
 // Hook to periodically update post statuses based on time
 export const usePostStatusTimeUpdater = () => {
   const updatePostStatusesBasedOnTime = useFeedbirdStore(s => s.updatePostStatusesBasedOnTime);
+  const workspaces = useFeedbirdStore(s => s.workspaces);
+  
+  // Helper function to check if any posts need status updates
+  const checkIfUpdatesNeeded = React.useCallback(() => {
+    const now = new Date();
+    for (const ws of workspaces) {
+      for (const brand of ws.brands) {
+        for (const post of brand.contents) {
+          if (post.publishDate) {
+            const publishDate = post.publishDate instanceof Date ? post.publishDate : new Date(post.publishDate);
+            if (!isNaN(publishDate.getTime())) {
+              const isPast = publishDate < now;
+              const needsUpdate = (isPast && post.status !== "Published" && post.status !== "Failed Publishing") ||
+                                (!isPast && (post.status === "Published" || post.status === "Failed Publishing"));
+              if (needsUpdate) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }, [workspaces]);
   
   React.useEffect(() => {
     console.log("PostStatusTimeUpdater: Initializing...");
@@ -2106,17 +2221,23 @@ export const usePostStatusTimeUpdater = () => {
     // Update immediately on mount
     updatePostStatusesBasedOnTime();
     
-    // Set up interval to check every 10 seconds for testing
+    // Set up interval to check every 60 seconds (increased from 10 seconds for production)
     const interval = setInterval(() => {
       console.log("PostStatusTimeUpdater: Running periodic update...");
-      updatePostStatusesBasedOnTime();
-    }, 10000); // 10 seconds for testing
+      
+      // Only run the update if there are posts that might need status changes
+      if (checkIfUpdatesNeeded()) {
+        updatePostStatusesBasedOnTime();
+      } else {
+        console.log("PostStatusTimeUpdater: No status updates needed, skipping...");
+      }
+    }, 60000); // 60 seconds for production
     
     return () => {
       console.log("PostStatusTimeUpdater: Cleaning up...");
       clearInterval(interval);
     };
-  }, [updatePostStatusesBasedOnTime]);
+  }, [updatePostStatusesBasedOnTime, checkIfUpdatesNeeded]);
 };
 
 /* Helper: Extract URLs from post.blocks that contain images, etc. */

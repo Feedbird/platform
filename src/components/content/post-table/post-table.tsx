@@ -170,6 +170,7 @@ import { PostContextMenu } from "./PostContextMenu";
 import { CaptionCell } from "./CaptionCell";
 import { SettingsEditCell } from "./SettingsCell";
 import { MonthEditCell } from "./MonthEditCell";
+import { GroupFeedbackSidebar } from "./GroupFeedbackSidebar";
 
 const MemoizedRow = React.memo(
   ({
@@ -418,15 +419,30 @@ export function PostTable({
   const [showDuplicateUndoMessage, setShowDuplicateUndoMessage] = React.useState(false);
   const [lastDuplicatedCount, setLastDuplicatedCount] = React.useState(0);
   const duplicateUndoTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // Group feedback sidebar state
+  const [groupFeedbackSidebarOpen, setGroupFeedbackSidebarOpen] = React.useState(false);
+  const [selectedGroupData, setSelectedGroupData] = React.useState<{ month: number; comments: GroupComment[] } | null>(null);
+  
   const store = useFeedbirdStore();
   const updatePost = useFeedbirdStore((s) => s.updatePost);
   const updateBoard = useFeedbirdStore((s) => s.updateBoard);
   const getPageCounts = useFeedbirdStore((s) => s.getPageCounts);
+  const addGroupComment = useFeedbirdStore((s) => s.addGroupComment);
+  const addGroupMessage = useFeedbirdStore((s) => s.addGroupMessage);
+  const resolveGroupComment = useFeedbirdStore((s) => s.resolveGroupComment);
+  const deleteGroupCommentAiSummaryItem = useFeedbirdStore((s) => s.deleteGroupCommentAiSummaryItem);
   
-  // Get current board and its rules
+  // Store subscriptions - subscribe to the actual data that changes
+  const workspaces = useFeedbirdStore(s => s.workspaces);
+  const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId);
   const activeBoardId = useFeedbirdStore(s => s.activeBoardId);
-  const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
-  const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
+  
+  // Compute activeWorkspace from the actual data that changes
+  const activeWorkspace = React.useMemo(() => {
+    return workspaces.find(w => w.id === activeWorkspaceId);
+  }, [workspaces, activeWorkspaceId]);
+  
   const currentBoard = React.useMemo(() => activeWorkspace?.boards.find(b => b.id === activeBoardId), [activeWorkspace, activeBoardId]);
   const boardRules = currentBoard?.rules;
   
@@ -449,8 +465,14 @@ export function PostTable({
     setMounted(true);
   }, []);
 
+  // Optimized useEffect to only update when posts actually change
+  const prevPostsRef = React.useRef<Post[]>(posts);
   React.useEffect(() => {
-    setTableData(posts);
+    // Only update if the posts array reference has actually changed
+    if (posts !== prevPostsRef.current) {
+      setTableData(posts);
+      prevPostsRef.current = posts;
+    }
   }, [posts]);
 
   // CSV import / export
@@ -470,6 +492,77 @@ export function PostTable({
   function handleImport() {
     fileInputRef.current?.click();
   }
+
+  // Group feedback sidebar handlers
+  function handleOpenGroupFeedback(groupData: BoardGroupData, month: number) {
+    setSelectedGroupData({
+      month: month,
+      comments: groupData?.comments || []
+    });
+    setGroupFeedbackSidebarOpen(true);
+  }
+
+  function handleCloseGroupFeedback() {
+    setGroupFeedbackSidebarOpen(false);
+    setSelectedGroupData(null);
+  }
+
+  function handleAddGroupComment(text: string) {
+    if (selectedGroupData && activeBoardId) {
+      // Update the store first
+      addGroupComment(activeBoardId, selectedGroupData.month, text, "Current User");
+    }
+  }
+
+  function handleAddGroupMessage(commentId: string, text: string, parentMessageId?: string) {
+    if (selectedGroupData && activeBoardId) {
+      // Update the store first
+      addGroupMessage(activeBoardId, selectedGroupData.month, commentId, text, "Current User", parentMessageId);
+    }
+  }
+
+  function handleResolveGroupComment(commentId: string) {
+    if (selectedGroupData && activeBoardId) {
+      // Update the store first
+      resolveGroupComment(activeBoardId, selectedGroupData.month, commentId, "Current User");
+    }
+  }
+
+  function handleDeleteAiSummary(commentId: string, summaryIndex: number) {
+    if (selectedGroupData && activeBoardId) {
+      deleteGroupCommentAiSummaryItem(
+        activeBoardId,
+        selectedGroupData.month,
+        commentId,
+        summaryIndex
+      );
+    }
+  }
+
+  // Keep selectedGroupData in sync with store when board data changes
+  const prevStoreDataRef = React.useRef<string>('');
+
+  // Update selectedGroupData when store data changes
+  React.useEffect(() => {
+    if (selectedGroupData && activeBoardId) {
+      const updatedBoard = activeWorkspace?.boards.find(b => b.id === activeBoardId);
+      const updatedGroupData = updatedBoard?.groupData?.find(gd => gd.month === selectedGroupData.month);
+      
+      if (updatedGroupData) {
+        const currentStoreData = JSON.stringify(updatedGroupData.comments);
+        
+        // Only update if store data has actually changed
+        if (currentStoreData !== prevStoreDataRef.current) {
+          prevStoreDataRef.current = currentStoreData;
+          
+          setSelectedGroupData({
+            month: selectedGroupData.month,
+            comments: updatedGroupData.comments
+          });
+        }
+      }
+    }
+  }, [activeWorkspace, activeBoardId]); // React to workspace and board changes
 
   // user-defined columns
   const [userColumns, setUserColumns] = React.useState<UserColumn[]>([]);
@@ -778,7 +871,6 @@ export function PostTable({
 
   // For "Add Row" logic
   function handleAddRowUngrouped() {
-    console.log("@@@@@@@@@@@@@@@@@@@@@@handleAddRowUngrouped");
     // Only create 3 posts if there are no posts at all
     if (tableData.length === 0) {
       const newPosts: Post[] = [];
@@ -791,7 +883,6 @@ export function PostTable({
         }
       }
       if (newPosts.length > 0) {
-        console.log("@@@@@@@@@@@@@@@@@@@@@@newPosts: ", newPosts.length);
         setTableData(newPosts);
       }
     } else {
@@ -1712,10 +1803,10 @@ export function PostTable({
   }, [columns, columnNames]);
 
   // Create table
-  const table = useReactTable<Post>({
+  const tableConfig = React.useMemo(() => ({
     data: tableData,
     columns,
-    groupedColumnMode: false,
+    groupedColumnMode: false as const,
     state: {
       sorting,
       columnFilters,
@@ -1753,7 +1844,28 @@ export function PostTable({
       monthFilterFn,
       platformsFilterFn,
     },
-  });
+  }), [
+    tableData,
+    columns,
+    sorting,
+    columnFilters,
+    grouping,
+    columnVisibility,
+    columnOrder,
+    expanded,
+    columnSizing,
+    columnSizingInfo,
+    setSorting,
+    setColumnFilters,
+    setGrouping,
+    setColumnVisibility,
+    setColumnOrder,
+    setExpanded,
+    setColumnSizing,
+    setColumnSizingInfo,
+  ]);
+
+  const table = useReactTable<Post>(tableConfig);
   tableRef.current = table;
 
   // set default col order once
@@ -1956,6 +2068,8 @@ export function PostTable({
     groupData,
     boardRules,
     isGroupedByMonth,
+    onOpenGroupFeedback,
+    month,
   }: {
     children: React.ReactNode;
     rowCount?: number;
@@ -1963,6 +2077,8 @@ export function PostTable({
     groupData?: BoardGroupData;
     boardRules?: BoardRules;
     isGroupedByMonth?: boolean;
+    onOpenGroupFeedback?: (groupData: BoardGroupData, month: number) => void;
+    month: number;
   }) {
     const visibleLeafColumns = table.getVisibleLeafColumns();
     const stickyCols = visibleLeafColumns.filter(c => isSticky(c.id));
@@ -2112,6 +2228,7 @@ export function PostTable({
                         className="px-1 py-[1px] rounded bg-main text-white text-xs font-semibold"
                         style={{ border: "1px solid #2183FF" }}
                         type="button"
+                        onClick={() => onOpenGroupFeedback?.(groupData!, month)}
                       >
                         Review
                       </button>
@@ -2135,6 +2252,7 @@ export function PostTable({
                         className="px-1 py-[1px] h-4.5 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
                         style={{ border: "1px solid #2183FF" }}
                         type="button"
+                        onClick={() => onOpenGroupFeedback?.(groupData!, month)}
                       >
                         Comment
                       </button>
@@ -2301,6 +2419,8 @@ export function PostTable({
                   groupData={currentBoard?.groupData?.find(gd => gd.month === group.groupValues.month) as BoardGroupData}
                   boardRules={boardRules}
                   isGroupedByMonth={grouping.includes("month")}
+                  onOpenGroupFeedback={(groupData) => handleOpenGroupFeedback(groupData, group.groupValues.month)}
+                  month={group.groupValues.month}
                 >
                     <Button
                       variant="ghost"
@@ -3033,7 +3153,7 @@ export function PostTable({
                 <div className="flex flex-col items-center justify-center py-40">
                   <div className="relative w-[120px] h-[120px] flex items-center justify-center">
                     <Image
-                      src="/images/boards/comment-container.svg"
+                      src="/images/boards/record-container.svg"
                       alt="No records"
                       width={120}
                       height={120}
@@ -3311,6 +3431,18 @@ export function PostTable({
           </Button>
         </div>
       )}
+
+      {/* Group Feedback Sidebar */}
+      <GroupFeedbackSidebar
+        isOpen={groupFeedbackSidebarOpen}
+        onClose={handleCloseGroupFeedback}
+        groupData={selectedGroupData}
+        month={selectedGroupData?.month || 0}
+        onAddComment={handleAddGroupComment}
+        onAddMessage={handleAddGroupMessage}
+        onResolveComment={handleResolveGroupComment}
+        onDeleteAiSummary={handleDeleteAiSummary}
+      />
     </div>
   );
 }
