@@ -948,7 +948,7 @@ export default function CalendarView({
 
       <div className="rounded-lg bg-background text-foreground shadow-sm flex flex-col relative overflow-auto">
         {/* Top toolbar */}
-        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-2.5">
+        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-2.5 sticky top-0 z-10 bg-background">
           {/* Left side controls */}
           <div className="flex items-center gap-2">
             <Button
