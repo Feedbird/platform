@@ -1,7 +1,7 @@
 /* components/layout/app-header.tsx */
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import Image                  from 'next/image'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -64,6 +64,14 @@ function HeaderInner() {
   /* boards from centralized store */
   const boardNav      = useFeedbirdStore(s => s.boardNav)
   const activeBoard   = boardNav.find(b => b.href && pathname.startsWith(b.href))
+  const brand         = useFeedbirdStore(s => s.getActiveBrand())
+  
+  // Client-side hydration state
+  const [isClient, setIsClient] = useState(false)
+  
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   /* ------------------------------------------------------------ */
   const [drawer, setDrawer] = useState(false)
   const [boardPopoverOpen, setBoardPopoverOpen] = useState(false)
@@ -101,7 +109,7 @@ function HeaderInner() {
   /* ------------------------------------------------------------ */
   return (
     <header className="relative
-      h-[48px] flex justify-center border-b border-border-primary pl-[16px] pr-[10px] py-[9px] gap-4 bg-white
+      h-[48px] flex justify-center border-b border-border-primary pl-4 pr-2.5 py-2.5 gap-4 bg-white
     ">
       {/* sidebar trigger */}
       <SidebarTrigger className="cursor-pointer shrink-0" />
@@ -412,10 +420,21 @@ function HeaderInner() {
       )}
 
       {/* right section ----------------------------------------- */}
-      <div className="ml-auto flex items-center gap-[8px]">
-        <BrandSwitcher />
-        <BrandSocialIcons />
-        <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] text-black px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium">
+      <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center border border-border-button rounded-[4px]">
+          {/* <BrandSwitcher /> */}
+          <span className="text-sm font-medium w-7.5 h-7.5 bg-[#B5B5FF] text-[#43439F] flex items-center justify-center rounded-[4px]">
+            Hi
+          </span>
+          {isClient && brand ? (
+            <span className="text-sm font-medium text-black px-[8px] py-[5px] cursor-pointer">
+              {brand.name}
+            </span>
+          ) : null}
+          <div className="w-0 h-2.5 outline outline-1 outline-offset-[-0.50px] outline-Stroke-for-Elements"></div>
+          <BrandSocialIcons />
+        </div>
+        <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] bg-main text-white px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium">
           <Image src="/images/header/user-plus.svg" alt="Share" width={16} height={16} />
           Share
         </Button>

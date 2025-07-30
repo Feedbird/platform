@@ -25,7 +25,7 @@ export default function BrandSocialIcons() {
     // Render a placeholder or null on the server and initial client render
     return (
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" disabled className="text-sm font-semibold text-black cursor-pointer rounded-[6px] border border-border-button">
+        <Button variant="ghost" size="sm" disabled className="text-sm font-semibold text-black cursor-pointer">
           Loading Socials...
         </Button>
       </div>
@@ -38,7 +38,7 @@ export default function BrandSocialIcons() {
   if (!pages.length) {
     return (
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setDialogOpen(true)} className="text-sm font-semibold text-black cursor-pointer rounded-[6px] border border-border-button">
+        <Button variant="ghost" size="sm" onClick={() => setDialogOpen(true)} className="text-sm font-semibold text-black cursor-pointer">
           Connect Social Page
         </Button>
         <ManageSocialsDialog
@@ -57,10 +57,7 @@ export default function BrandSocialIcons() {
         <HoverCard openDelay={120}>
           <HoverCardTrigger asChild className='cursor-pointer p-0'>
             <div className="relative" onClick={() => setDialogOpen(true)}>
-              <span className="py-0 text-xs absolute top-[-6px] left-[10px] text-grey bg-background leading-none">
-                Socials
-              </span>
-              <div className="flex items-center text-sm justify-center px-[8px] py-[5px] rounded-[6px] cursor-pointer border border-border-button">
+              <div className="flex items-center text-sm justify-center px-[8px] py-[4px] cursor-pointer">
                 {/* Group pages by platform and show counts */}
                 {Object.entries(
                   pages.reduce((acc, page) => {

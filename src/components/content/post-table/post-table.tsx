@@ -3074,13 +3074,13 @@ export function PostTable({
               />
             </div>
           </div>
-          <div className="pr-[10px]">
+          <div className="pr-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div
-                  className="flex items-center p-[3px] rounded-[6px] border border-[#D3D3D3] shadow-none cursor-pointer bg-[#FBFBFB]"
+                  className="flex items-center p-[2px] rounded-full border border-[#D3D3D3] shadow-none cursor-pointer bg-[#FBFBFB]"
                 >
-                  <MoreHorizontal className="h-[16px] w-[16px] text-black" />
+                  <MoreHorizontal className="h-4 w-4 text-black" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[180px]">
