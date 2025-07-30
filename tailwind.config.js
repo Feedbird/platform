@@ -24,6 +24,8 @@ module.exports = {
         cardForeground: '#1C1D1F',
         darkGrey: '#5C5E63',
         main: '#4670F9',
+        buttonStroke: '#D3D3D3',
+        elementStroke: '#EAE9E9',
       },
       // Set default border color to primary
       borderColor: ({ theme }) => ({

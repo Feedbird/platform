@@ -17,11 +17,11 @@ export function BlocksViewer({ blocks, onExpandBlock }: BlocksViewerProps) {
   }
 
   return (
-    <div className="flex flex-col p-3 rounded-md border gap-2">
+    <div className="flex flex-col p-3 rounded-md border border-buttonStroke gap-2">
       {/* header row: attachment icon + “Visual” label */}
       <div className="flex items-center gap-2 text-sm font-medium mb-2">
         <ImageIcon className="w-4 h-4 text-gray-600" />
-        <span>Visual</span>
+        <span>Preview</span>
       </div>
 
       {/* row of big previews */}

@@ -431,7 +431,7 @@ function HeaderInner() {
               {brand.name}
             </span>
           ) : null}
-          <div className="w-0 h-2.5 outline outline-1 outline-offset-[-0.50px] outline-Stroke-for-Elements"></div>
+          <div className="w-0 h-2.5 outline outline-1 outline-offset-[-0.50px] outline-gray-100"></div>
           <BrandSocialIcons />
         </div>
         <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] bg-main text-white px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium">

@@ -108,14 +108,13 @@ export function CaptionEditor({
   };
 
   return (
-    <div className="flex flex-col p-3 rounded-md border gap-2">
+    <div className="flex flex-col p-3 rounded-md border border-buttonStroke gap-2">
       {/* heading: icon + label + lock toggle */}
-      <div className="flex items-center justify-between h-[36px]">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium">
           {/* your icon */}
-          <Image src="/content/long-text.svg" alt="caption" width={16} height={16} />
-          <span>Caption</span>
-          <div className="w-px bg-gray-300 h-5 mx-1" />
+          <Image src="/images/columns/caption.svg" alt="caption" width={16} height={16} />
+          <span className="text-sm font-medium text-black">Caption</span>
           { !isSynced &&
           <Select
               value={currentPlatform}
@@ -143,15 +142,17 @@ export function CaptionEditor({
         {/* lock/unlock toggle */}
         <button
           onClick={handleToggleSync}
-          className="flex items-center gap-1 text-xs border px-2 py-1 rounded-md"
+          className="flex items-center gap-1 text-sm font-medium text-black border border-buttonStroke px-2 py-1 rounded-sm"
         >
           {isSynced ? (
             <>
-              <Lock size={14} /> Synced
+              <Lock size={14} />
+              Synced
             </>
           ) : (
             <>
-              <Unlock size={14} /> Unsynced
+              <Unlock size={14} />
+              Unsynced
             </>
           )}
         </button>

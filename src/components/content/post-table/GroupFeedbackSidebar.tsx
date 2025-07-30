@@ -451,10 +451,10 @@ export function GroupFeedbackSidebar({
             Group Feedback - Month {month}
           </h2>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-grey/10 hover:bg-grey/10">
+            <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10">
                 <img src="/images/sidebar/notifications.svg" className="w-5 h-5" alt="notification" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-grey/10 hover:bg-grey/10" onClick={onClose}>
+            <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10" onClick={onClose}>
               <X className="h-5 w-5" />
             </Button>
           </div>

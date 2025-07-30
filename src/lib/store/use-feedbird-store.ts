@@ -166,6 +166,9 @@ export interface Post {
     taggedAccounts?: string[];
   };
 
+  /** Hashtags data with sync/unsync functionality */
+  hashtags?: CaptionData;
+
   blocks: Block[];
   comments: BaseComment[]; 
   activities: Activity[];
