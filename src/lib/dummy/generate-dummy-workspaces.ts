@@ -224,7 +224,13 @@ function makeActivity(postId: string): Activity {
 /**
  * Build a single post and assign it to a board
  */
-function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]): Post {
+function makePost(
+  brandId: string, 
+  boardId: string, 
+  brandPlatforms: Platform[],
+  brandPages: SocialPageType[],
+  month: number
+): Post {
   // 20% chance the format is empty (not yet determined)
   const random = faker.number.int({ min: 0, max: 9 });
   const format = faker.helpers.arrayElement<
@@ -236,7 +242,7 @@ function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]):
 
   /* now build blocks with the chosen kind */
   const blocks = Array.from(
-    { length: faker.number.int({ min: 1, max: 3 }) },
+    { length: faker.number.int({ min: 1, max: 2 }) },
     () => makeBlock(fileKind),
   );
 
@@ -285,6 +291,11 @@ function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]):
   // Apply the business rule: determine correct status based on publish date
   const finalStatus = determineCorrectStatus(initialStatus, publishDate);
   
+  const postPlatforms = faker.helpers.arrayElements(brandPlatforms, { min: 1, max: 3 })
+  const availablePages = brandPages.filter(p => postPlatforms.includes(p.platform) && p.connected);
+  const selectedPages = faker.helpers.arrayElements(availablePages, { min: 1, max: Math.max(1, availablePages.length) });
+  const pageIds = selectedPages.map(p => p.id);
+
   return {
     id: nanoid(),
     brandId,
@@ -298,9 +309,9 @@ function makePost(brandId: string, boardId: string, brandPlatforms: Platform[]):
     format,
     publishDate,
     updatedAt: null as unknown as Date,
-    platforms: faker.helpers.arrayElements(brandPlatforms, { min: 1, max: 3 }),
-    pages: [],
-    month: faker.number.int({ min: 1, max: 50 }),
+    platforms: postPlatforms,
+    pages: pageIds,
+    month: month,
     blocks,
     comments: Array.from(
       { length: faker.number.int({ min: 0, max: 3 }) },
@@ -330,7 +341,7 @@ function makeBrand(): Brand {
     
     for (let i=0; i<howMany; i++){
       const status = i === 0 ? "active" : faker.helpers.arrayElement(statuses);
-      const connected = status === "active" ? faker.datatype.boolean() : false;
+      const connected = status === "active" ? true : false;
       
       arr.push({
         id: nanoid(),
@@ -374,7 +385,7 @@ export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
   const results: Workspace[] = [];
   for (let i=0; i<count; i++){
     const wid = nanoid();
-    const brandCount = rInt(3,5);
+    const brandCount = rInt(2,3);
     const brandArr: Brand[] = [];
     for (let j=0; j<brandCount; j++){
       brandArr.push(makeBrand());
@@ -383,13 +394,21 @@ export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
     // Create boards (clone default boards with unique ids per workspace if needed)
     const boards = DEFAULT_BOARDS.map((b) => ({ ...b }));
 
-    // Assign posts to boards now – iterate each brand & generate posts
-    for (const brand of brandArr){
-      const postCount = rInt(20, 30);
-      for (let p=0; p<postCount; p++){
-        const boardPick = faker.helpers.arrayElement(boards);
-        const post = makePost(brand.id, boardPick.id, brand.platforms ?? []);
-        brand.contents.push(post);
+    // To ensure 20 posts are visible per board, we'll assign all posts to the first brand.
+    // The previous logic distributed them, which is why you didn't see all 20 at once.
+    if (brandArr.length > 0) {
+      const primaryBrand = brandArr[0];
+      for (const board of boards) {
+        // 10 posts for Month 1
+        for (let p = 0; p < 10; p++) {
+          const post = makePost(primaryBrand.id, board.id, primaryBrand.platforms ?? [], primaryBrand.socialPages, 1);
+          primaryBrand.contents.push(post);
+        }
+        // 10 posts for Month 2
+        for (let p = 0; p < 10; p++) {
+          const post = makePost(primaryBrand.id, board.id, primaryBrand.platforms ?? [], primaryBrand.socialPages, 2);
+          primaryBrand.contents.push(post);
+        }
       }
     }
 
