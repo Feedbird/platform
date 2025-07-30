@@ -3106,7 +3106,7 @@ export function PostTable({
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#D0D5DD #F9FAFB',
-                paddingBottom: grouping.length === 0 && isScrollable ? '20px' : '0px', // Add padding for fixed button only when scrollable
+                paddingBottom: grouping.length === 0 && isScrollable ? '32px' : '0px', // Add padding for fixed button only when scrollable
               }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleRowDrop}
@@ -3187,7 +3187,7 @@ export function PostTable({
             {/* Fixed "Add new record" button for ungrouped view - only when scrollable */}
             {grouping.length === 0 && isScrollable && (
               <div 
-                className="absolute bottom-0 px-3 py-3 left-1 right-0 bg-white border-t border-[#EAE9E9] z-20"
+                className="absolute bottom-2 px-3 py-3 left-1 right-0 bg-white border-t border-[#EAE9E9] z-20"
               >
                 <div className="flex items-center h-full">
                   <button

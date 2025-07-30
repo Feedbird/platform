@@ -141,6 +141,25 @@ const calendarStyles = `
     margin: 0 !important;
   }
 
+  .fc .fc-daygrid-body-natural .fc-daygrid-day-events:not(:has(a.fc-event))::before {
+    content: '';
+    display: block;
+  }
+
+  
+  /* Empty cell aspect ratios for grid consistency */
+  .fc-dayGridMonth-view .fc-daygrid-day-events:not(:has(a.fc-event))::before {
+    aspect-ratio: 145 / 188;
+  }
+
+  .fc-dayGridMonthCompact-view .fc-daygrid-day-events:not(:has(a.fc-event))::before {
+    aspect-ratio: 145 / 80;
+  }
+
+  .fc-dayGridWeek-view .fc-daygrid-day-events:not(:has(a.fc-event))::before {
+    height: calc(100vh - 158px);
+  }
+
   .fc-theme-standard .fc-popover {
     z-index: 3 !important;
   }
@@ -948,7 +967,7 @@ export default function CalendarView({
 
       <div className="rounded-lg bg-background text-foreground shadow-sm flex flex-col relative overflow-auto">
         {/* Top toolbar */}
-        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-2.5 sticky top-0 z-10 bg-background">
+        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-2.5 sticky top-0 z-10 bg-background border-b">
           {/* Left side controls */}
           <div className="flex items-center gap-2">
             <Button
@@ -1075,7 +1094,7 @@ export default function CalendarView({
           eventDragStart={handleEventDragStart}
           eventDrop={handleEventDrop}
           // Layout considerations
-          expandRows={false}
+          expandRows={viewId === 'dayGridWeek'}
           fixedWeekCount={false}
           height="auto"
         />
