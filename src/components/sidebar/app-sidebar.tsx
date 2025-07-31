@@ -713,15 +713,9 @@ export function AppSidebar() {
             </div>
           ) : (
             <SidebarGroupLabel>
-              <div className="flex items-center justify-between w-full cursor-pointer">
-                <div
-                  className="flex items-center text-[#75777C] gap-1.5"
-                  onClick={() => setBoardsOpen((o) => !o)}
-                >
-                  {boardsOpen ? <ChevronDown className="w-4.5 h-4.5" /> : <ChevronRight className="w-4.5 h-4.5" />}
-                  <span className="text-[10px] font-semibold tracking-wide">BOARDS</span>
-                </div>
-                <button onClick={() => setIsAddBoardModalOpen(true)} className="hover:bg-gray-100 rounded">
+              <div className="flex items-center justify-between w-full">
+                <span className="text-[10px] font-semibold text-[#75777C] tracking-wide">BOARDS</span>
+                <button onClick={() => setIsAddBoardModalOpen(true)} className="hover:bg-gray-100 rounded cursor-pointer  ">
                   <Image
                     src={`/images/sidebar/plus.svg`}
                     alt="board plus"
@@ -733,11 +727,9 @@ export function AppSidebar() {
             </SidebarGroupLabel>
           )}
 
-          {boardsOpen && (
-            <div className="mt-1">
-              <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
-            </div>
-          )}
+          <div className="mt-1">
+            <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
+          </div>
         </SidebarGroup>
         )}
 
