@@ -432,6 +432,8 @@ export function PostTable({
   const addGroupMessage = useFeedbirdStore((s) => s.addGroupMessage);
   const resolveGroupComment = useFeedbirdStore((s) => s.resolveGroupComment);
   const deleteGroupCommentAiSummaryItem = useFeedbirdStore((s) => s.deleteGroupCommentAiSummaryItem);
+  const requestChanges = useFeedbirdStore((s) => s.requestChanges);
+  const approvePost = useFeedbirdStore((s) => s.approvePost);
   
   // Store subscriptions - subscribe to the actual data that changes
   const workspaces = useFeedbirdStore(s => s.workspaces);
@@ -1607,7 +1609,8 @@ export function PostTable({
                             p.id === post.id ? { ...p, status: "Needs Revisions" } : p
                           )
                         );
-                        updatePost(post.id, { status: "Needs Revisions" });
+                        // Use the store's requestChanges method to add activity
+                        requestChanges(post.id);
                         handleEditPost(post);
                       }
                     }}
@@ -1635,7 +1638,7 @@ export function PostTable({
         enableHiding: false,
         cell: ({ row }) => {
           const post = row.original;
-          return <ApproveCell post={post} updatePost={updatePost} />;
+          return <ApproveCell post={post} />;
         },
       },
       {

@@ -412,9 +412,10 @@ interface ContentModalProps {
   postId: string;
   block: Block;
   onClose: () => void;
+  initialVersionId?: string;
 }
 
-export function ContentModal({ postId, block, onClose }: ContentModalProps) {
+export function ContentModal({ postId, block, onClose, initialVersionId }: ContentModalProps) {
   const store = useFeedbirdStore();
 
   // find the updated block from store
@@ -422,7 +423,7 @@ export function ContentModal({ postId, block, onClose }: ContentModalProps) {
     store.getPost(postId)?.blocks.find((b) => b.id === block.id) ?? block;
 
   // current version
-  const [verId, setVerId] = useState(realBlock.currentVersionId);
+  const [verId, setVerId] = useState(initialVersionId || realBlock.currentVersionId);
   const version = useMemo(
     () => realBlock.versions.find((v) => v.id === verId),
     [realBlock, verId]

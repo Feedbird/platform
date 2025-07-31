@@ -194,6 +194,7 @@ export function InlineFormatEditor({ post }: { post: Post }) {
 ------------------------------------------------------------------ */
 export function InlineDateEditor({ post }: { post: Post }) {
   const updatePost = useFeedbirdStore(s => s.updatePost);
+  const addActivity = useFeedbirdStore(s => s.addActivity);
 
   const savedDate  = post.publishDate ? new Date(post.publishDate) : null;
   const hasDate    = !!savedDate;
@@ -215,30 +216,80 @@ export function InlineDateEditor({ post }: { post: Post }) {
   function autoSchedule() {
     const allPosts = useFeedbirdStore.getState().getActivePosts();
     const suggestions = getSuggestedSlots(post, allPosts, 5);
+    let scheduledDate: Date;
+    
     if (suggestions.length) {
-      updatePost(post.id, { publishDate: suggestions[0].date });
+      scheduledDate = suggestions[0].date;
+      updatePost(post.id, { publishDate: scheduledDate });
     } else {
       const fallback = new Date();
       fallback.setDate(fallback.getDate() + 7);
       fallback.setHours(9, 0, 0, 0);
+      scheduledDate = fallback;
       updatePost(post.id, { publishDate: fallback });
     }
+    
+    // Add scheduling activity
+    addActivity({
+      postId: post.id,
+      actor: "Me",
+      action: "auto-scheduled this post",
+      type: "scheduled",
+      metadata: {
+        publishTime: scheduledDate
+      }
+    });
   }
   function handleSetDate() {
     const [hh, mm] = timeVal.split(":").map(Number);
     const dt = new Date(tempDate);
     dt.setHours(hh, mm, 0, 0);
     updatePost(post.id, { publishDate: dt });
+    
+    // Add scheduling activity
+    addActivity({
+      postId: post.id,
+      actor: "Me",
+      action: "scheduled this post",
+      type: "scheduled",
+      metadata: {
+        publishTime: dt
+      }
+    });
+    
     setOpen(false);
   }
   function handleSchedule() {
     updatePost(post.id, { status: "Scheduled" });
+    
+    // Add scheduling activity
+    addActivity({
+      postId: post.id,
+      actor: "Me",
+      action: "scheduled this post",
+      type: "scheduled",
+      metadata: {
+        publishTime: post.publishDate || new Date()
+      }
+    });
   }
   function handleUnsched() {
     updatePost(post.id, { publishDate: undefined, status: "Draft" });
   }
   function handlePublish() {
-    updatePost(post.id, { status: "Published", publishDate: new Date() });
+    const publishTime = new Date();
+    updatePost(post.id, { status: "Published", publishDate: publishTime });
+    
+    // Add publishing activity
+    addActivity({
+      postId: post.id,
+      actor: "Me",
+      action: "published this post",
+      type: "published",
+      metadata: {
+        publishTime
+      }
+    });
   }
 
   const showChevronDown = !isSched && !isPub;
@@ -331,7 +382,8 @@ function buildHalfHourSlots() {
    For the modal, or do you want the same icon? 
 ------------------------------------------------------------------ */
 export function ApproveCell({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore(s => s.updatePost);
+  const approvePost = useFeedbirdStore(s => s.approvePost);
+  const requestChanges = useFeedbirdStore(s => s.requestChanges);
 
   const isApproved = post.status === "Approved";
   const isInRevision = post.status === "Needs Revisions";
@@ -362,14 +414,10 @@ export function ApproveCell({ post }: { post: Post }) {
 
     if (isApproved) {
       // If currently approved, change to "Needs Revisions"
-      updatePost(post.id, {
-        status: "Needs Revisions",
-      });
+      requestChanges(post.id);
     } else {
       // For any other allowed status, approve it
-      updatePost(post.id, {
-        status: "Approved",
-      });
+      approvePost(post.id);
     }
   };
 

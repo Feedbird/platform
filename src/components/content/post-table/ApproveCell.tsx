@@ -2,16 +2,17 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Post } from "@/lib/store/use-feedbird-store";
+import { Post, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { cn } from "@/lib/utils";
 
 export function ApproveCell({
   post,
-  updatePost,
 }: {
   post: Post;
-  updatePost: (id: string, updates: Partial<Post>) => void;
 }) {
+  const approvePost = useFeedbirdStore(s => s.approvePost);
+  const requestChanges = useFeedbirdStore(s => s.requestChanges);
+  
   const isApproved = post.status === "Approved";
   const isInRevision = post.status === "Needs Revisions";
   const isScheduledOrPosted = post.status === "Scheduled" || post.status === "Published";
@@ -33,22 +34,16 @@ export function ApproveCell({
 
     if (isApproved) {
       // If currently approved, change to "Needs Revisions"
-      updatePost(post.id, {
-        status: "Pending Approval",
-      });
+      requestChanges(post.id);
     } else {
       // For any other allowed status, approve it
-      updatePost(post.id, {
-        status: "Approved",
-      });
+      approvePost(post.id);
     }
   };
 
   const handleRemoveApproval = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the main click handler
-    updatePost(post.id, {
-      status: "Pending Approval",
-    });
+    requestChanges(post.id);
   };
 
   const [isHovering, setIsHovering] = React.useState(false);

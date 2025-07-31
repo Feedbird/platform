@@ -28,9 +28,11 @@ import { Platform } from "@/lib/social/platforms/platform-types";
 import { BlocksViewer } from "@/components/post/blocks-viewer";
 import { CaptionEditor } from "@/components/post/caption-editor";
 import { CommentsPanel } from "@/components/post/comments-panel";
+import { ActivityPanel } from "@/components/post/activity-panel";
 import ActivityFeed from "@/components/post/activity-feed";
 import { ContentModal } from "@/components/content/content-modal/content-modal";
 import ScheduleDialog from "@/components/post/schedule-dialog";
+import { VersionPanel } from "./version-panel";
 
 /* simpler inline "clones" for status, channels, format, date */
 import { InlineStatusEditor, InlineDateEditor, ApproveCell } from "./inlines";
@@ -693,6 +695,8 @@ export function PostRecordModal({ postId, open, onClose }:{
   const [expanded, setExpanded] = useState(true);
   const [slots, setSlots] = useState<ReturnType<typeof getSuggestedSlots>|null>(null);
   const [activeBlock, setActiveBlock] = useState<Block|null>(null);
+  const [previewBlock, setPreviewBlock] = useState<{block: Block, versionId: string}|null>(null);
+  const [allowCommenting, setAllowCommenting] = useState(false);
 
   if (!post) {
     // Post might not be available yet if things are loading.
@@ -745,7 +749,15 @@ export function PostRecordModal({ postId, open, onClose }:{
     // Only request changes if the status allows it
     if (allowedStatusesForRevision.includes(post.status)) {
       updatePost(post.id, { status: "Needs Revisions" });
+      // Enable commenting when requesting changes
+      setAllowCommenting(true);
     }
+  };
+
+  const handlePreviewVersion = (block: Block, versionId: string) => {
+    console.log('Preview version:', versionId);
+    console.log('block:', block);
+    setPreviewBlock({ block, versionId });
   };
 
   // Display date as: May 18, 2025   11:44
@@ -1000,7 +1012,7 @@ export function PostRecordModal({ postId, open, onClose }:{
             </div>
 
             {/* right sidebar */}
-            <motion.aside key={pane} className="w-[360px] shrink-0 flex h-full flex-col border-l bg-white">
+            <motion.aside key={pane} className="w-[360px] shrink-0 flex h-full flex-col border-l border-elementStroke bg-white">
               {/* sidebar header */}
               <header className="h-12 flex items-center justify-between border-b px-4 bg-white border-elementStroke">
                 {pane == 'activity' ? (
@@ -1010,7 +1022,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                 )}
                 <div className="flex items-center gap-2">
                 {pane == 'activity' ? (
-                  <div className="flex items-center gap-1 p-[2px] bg-elementStroke rounded-[6px] h-full">
+                  <div className="flex items-center gap-1 p-[2px] bg-[#F7F7F7] rounded-[6px] h-full">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1066,8 +1078,9 @@ export function PostRecordModal({ postId, open, onClose }:{
               {/* sidebar body */}
               <div className="flex-1 overflow-auto">
                 {pane==="version"
-                  ? <CommentsPanel key={cKey} post={post} isPost showHeader/>
-                  : <ActivityFeed activities={post.activities}/>
+                  ? <VersionPanel post={post} onPreviewVersion={handlePreviewVersion} />
+                  // : <ActivityFeed activities={post.activities}/>
+                  : <ActivityPanel key={cKey} post={post} showHeader allowCommenting={allowCommenting} onSwitchToVersion={() => setPane('version')}/>
                 }
               </div>
             </motion.aside>
@@ -1081,6 +1094,16 @@ export function PostRecordModal({ postId, open, onClose }:{
           postId={post.id}
           block={activeBlock}
           onClose={()=>setActiveBlock(null)}
+        />
+      )}
+
+      {/* version preview modal */}
+      {previewBlock && (
+        <ContentModal
+          postId={post.id}
+          block={previewBlock.block}
+          initialVersionId={previewBlock.versionId}
+          onClose={()=>setPreviewBlock(null)}
         />
       )}
 

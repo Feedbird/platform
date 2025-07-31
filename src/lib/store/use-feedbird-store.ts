@@ -136,8 +136,16 @@ export interface Activity {
   id: string;
   postId: string;
   actor: string;
-  action: string; 
+  action: string;
+  type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing';
   at: Date;
+  metadata?: {
+    versionNumber?: number;
+    comment?: string;
+    publishTime?: Date;
+    revisionComment?: string;
+    commentId?: string;
+  };
 }
 
 export interface Post {
@@ -661,7 +669,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         publishPostToAllPages: (postId, scheduledTime) => {
           return withLoading(
             async () => {
-              const { getActiveBrand, getPost, updatePost } = get();
+              const { getActiveBrand, getPost, updatePost, addActivity } = get();
               const brand = getActiveBrand();
               const post = getPost(postId);
 
@@ -670,6 +678,19 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               }
 
               updatePost(postId, { status: "Publishing" });
+              
+              // Add scheduling activity if scheduled
+              if (scheduledTime) {
+                addActivity({
+                  postId,
+                  actor: "Me",
+                  action: "scheduled this post",
+                  type: "scheduled",
+                  metadata: {
+                    publishTime: scheduledTime
+                  }
+                });
+              }
 
               // Helper: convert any URL (data: or http(s):) to a File object for FormData upload.
               const urlToFile = async (srcUrl: string, defaultName: string, kind: FileKind): Promise<File> => {
@@ -753,10 +774,25 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               const failures = results.filter(r => r.status === 'rejected');
               if (failures.length > 0) {
                 updatePost(postId, { status: "Failed Publishing" });
+                addActivity({
+                  postId,
+                  actor: "System",
+                  action: "failed to publish",
+                  type: "failed_publishing"
+                });
                 throw new Error(`${failures.length} of ${results.length} posts failed to publish.`);
               }
 
               updatePost(postId, { status: "Published" });
+              addActivity({
+                postId,
+                actor: "System",
+                action: "published this post",
+                type: "published",
+                metadata: {
+                  publishTime: new Date()
+                }
+              });
             },
             {
               loading: scheduledTime ? "Scheduling post..." : "Publishing post...",
@@ -1327,9 +1363,17 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           // Only approve if the status allows it
           if (allowedStatusesForApproval.includes(post.status)) {
             get().updatePost(id, { status: "Approved" });
+            // Add activity
+            get().addActivity({
+              postId: id,
+              actor: "Me",
+              action: "approved this post",
+              type: "approved"
+            });
           }
         },
-        requestChanges: (id) => {
+        requestChanges: (id, comment?: string) => {
+          console.log("requestChanges", id, comment);
           const post = get().getPost(id);
           if (!post) return;
           
@@ -1344,6 +1388,17 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           // Only request changes if the status allows it
           if (allowedStatusesForRevision.includes(post.status)) {
             get().updatePost(id, { status: "Needs Revisions" });
+            console.log("requestChanges", id, comment);
+            // Add activity
+            get().addActivity({
+              postId: id,
+              actor: "Me",
+              action: "requested changes",
+              type: "revision_request",
+              metadata: {
+                revisionComment: comment
+              }
+            });
           }
         },
 
@@ -1515,25 +1570,79 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           return newVid;
         },
         setCurrentVersion: (postId, blockId, versionId) => {
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
-                  if (p.id !== postId) return p;
-                  return {
-                    ...p,
-                    blocks: p.blocks.map((b) => 
-                      b.id === blockId
-                        ? { ...b, currentVersionId: versionId }
-                        : b
-                    ),
-                  };
-                }),
+          set((s) => {
+            const newState = {
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                brands: ws.brands.map((br) => ({
+                  ...br,
+                  contents: br.contents.map((p) => {
+                    if (p.id !== postId) return p;
+                    return {
+                      ...p,
+                      blocks: p.blocks.map((b) => 
+                        b.id === blockId
+                          ? { ...b, currentVersionId: versionId }
+                          : b
+                      ),
+                    };
+                  }),
+                })),
               })),
-            })),
-          }));
+            };
+            
+            // Add revision activity
+            const post = newState.workspaces
+              .flatMap(w => w.brands)
+              .flatMap(b => b.contents)
+              .find(p => p.id === postId);
+            
+            if (post) {
+              const block = post.blocks.find(b => b.id === blockId);
+              if (block) {
+                const versionIndex = block.versions.findIndex(v => v.id === versionId);
+                if (versionIndex > 0) { // Only add activity if it's not the first version
+                  const activity = {
+                    postId,
+                    actor: "Me",
+                    action: "created a new revision",
+                    type: "revised" as const,
+                    metadata: {
+                      versionNumber: versionIndex + 1
+                    }
+                  };
+                  
+                  // Add the activity to the post
+                  const updatedState = {
+                    workspaces: newState.workspaces.map((ws) => ({
+                      ...ws,
+                      brands: ws.brands.map((br) => ({
+                        ...br,
+                        contents: br.contents.map((p) => {
+                          if (p.id !== postId) return p;
+                          return {
+                            ...p,
+                            activities: [
+                              {
+                                ...activity,
+                                id: nanoid(),
+                                at: new Date(),
+                              },
+                              ...p.activities
+                            ],
+                          };
+                        }),
+                      })),
+                    })),
+                  };
+                  
+                  return updatedState;
+                }
+              }
+            }
+            
+            return newState;
+          });
         },
 
         // Comments

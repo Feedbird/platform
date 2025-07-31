@@ -201,25 +201,7 @@ function makeBlock(kind: FileKind): Block {
   };
 }
 
-/** 
- * Random activity 
-*/
-function makeActivity(postId: string): Activity {
-  const actions = [
-    "uploaded a new version",
-    "approved the post",
-    "requested changes",
-    "scheduled the post",
-    "left a comment",
-  ];
-  return {
-    id: nanoid(),
-    postId,
-    actor: faker.person.firstName(),
-    action: faker.helpers.arrayElement(actions),
-    at: faker.date.recent({ days:5 }),
-  };
-}
+
 
 /**
  * Build a single post and assign it to a board
@@ -317,10 +299,7 @@ function makePost(
       { length: faker.number.int({ min: 0, max: 3 }) },
       () => makeComment("Me"),
     ),
-    activities: Array.from(
-      { length: faker.number.int({ min: 1, max: 5 }) },
-      () => makeActivity(nanoid()),
-    ),
+    activities: [],
   };
 }
 
