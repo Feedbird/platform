@@ -31,6 +31,7 @@ import {
 import { toast } from 'sonner'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { useLoading } from '@/lib/providers/loading-provider'
+import { useClerk } from '@clerk/nextjs'
 import { WorkspaceModal } from '@/components/workspace/workspace-modal'
 import { useMounted } from '@/hooks/use-mounted'
 import {
@@ -44,12 +45,15 @@ import { Toaster } from "@/components/ui/sonner"
 
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
+  const { signOut } = useClerk()
+  
   /* -------- store -------- */
   const workspaces     = useFeedbirdStore(s => s.workspaces)
   const activeId       = useFeedbirdStore(s => s.activeWorkspaceId)
   const addWorkspace   = useFeedbirdStore(s => s.addWorkspace)
   const removeWs       = useFeedbirdStore(s => s.removeWorkspace)
   const setActive      = useFeedbirdStore(s => s.setActiveWorkspace)
+  const clearUser      = useFeedbirdStore(s => s.clearUser)
   const active         = workspaces.find(w => w.id === activeId)
 
   const { show, hide } = useLoading()
@@ -270,7 +274,15 @@ export default function WorkspaceSwitcher() {
 
               {/* sign out */}
               <DropdownMenuItem
-                onSelect={e => { e.preventDefault(); }}
+                onSelect={async (e) => { 
+                  e.preventDefault();
+                  try {
+                    clearUser();
+                    await signOut({ redirectUrl: '/landing' });
+                  } catch (error) {
+                    console.error('Sign out error:', error);
+                  }
+                }}
                 className="flex items-center gap-[6px] px-[12px] py-[12px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
               >
                 <LogOut className="size-3.5"/>

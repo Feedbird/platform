@@ -4,6 +4,7 @@
 import { Suspense, useState, useEffect } from 'react'
 import Image                  from 'next/image'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { UserButton } from '@clerk/nextjs'
 import {
   ChevronsUpDown,
   Table,
@@ -438,6 +439,7 @@ function HeaderInner() {
           <Image src="/images/header/user-plus.svg" alt="Share" width={16} height={16} />
           Share
         </Button>
+        <UserButton afterSignOutUrl="/landing" />
       </div>
 
       {/* centered upload progress */}

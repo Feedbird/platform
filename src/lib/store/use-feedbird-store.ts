@@ -233,7 +233,19 @@ export interface BoardTemplate {
 /*─────────────────────────────────────────────────────────────────────*/
 /*  Store Interface                                                  */
 /*─────────────────────────────────────────────────────────────────────*/
+export interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  imageUrl?: string;
+  createdAt: Date;
+}
+
 export interface FeedbirdStore {
+  // User management
+  user: User | null;
+  
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
   activeBrandId: string | null;
@@ -249,6 +261,10 @@ export interface FeedbirdStore {
   /** Loading states for post history sync. Key = pageId. */
   syncingPostHistory: Record<string, boolean>;
 
+  // User management
+  setUser: (user: User | null) => void;
+  clearUser: () => void;
+  
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
   setActiveBoard: (id: string) => void;
@@ -462,6 +478,9 @@ function boardsToNav(boards: Board[]): NavLink[] {
 export const useFeedbirdStore = create<FeedbirdStore>()(
   persist(
     (set, get) => ({
+      // User management
+      user: null,
+      
       workspaces: [],
       activeWorkspaceId: null,
       activeBrandId: null,
@@ -2216,6 +2235,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
+        // User management methods
+        setUser: (user: User | null) => set({ user }),
+        clearUser: () => set({ user: null }),
+        
         updatePostStatusesBasedOnTime: () => {
           set((s) => {
             let updatedCount = 0;
