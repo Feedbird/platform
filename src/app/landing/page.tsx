@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { DynamicTitle } from '@/components/layout/dynamic-title'
 
 export default function LandingPage() {
   const { openSignUp } = useClerk()
@@ -28,7 +29,9 @@ export default function LandingPage() {
   }, [openSignUp, hasTicket, isSignedIn])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <>
+      <DynamicTitle />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-4xl mx-auto text-center">
         {/* Header */}
         <div className="mb-12">
@@ -117,5 +120,6 @@ export default function LandingPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

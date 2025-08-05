@@ -10,6 +10,7 @@ import type { PostHistory } from '@/lib/social/platforms/platform-types';
 import { Button } from '@/components/ui/button';
 import { useAsyncLoading } from '@/hooks/use-async-loading';
 import { usePostHistoryLoading } from '@/hooks/use-post-history-loading';
+import { DynamicTitle } from '@/components/layout/dynamic-title';
 
 export default function SocialPagePosts() {
   const { pageId } = useParams() as { pageId: string };
@@ -146,7 +147,9 @@ export default function SocialPagePosts() {
   const isReallyLoading = isInitialLoading || isStoreSyncing;
 
   return (
-    <div className="p-4 flex flex-col items-center overflow-y-auto w-full">
+    <>
+      <DynamicTitle />
+      <div className="p-4 flex flex-col items-center overflow-y-auto w-full">
       <div className="flex items-center justify-between w-full max-w-[600px] mb-4">
         <h2 className="text-xl font-semibold">
           Posts for {page.name} ({page.platform})
@@ -195,6 +198,7 @@ export default function SocialPagePosts() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

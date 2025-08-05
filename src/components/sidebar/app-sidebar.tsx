@@ -544,12 +544,11 @@ export function AppSidebar() {
   } | null>(null);
 
   const { updateBoard, addBoard, removeBoard } = useFeedbirdStore();
-  const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
+  const activeWorkspace = useFeedbirdStore(s => s.getActiveWorkspace());
   const [colorIconTarget, setColorIconTarget] = React.useState<NavLinkType | null>(null);
   const [renameTarget, setRenameTarget] = React.useState<NavLinkType | null>(null);
   const [isManageSocialsOpen, setIsManageSocialsOpen] = React.useState(false);
 
-  const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
   const activeBrand = useFeedbirdStore((s) => s.getActiveBrand());
 
   React.useEffect(() => {
@@ -715,7 +714,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>
               <div className="flex items-center justify-between w-full">
                 <span className="text-[10px] font-semibold text-[#75777C] tracking-wide">BOARDS</span>
-                <button onClick={() => setIsAddBoardModalOpen(true)} className="hover:bg-gray-100 rounded cursor-pointer  ">
+                <button onClick={() => setIsAddBoardModalOpen(!!activeWorkspace)} className="hover:bg-gray-100 rounded cursor-pointer  ">
                   <Image
                     src={`/images/sidebar/plus.svg`}
                     alt="board plus"
@@ -750,7 +749,7 @@ export function AppSidebar() {
                   {socialOpen ? <ChevronDown className="w-4.5 h-4.5" /> : <ChevronRight className="w-4.5 h-4.5" />}
                   <span className="text-[10px] font-semibold tracking-wide">SOCIALS</span>
                 </div>
-                <button onClick={() => setIsManageSocialsOpen(true)} className="hover:bg-gray-100 rounded">
+                <button onClick={() => setIsManageSocialsOpen(!!activeBrand)} className="hover:bg-gray-100 rounded">
                   <Image
                     src={`/images/sidebar/plus.svg`}
                     alt="social plus"

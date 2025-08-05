@@ -93,6 +93,7 @@ export function getPageName(pathname: string): string {
     'notifications': 'Notifications',
     'settings': 'Settings',
     'social': 'Social',
+    'landing': 'Welcome',
   };
 
   const pageName = pageNameMap[segments[0]];

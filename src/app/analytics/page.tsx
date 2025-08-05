@@ -10,6 +10,7 @@ import { MetricChart } from '@/components/analytics/metric-chart'
 import { TopPostCard, TopPost } from '@/components/analytics/top-post-card'
 import { ContentTable } from '@/components/analytics/content-table'
 import type { Metric } from '@/components/analytics/metric-card'
+import { DynamicTitle } from '@/components/layout/dynamic-title'
 
 export default function AnalyticsPage() {
   const [showAlert] = useState(true)
@@ -175,8 +176,10 @@ export default function AnalyticsPage() {
   ]
 
   return (
-    <Suspense fallback={null}>
-      <div className="w-full h-screen overflow-y-auto p-4 bg-gray-50">
+    <>
+      <DynamicTitle />
+      <Suspense fallback={null}>
+        <div className="w-full h-screen overflow-y-auto p-4 bg-gray-50">
         <div className="container mx-auto px-4 max-w-[960px] space-y-4">
           {showAlert && <InfoAlert />}
 
@@ -240,5 +243,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
     </Suspense>
+    </>
   )
 } 
