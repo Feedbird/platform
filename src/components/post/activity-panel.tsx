@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { StatusChip } from "@/components/content/shared/content-post-ui";
 import { format } from "date-fns";
 import { ActivityItem } from "./activity-item";
+import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 
 export function ago(d: Date) {
   const s = ~~((Date.now() - +d) / 1000);
@@ -457,33 +458,38 @@ export function ActivityPanel({
   }, [comments.length, reply]);
 
   // Send comment logic
-  const send = () => {
+  const send = async () => {
     if (!input.trim()) return;
 
-    // Add the comment and get the comment ID
-    const commentId = addPostComment(post.id, input.trim(), reply?.id, markAsRevision);
-    
-    // Add revision request activity if marked as revision
-    if (markAsRevision) {
-      const addActivity = useFeedbirdStore.getState().addActivity;
-      addActivity({
-        postId: post.id,
-        actor: "Me",
-        action: "requested changes",
-        type: "revision_request",
-        metadata: {
-          revisionComment: input.trim(),
-          commentId: commentId // Store the actual comment ID
-        }
-      });
+    try {
+      // Add the comment and get the comment ID
+      const commentId = await addPostComment(post.id, input.trim(), reply?.id, markAsRevision);
+      
+      // Add revision request activity if marked as revision
+      if (markAsRevision) {
+        const addActivity = useFeedbirdStore.getState().addActivity;
+        addActivity({
+          postId: post.id,
+          actor: getCurrentUserDisplayName(),
+          action: "requested changes",
+          type: "revision_request",
+          metadata: {
+            revisionComment: input.trim(),
+            commentId: commentId // Store the actual comment ID
+          }
+        });
+      }
+
+      setInput("");
+      setReply(null);
+      setEmoji(false);
+      setMarkAsRevision(false);
+
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } catch (error) {
+      console.error('Failed to send comment:', error);
+      // You might want to show an error message to the user here
     }
-
-    setInput("");
-    setReply(null);
-    setEmoji(false);
-    setMarkAsRevision(false);
-
-    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   // Root-level comments

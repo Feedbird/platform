@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo } from "react";
 // equality function not supported in our zustand version
-import { useFeedbirdStore, FileKind } from "@/lib/store/use-feedbird-store";
+import { useFeedbirdStore, FileKind, Post } from "@/lib/store/use-feedbird-store";
 import { toast } from "sonner";
 import { useUploadStore, UploadStatus } from "@/lib/store/upload-store";
+import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 
 export type UploadItem = {
   id: string;
@@ -25,6 +26,7 @@ export function useUploader({ postId }: { postId: string }) {
   const addBlock = useFeedbirdStore((s) => s.addBlock);
   const addVersion = useFeedbirdStore((s) => s.addVersion);
   const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const updatePostAfterUpload = useUploadStore.getState().updatePostAfterUpload;
   // const uploadStore = useUploadStore.getState(); // no longer needed
 
   const startUploads = (files: File[]) => {
@@ -120,16 +122,62 @@ export function useUploader({ postId }: { postId: string }) {
         toast.success(`${up.file.name} uploaded`);
         uploadActions.updateUpload(up.id, { progress: 100, status: "done" });
         
-        // Show "Uploaded" status for 2 seconds, then add the block and remove the upload
-        setTimeout(() => {
-          // 3. Update the post with the new block
-          const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
-          const blockId = addBlock(postId, kind);
-          addVersion(postId, blockId, { by: "Me", caption: "", file: { kind, url: publicUrl } });
-          
-          // Remove the upload immediately after adding the block
-          uploadActions.removeUpload(up.id);
-        }, 2000);
+                 // Show "Uploaded" state for 1 second, then remove upload and add block
+         setTimeout(async () => {
+           // First remove the upload (this will hide the "Uploaded" state)
+           uploadActions.removeUpload(up.id);
+           
+           // Then add the block to the store (this will make it appear in the UI)
+           try {
+             // 3. Update the post with the new block in Zustand store
+             const kind: FileKind = up.file.type.startsWith("video") ? "video" : "image";
+             const blockId = addBlock(postId, kind);
+             const currentUser = getCurrentUserDisplayName();
+             const versionId = addVersion(postId, blockId, { by: currentUser, caption: "", file: { kind, url: publicUrl } });
+             
+             // 4. Get the updated post data from Zustand store
+             const store = useFeedbirdStore.getState();
+             const post = store.getPost(postId);
+             
+             if (post) {
+               // 5. Update post data in database and sync with Zustand store
+               await updatePostAfterUpload(postId, post.blocks);
+               
+               // 6. Update format and status after block is added
+               const imgCnt = post.blocks.filter((b) => b.kind === "image").length;
+               const vidCnt = post.blocks.filter((b) => b.kind === "video").length;
+               let newFormat = post.format;
+               if (vidCnt > 0 && imgCnt === 0) newFormat = "video";
+               else if (imgCnt === 1 && vidCnt === 0) newFormat = "image";
+               else if (imgCnt >= 2 || (imgCnt >= 1 && vidCnt > 0)) newFormat = "carousel";
+               
+               // Prepare updates object
+               const updates: Partial<Post> = {};
+               if (newFormat !== post.format) {
+                 updates.format = newFormat;
+               }
+               
+               // Auto-set status to "Pending Approval" if conditions are met
+               const hasNonEmptyCaption = post.caption.default && post.caption.default.trim() !== "";
+               const isFirstBlock = post.blocks.length === 1; // This is the first block being added
+               const isDraftStatus = post.status === "Draft";
+               
+               if (isFirstBlock && isDraftStatus && hasNonEmptyCaption) {
+                 updates.status = "Pending Approval";
+               }
+               
+               // Apply all updates in a single call
+               if (Object.keys(updates).length > 0) {
+                 updatePost(postId, updates);
+               }
+             }
+           } catch (error) {
+             console.error('Failed to update post after upload:', error);
+             toast.error(`Failed to update post data for ${up.file.name}`, { 
+               description: error instanceof Error ? error.message : "Unknown error" 
+             });
+           }
+         }, 1000); // Show "Uploaded" for 1 second before removing upload and adding block
 
       } catch (err: any) {
         console.error("Upload failed for", up.file.name, err);

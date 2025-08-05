@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronDown, MoreHorizontal, Download, Trash2, Copy } from
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Post, Block, Version, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 
 // Avatar component for author display
 function Avatar({ name }: { name: string }) {
@@ -143,7 +144,7 @@ export function VersionPanel({ post, onPreviewVersion }: VersionPanelProps) {
   const handleRestoreVersion = (block: Block, version: Version) => {
     // Create a new version that duplicates the selected version
     const newVersionId = addVersion(post.id, block.id, {
-      by: "Me",
+      by: getCurrentUserDisplayName(),
       caption: version.caption,
       file: version.file
     });
@@ -154,7 +155,7 @@ export function VersionPanel({ post, onPreviewVersion }: VersionPanelProps) {
     // Add activity to track this action
     addActivity({
       postId: post.id,
-      actor: "Me",
+      actor: getCurrentUserDisplayName(),
       action: "restored a previous version",
       type: "revised",
       metadata: {

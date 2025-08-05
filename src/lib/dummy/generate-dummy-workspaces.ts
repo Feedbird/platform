@@ -1,7 +1,7 @@
 "use server";
 
 import { faker } from "@faker-js/faker";
-import { nanoid } from "nanoid";
+import { v4 as uuidv4 } from 'uuid';
 import {
   Workspace,
   Brand,
@@ -97,7 +97,7 @@ function rInt(min: number, max: number) {
 /** Possibly mark as revision. */
 function makeBaseComment(author?: string): BaseComment {
   return {
-    id: nanoid(),
+    id: uuidv4(),
     parentId: undefined,
     createdAt: faker.date.recent({ days: 12 }),
     author: author || faker.person.firstName(),
@@ -169,7 +169,7 @@ function buildNestedVersionComments(minTop: number, maxTop: number): VersionComm
 function makeVersion(kind: FileKind, idx: number): Version {
   const isVid = kind==="video";
   return {
-    id: nanoid(),
+    id: uuidv4(),
     createdAt: faker.date.past(),
     by: faker.person.firstName(),
     caption: idx===0 ? "Initial" : `Revision ${idx}`,
@@ -193,7 +193,7 @@ function makeBlock(kind: FileKind): Block {
   for (let i = 0; i < versCnt; i++) versions.push(makeVersion(kind, i));
 
   return {
-    id: nanoid(),
+    id: uuidv4(),
     kind,
     currentVersionId: versions[versions.length - 1].id,
     versions,
@@ -279,7 +279,7 @@ function makePost(
   const pageIds = selectedPages.map(p => p.id);
 
   return {
-    id: nanoid(),
+    id: uuidv4(),
     brandId,
     boardId,
     caption: {
@@ -297,7 +297,7 @@ function makePost(
     blocks,
     comments: Array.from(
       { length: faker.number.int({ min: 0, max: 3 }) },
-      () => makeComment("Me"),
+      () => makeComment("You"),
     ),
     activities: [],
   };
@@ -307,7 +307,7 @@ function makePost(
  * Make brand with random set of platforms + pages + 4..8 posts 
 */
 function makeBrand(): Brand {
-  const bid = nanoid();
+  const bid = uuidv4();
   const brandPlatforms = faker.helpers.arrayElements(ALL_PLATFORMS, {
     min: 2,
     max: 5,
@@ -323,9 +323,9 @@ function makeBrand(): Brand {
       const connected = status === "active" ? true : false;
       
       arr.push({
-        id: nanoid(),
+        id: uuidv4(),
         name: faker.company.name(),
-        pageId: nanoid(),
+        pageId: uuidv4(),
         platform,
         authToken: faker.string.uuid(),
         connected,
@@ -333,7 +333,7 @@ function makeBrand(): Brand {
         postCount: faker.number.int({ min: 10, max: 100 }),
         followerCount: faker.number.int({ min: 100, max: 10000 }),
         entityType: "page",
-        accountId: nanoid()
+        accountId: uuidv4()
       });
     }
     return arr;
@@ -363,7 +363,7 @@ function makeBrand(): Brand {
 export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
   const results: Workspace[] = [];
   for (let i=0; i<count; i++){
-    const wid = nanoid();
+    const wid = uuidv4();
     const brandCount = rInt(2,3);
     const brandArr: Brand[] = [];
     for (let j=0; j<brandCount; j++){
@@ -395,6 +395,7 @@ export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
       id: wid,
       name: faker.company.name(),
       logo: faker.image.avatarGitHub(),
+      createdby: uuidv4(), // Dummy creator ID for demo purposes
       boards,
       brands: brandArr
     });
@@ -404,7 +405,7 @@ export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
 
 function makeComment(author: string): BaseComment {
   return {
-    id: nanoid(),
+    id: uuidv4(),
     createdAt: faker.date.recent(),
     author,
     text: faker.lorem.sentence(),

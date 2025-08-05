@@ -1,22 +1,39 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useClerk, useAuth } from '@clerk/nextjs'
 import { SignInButton, SignUpButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 
 export default function LandingPage() {
+  const { openSignUp } = useClerk()
+  const { isSignedIn } = useAuth()
+  const searchParams = useSearchParams()
+
+  // Determine if we landed here from an invitation link
+  const hasTicket = searchParams.get('__clerk_ticket') !== null
+
+  // If the page was reached through an invitation link *and* there is no active
+  // session yet, trigger the Sign-Up modal. This avoids Clerk's
+  // `cannot_render_single_session_enabled` error that appears when trying to
+  // render the modal while a session already exists (the ticket flow may have
+  // already created a session for the user).
+  useEffect(() => {
+    if (hasTicket && !isSignedIn) {
+      openSignUp()
+    }
+  }, [openSignUp, hasTicket, isSignedIn])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-4xl mx-auto text-center">
         {/* Header */}
         <div className="mb-12">
           <div className="flex justify-center mb-6">
-            <Image
-              src="/images/logo/logo.svg"
-              alt="FeedBird Logo"
-              width={120}
-              height={40}
-              className="h-10 w-auto"
-            />
+            <Image src="/images/logo/logo.svg" alt="FeedBird Logo" width={120} height={40} className="h-10 w-auto" />
           </div>
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
             Welcome to <span className="text-blue-600">FeedBird</span>
@@ -91,18 +108,14 @@ export default function LandingPage() {
               </Button>
             </SignInButton>
           </div>
-          <p className="text-sm text-gray-500">
-            No credit card required • 14-day free trial
-          </p>
+          <p className="text-sm text-gray-500">No credit card required • 14-day free trial</p>
         </div>
 
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-gray-200">
-          <p className="text-gray-500 text-sm">
-            © 2024 FeedBird. All rights reserved.
-          </p>
+          <p className="text-gray-500 text-sm">© 2024 FeedBird. All rights reserved.</p>
         </div>
       </div>
     </div>
   )
-} 
+}

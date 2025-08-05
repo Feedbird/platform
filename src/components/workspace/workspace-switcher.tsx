@@ -33,6 +33,7 @@ import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { useLoading } from '@/lib/providers/loading-provider'
 import { useClerk } from '@clerk/nextjs'
 import { WorkspaceModal } from '@/components/workspace/workspace-modal'
+import { InviteMembersModal } from '@/components/workspace/invite-members-modal'
 import { useMounted } from '@/hooks/use-mounted'
 import {
   Select,
@@ -42,6 +43,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner"
+import { useUser } from '@clerk/nextjs';
+
+import { currentUser } from '@clerk/nextjs/server'
 
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
@@ -51,9 +55,11 @@ export default function WorkspaceSwitcher() {
   const workspaces     = useFeedbirdStore(s => s.workspaces)
   const activeId       = useFeedbirdStore(s => s.activeWorkspaceId)
   const addWorkspace   = useFeedbirdStore(s => s.addWorkspace)
+  const addBrand       = useFeedbirdStore(s => s.addBrand)
   const removeWs       = useFeedbirdStore(s => s.removeWorkspace)
   const setActive      = useFeedbirdStore(s => s.setActiveWorkspace)
   const clearUser      = useFeedbirdStore(s => s.clearUser)
+  const user           = useFeedbirdStore(s => s.user)
   const active         = workspaces.find(w => w.id === activeId)
 
   const { show, hide } = useLoading()
@@ -62,16 +68,18 @@ export default function WorkspaceSwitcher() {
   /* -------- local state -------- */
   const [menuOpen,   setMenuOpen]   = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
+
   const [search,     setSearch]     = useState('')
 
-  // Initialize default workspace if none exists
   React.useEffect(() => {
     console.log('Workspace Init:', { isMounted, workspacesCount: workspaces.length, activeId });
     if (isMounted && workspaces.length === 0) {
       console.log('Creating default workspace...');
-      const wsId = addWorkspace("My Workspace");
-      console.log('Workspace created:', wsId);
-      setActive(wsId);
+      // addWorkspace("My Workspace").then((wsId) => {
+      //   console.log('Workspace created:', wsId);
+      //   setActive(wsId);
+      // });
     }
   }, [isMounted, workspaces.length, addWorkspace, setActive]);
 
@@ -80,16 +88,25 @@ export default function WorkspaceSwitcher() {
   )
 
   /* -------- helpers -------- */
+
   const select = (id: string) => {
     show()
     startTransition(() => setActive(id))
     setTimeout(hide, 600)
   }
 
-  const handleAdd = (name: string, logo: string | null) => {
-    const wsId = addWorkspace(name, logo ?? '')
+  const handleAdd = async (name: string, logo: string | null, brand: {name:string, colors:string[], fonts:string[], link:string, voice:string, prefs:string, logo?:string|null}) => {
+
+    const userEmail = user?.email || 'demo@example.com'
+    
+    const wsId = await addWorkspace(name, userEmail, logo ?? '')
+    console.log('@@@@@@@@@@@@@wsId: ', wsId);
+    // ensure workspace selected so addBrand targets correct workspace
     select(wsId)
-    toast.success(`Workspace “${name}” created`)
+
+    await addBrand(brand.name, brand.logo ?? undefined, { colors: brand.colors, fonts: brand.fonts }, brand.link, brand.voice, brand.prefs)
+
+    toast.success(`Workspace “${name}” created with brand “${brand.name}”`)
   }
 
   if (!isMounted) {
@@ -136,7 +153,7 @@ export default function WorkspaceSwitcher() {
                     )
                 }
                 <span className="truncate font-semibold text-sm text-black flex-1">
-                  {active?.name ?? 'Select workspace'}
+                  {active?.name ?? (workspaces.length === 0 ? 'No workspaces' : 'Select workspace')}
                 </span>
                 <ChevronsUpDown className="size-4 opacity-60"/>
               </SidebarMenuButton>
@@ -154,7 +171,7 @@ export default function WorkspaceSwitcher() {
             >
               {/* top actions */}
               <DropdownMenuItem
-                onSelect={e => { e.preventDefault(); toast.info('Invite members (coming soon)') }}
+                onSelect={e => { e.preventDefault(); setMenuOpen(false); setTimeout(() => setInviteOpen(true), 0); }}
                 className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
               >
                 <UserPlus className="size-4"/>
@@ -193,12 +210,17 @@ export default function WorkspaceSwitcher() {
 
                 {/* label */}
                 <DropdownMenuLabel className="px-[12px] py-[8px] text-xs font-semibold text-[#75777C]">
-                  Workspaces ({filtered.length})
+                  {filtered.length === 0 ? 'Your Workspaces' : `Workspaces (${filtered.length})`}
                 </DropdownMenuLabel>
 
                 {/* show max 3 items then scroll */}
                 <div className="max-h-[120px] overflow-y-auto">
-                  {filtered.map(ws => (
+                  {filtered.length === 0 ? (
+                    <div className="px-[12px] py-[8px] text-sm text-[#5C5E63]">
+                      {search ? 'No workspaces found' : 'No workspaces yet'}
+                    </div>
+                  ) : (
+                    filtered.map(ws => (
                     <DropdownMenuItem
                       key={ws.id}
                       onSelect={e => {
@@ -249,7 +271,8 @@ export default function WorkspaceSwitcher() {
                         )}
                       </div>
                     </DropdownMenuItem>
-                  ))}
+                  ))
+                  )}
                 </div>
 
                 {/* create new */}
@@ -299,6 +322,12 @@ export default function WorkspaceSwitcher() {
         onClose={() => setDialogOpen(false)}
         onAdd={handleAdd}
       />
+
+      <InviteMembersModal
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+      />
+
     </>
   )
 }

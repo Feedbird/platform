@@ -12,6 +12,7 @@ export function ApproveCell({
 }) {
   const approvePost = useFeedbirdStore(s => s.approvePost);
   const requestChanges = useFeedbirdStore(s => s.requestChanges);
+  const setPostRevised = useFeedbirdStore(s => s.setPostRevised);
   
   const isApproved = post.status === "Approved";
   const isInRevision = post.status === "Needs Revisions";
@@ -32,6 +33,11 @@ export function ApproveCell({
       return; // Do nothing if not allowed
     }
 
+    // Don't trigger approval action when hovering over interactive elements
+    if (isHovering && (isApproved || isInRevision)) {
+      return;
+    }
+
     if (isApproved) {
       // If currently approved, change to "Needs Revisions"
       requestChanges(post.id);
@@ -44,6 +50,11 @@ export function ApproveCell({
   const handleRemoveApproval = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the main click handler
     requestChanges(post.id);
+  };
+
+  const handleRevision = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the main click handler
+    setPostRevised(post.id);
   };
 
   const [isHovering, setIsHovering] = React.useState(false);
@@ -120,14 +131,14 @@ export function ApproveCell({
               <Image src="/images/status/needs-revision.svg" alt="needs revision" width={14} height={14} />
               <span>Revision</span>
               
-              {/* X icon that appears on hover when in revision */}
+              {/* Revision button that appears on hover */}
               <div 
                 className={cn(
                   "absolute -top-1 -right-1 w-4 h-4 bg-black rounded-full flex items-center justify-center transition-opacity duration-200 cursor-pointer",
                   isHovering ? "opacity-100" : "opacity-0"
                 )}
-                onClick={handleRemoveApproval}
-                title="Remove revision status"
+                onClick={handleRevision}
+                title="Mark as revised"
               >
                 <svg 
                   width="8" 

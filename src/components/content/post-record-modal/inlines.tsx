@@ -14,6 +14,7 @@ import { Platform } from "@/lib/social/platforms/platform-types";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { StatusChip, ChannelIcons, FormatBadge } from "@/components/content/shared/content-post-ui";
 import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
+import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 import { format } from "date-fns";
 import {
   ChevronDown as ChevronDownIcon,
@@ -232,7 +233,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      actor: "Me",
+      actor: getCurrentUserDisplayName(),
       action: "auto-scheduled this post",
       type: "scheduled",
       metadata: {
@@ -249,7 +250,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      actor: "Me",
+      actor: getCurrentUserDisplayName(),
       action: "scheduled this post",
       type: "scheduled",
       metadata: {
@@ -265,7 +266,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      actor: "Me",
+      actor: getCurrentUserDisplayName(),
       action: "scheduled this post",
       type: "scheduled",
       metadata: {
@@ -283,7 +284,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add publishing activity
     addActivity({
       postId: post.id,
-      actor: "Me",
+      actor: getCurrentUserDisplayName(),
       action: "published this post",
       type: "published",
       metadata: {

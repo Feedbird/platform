@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { nanoid } from "nanoid";
+import { v4 as uuidv4 } from 'uuid';
 import { persist, createJSONStorage } from "zustand/middleware";
 import * as React from "react";
 import type { 
@@ -18,6 +18,8 @@ import { handleError } from "../utils/error-handler";
 import { BaseError } from "../utils/exceptions/base-error";
 import { withLoading } from "../utils/loading/loading-store";
 import { RowHeightType } from "../utils";
+import { storeApi, commentApi } from '@/lib/api/api-service'
+import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
 
 export interface BoardRules {
   autoSchedule: boolean;
@@ -203,8 +205,13 @@ export interface Workspace {
   id: string;
   name: string;
   logo?: string;
+  createdby?: string; // ID of the user who created this workspace
+  /**
+   * User role within this workspace. "admin" for creator, "member" for invitee.
+   */
+  role?: 'admin' | 'member';
   boards: Board[];
-  brands: Brand[];
+  brand?: Brand; // Single brand per workspace (one-to-one relationship)
 }
 
 
@@ -284,16 +291,17 @@ export interface FeedbirdStore {
   syncPostHistory: (brandId: string, pageId: string) => Promise<void>;
   publishPostToAllPages: (postId: string, scheduledTime?: Date) => Promise<void>;
   getPost: (id: string) => Post | undefined;
-  updatePost: (pid: string, data: Partial<Post>) => void;
+  updatePost: (pid: string, data: Partial<Post>) => Promise<void>;
   updatePostStatusesBasedOnTime: () => void;
-  addWorkspace: (name: string, logo?: string) => string;
-  removeWorkspace: (id: string) => void;
-  addBrand: (name: string, logo?: string, styleGuide?: Brand['styleGuide'], link?: string, voice?: string, prefs?: string) => string;
-  updateBrand: (id: string, data: Partial<Brand>) => void;
-  removeBrand: (id: string) => void;
-  addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => string;
-  updateBoard: (id: string, data: Partial<Board>) => void;
-  removeBoard: (id: string) => void;
+  addWorkspace: (name: string, email: string, logo?: string) => Promise<string>;
+  removeWorkspace: (id: string) => Promise<void>;
+  loadUserWorkspaces: (email: string) => Promise<void>;
+  addBrand: (name: string, logo?: string, styleGuide?: Brand['styleGuide'], link?: string, voice?: string, prefs?: string) => Promise<string>;
+  updateBrand: (id: string, data: Partial<Brand>) => Promise<void>;
+  removeBrand: (id: string) => Promise<void>;
+  addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => Promise<string>;
+  updateBoard: (id: string, data: Partial<Board>) => Promise<void>;
+  removeBoard: (id: string) => Promise<void>;
   addBoardTemplate: (template: Omit<BoardTemplate, 'id'>) => string;
   updateBoardTemplate: (id: string, data: Partial<BoardTemplate>) => void;
   removeBoardTemplate: (id: string) => void;
@@ -309,10 +317,11 @@ export interface FeedbirdStore {
   updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string[]) => void;
   deleteGroupCommentAiSummaryItem: (boardId: string, month: number, commentId: string, summaryIndex: number) => void;
   
-  deletePost: (postId: string) => void;
-  approvePost: (id: string) => void;
-  requestChanges: (id: string) => void;
-  addPost: (boardId?: string) => Post | null;
+  deletePost: (postId: string) => Promise<void>;
+  approvePost: (id: string) => Promise<void>;
+  requestChanges: (id: string, comment?: string) => Promise<void>;
+  setPostRevised: (id: string) => Promise<void>;
+  addPost: (boardId?: string) => Promise<Post | null>;
   duplicatePost: (orig: Post) => Post | null;
   setActivePosts: (posts: Post[]) => void;
   sharePostsToBrand: (postIds: string[], targetBrandId: string) => void;
@@ -320,8 +329,8 @@ export interface FeedbirdStore {
   removeBlock: (postId: string, blockId: string) => void;
   addVersion: (postId: string, blockId: string, ver: Omit<Version, 'id' | 'createdAt' | 'comments'>) => string;
   setCurrentVersion: (postId: string, blockId: string, versionId: string) => void;
-  addPostComment: (postId: string, text: string, parentId?: string, revisionRequested?: boolean) => string;
-  addBlockComment: (postId: string, blockId: string, text: string, parentId?: string, revisionRequested?: boolean) => string;
+  addPostComment: (postId: string, text: string, parentId?: string, revisionRequested?: boolean) => Promise<string>;
+  addBlockComment: (postId: string, blockId: string, text: string, parentId?: string, revisionRequested?: boolean) => Promise<string>;
   addVersionComment: (
     postId: string,
     blockId: string,
@@ -330,7 +339,7 @@ export interface FeedbirdStore {
     rect?: { x: number; y: number; w: number; h: number },
     parentId?: string,
     revisionRequested?: boolean
-  ) => string;
+  ) => Promise<string>;
   addActivity: (act: Omit<Activity, 'id' | 'at'>) => void;
 }
 
@@ -484,7 +493,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       workspaces: [],
       activeWorkspaceId: null,
       activeBrandId: null,
-      activeBoardId: defaultBoards[0].id,
+      activeBoardId: null,
       boardTemplates: [
           { 
             id: "t1", 
@@ -645,7 +654,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         ],
 
         platformNav: defaultPlatformNav,
-        boardNav: boardsToNav(defaultBoards),
+        boardNav: [],
         postHistory: {},
         syncingPostHistory: {},
         // getters
@@ -653,26 +662,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const workspace = get().workspaces.find((w) => w.id === get().activeWorkspaceId);
           if (!workspace) return undefined;
           
-          // Ensure boards have rules and colors by merging with defaultBoards
-          const boardsWithDefaults = workspace.boards.map(board => {
-            const defaultBoard = defaultBoards.find(db => db.id === board.id);
-            return {
-              ...board,
-              rules: board.rules || defaultBoard?.rules,
-              // Only use default color if board doesn't have a color set
-              color: board.color !== undefined ? board.color : defaultBoard?.color
-            };
-          });
-          
-          return {
-            ...workspace,
-            boards: boardsWithDefaults
-          };
+          return workspace;
         },
 
         getActiveBrand: () => {
           const ws = get().getActiveWorkspace();
-          return ws?.brands.find((b) => b.id === get().activeBrandId);
+          return ws?.brand && ws.brand.id === get().activeBrandId ? ws.brand : undefined;
         },
 
         getActivePosts: () => {
@@ -702,7 +697,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               if (scheduledTime) {
                 addActivity({
                   postId,
-                  actor: "Me",
+                  actor: getCurrentUserDisplayNameFromStore(get()),
                   action: "scheduled this post",
                   type: "scheduled",
                   metadata: {
@@ -839,15 +834,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 postHistory: { ...state.postHistory, [pageId]: fetched },
                 workspaces: state.workspaces.map((w) => ({
                   ...w,
-                  brands: w.brands.map((b) => {
-                    if (b.id !== brandId) return b;
-                    return {
-                      ...b,
-                      socialPages: b.socialPages.map((sp) =>
-                        sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
-                      ),
-                    };
-                  }),
+                  brand: w.brand && w.brand.id === brandId ? {
+                    ...w.brand,
+                    socialPages: w.brand.socialPages.map((sp) =>
+                      sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
+                    ),
+                  } : w.brand,
                 })),
               }));
             },
@@ -860,8 +852,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         getPost: (id: string) => {
-          const brands = get().getActiveWorkspace()?.brands ?? [];
-          for (const brand of brands) {
+          const brand = get().getActiveWorkspace()?.brand;
+          if (brand) {
             const found = brand.contents.find((p) => p.id === id);
             if (found) return found;
           }
@@ -869,57 +861,45 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // workspace
-        addWorkspace: (name, logo) => {
-          const wid = nanoid();
-          const bid = nanoid();
-          const newBrand: Brand = {
-            id: bid,
-            name: "General",
-            logo: undefined,
-            socialAccounts: [],
-            socialPages: [],
-            contents: [],
-          };
-          
-          set((state) => ({
-            workspaces: [
-              ...state.workspaces,
-              { id: wid, name, logo, boards: [...defaultBoards], brands: [newBrand] },
-            ],
-          }));
-          return wid;
+        addWorkspace: async (name, email, logo) => {
+          try {
+            const wid = await storeApi.createWorkspaceAndUpdateStore(name, email, logo)
+            return wid
+          } catch (error) {
+            console.error('Failed to add workspace:', error)
+            throw error
+          }
         },
-        removeWorkspace: (id) =>
-          set((s) => {
-            const newWs = s.workspaces.filter((w) => w.id !== id);
-            let newActiveW = s.activeWorkspaceId;
-            let newActiveB = s.activeBrandId;
-            let newActiveBo = s.activeBoardId;
-            if (s.activeWorkspaceId === id) {
-              newActiveW = null;
-              newActiveB = null;
-              newActiveBo = null;
-            }
-            return {
-              workspaces: newWs,
-              activeWorkspaceId: newActiveW,
-              activeBrandId: newActiveB,
-              activeBoardId: newActiveBo,
-            };
-          }),
+        removeWorkspace: async (id) => {
+          try {
+            await storeApi.deleteWorkspaceAndUpdateStore(id)
+          } catch (error) {
+            console.error('Failed to remove workspace:', error)
+            throw error
+          }
+        },
+        loadUserWorkspaces: async (email) => {
+          try {
+            await storeApi.loadUserWorkspaces(email)
+          } catch (error) {
+            console.error('Failed to load user workspaces:', error)
+            throw error
+          }
+        },
         setActiveWorkspace: (id) =>
           set((s) => {
             const ws = s.workspaces.find((w) => w.id === id);
+            console.log("activeworkspace:", ws);
             return {
               activeWorkspaceId: id,
-              activeBrandId: ws?.brands[0]?.id ?? null,
+              activeBrandId: ws?.brand?.id ?? null,
               activeBoardId: ws?.boards[0]?.id ?? null,
               boardNav: boardsToNav(ws?.boards ?? []),
             };
           }),
 
         // brand
-        addBrand: (
+        addBrand: async (
           name: string,
           logo?: string,
           styleGuide?: Brand['styleGuide'],
@@ -927,56 +907,47 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           voice?: string,
           prefs?: string
         ) => {
-          const bid = nanoid();
-          const newBrand: Brand = {
-            id: bid,
-            name,
-            logo,
-            styleGuide,
-            link,
-            voice,
-            prefs,
-            socialAccounts: [],
-            socialPages: [],
-            contents: [],
-          };
-          set((s) => ({
-            workspaces: s.workspaces.map((w) =>
-              w.id === s.activeWorkspaceId
-                ? { ...w, brands: [...w.brands, newBrand] }
-                : w
-            ),
-          }));
-          return bid;
+          try {
+            const activeWorkspaceId = get().activeWorkspaceId
+            if (!activeWorkspaceId) {
+              throw new Error('No active workspace')
+            }
+            console.log('@@@@@@@@@@@@@activeWorkspaceId: ', activeWorkspaceId);
+            const bid = await storeApi.createBrandAndUpdateStore(
+              activeWorkspaceId,
+              name,
+              logo,
+              styleGuide,
+              link,
+              voice,
+              prefs
+            )
+            return bid
+          } catch (error) {
+            console.error('Failed to add brand:', error)
+            throw error
+          }
         },
-        updateBrand: (id, data) =>
-          set((s) => ({
-            workspaces: s.workspaces.map((w) => ({
-              ...w,
-              brands: w.brands.map((b) => (b.id === id ? { ...b, ...data } : b)),
-            })),
-          })),
-        removeBrand: (id) =>
-          set((s) => {
-            const w = s.workspaces.map((ws) => {
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              return { 
-                ...ws, 
-                brands: ws.brands.filter((b) => b.id !== id) 
-              };
-            });
-            const brandStillExists = !!w
-              .flatMap((X) => X.brands)
-              .find((b) => b.id === s.activeBrandId);
-            return {
-              workspaces: w,
-              activeBrandId: brandStillExists ? s.activeBrandId : null,
-            };
-          }),
+        updateBrand: async (id, data) => {
+          try {
+            await storeApi.updateBrandAndUpdateStore(id, data)
+          } catch (error) {
+            console.error('Failed to update brand:', error)
+            throw error
+          }
+        },
+        removeBrand: async (id) => {
+          try {
+            await storeApi.deleteBrandAndUpdateStore(id)
+          } catch (error) {
+            console.error('Failed to remove brand:', error)
+            throw error
+          }
+        },
         setActiveBrand: (id: string) =>
           set((s) => {
             const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
-            const brand = ws?.brands.find((b) => b.id === id);
+            const brand = ws?.brand && ws.brand.id === id ? ws.brand : undefined;
             return { activeBrandId: id };
           }),
 
@@ -985,9 +956,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((state) => ({
             workspaces: state.workspaces.map((w) => ({
               ...w,
-              brands: w.brands.map((b) => {
-                if (b.id !== brandId) return b;
-
+              brand: w.brand && w.brand.id === brandId ? (() => {
+                const b = w.brand!;
                 // 1) Check if an existing account has the same real accountId
                 const existingAccount = b.socialAccounts?.find(
                   (a) => a.accountId === account.accountId
@@ -1023,7 +993,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   ...b,
                   socialAccounts: [...(b.socialAccounts || []), newAccount],
                 };
-              }),
+              })() : w.brand,
             })),
           }));
           return localReturnId;
@@ -1033,24 +1003,22 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((b) => {
-                if (b.id !== brandId) return b;
-
+              brand: ws.brand && ws.brand.id === brandId ? (() => {
                 // Remove the given account & all its pages
-                const account = b.socialAccounts.find((a) => a.id === accountId);
-                if (!account) return b;
+                const account = ws.brand!.socialAccounts.find((a) => a.id === accountId);
+                if (!account) return ws.brand;
 
                 return {
-                  ...b,
-                  socialAccounts: b.socialAccounts.filter(
+                  ...ws.brand!,
+                  socialAccounts: ws.brand!.socialAccounts.filter(
                     (a) => a.id !== accountId
                   ),
                   // remove pages of that account's platform
-                  socialPages: b.socialPages.filter(
+                  socialPages: ws.brand!.socialPages.filter(
                     (p) => p.platform !== account.platform
                   ),
                 };
-              }),
+              })() : ws.brand,
             })),
           }));
         },
@@ -1059,10 +1027,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((state) => {
             const newWs = state.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((b) => {
-                if (b.id !== brandId) return b;
-
-                const existing = b.socialPages ?? [];
+              brand: ws.brand && ws.brand.id === brandId ? (() => {
+                const existing = ws.brand!.socialPages ?? [];
 
                 // For each page => if we find a matching pageId, update accountId.
                 const incoming = pages.map((p) => {
@@ -1098,8 +1064,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   }
                 });
 
-                return { ...b, socialPages: merged };
-              }),
+                return { ...ws.brand!, socialPages: merged };
+              })() : ws.brand,
             }));
             return { workspaces: newWs };
           });
@@ -1134,24 +1100,21 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => {
               const newWs = s.workspaces.map((ws) => ({
                 ...ws,
-                brands: ws.brands.map((b) => {
-                  if (b.id !== brandId) return b;
-                  return {
-                    ...b,
-                    socialPages: b.socialPages.map((sp) => {
-                      if (sp.id === pageId) {
-                        // Overwrite with finalPage info
-                        return {
-                          ...sp,
-                          ...finalPage,
-                          connected: true,
-                          status: finalPage.status ?? 'active',
-                        };
-                      }
-                      return sp;
-                    }),
-                  };
-                }),
+                brand: ws.brand && ws.brand.id === brandId ? {
+                  ...ws.brand,
+                  socialPages: ws.brand.socialPages.map((sp) => {
+                    if (sp.id === pageId) {
+                      // Overwrite with finalPage info
+                      return {
+                        ...sp,
+                        ...finalPage,
+                        connected: true,
+                        status: finalPage.status ?? 'active',
+                      };
+                    }
+                    return sp;
+                  }),
+                } : ws.brand,
               }));
               return { workspaces: newWs };
             });
@@ -1176,15 +1139,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => ({
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brands: ws.brands.map((b) => {
-                  if (b.id !== brandId) return b;
-                  return {
-                    ...b,
-                    socialPages: (b.socialPages ?? []).filter(
-                      (p) => p.id !== pageId
-                    ),
-                  };
-                }),
+                brand: ws.brand && ws.brand.id === brandId ? {
+                  ...ws.brand,
+                  socialPages: (ws.brand.socialPages ?? []).filter(
+                    (p) => p.id !== pageId
+                  ),
+                } : ws.brand,
               })),
             }));
           } catch (error) {
@@ -1197,23 +1157,18 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((state) => ({
             workspaces: state.workspaces.map((w) => ({
               ...w,
-              brands: w.brands.map((b) => {
-                if (b.id === brandId) {
-                  return {
-                    ...b,
-                    socialAccounts: b.socialAccounts.map((a) => {
-                      if (a.id === accountId) {
-                        return {
-                          ...a,
-                          status: a.connected ? "active" : "disconnected",
-                        };
-                      }
-                      return a;
-                    }),
-                  };
-                }
-                return b;
-              }),
+              brand: w.brand && w.brand.id === brandId ? {
+                ...w.brand,
+                socialAccounts: w.brand.socialAccounts.map((a) => {
+                  if (a.id === accountId) {
+                    return {
+                      ...a,
+                      status: a.connected ? "active" : "disconnected",
+                    };
+                  }
+                  return a;
+                }),
+              } : w.brand,
             })),
           }));
         },
@@ -1246,8 +1201,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
           // locate page & ops
           const brand = st.workspaces
-            .flatMap(w => w.brands)
-            .find(b => b.id === brandId);
+            .map(w => w.brand)
+            .filter(b => b !== undefined)
+            .find(b => b!.id === brandId);
           const page  = brand?.socialPages.find(p => p.id === pageId);
           if (!brand || !page) {
             console.error("deletePagePost: page not found");
@@ -1306,68 +1262,13 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // posts
-        updatePost: (pid, data) => 
-          set((s) => {
-            const newWs = s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
-                  if (p.id !== pid) return p;
-          
-                  // Create the updated post object
-                  const updated = { ...p, ...data };
-          
-                  // If the blocks haven't changed, reuse the original blocks array
-                  // to preserve reference equality for memoized components.
-                  if (data.blocks === undefined) {
-                    updated.blocks = p.blocks;
-                  }
-          
-                  // Business rule: If post is in "Draft" status and both blocks and caption are added,
-                  // automatically change status to "Pending Approval"
-                  if (p.status === "Draft") {
-                    const hasBlocks = updated.blocks && updated.blocks.length > 0;
-                    const hasCaption = updated.caption && 
-                      (updated.caption.default?.trim().length > 0 || 
-                       Object.values(updated.caption.perPlatform || {}).some(text => text?.trim().length > 0));
-                    
-                    if (hasBlocks && hasCaption) {
-                      updated.status = "Pending Approval";
-                    }
-                  }
-          
-                  // Business rule: Determine correct status based on publish date
-                  const correctStatus = determineCorrectStatus(updated.status, updated.publishDate);
-                  if (correctStatus !== updated.status) {
-                    updated.status = correctStatus;
-                  }
-          
-                  // auto-update updatedAt if not final
-                  const nonFinal = new Set([
-                    "Draft","Pending Approval","Needs Revisions",
-                    "Revised","Approved","Scheduled"
-                  ]);
-                  if (nonFinal.has(updated.status)) {
-                    updated.updatedAt = new Date();
-                  }
-                  return updated;
-                }),
-              })),
-            }));
-            return { workspaces: newWs };
-          }),
-        deletePost: (postId) =>
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.filter((p) => p.id !== postId),
-              })),
-            })),
-          })),
-        approvePost: (id) => {
+        updatePost: async (pid, data) => {
+          await storeApi.updatePostAndUpdateStore(pid, data);
+        }, 
+        deletePost: async (postId) => {
+          await storeApi.deletePostAndUpdateStore(postId);
+        },
+        approvePost: async (id) => {
           const post = get().getPost(id);
           if (!post) return;
           
@@ -1381,17 +1282,17 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           
           // Only approve if the status allows it
           if (allowedStatusesForApproval.includes(post.status)) {
-            get().updatePost(id, { status: "Approved" });
+            await get().updatePost(id, { status: "Approved" });
             // Add activity
             get().addActivity({
               postId: id,
-              actor: "Me",
+              actor: getCurrentUserDisplayNameFromStore(get()),
               action: "approved this post",
               type: "approved"
             });
           }
         },
-        requestChanges: (id, comment?: string) => {
+        requestChanges: async (id, comment?: string) => {
           console.log("requestChanges", id, comment);
           const post = get().getPost(id);
           if (!post) return;
@@ -1406,12 +1307,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           
           // Only request changes if the status allows it
           if (allowedStatusesForRevision.includes(post.status)) {
-            get().updatePost(id, { status: "Needs Revisions" });
+            await get().updatePost(id, { status: "Needs Revisions" });
             console.log("requestChanges", id, comment);
             // Add activity
             get().addActivity({
               postId: id,
-              actor: "Me",
+              actor: getCurrentUserDisplayNameFromStore(get()),
               action: "requested changes",
               type: "revision_request",
               metadata: {
@@ -1420,34 +1321,46 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             });
           }
         },
+        setPostRevised: async (id) => {
+          const post = get().getPost(id);
+          if (!post) return;
+          
+          // Define which statuses allow setting to revised
+          const allowedStatusesForRevised = [
+            "Needs Revisions",
+          ];
+          
+          // Only set to revised if the status allows it
+          if (allowedStatusesForRevised.includes(post.status)) {
+            await get().updatePost(id, { status: "Revised" });
+            // Add activity
+            get().addActivity({
+              postId: id,
+              actor: getCurrentUserDisplayNameFromStore(get()),
+              action: "marked as revised",
+              type: "revised"
+            });
+          }
+        },
 
-        addPost: (boardId?: string) => {
+        addPost: async (boardId?: string) => {
           const st = get();
           const brand = st.getActiveBrand();
           if (!brand) return null;
-          const pid = nanoid();
           const ws = st.getActiveWorkspace();
-          const bId = boardId ?? get().activeBoardId ?? (ws?.boards[0]?.id ?? "default");
-          const newPost: Post = {
-            id: pid,
-            brandId: brand.id,
-            boardId: bId,
+          const bId = boardId ?? st.activeBoardId ?? (ws?.boards[0]?.id ?? "default");
+
+          const postId = await storeApi.createPostAndUpdateStore(brand.id, bId, {
             caption: { synced: true, default: "" },
             status: "Draft",
             format: "",
-            publishDate: null,
-            updatedAt: null,
+            
             platforms: [],
             pages: [],
-            settings: {},
-            blocks: [],
-            comments: [],
-            activities: [],
             month: 1,
-          };
-          brand.contents.push(newPost);
-          set({ workspaces: [...st.workspaces] });
-          return newPost;
+          });
+
+          return get().getPost(postId) ?? null;
         },
         duplicatePost: (orig) => {
           const st = get();
@@ -1455,7 +1368,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           if (!brand) return null;
           const copy: Post = {
             ...orig,
-            id: "dup-" + nanoid(),
+                          id: "dup-" + uuidv4(),
             updatedAt: new Date(),
           };
           
@@ -1484,10 +1397,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const st = get();
           let targ: Brand | undefined;
           outer: for (const w of st.workspaces) {
-            for (const b of w.brands) {
-              if (b.id === targetBrandId) {
-                targ = b; break outer;
-              }
+            if (w.brand && w.brand.id === targetBrandId) {
+              targ = w.brand; break outer;
             }
           }
           if (!targ) return;
@@ -1497,7 +1408,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             if (!ex) continue;
             const cloned: Post = {
               ...ex,
-              id: "share-" + nanoid(),
+              id: "share-" + uuidv4(),
               brandId: targ.id,
               updatedAt: new Date(),
             };
@@ -1516,7 +1427,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         // block / version
         addBlock: (postId, kind) => {
-          const bid = nanoid();
+          const bid = uuidv4();
           const newBlock: Block = {
             id: bid,
             kind,
@@ -1527,13 +1438,13 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
+              brand: ws.brand ? {
+                ...ws.brand,
+                contents: ws.brand.contents.map((p) => {
                   if (p.id !== postId) return p;
                   return { ...p, blocks: [...p.blocks, newBlock] };
                 }),
-              })),
+              } : ws.brand,
             })),
           }));
           return bid;
@@ -1542,27 +1453,27 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
+              brand: ws.brand ? {
+                ...ws.brand,
+                contents: ws.brand.contents.map((p) => {
                   if (p.id !== postId) return p;
                   return {
                     ...p,
                     blocks: p.blocks.filter((b) => b.id !== blockId),
                   };
                 }),
-              })),
+              } : ws.brand,
             })),
           }));
         },
         addVersion: (postId, blockId, ver) => {
-          const newVid = nanoid();
+          const newVid = uuidv4();
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
+              brand: ws.brand ? {
+                ...ws.brand,
+                contents: ws.brand.contents.map((p) => {
                   if (p.id !== postId) return p;
                   return {
                     ...p,
@@ -1583,7 +1494,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     })
                   };
                 }),
-              })),
+              } : ws.brand,
             })),
           }));
           return newVid;
@@ -1593,9 +1504,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             const newState = {
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brands: ws.brands.map((br) => ({
-                  ...br,
-                  contents: br.contents.map((p) => {
+                brand: ws.brand ? {
+                  ...ws.brand,
+                  contents: ws.brand.contents.map((p) => {
                     if (p.id !== postId) return p;
                     return {
                       ...p,
@@ -1606,14 +1517,15 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       ),
                     };
                   }),
-                })),
+                } : ws.brand,
               })),
             };
             
             // Add revision activity
             const post = newState.workspaces
-              .flatMap(w => w.brands)
-              .flatMap(b => b.contents)
+              .map(w => w.brand)
+              .filter(b => b !== undefined)
+              .flatMap(b => b!.contents)
               .find(p => p.id === postId);
             
             if (post) {
@@ -1623,7 +1535,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 if (versionIndex > 0) { // Only add activity if it's not the first version
                   const activity = {
                     postId,
-                    actor: "Me",
+                    actor: getCurrentUserDisplayNameFromStore(get()),
                     action: "created a new revision",
                     type: "revised" as const,
                     metadata: {
@@ -1635,23 +1547,23 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   const updatedState = {
                     workspaces: newState.workspaces.map((ws) => ({
                       ...ws,
-                      brands: ws.brands.map((br) => ({
-                        ...br,
-                        contents: br.contents.map((p) => {
+                      brand: ws.brand ? {
+                        ...ws.brand,
+                        contents: ws.brand.contents.map((p) => {
                           if (p.id !== postId) return p;
                           return {
                             ...p,
                             activities: [
                               {
                                 ...activity,
-                                id: nanoid(),
+                                id: uuidv4(),
                                 at: new Date(),
                               },
                               ...p.activities
                             ],
                           };
                         }),
-                      })),
+                      } : ws.brand,
                     })),
                   };
                   
@@ -1665,69 +1577,222 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // Comments
-        addPostComment: (postId, text, parentId, revisionRequested) => {
-          const cid = nanoid();
+        addPostComment: async (postId, text, parentId, revisionRequested) => {
+          const cid = uuidv4();
           const now = new Date();
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
-                  if (p.id !== postId) return p;
-                  const c: BaseComment = {
-                    id: cid,
-                    parentId,
-                    createdAt: now,
-                    author: "Me",
-                    text,
-                    revisionRequested
-                  };
-                  return {
-                    ...p,
-                    comments: [...p.comments, c],
-                  };
-                }),
+          
+          try {
+            // Call API to add comment to database
+            const { commentApi } = await import('@/lib/api/api-service');
+            const comment = await commentApi.addPostComment({
+              post_id: postId,
+              text,
+              parent_id: parentId,
+              revision_requested: revisionRequested,
+              author: getCurrentUserDisplayNameFromStore(get()),
+            });
+
+            // If this is a revision comment, update the post status in the store
+            if (revisionRequested) {
+              const currentPost = get().getPost(postId);
+              if (currentPost) {
+                const allowedStatusesForRevision = [
+                  "Pending Approval",
+                  "Revised", 
+                  "Approved"
+                ];
+                
+                // If current status is in the allowed list, update to "Needs Revisions"
+                if (allowedStatusesForRevision.includes(currentPost.status)) {
+                  // Update the post status in the store
+                  set((s) => ({
+                    workspaces: s.workspaces.map((ws) => ({
+                      ...ws,
+                      brand: ws.brand ? {
+                        ...ws.brand,
+                        contents: ws.brand.contents.map((p) => {
+                          if (p.id !== postId) return p;
+                          return {
+                            ...p,
+                            status: "Needs Revisions" as Status,
+                          };
+                        }),
+                      } : ws.brand,
+                    })),
+                  }));
+                }
+              }
+            }
+
+            // Update store with the comment from database
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                brand: ws.brand ? {
+                  ...ws.brand,
+                  contents: ws.brand.contents.map((p) => {
+                    if (p.id !== postId) return p;
+                    const c: BaseComment = {
+                      id: comment.id,
+                      parentId: comment.parent_id,
+                      createdAt: new Date(comment.created_at),
+                      author: comment.author,
+                      text: comment.text,
+                      revisionRequested: comment.revision_requested
+                    };
+                    return {
+                      ...p,
+                      comments: [...p.comments, c],
+                    };
+                  }),
+                } : ws.brand,
               })),
-            })),
-          }));
-          return cid;
+            }));
+            return comment.id;
+          } catch (error) {
+            console.error('Failed to add post comment:', error);
+            // Fallback to local-only update if API fails
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                brand: ws.brand ? {
+                  ...ws.brand,
+                  contents: ws.brand.contents.map((p) => {
+                    if (p.id !== postId) return p;
+                    const c: BaseComment = {
+                      id: cid,
+                      parentId,
+                      createdAt: now,
+                      author: getCurrentUserDisplayNameFromStore(get()),
+                      text,
+                      revisionRequested
+                    };
+                    return {
+                      ...p,
+                      comments: [...p.comments, c],
+                    };
+                  }),
+                } : ws.brand,
+              })),
+            }));
+            return cid;
+          }
         },
-        addBlockComment: (postId, blockId, text, parentId, revisionRequested) => {
-          const cid = nanoid();
+        addBlockComment: async (postId, blockId, text, parentId, revisionRequested) => {
+          const cid = uuidv4();
           const now = new Date();
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
-                  if (p.id !== postId) return p;
-                  return {
-                    ...p,
-                    blocks: p.blocks.map((b) => {
-                      if (b.id !== blockId) return b;
-                      const c: BaseComment = {
-                        id: cid,
-                        parentId,
-                        createdAt: now,
-                        author: "Me",
-                        text,
-                        revisionRequested
-                      };
-                      return {
-                        ...b,
-                        comments: [...b.comments, c],
-                      };
-                    }),
-                  };
-                }),
+          
+          try {
+            // Call API to add comment to database
+            const { commentApi } = await import('@/lib/api/api-service');
+            const comment = await commentApi.addBlockComment({
+              post_id: postId,
+              block_id: blockId,
+              text,
+              parent_id: parentId,
+              revision_requested: revisionRequested,
+              author: getCurrentUserDisplayNameFromStore(get()),
+            });
+
+            // If this is a revision comment, update the post status in the store
+            if (revisionRequested) {
+              const currentPost = get().getPost(postId);
+              if (currentPost) {
+                const allowedStatusesForRevision = [
+                  "Pending Approval",
+                  "Revised", 
+                  "Approved"
+                ];
+                
+                // If current status is in the allowed list, update to "Needs Revisions"
+                if (allowedStatusesForRevision.includes(currentPost.status)) {
+                  // Update the post status in the store
+                  set((s) => ({
+                    workspaces: s.workspaces.map((ws) => ({
+                      ...ws,
+                      brand: ws.brand ? {
+                        ...ws.brand,
+                        contents: ws.brand.contents.map((p) => {
+                          if (p.id !== postId) return p;
+                          return {
+                            ...p,
+                            status: "Needs Revisions" as Status,
+                          };
+                        }),
+                      } : ws.brand,
+                    })),
+                  }));
+                }
+              }
+            }
+
+            // Update store with the comment from database
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                brand: ws.brand ? {
+                  ...ws.brand,
+                  contents: ws.brand.contents.map((p) => {
+                    if (p.id !== postId) return p;
+                    return {
+                      ...p,
+                      blocks: p.blocks.map((b) => {
+                        if (b.id !== blockId) return b;
+                        const c: BaseComment = {
+                          id: comment.id,
+                          parentId: comment.parent_id,
+                          createdAt: new Date(comment.created_at),
+                          author: comment.author,
+                          text: comment.text,
+                          revisionRequested: comment.revision_requested
+                        };
+                        return {
+                          ...b,
+                          comments: [...b.comments, c],
+                        };
+                      }),
+                    };
+                  }),
+                } : ws.brand,
               })),
-            })),
-          }));
-          return cid;
+            }));
+            return comment.id;
+          } catch (error) {
+            console.error('Failed to add block comment:', error);
+            // Fallback to local-only update if API fails
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                brand: ws.brand ? {
+                  ...ws.brand,
+                  contents: ws.brand.contents.map((p) => {
+                    if (p.id !== postId) return p;
+                    return {
+                      ...p,
+                      blocks: p.blocks.map((b) => {
+                        if (b.id !== blockId) return b;
+                        const c: BaseComment = {
+                          id: cid,
+                          parentId,
+                          createdAt: now,
+                          author: getCurrentUserDisplayNameFromStore(get()),
+                          text,
+                          revisionRequested
+                        };
+                        return {
+                          ...b,
+                          comments: [...b.comments, c],
+                        };
+                      }),
+                    };
+                  }),
+                } : ws.brand,
+              })),
+            }));
+            return cid;
+          }
         },
-        addVersionComment: (
+        addVersionComment: async (
           postId: string,
           blockId: string,
           verId: string,
@@ -1736,56 +1801,145 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           parentId?: string,
           revisionRequested?: boolean
         ) => {
-          const cid = nanoid();
+          const cid = uuidv4();
           const now = new Date();
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
-                  if (p.id !== postId) return p;
-                  return {
-                    ...p,
-                    blocks: p.blocks.map((b) => {
-                      if (b.id !== blockId) return b;
-                      return {
-                        ...b,
-                        versions: b.versions.map((v) => {
-                          if (v.id !== verId) return v;
-                          const c: VersionComment = {
-                            id: cid,
-                            parentId,
-                            createdAt: now,
-                            author: "Me",
-                            text,
-                            revisionRequested
-                          };
-                          if (rect) c.rect = rect;
+          
+          try {
+            // Call API to add comment to database
+            const { commentApi } = await import('@/lib/api/api-service');
+            const comment = await commentApi.addVersionComment({
+              post_id: postId,
+              block_id: blockId,
+              version_id: verId,
+              text,
+              parent_id: parentId,
+              revision_requested: revisionRequested,
+              author: getCurrentUserDisplayNameFromStore(get()),
+              rect,
+            });
+
+            // If this is a revision comment, check if we need to update the post status
+            if (revisionRequested) {
+              const currentPost = get().getPost(postId);
+              if (currentPost) {
+                const allowedStatusesForRevision = [
+                  "Pending Approval",
+                  "Revised", 
+                  "Approved"
+                ];
+                
+                // If current status is in the allowed list, update to "Needs Revisions"
+                if (allowedStatusesForRevision.includes(currentPost.status)) {
+                  // Update the post status in the store
+                  set((s) => ({
+                    workspaces: s.workspaces.map((ws) => ({
+                      ...ws,
+                      brand: ws.brand ? {
+                        ...ws.brand,
+                        contents: ws.brand.contents.map((p) => {
+                          if (p.id !== postId) return p;
                           return {
-                            ...v,
-                            comments: [...v.comments, c],
+                            ...p,
+                            status: "Needs Revisions" as Status,
                           };
                         }),
-                      };
-                    })
-                  };
-                }),
+                      } : ws.brand,
+                    })),
+                  }));
+                }
+              }
+            }
+
+            // Update store with the comment from database
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                brand: ws.brand ? {
+                  ...ws.brand,
+                  contents: ws.brand.contents.map((p) => {
+                    if (p.id !== postId) return p;
+                    return {
+                      ...p,
+                      blocks: p.blocks.map((b) => {
+                        if (b.id !== blockId) return b;
+                        return {
+                          ...b,
+                          versions: b.versions.map((v) => {
+                            if (v.id !== verId) return v;
+                            const c: VersionComment = {
+                              id: comment.id,
+                              parentId: comment.parent_id,
+                              createdAt: new Date(comment.created_at),
+                              author: comment.author,
+                              text: comment.text,
+                              revisionRequested: comment.revision_requested
+                            };
+                            if (comment.rect) c.rect = comment.rect;
+                            return {
+                              ...v,
+                              comments: [...v.comments, c],
+                            };
+                          }),
+                        };
+                      })
+                    };
+                  }),
+                } : ws.brand,
               })),
-            })),
-          }));
-          return cid;
+            }));
+            return comment.id;
+          } catch (error) {
+            console.error('Failed to add version comment:', error);
+            // Fallback to local-only update if API fails
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                brand: ws.brand ? {
+                  ...ws.brand,
+                  contents: ws.brand.contents.map((p) => {
+                    if (p.id !== postId) return p;
+                    return {
+                      ...p,
+                      blocks: p.blocks.map((b) => {
+                        if (b.id !== blockId) return b;
+                        return {
+                          ...b,
+                          versions: b.versions.map((v) => {
+                            if (v.id !== verId) return v;
+                            const c: VersionComment = {
+                              id: cid,
+                              parentId,
+                              createdAt: now,
+                              author: getCurrentUserDisplayNameFromStore(get()),
+                              text,
+                              revisionRequested
+                            };
+                            if (rect) c.rect = rect;
+                            return {
+                              ...v,
+                              comments: [...v.comments, c],
+                            };
+                          }),
+                        };
+                      })
+                    };
+                  }),
+                } : ws.brand,
+              })),
+            }));
+            return cid;
+          }
         },
 
         // Activities
         addActivity: (act) => {
-          const id = nanoid();
+          const id = uuidv4();
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((br) => ({
-                ...br,
-                contents: br.contents.map((p) => {
+              brand: ws.brand ? {
+                ...ws.brand,
+                contents: ws.brand.contents.map((p) => {
                   if (p.id !== act.postId) return p;
                   return {
                     ...p,
@@ -1799,62 +1953,54 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     ],
                   };
                 }),
-              })),
+              } : ws.brand,
             })),
           }));
         },
 
         // Boards
         setActiveBoard: (id) => set({ activeBoardId: id }),
-        addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => {
-          const bid = nanoid();
-          const newBoard: Board = { id: bid, name, image, description, color, rules, createdAt: new Date() };
-          set((s) => {
-            const updatedWs = s.workspaces.map((w) => {
-              if (w.id !== s.activeWorkspaceId) return w;
-              return { ...w, boards: [...w.boards, newBoard] };
-            });
-            const updatedWorkspace = updatedWs.find((w) => w.id === s.activeWorkspaceId);
-            const updatedBoards = updatedWorkspace?.boards ?? [];
-            return {
-              workspaces: updatedWs,
-              boardNav: boardsToNav(updatedBoards),
-              activeBoardId: bid,
-            };
-          });
-          return bid;
+        addBoard: async (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => {
+          try {
+            const activeWorkspaceId = get().activeWorkspaceId
+            if (!activeWorkspaceId) {
+              throw new Error('No active workspace')
+            }
+            const bid = await storeApi.createBoardAndUpdateStore(
+              activeWorkspaceId,
+              name,
+              description,
+              image,
+              color,
+              rules
+            )
+            set({ activeBoardId: bid })
+            return bid
+          } catch (error) {
+            console.error('Failed to add board:', error)
+            throw error
+          }
         },
-        updateBoard: (id: string, data: Partial<Board>) =>
-          set((s) => {
-            const updatedWs = s.workspaces.map((w) => {
-              if (w.id !== s.activeWorkspaceId) return w;
-              return {
-                ...w,
-                boards: w.boards.map((board) => (board.id === id ? { ...board, ...data } : board)),
-              };
-            });
-            const updatedBoards = updatedWs.find((w) => w.id === s.activeWorkspaceId)?.boards ?? [];
-            return { workspaces: updatedWs, boardNav: boardsToNav(updatedBoards) };
-          }),
-        removeBoard: (id: string) =>
-          set((s) => {
-            const updatedWs = s.workspaces.map((ws) => {
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              return { ...ws, boards: ws.boards.filter((board) => board.id !== id) };
-            });
-            const updatedBoards = updatedWs.find((w) => w.id === s.activeWorkspaceId)?.boards ?? [];
-            const newActiveBoardId = s.activeBoardId === id ? updatedBoards[0]?.id ?? null : s.activeBoardId;
-
-            return {
-              workspaces: updatedWs,
-              boardNav: boardsToNav(updatedBoards),
-              activeBoardId: newActiveBoardId,
-            };
-          }),
+        updateBoard: async (id: string, data: Partial<Board>) => {
+          try {
+            await storeApi.updateBoardAndUpdateStore(id, data)
+          } catch (error) {
+            console.error('Failed to update board:', error)
+            throw error
+          }
+        },
+        removeBoard: async (id: string) => {
+          try {
+            await storeApi.deleteBoardAndUpdateStore(id)
+          } catch (error) {
+            console.error('Failed to remove board:', error)
+            throw error
+          }
+        },
 
         // Board Templates
         addBoardTemplate: (template) => {
-          const tid = nanoid();
+          const tid = uuidv4();
           const newTemplate: BoardTemplate = { ...template, id: tid };
           set(s => ({ boardTemplates: [...s.boardTemplates, newTemplate] }));
           return tid;
@@ -1872,7 +2018,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         // Group data methods implementation
         addGroupComment: (boardId, month, text, author) => {
-          const commentId = nanoid();
+          const commentId = uuidv4();
           const newComment: GroupComment = {
             id: commentId,
             author,
@@ -2021,7 +2167,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         addGroupMessage: (boardId, month, commentId, text, author, parentMessageId) => {
-          const messageId = nanoid();
+          const messageId = uuidv4();
           const newMessage: GroupMessage = {
             id: messageId,
             author,
@@ -2246,8 +2392,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             
             const newWs = s.workspaces.map((ws) => ({
               ...ws,
-              brands: ws.brands.map((br) => {
-                const updatedContents = br.contents.map((p) => {
+              brand: ws.brand ? (() => {
+                const updatedContents = ws.brand!.contents.map((p) => {
                   const correctStatus = determineCorrectStatus(p.status, p.publishDate);
                   if (correctStatus !== p.status) {
                     console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publishDate: ${p.publishDate})`);
@@ -2260,10 +2406,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 
                 // Only create new brand object if contents changed
                 if (hasChanges) {
-                  return { ...br, contents: updatedContents };
+                  return { ...ws.brand!, contents: updatedContents };
                 }
-                return br;
-              }),
+                return ws.brand;
+              })() : ws.brand,
             }));
             
             if (updatedCount > 0) {
@@ -2331,8 +2477,8 @@ export const usePostStatusTimeUpdater = () => {
   const checkIfUpdatesNeeded = React.useCallback(() => {
     const now = new Date();
     for (const ws of workspaces) {
-      for (const brand of ws.brands) {
-        for (const post of brand.contents) {
+      if (ws.brand) {
+        for (const post of ws.brand.contents) {
           if (post.publishDate) {
             const publishDate = post.publishDate instanceof Date ? post.publishDate : new Date(post.publishDate);
             if (!isNaN(publishDate.getTime())) {
@@ -2396,7 +2542,7 @@ function toPageStatus(val: any): import("@/lib/social/platforms/platform-types")
 
 // Helper functions to avoid deep nesting and complex state updates
 const findBrand = (workspaces: Workspace[], brandId: string) =>
-  workspaces.flatMap(w => w.brands).find(b => b.id === brandId);
+  workspaces.map(w => w.brand).filter(b => b !== undefined).find(b => b!.id === brandId);
 
 const findPage = (brand: Brand | undefined, pageId: string) =>
   brand?.socialPages.find(p => p.id === pageId);
@@ -2454,11 +2600,11 @@ function updatePage(
   return {
     workspaces: state.workspaces.map(w => ({
       ...w,
-      brands: w.brands.map(b => b.id === brandId
-        ? { ...b, socialPages: b.socialPages.map(p => p.id === pageId
+      brand: w.brand && w.brand.id === brandId
+        ? { ...w.brand, socialPages: w.brand.socialPages.map(p => p.id === pageId
           ? { ...p, ...updates }
           : p)
-        } : b)
+        } : w.brand
     }))
   };
 }

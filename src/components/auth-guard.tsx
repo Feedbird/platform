@@ -6,11 +6,13 @@ import { useEffect } from 'react';
 import LandingPage from '@/app/landing/page';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    console.log('AuthGuard state:', { isLoaded, isSignedIn, userId: user?.id, pathname })
+    
     if (isLoaded) {
       // If user is signed in and trying to access landing page, redirect to home
       if (isSignedIn && pathname === '/landing') {
@@ -21,7 +23,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         router.replace('/landing');
       }
     }
-  }, [isLoaded, isSignedIn, pathname, router]);
+  }, [isLoaded, isSignedIn, pathname, router, user]);
 
   // Show loading while Clerk is loading
   if (!isLoaded) {

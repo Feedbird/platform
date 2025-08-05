@@ -90,7 +90,21 @@ export function CaptionEditor({
       ...post.caption,
       default: cleaned,
     };
-    updatePost(post.id, { caption: updated });
+    
+    // Prepare updates object
+    const updates: Partial<Post> = { caption: updated };
+    
+    // Auto-set status to "Pending Approval" if non-empty caption is set on post with blocks
+    const hasNonEmptyCaption = cleaned && cleaned.trim() !== "";
+    const hasBlocks = post.blocks.length > 0;
+    const isDraftStatus = post.status === "Draft";
+    
+    if (hasNonEmptyCaption && hasBlocks && isDraftStatus) {
+      updates.status = "Pending Approval";
+    }
+    
+    // Apply all updates in a single call
+    updatePost(post.id, updates);
     onChange(updated);
   };
 
@@ -103,7 +117,20 @@ export function CaptionEditor({
         [platform]: cleaned,
       }
     };
-    updatePost(post.id, { caption: updated });
+    
+    // Prepare updates object
+    const updates: Partial<Post> = { caption: updated };
+    
+    // Auto-set status to "Pending Approval" if non-empty caption is set on post with blocks
+    const hasNonEmptyCaption = cleaned && cleaned.trim() !== "";
+    const hasBlocks = post.blocks.length > 0;
+    const isDraftStatus = post.status === "Draft";
+    if (hasNonEmptyCaption && hasBlocks && isDraftStatus) {
+      updates.status = "Pending Approval";
+    }
+    
+    // Apply all updates in a single call
+    updatePost(post.id, updates);
     onChange(updated);
   };
 

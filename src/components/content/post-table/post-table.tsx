@@ -872,15 +872,15 @@ export function PostTable({
   const [colVisOpen, setColVisOpen] = React.useState(false);
 
   // For "Add Row" logic
-  function handleAddRowUngrouped() {
+  async function handleAddRowUngrouped() {
     // Only create 3 posts if there are no posts at all
     if (tableData.length === 0) {
       const newPosts: Post[] = [];
       for (let i = 0; i < 3; i++) {
-        const np = store.addPost();
+        const np = await store.addPost();
         if (np) {
           // ensure status is Draft but leave format empty
-          updatePost(np.id, { status: "Draft" });
+          await updatePost(np.id, { status: "Draft" });
           newPosts.push({ ...np, status: "Draft" });
         }
       }
@@ -888,15 +888,15 @@ export function PostTable({
         setTableData(newPosts);
       }
     } else {
-      const newPost = store.addPost();
+      const newPost = await store.addPost();
       if (newPost) {
         setTableData((prev) => [...prev, newPost]);
       }
     }
   }
 
-  function handleAddRowForGroup(groupValues: Record<string, any>) {
-    const newPost = store.addPost();
+  async function handleAddRowForGroup(groupValues: Record<string, any>) {
+    const newPost = await store.addPost();
     if (!newPost) return;
 
     // Apply group values to the new post
@@ -914,7 +914,7 @@ export function PostTable({
     });
 
     // Ensure store reflects any direct mutations
-    updatePost(newPost.id, { status: newPost.status });
+    await updatePost(newPost.id, { status: newPost.status });
 
     setTableData((prev) => [...prev, newPost]);
   }
@@ -1444,7 +1444,6 @@ export function PostTable({
               onCaptionChange={(newCaptionText) => {
                 const newCaptionData = { ...post.caption };
                 const platform = selectedPlatform ?? post.platforms[0];
-
                 if (captionLocked || post.caption.synced) {
                   newCaptionData.default = newCaptionText;
                 } else if(platform) {
@@ -1452,7 +1451,20 @@ export function PostTable({
                   newCaptionData.perPlatform[platform] = newCaptionText;
                 }
                 
-                updatePost(post.id, { caption: newCaptionData });
+                // Prepare updates object
+                const updates: Partial<Post> = { caption: newCaptionData };
+                
+                // Auto-set status to "Pending Approval" if non-empty caption is set on post with blocks
+                const hasNonEmptyCaption = newCaptionText && newCaptionText.trim() !== "";
+                const hasBlocks = post.blocks.length > 0;
+                const isDraftStatus = post.status === "Draft";
+                
+                if (hasNonEmptyCaption && hasBlocks && isDraftStatus) {
+                  updates.status = "Pending Approval";
+                }
+                
+                // Apply all updates in a single call
+                updatePost(post.id, updates);
               }}
             />
           );

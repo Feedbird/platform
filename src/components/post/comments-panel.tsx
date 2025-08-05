@@ -177,31 +177,36 @@ export function CommentsPanel({
   }, [comments.length, reply]);
 
   // Send comment logic
-  const send = () => {
+  const send = async () => {
     if (!input.trim()) return;
 
-    if (isPost) {
-      addPostComment(post.id, input.trim(), reply?.id);
-    } else if (block && versionId) {
-      addVersionComment(
-        post.id,
-        block.id,
-        versionId,
-        input.trim(),
-        undefined,
-        reply?.id,
-        markAsRevision,
-      );
-    } else if (block) {
-      addBlockComment(post.id, block.id, input.trim(), reply?.id);
+    try {
+      if (isPost) {
+        await addPostComment(post.id, input.trim(), reply?.id);
+      } else if (block && versionId) {
+        await addVersionComment(
+          post.id,
+          block.id,
+          versionId,
+          input.trim(),
+          undefined,
+          reply?.id,
+          markAsRevision,
+        );
+      } else if (block) {
+        await addBlockComment(post.id, block.id, input.trim(), reply?.id);
+      }
+
+      setInput("");
+      setReply(null);
+      setEmoji(false);
+      setMarkAsRevision(false);
+
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } catch (error) {
+      console.error('Failed to send comment:', error);
+      // You might want to show an error message to the user here
     }
-
-    setInput("");
-    setReply(null);
-    setEmoji(false);
-    setMarkAsRevision(false);
-
-    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   // Root-level comments

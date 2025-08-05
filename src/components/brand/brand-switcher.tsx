@@ -47,7 +47,7 @@ export default function BrandSwitcher() {
     );
   }
 
-  const active = ws.brands.find(b => b.id === activeId)
+  const active = ws.brand && ws.brand.id === activeId ? ws.brand : null
 
   const select = (id: string) => {
     show()
@@ -81,25 +81,25 @@ export default function BrandSwitcher() {
         <Command>
           <CommandInput placeholder="Search brand…" />
           <CommandGroup>
-            {ws.brands.map(b => (
-              <CommandItem key={b.id} onSelect={() => select(b.id)}>
+            {ws.brand && (
+              <CommandItem key={ws.brand.id} onSelect={() => select(ws?.brand?.id ?? '')}>
                 <Check
                   className={cn(
                     'mr-2 h-4 w-4',
-                    b.id === activeId ? 'opacity-100' : 'opacity-0',
+                    ws.brand.id === activeId ? 'opacity-100' : 'opacity-0',
                   )}
                 />
-                {b.logo && (
+                {ws.brand.logo && (
                   <Image
-                    src={b.logo}
-                    alt={b.name}
+                    src={ws.brand.logo}
+                    alt={ws.brand.name}
                     width={20} height={20}
                     className="rounded-md object-contain size-6"
                   />
                 )}
-                {b.name}
+                {ws.brand.name}
               </CommandItem>
-            ))}
+            )}
           </CommandGroup>
         </Command>
       </PopoverContent>
