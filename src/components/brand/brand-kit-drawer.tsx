@@ -37,8 +37,7 @@ export default function BrandKitDrawer(
   } = useFeedbirdStore()
 
   const ws     = workspaces.find(w => w.id === activeWorkspaceId)
-  const brands = ws?.brands ?? []
-  const brand  = brands.find(b => b.id === activeBrandId)
+  const brand  = ws?.brand
 
   if (!brand) return null
 
@@ -68,61 +67,7 @@ export default function BrandKitDrawer(
           </Button>
         </DialogHeader>
         {/* ---------- brand selector ------------------------------ */}
-        <div>
-          <Field label="Brand">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild className="outline-none ring-0 ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-border cursor-pointer">
-                <Button
-                  variant="outline"
-                  className="w-full h-full justify-between gap-2"
-                >
-                  <div className="flex justify-center items-center gap-2">
-                    {brand.logo && (
-                      <Image
-                        src={brand.logo}
-                        alt={brand.name}
-                        width={20} height={20}
-                        className="rounded-md object-contain size-6"
-                      />
-                    )}
-                    <p className='truncate flex-1 leading-tight text-sm text-primary-foreground'>{brand.name}</p>
-                  </div>
-                  <ChevronDown className="h-4 w-4 opacity-60"/>
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent side="left"
-                align="start"
-                sideOffset={4}
-                className="min-w-[280px] w-full">
-                {brands.map(b => (
-                  <DropdownMenuItem
-                    key={b.id}
-                    onSelect={()=>setActiveBrand(b.id)}
-                    className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-border w-full"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1 w-full">
-                      {b.logo ? (
-                        <Image
-                          src={b.logo}
-                          alt={b.name}
-                          width={24}
-                          height={24}
-                          className="rounded-md object-contain flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="size-6 bg-muted rounded-md flex-shrink-0" />
-                      )}
-                      <span className="truncate text-accent-foreground">{b.name}</span>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <p className="text-sm font-medium text-foreground pt-2">Brand name</p>
-            <p className="text-sm font-medium text-primary-foreground pt-2">{brand?.name}</p>
-          </Field>
-        </div>
+      
 
         {/* ---------- details ------------------------------------- */}
         <div className="pb-8 overflow-y-auto overflow-x-hidden space-y-6">

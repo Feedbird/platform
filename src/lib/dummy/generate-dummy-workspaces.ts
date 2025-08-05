@@ -397,7 +397,7 @@ export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
       logo: faker.image.avatarGitHub(),
       createdby: uuidv4(), // Dummy creator ID for demo purposes
       boards,
-      brands: brandArr
+      brand: brandArr[0]
     });
   }
   return results;

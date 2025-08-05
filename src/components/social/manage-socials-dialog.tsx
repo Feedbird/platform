@@ -51,7 +51,7 @@ export function ManageSocialsDialog(props: {
   const { executeWithLoading, isLoading } = useAsyncLoading();
 
   const brand = useFeedbirdStore(
-    s => s.getActiveWorkspace()?.brands.find(b => b.id === brandId)
+    s => s.getActiveWorkspace()?.brand
   );
 
   const connectAccount    = useFeedbirdStore(s => s.connectSocialAccount);

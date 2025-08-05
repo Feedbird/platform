@@ -24,10 +24,10 @@ export function ApprovalsInner() {
     useFeedbirdStore,
     (s: FeedbirdStore): Post[] => {
       const ws = s.getActiveWorkspace();
-      const allPosts = ws ? ws.brands.flatMap((b) => b.contents) : [];
-      return allPosts.filter(
+      const allPosts = ws ? ws.brand?.contents : [];
+      return allPosts?.filter(
         (p) => p.status === "Pending Approval" || p.status === "Revised"
-      );
+      ) ?? [];
     },
     shallow
   );

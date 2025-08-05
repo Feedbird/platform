@@ -96,14 +96,14 @@ export function BrandsInner () {
     setActiveBrand,
   } = useFeedbirdStore()
 
-  const brands = getActiveWorkspace()?.brands ?? []
+  const brand = getActiveWorkspace()?.brand;
 
   /* empty-state ---------------------------------------------------- */
-  if (!brands.length)
+  if (!brand)
     return (
       <EmptyState
         title="Your brand is empty"
-        description="Brands will appear here if you create them"
+        description="Brand will appear here if you create it"
         action={(
           <Link
             href="?new=1"
@@ -132,43 +132,42 @@ export function BrandsInner () {
         </div>
 
         {/* data rows ------------------------------------------------ */}
-        {brands.map(b => (
           <div
-            key={b.id}
+            key={brand.id}
             className="grid grid-cols-[2fr_1fr_1fr_1fr_100px_48px] gap-4
                        items-center px-6 py-3 border-t
                        hover:bg-muted/40 cursor-pointer text-sm"
-            onClick={() => setActiveBrand(b.id)}
+            onClick={() => setActiveBrand(brand.id)}
           >
             {/* name + logo */ }
             <div className="flex items-center gap-3 min-w-0">
               <Image
-                src={b.logo || '/placeholder-logo.svg'}
-                alt={b.name}
+                src={brand.logo || '/placeholder-logo.svg'}
+                alt={brand.name}
                 width={36} height={36}
                 className="h-9 w-9 rounded-md object-contain
                            bg-muted/50 p-1"
               />
-              <span className="truncate text-primary-foreground">{b.name}</span>
+              <span className="truncate text-primary-foreground">{brand.name}</span>
             </div>
 
             {/* font */ }
             <span
               className="truncate"
-              style={{ fontFamily: b.styleGuide?.fonts?.[0] }}
+              style={{ fontFamily: brand.styleGuide?.fonts?.[0] }}
             >
-              {b.styleGuide?.fonts?.join(', ') || '—'}
+              {brand.styleGuide?.fonts?.join(', ') || '—'}
             </span>
 
             {/* socials */ }
-            <ChannelIcons channels={b.socialPages?.map(p => p.platform) || []}/>
+            <ChannelIcons channels={brand.socialPages?.map(p => p.platform) || []}/>
 
             {/* colors */ }
-            <ColorStrip   colors  ={b.styleGuide?.colors || []}/>
+            <ColorStrip   colors  ={brand.styleGuide?.colors || []}/>
 
             {/* view brand */ }
             <Link
-              href={`?edit=${b.id}`}
+              href={`?edit=${brand.id}`}
               className="rounded-md border px-2 py-1 text-sm
                          text-primary hover:bg-primary/10"
               onClick={e => e.stopPropagation()}
@@ -177,9 +176,8 @@ export function BrandsInner () {
             </Link>
 
             {/* three-dot menu */ }
-            <RowMenu id={b.id} name={b.name}/>
+            <RowMenu id={brand.id} name={brand.name}/>
           </div>
-        ))}
       </div>
 
       {/* full-screen sheet (reads query-params internally) --------- */}

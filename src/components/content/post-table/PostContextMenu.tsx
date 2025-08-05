@@ -36,9 +36,7 @@ export function PostContextMenu({
   const allBrands: { id: string; name: string }[] = React.useMemo(() => {
     const result: { id: string; name: string }[] = [];
     for (const w of store.workspaces) {
-      for (const b of w.brands) {
-        result.push({ id: b.id, name: b.name });
-      }
+      result.push({ id: w.brand?.id ?? '', name: w.brand?.name ?? '' });
     }
     return result;
   }, [store.workspaces]);

@@ -52,7 +52,7 @@ export default function BrandSheet() {
 
   /* store -------------------------------------------------------- */
   const store   = useFeedbirdStore()
-  const brand   = id ? store.getActiveWorkspace()?.brands.find(b => b.id === id) : null
+  const brand   = id ? store.getActiveWorkspace()?.brand : null
 
   /* local state -------------------------------------------------- */
   const [name ,setName ] = React.useState(brand?.name  ?? '')
