@@ -96,11 +96,11 @@ export function useApiOperations() {
 
   // Post operations
   const createPost = useCallback(async (
-    brandId: string,
+    workspaceId: string,
     boardId: string,
     postData: any
   ) => {
-    return withLoading('createPost', () => storeApi.createPostAndUpdateStore(brandId, boardId, postData))
+    return withLoading('createPost', () => storeApi.createPostAndUpdateStore(workspaceId, boardId, postData))
   }, [withLoading])
 
   const updatePost = useCallback(async (id: string, updates: any) => {

@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         .from('brands')
         .select('*')
         .eq('workspace_id', workspace_id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error('Error fetching brand:', error)
@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
+      // Return null if no brand found for this workspace
       return NextResponse.json(data)
     } else {
       return NextResponse.json(

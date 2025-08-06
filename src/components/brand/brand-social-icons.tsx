@@ -22,14 +22,7 @@ export default function BrandSocialIcons() {
   }, []);
 
   if (!brand || !isClient) {
-    // Render a placeholder or null on the server and initial client render
-    return (
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" disabled className="text-sm font-semibold text-black cursor-pointer">
-          Loading Socials...
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   const pages: SocialPage[] = brand.socialPages ?? [];

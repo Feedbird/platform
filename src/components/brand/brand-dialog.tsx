@@ -1,9 +1,8 @@
-/* components/brand/brand-sheet.tsx */
+/* components/brand/brand-dialog.tsx */
 'use client'
 
 import * as React from 'react'
 import Image                    from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 }                               from '@/components/ui/dialog'
@@ -13,20 +12,9 @@ import { Textarea }             from '@/components/ui/textarea'
 import {
   ChevronLeft, MoreHorizontal, X, ImageIcon, Trash,
 }                               from 'lucide-react'
-import {
-  DropdownMenu, DropdownMenuTrigger,
-  DropdownMenuContent, DropdownMenuItem,
-}                               from '@/components/ui/dropdown-menu'
 import { useFeedbirdStore }     from '@/lib/store/use-feedbird-store'
 import { toast }                from 'sonner'
 import { cn }                   from '@/lib/utils'
-
-/* ───────────────── a11y helper ───────────────── */
-const SrTitle = () => (
-  <DialogHeader className="sr-only">
-    <DialogTitle>Brand modal</DialogTitle>
-  </DialogHeader>
-)
 
 /* tiny wrapper for form rows */
 const Field = ({
@@ -42,50 +30,51 @@ const Field = ({
 )
 
 /* ─────────────────────────────────────────────── */
-export default function BrandSheet() {
-  /* open / mode comes from URL ----------------------------------- */
-  const qs      = useSearchParams()
-  const router  = useRouter()
-  const id      = qs.get('edit')
-  const isNew   = qs.has('new')
-  const open    = Boolean(id) || isNew
+interface BrandDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  mode?: 'create' | 'edit'
+  brandId?: string
+}
 
+export default function BrandDialog({ open, onOpenChange, mode = 'create', brandId }: BrandDialogProps) {
   /* store -------------------------------------------------------- */
   const store   = useFeedbirdStore()
-  const brand   = id ? store.getActiveWorkspace()?.brand : null
+  const brand   = mode === 'edit' ? store.getActiveBrand() : null
 
   /* local state -------------------------------------------------- */
-  const [name ,setName ] = React.useState(brand?.name  ?? '')
+  const [name ,setName ] = React.useState(brand?.name ?? '')
   const [logo ,setLogo ] = React.useState<string|undefined>(brand?.logo)
-  const [fonts,setFonts] = React.useState<string[]>(brand?.styleGuide?.fonts  ?? ['','',''])
+  const [fonts,setFonts] = React.useState<string[]>(brand?.styleGuide?.fonts ?? ['','',''])
   const [cols ,setCols ] = React.useState<string[]>(brand?.styleGuide?.colors ?? ['','',''])
-  const [link ,setLink ] = React.useState(
-    brand?.link ? brand.link.replace(/^https?:\/\//, '') : ''
-  )
+  const [link ,setLink ] = React.useState(brand?.link ? brand.link.replace(/^https?:\/\//, '') : '')
   const [voice,setVoice] = React.useState(brand?.voice ?? '')
   const [prefs,setPrefs] = React.useState(brand?.prefs ?? '')
 
-  /* reset every time a different brand is opened ---------------- */
+  /* reset when dialog opens -------------------------------------- */
   React.useEffect(() => {
-    if (!open) return
-    setName (brand?.name  ?? '')
-    setLogo (brand?.logo)
-    setFonts(brand?.styleGuide?.fonts  ?? ['','',''])
-    setCols (brand?.styleGuide?.colors ?? ['','',''])
-    setLink (brand?.link ? brand.link.replace(/^https?:\/\//, '') : '')
-    setVoice(brand?.voice ?? '')
-    setPrefs(brand?.prefs ?? '')
-  }, [open, id]) // eslint-disable-line
+    if (open) {
+      if (mode === 'create') {
+        setName('')
+        setLogo(undefined)
+        setFonts(['','',''])
+        setCols(['','',''])
+        setLink('')
+        setVoice('')
+        setPrefs('')
+      } else if (mode === 'edit' && brand) {
+        setName(brand.name)
+        setLogo(brand.logo)
+        setFonts(brand.styleGuide?.fonts ?? ['','',''])
+        setCols(brand.styleGuide?.colors ?? ['','',''])
+        setLink(brand.link ? brand.link.replace(/^https?:\/\//, '') : '')
+        setVoice(brand.voice ?? '')
+        setPrefs(brand.prefs ?? '')
+      }
+    }
+  }, [open, mode, brand])
 
-  const close = () => router.push('/brands')
-
-  /* diff flag – to show the footer on edit ----------------------- */
-  const dirty = React.useMemo(() => (
-    name !== brand?.name || logo !== brand?.logo ||
-    JSON.stringify(fonts) !== JSON.stringify(brand?.styleGuide?.fonts ?? []) ||
-    JSON.stringify(cols)  !== JSON.stringify(brand?.styleGuide?.colors ?? []) ||
-    link  !== (brand?.link ?? '') || voice !== (brand?.voice ?? '') || prefs !== (brand?.prefs ?? '')
-  ), [name, logo, fonts, cols, link, voice, prefs, brand])
+  const close = () => onOpenChange(false)
 
   const handleLogo = (file: File | null) => {
     if (!file) return
@@ -107,32 +96,32 @@ export default function BrandSheet() {
     }
 
     try {
-      if (isNew) {
+      if (mode === 'create') {
         const brandId = await store.addBrand(payload.name, payload.logo, payload.styleGuide, payload.link, payload.voice, payload.prefs)
         store.setActiveBrand(brandId)
         toast.success('Brand created')
-      } else if (brand) {
+      } else if (mode === 'edit' && brand) {
         await store.updateBrand(brand.id, payload)
         toast.success('Brand updated')
       }
       close()
     } catch (error) {
-      toast.error(isNew ? 'Failed to create brand' : 'Failed to update brand')
+      toast.error(mode === 'create' ? 'Failed to create brand' : 'Failed to update brand')
       console.error('Error saving brand:', error)
     }
   }
 
   /* ───────────────────────── render ───────────────────────────── */
   return (
-    <Dialog open={open} onOpenChange={close}>
-      <DialogContent
-        className={cn(
-          'p-0 border-0 rounded-none h-screen w-screen',
-          'sm:max-w-none max-w-[100vw]',
-          '[&>button:last-child]:hidden', // hide default close-X
-        )}
-      >
-        <SrTitle/>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={cn(
+        'p-0 border-0 rounded-none h-screen w-screen',
+        'sm:max-w-none max-w-[100vw]',
+        '[&>button:last-child]:hidden', // hide default close-X
+      )}>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Brand modal</DialogTitle>
+        </DialogHeader>
 
         {/* Top-bar */}
         <div className="h-16 flex items-center justify-between border-b px-4">
@@ -141,47 +130,14 @@ export default function BrandSheet() {
               <ChevronLeft className="h-5 w-5"/>
             </Button>
             <h1 className="text-sm font-semibold text-primary-foreground">
-              {isNew ? 'New Brand' : `Edit – ${brand?.name}`}
+              {mode === 'create' ? 'New Brand' : `Edit – ${brand?.name}`}
             </h1>
           </div>
-
-          {isNew ? (
-            <Button
-              className="bg-[#4D3AF1] hover:bg-[#3a2dd6] text-white cursor-pointer"
-              onClick={save}
-              disabled={!name.trim()}
-            >
-              Create
-            </Button>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="cursor-pointer">
-                  <MoreHorizontal/>
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="gap-2 text-destructive cursor-pointer"
-                  onSelect={e => {
-                    e.preventDefault()
-                    if (!brand) return
-                    store.removeBrand(brand.id)
-                    close()
-                  }}
-                >
-                  <Trash className="h-3.5 w-3.5 text-[#ff0000]"/> Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
 
         {/* Body */}
         <div className="flex flex-col items-center w-full overflow-y-auto">
           <div className="p-10 space-y-6 w-full max-w-4xl">
-
             {/* intro blurb */}
             <div className="space-y-1">
               <p className="font-semibold text-primary-foreground text-lg">Brand Guideline</p>
@@ -190,11 +146,13 @@ export default function BrandSheet() {
               </p>
             </div>
             <hr/>
+            
             {/* Brand name */}
             <Field label="Brand name" desc="Your brand name is the name your customers use to refer to you.">
               <Input value={name} onChange={e => setName(e.target.value)}/>
             </Field>
             <hr/>
+            
             {/* Logo */}
             <Field label="Logo" desc="Your logo name is the name your customers use to refer to you.">
               {logo ? (
@@ -230,6 +188,7 @@ export default function BrandSheet() {
               )}
             </Field>
             <hr/>
+            
             {/* Fonts */}
             <Field label="Fonts" desc="Style of text that's printed on a page or displayed on a design.">
               {fonts.map((f, i) => (
@@ -312,38 +271,26 @@ export default function BrandSheet() {
             </Field>
             <hr/>
             
-            {
-              isNew &&
-              <div className="flex justify-end gap-2">
-                <Button
-                  className="bg-[#FFFFFF] border border-[#D0D5DD] text-foreground cursor-pointer"
-                  onClick={close}
-                  disabled={!name.trim()}
-                  variant="ghost"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-[#4D3AF1] hover:bg-[#3a2dd6] text-white cursor-pointer"
-                  onClick={save}
-                  disabled={!name.trim()}
-                >
-                  Create
-                </Button>
-              </div>
-            }
+            <div className="flex justify-end gap-2">
+              <Button
+                className="bg-[#FFFFFF] border border-[#D0D5DD] text-foreground cursor-pointer"
+                onClick={close}
+                disabled={!name.trim()}
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+                             <Button
+                 className="bg-[#4D3AF1] hover:bg-[#3a2dd6] text-white cursor-pointer"
+                 onClick={save}
+                 disabled={!name.trim()}
+               >
+                 {mode === 'create' ? 'Create' : 'Save'}
+               </Button>
+            </div>
           </div>
         </div>
-
-        {/* Unsaved footer (edit-mode) */}
-        {!isNew && dirty && (
-          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-black backdrop-blur-md border flex gap-4 px-6 py-3 rounded-lg shadow-lg justify-center items-center">
-            <span className="text-sm text-white">You have unsaved changes</span>
-            <Button size="sm" variant="outline" className="cursor-pointer bg-black text-white border-none" onClick={close}>Cancel</Button>
-            <Button size="sm" onClick={save} className="cursor-pointer bg-[#006600] text-white">Save changes</Button>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   )
-}
+} 

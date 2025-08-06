@@ -41,6 +41,8 @@ import BrandSwitcher          from '@/components/brand/brand-switcher'
 import BrandSocialIcons       from '@/components/brand/brand-social-icons'
 import NotificationBell       from '@/components/notifications/notification-bell'
 import BrandKitDrawer         from '@/components/brand/brand-kit-drawer'
+import BrandDialog            from '@/components/brand/brand-dialog'
+import BrandDetailsSidebar    from '@/components/brand/brand-details-sidebar'
 import UploadProgressInline from "@/components/content/post-table/UploadProgressInline";
 
 import { useFeedbirdStore }   from '@/lib/store/use-feedbird-store'
@@ -66,6 +68,7 @@ function HeaderInner() {
   const boardNav      = useFeedbirdStore(s => s.boardNav)
   const activeBoard   = boardNav.find(b => b.href && pathname.startsWith(b.href))
   const brand         = useFeedbirdStore(s => s.getActiveBrand())
+  const activeWorkspace = useFeedbirdStore(s => s.getActiveWorkspace())
   
   // Client-side hydration state
   const [isClient, setIsClient] = useState(false)
@@ -80,6 +83,9 @@ function HeaderInner() {
   const [boardName, setBoardName] = useState(activeBoard?.label || '')
   const [boardDescription, setBoardDescription] = useState('')
   const [guideScript, setGuideScript] = useState('')
+  const [brandDialogOpen, setBrandDialogOpen] = useState(false)
+  const [brandDetailsSidebarOpen, setBrandDetailsSidebarOpen] = useState(false)
+  const [brandEditDialogOpen, setBrandEditDialogOpen] = useState(false)
   
   // Collapsible states
   const [nameOpen, setNameOpen] = useState(true)
@@ -150,7 +156,7 @@ function HeaderInner() {
                   />
                 </div>
               )}
-              <span className="font-semibold text-lg tracking-[-0.6px]">{activeBoard?.label ?? 'Select board'}</span>
+              <span className="font-semibold text-lg tracking-[-0.6px] truncate max-w-[200px]">{activeBoard?.label ?? 'Select board'}</span>
               <ChevronDown className="size-4 opacity-60" />
             </button>
           </PopoverTrigger>
@@ -427,13 +433,29 @@ function HeaderInner() {
           <span className="text-sm font-medium w-7.5 h-7.5 bg-[#B5B5FF] text-[#43439F] flex items-center justify-center rounded-[4px]">
             Hi
           </span>
-          {isClient && brand ? (
-            <span className="text-sm font-medium text-black px-[8px] py-[5px] cursor-pointer">
-              {brand.name}
-            </span>
+          {isClient && activeWorkspace ? (
+            brand ? (
+              <>
+                <span 
+                  className="text-sm font-medium text-black px-[8px] py-[5px] cursor-pointer hover:text-primary"
+                  onClick={() => setBrandDetailsSidebarOpen(true)}
+                >
+                  {brand.name}
+                </span>
+                <div className="w-0 h-2.5 outline outline-1 outline-offset-[-0.50px] outline-gray-100"></div>
+                <BrandSocialIcons />
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-[8px] py-[5px] cursor-pointer"
+                onClick={() => setBrandDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            )
           ) : null}
-          <div className="w-0 h-2.5 outline outline-1 outline-offset-[-0.50px] outline-gray-100"></div>
-          <BrandSocialIcons />
         </div>
         <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] bg-main text-white px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium">
           <Image src="/images/header/user-plus.svg" alt="Share" width={16} height={16} />
@@ -446,6 +468,20 @@ function HeaderInner() {
       <UploadProgressInline className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2" />
 
       <BrandKitDrawer open={drawer} onOpenChange={setDrawer} />
+      <BrandDialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen} />
+      <BrandDetailsSidebar 
+        open={brandDetailsSidebarOpen} 
+        onOpenChange={setBrandDetailsSidebarOpen}
+        onEditClick={() => {
+          setBrandDetailsSidebarOpen(false)
+          setBrandEditDialogOpen(true)
+        }}
+      />
+      <BrandDialog 
+        open={brandEditDialogOpen} 
+        onOpenChange={setBrandEditDialogOpen}
+        mode="edit"
+      />
     </header>
   )
 }

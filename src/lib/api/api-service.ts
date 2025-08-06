@@ -254,15 +254,15 @@ export const boardApi = {
 
 // Post API functions
 export const postApi = {
-  // Get post by ID or list by brand/board
+  // Get post by ID or list by workspace/board
   getPost: async (params: { 
     id?: string; 
-    brand_id?: string; 
+    workspace_id?: string; 
     board_id?: string 
   }): Promise<Post | Post[]> => {
     const searchParams = new URLSearchParams()
     if (params.id) searchParams.append('id', params.id)
-    if (params.brand_id) searchParams.append('brand_id', params.brand_id)
+    if (params.workspace_id) searchParams.append('workspace_id', params.workspace_id)
     if (params.board_id) searchParams.append('board_id', params.board_id)
     
     return apiRequest<Post | Post[]>(`/post?${searchParams.toString()}`)
@@ -270,7 +270,7 @@ export const postApi = {
 
   // Create new post
   createPost: async (postData: {
-    brand_id: string
+    workspace_id: string
     board_id: string
     caption: any
     status: string
@@ -365,35 +365,42 @@ export const storeApi = {
           const brandResp = await brandApi.getBrand({ workspace_id: ws.id })
           const brand = brandResp || null
 
-          // Load posts for the brand if it exists
-          let transformedPosts: any[] = []
-          if (brand) {
-            const postsResp = await postApi.getPost({ brand_id: brand.id })
-            const posts = Array.isArray(postsResp) ? postsResp as Post[] : [postsResp as Post]
+          // Load posts for each board
+          const boardsWithPosts = await Promise.all(
+            ws.boards.map(async (board) => {
+              const postsResp = await postApi.getPost({ board_id: board.id })
+              const posts = Array.isArray(postsResp) ? postsResp as Post[] : [postsResp as Post]
 
-            transformedPosts = posts.map(p => ({
-              id: p.id,
-              brandId: p.brand_id ?? brand.id,
-              boardId: p.board_id,
-              caption: p.caption,
-              status: p.status as any,
-              format: p.format,
-              publishDate: p.publish_date ? new Date(p.publish_date) : null,
-              updatedAt: p.updated_at ? new Date(p.updated_at) : null,
-              platforms: (p.platforms || []) as any,
-              pages: p.pages || [],
-              billingMonth: p.billing_month,
-              month: p.month ?? 1,
-              settings: p.settings,
-              hashtags: p.hashtags,
-              blocks: p.blocks || [],
-              comments: p.comments || [],
-              activities: p.activities || []
-            }))
-          }
+              const transformedPosts = posts.map(p => ({
+                id: p.id,
+                workspaceId: p.workspace_id ?? ws.id,
+                boardId: p.board_id,
+                caption: p.caption,
+                status: p.status as any,
+                format: p.format,
+                publishDate: p.publish_date ? new Date(p.publish_date) : null,
+                updatedAt: p.updated_at ? new Date(p.updated_at) : null,
+                platforms: (p.platforms || []) as any,
+                pages: p.pages || [],
+                billingMonth: p.billing_month,
+                month: p.month ?? 1,
+                settings: p.settings,
+                hashtags: p.hashtags,
+                blocks: p.blocks || [],
+                comments: p.comments || [],
+                activities: p.activities || []
+              }))
+
+              return {
+                ...board,
+                posts: transformedPosts
+              }
+            })
+          )
 
           return {
             ...ws,
+            boards: boardsWithPosts,
             brand: brand ? {
               id: brand.id,
               name: brand.name,
@@ -404,8 +411,7 @@ export const storeApi = {
               prefs: (brand as any).prefs,
               platforms: (brand as any).platforms || [],
               socialAccounts: (brand as any).social_accounts || [],
-              socialPages: (brand as any).social_pages || [],
-              contents: transformedPosts
+              socialPages: (brand as any).social_pages || []
             } : undefined
           }
         })
@@ -626,7 +632,8 @@ export const storeApi = {
               color: board.color,
               rules: board.rules,
               groupData: board.group_data || [],
-              createdAt: new Date()
+              createdAt: new Date(),
+              posts: []
             }]
           }
         }
@@ -702,13 +709,13 @@ export const storeApi = {
 
   // Post operations with store integration
   createPostAndUpdateStore: async (
-    brandId: string,
+    workspaceId: string,
     boardId: string,
     postData: any
   ) => {
     try {
       const post = await postApi.createPost({
-        brand_id: brandId,
+        workspace_id: workspaceId,
         board_id: boardId,
         ...postData
       })
@@ -718,28 +725,33 @@ export const storeApi = {
       // Update store
       store.workspaces = store.workspaces.map(w => ({
         ...w,
-        brand: w.brand && w.brand.id === brandId ? {
-          ...w.brand,
-          contents: [...w.brand.contents, {
-            id: post.id,
-            brandId: post.brand_id,
-            boardId: post.board_id,
-            caption: post.caption,
-            status: post.status as any,
-            format: post.format,
-            publishDate: post.publish_date ? new Date(post.publish_date) : null,
-            updatedAt: post.updated_at ? new Date(post.updated_at) : null,
-            platforms: (post.platforms || []) as any,
-            pages: post.pages || [],
-            billingMonth: post.billing_month,
-            month: post.month || 1,
-            settings: post.settings,
-            hashtags: post.hashtags,
-            blocks: post.blocks || [],
-            comments: post.comments || [],
-            activities: post.activities || []
-          }]
-        } : w.brand
+        boards: w.boards.map(b => {
+          if (b.id === boardId) {
+            return {
+              ...b,
+              posts: [...b.posts, {
+                id: post.id,
+                workspaceId: post.workspace_id,
+                boardId: post.board_id,
+                caption: post.caption,
+                status: post.status as any,
+                format: post.format,
+                publishDate: post.publish_date ? new Date(post.publish_date) : null,
+                updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+                platforms: (post.platforms || []) as any,
+                pages: post.pages || [],
+                billingMonth: post.billing_month,
+                month: post.month || 1,
+                settings: post.settings,
+                hashtags: post.hashtags,
+                blocks: post.blocks || [],
+                comments: post.comments || [],
+                activities: post.activities || []
+              }]
+            }
+          }
+          return b
+        })
       }))
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
@@ -759,12 +771,12 @@ export const storeApi = {
       // Update store
       store.workspaces = store.workspaces.map(w => ({
         ...w,
-        brand: w.brand ? {
-          ...w.brand,
-          contents: w.brand.contents.map(p => 
+        boards: w.boards.map(b => ({
+          ...b,
+          posts: b.posts.map(p => 
             p.id === id ? { ...p, ...updates } : p
           )
-        } : w.brand
+        }))
       }))
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
@@ -800,16 +812,16 @@ export const storeApi = {
       const store = useFeedbirdStore.getState();
       store.workspaces = store.workspaces.map(w => ({
         ...w,
-        brand: w.brand ? {
-          ...w.brand,
-          contents: w.brand.contents.map(p => 
+        boards: w.boards.map(b => ({
+          ...b,
+          posts: b.posts.map(p => 
             p.id === postId ? { 
               ...p, 
               blocks: result.post.blocks,
               updatedAt: new Date(result.post.updated_at)
             } : p
           )
-        } : w.brand
+        }))
       }));
       
       // Trigger store update for listeners
@@ -830,10 +842,10 @@ export const storeApi = {
       // Update store
       store.workspaces = store.workspaces.map(w => ({
         ...w,
-        brand: w.brand ? {
-          ...w.brand,
-          contents: w.brand.contents.filter(p => p.id !== id)
-        } : w.brand
+        boards: w.boards.map(b => ({
+          ...b,
+          posts: b.posts.filter(p => p.id !== id)
+        }))
       }))
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });

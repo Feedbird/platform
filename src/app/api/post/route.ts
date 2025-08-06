@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 // Validation schemas
 const CreatePostSchema = z.object({
-  brand_id: z.string().uuid('Invalid brand ID'),
+  workspace_id: z.string().uuid('Invalid workspace ID'),
   board_id: z.string().uuid('Invalid board ID'),
   caption: z.any().refine((val) => val !== null && val !== undefined, 'Caption is required'),
   status: z.string().min(1, 'Status is required'),
@@ -37,12 +37,12 @@ const UpdatePostSchema = z.object({
   activities: z.array(z.any()).optional(),
 })
 
-// GET - Get post by ID or list posts by brand/board
+// GET - Get post by ID or list posts by workspace/board
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
-    const brand_id = searchParams.get('brand_id')
+    const workspace_id = searchParams.get('workspace_id')
     const board_id = searchParams.get('board_id')
 
     if (id) {
@@ -69,12 +69,12 @@ export async function GET(req: NextRequest) {
       }
 
       return NextResponse.json(data)
-    } else if (brand_id) {
-      // Get posts by brand
+    } else if (workspace_id) {
+      // Get posts by workspace
       const { data, error } = await supabase
         .from('posts')
         .select('*')
-        .eq('brand_id', brand_id)
+        .eq('workspace_id', workspace_id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(data)
     } else {
       return NextResponse.json(
-        { error: 'Either id, brand_id, or board_id parameter is required' },
+        { error: 'Either id, workspace_id, or board_id parameter is required' },
         { status: 400 }
       )
     }
@@ -124,16 +124,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const validatedData = CreatePostSchema.parse(body)
 
-    // Verify brand exists
-    const { data: brand } = await supabase
-      .from('brands')
+    // Verify workspace exists
+    const { data: workspace } = await supabase
+      .from('workspaces')
       .select('id')
-      .eq('id', validatedData.brand_id)
+      .eq('id', validatedData.workspace_id)
       .single()
 
-    if (!brand) {
+    if (!workspace) {
       return NextResponse.json(
-        { error: 'Brand not found' },
+        { error: 'Workspace not found' },
         { status: 404 }
       )
     }

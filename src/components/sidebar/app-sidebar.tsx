@@ -322,13 +322,13 @@ export const RenderNavItems = React.memo(function RenderNavItems({
               {nav.href ? (
                 <LoadingLink
                   href={nav.href}
-                  className="flex items-center gap-[6px] w-full"
+                  className="flex items-center gap-[6px] w-full min-w-0"
                   loadingText={`Loading ${nav.label}…`}
                 >
                   {imageSrc && (
                     <div 
                       className={cn(
-                        "w-5 h-5 rounded flex items-center justify-center",
+                        "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
                         // Apply board color as background to icon container when active
                         active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
                       )}
@@ -346,7 +346,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       />
                     </div>
                   )}
-                  <span className={cn("text-sm font-medium", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
+                  <span className={cn("text-sm font-medium truncate", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
 
                   {isBoard && (
                     <div className="flex items-center gap-1 ml-auto">
@@ -373,12 +373,12 @@ export const RenderNavItems = React.memo(function RenderNavItems({
               ) : (
                 <button
                   onClick={nav.onClick}
-                  className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none"
+                  className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none min-w-0"
                 >
                   {imageSrc && (
                     <div 
                     className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center",
+                      "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
                       // Apply board color as background to icon container when active
                       active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
                     )}
@@ -396,7 +396,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     />
                   </div>
                   )}
-                  <span className={cn("text-sm font-medium", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
+                  <span className={cn("text-sm font-medium truncate", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
                 </button>
               )}
             </SidebarMenuButton>
@@ -499,7 +499,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         />
                       </div>
                     )}
-                    <span className={cn("text-sm font-medium", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
+                    <span className={cn("text-sm font-medium truncate", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
                     {isBoard && 
                       <div
                         className={cn(

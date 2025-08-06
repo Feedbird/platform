@@ -117,6 +117,11 @@ export interface Version {
     kind: FileKind;
     url: string;
   };
+  media?: {
+    kind: FileKind;
+    name: string;
+    src: string;
+  }[];
   comments: VersionComment[];
 }
 
@@ -152,7 +157,7 @@ export interface Activity {
 
 export interface Post {
   id: string;
-  brandId: string;
+  workspaceId: string;
   boardId: string; // <- NEW: permanently associates post with a board
   caption: CaptionData;
   status: Status;
@@ -198,7 +203,6 @@ export interface Brand {
   link?: string;
   voice?: string;
   prefs?: string;
-  contents: Post[];
 }
 
 export interface Workspace {
@@ -226,6 +230,7 @@ export interface Board {
   rules?: BoardRules;
   groupData?: BoardGroupData[]; // Array of group data for months 1-50
   createdAt: Date;
+  posts: Post[]; // Posts now belong to boards, not brands
 }
 
 export interface BoardTemplate {
@@ -404,6 +409,7 @@ const defaultBoards: Board[] = [
       approvalDays: 7,
     },
     createdAt: new Date('2025-01-01'),
+    posts: []
   },
   { 
     id: "short-form-videos", 
@@ -422,6 +428,7 @@ const defaultBoards: Board[] = [
       approvalDays: 7,
     },
     createdAt: new Date('2025-01-01'),
+    posts: []
   },
   { 
     id: "email-design", 
@@ -440,6 +447,7 @@ const defaultBoards: Board[] = [
       approvalDays: 7,
     },
     createdAt: new Date('2025-01-01'),
+    posts: []
   },
 ];
 
@@ -671,24 +679,29 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         getActivePosts: () => {
-          const brand = get().getActiveBrand();
-          const bid = get().activeBoardId;
-          return brand?.contents.filter(p => !bid || p.boardId === bid) ?? [];
+          const workspace = get().getActiveWorkspace();
+          const boardId = get().activeBoardId;
+          if (!workspace || !boardId) return [];
+          
+          const board = workspace.boards.find(b => b.id === boardId);
+          return board?.posts ?? [];
         },
         getAllPosts: () => {
-          const brand = get().getActiveBrand();
-          return brand?.contents ?? [];
+          const workspace = get().getActiveWorkspace();
+          if (!workspace) return [];
+          
+          return workspace.boards.flatMap(board => board.posts);
         },
 
         publishPostToAllPages: (postId, scheduledTime) => {
           return withLoading(
             async () => {
-              const { getActiveBrand, getPost, updatePost, addActivity } = get();
-              const brand = getActiveBrand();
+              const { getActiveWorkspace, getPost, updatePost, addActivity } = get();
+              const workspace = getActiveWorkspace();
               const post = getPost(postId);
 
-              if (!brand || !post) {
-                throw new Error("Brand or Post not found");
+              if (!workspace || !post) {
+                throw new Error("Workspace or Post not found");
               }
 
               updatePost(postId, { status: "Publishing" });
@@ -728,83 +741,113 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 return new File([blob], defaultName, { type: ct });
               };
 
-              const results = await Promise.allSettled(post.pages.map(async (pageId) => {
-                const page = findPage(brand, pageId);
-                if (!page) {
-                  throw new Error(`Page with ID ${pageId} not found in brand`);
-                }
-
-                const currentBlock = post.blocks[0];
-                const currentVersion = currentBlock.versions.find(v => v.id === currentBlock.currentVersionId);
-                if (!currentVersion) {
-                  throw new Error("No content found for this post.");
-                }
-
-                // Always perform conversion + upload for each platform to ensure compliance.
-                const filenameBase = `post-${post.id}-${page.platform}`;
-                const fileExt = currentVersion.file.kind === 'video' ? 'mp4' : 'png';
-                const file = await urlToFile(currentVersion.file.url, `${filenameBase}.${fileExt}`, currentVersion.file.kind);
-
+              // Helper: upload a single file to R2
+              const uploadFile = async (file: File, kind: FileKind): Promise<string> => {
                 const formData = new FormData();
                 formData.append('file', file);
+                formData.append('kind', kind);
 
-                const uploadRes = await fetch(`/api/media/upload?platform=${page.platform}&wid=${get().activeWorkspaceId ?? ''}&bid=${brand.id}&pid=${post.id}`, {
+                const response = await fetch('/api/upload/sign', {
                   method: 'POST',
                   body: formData,
                 });
 
-                if (!uploadRes.ok) {
-                  const err = await uploadRes.text();
-                  throw new Error(`Media upload failed: ${err}`);
+                if (!response.ok) {
+                  throw new Error(`Failed to upload ${kind}: ${response.status}`);
                 }
 
-                const { url: mediaUrl } = await uploadRes.json();
+                const result = await response.json();
+                return result.url;
+              };
 
-                // ----- 2. Publish to the social platform -----
-                const publishRes = await fetch(`/api/social/${page.platform}/publish`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    page,
-                    post: {
-                      text: currentVersion.caption,
-                      media: {
-                        type: currentVersion.file.kind,
-                        urls: [mediaUrl],
+              // Helper: process all media in a block
+              const processBlockMedia = async (block: Block): Promise<Block> => {
+                const processedBlock = { ...block };
+                
+                for (const version of processedBlock.versions) {
+                  if (version.media) {
+                    const processedMedia: { kind: FileKind; name: string; src: string }[] = [];
+                    
+                    for (const media of version.media) {
+                      if (media.src.startsWith('data:') || media.src.startsWith('http')) {
+                        const file = await urlToFile(media.src, media.name, media.kind);
+                        const uploadedUrl = await uploadFile(file, media.kind);
+                        processedMedia.push({ ...media, src: uploadedUrl });
+                      } else {
+                        processedMedia.push(media);
                       }
-                    },
-                    options: { scheduledTime }
-                  }),
-                });
-
-                if (!publishRes.ok) {
-                  const errorData = await publishRes.json();
-                  throw new BaseError(errorData.error?.message || 'Publish failed', errorData.error?.metadata?.category || 'PUBLISH_ERROR', errorData.error?.metadata);
+                    }
+                    
+                    version.media = processedMedia;
+                  }
                 }
+                
+                return processedBlock;
+              };
 
-                return { success: true, pageId };
-              }));
+              // Process all blocks in the post
+              const processedBlocks = await Promise.all(
+                post.blocks.map(processBlockMedia)
+              );
 
-              const failures = results.filter(r => r.status === 'rejected');
-              if (failures.length > 0) {
-                updatePost(postId, { status: "Failed Publishing" });
-                addActivity({
-                  postId,
-                  actor: "System",
-                  action: "failed to publish",
-                  type: "failed_publishing"
-                });
-                throw new Error(`${failures.length} of ${results.length} posts failed to publish.`);
+              // Update post with processed blocks
+              updatePost(postId, { blocks: processedBlocks });
+
+              // Publish to all connected pages
+              const brand = workspace.brand;
+              if (!brand) {
+                throw new Error("No brand found for workspace");
               }
 
-              updatePost(postId, { status: "Published" });
+              const connectedPages = brand.socialPages.filter(page => 
+                post.pages.includes(page.id) && page.connected
+              );
+
+              if (connectedPages.length === 0) {
+                throw new Error("No connected pages found for this post");
+              }
+
+              const publishPromises = connectedPages.map(async (page) => {
+                const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+                if (!ops) {
+                  throw new Error(`Platform operations not found for ${page.platform}`);
+                }
+
+                const publishResult = await ops.publishPost(page, {
+                   text: post.caption.default,
+                   media: {
+                     type: "image" as const,
+                     urls: processedBlocks.flatMap(block => 
+                       block.versions.flatMap(version => version.media?.map(m => m.src) || [])
+                     )
+                   }
+                 }, { scheduledTime });
+
+                return {
+                  pageId: page.id,
+                  result: publishResult
+                };
+              });
+
+              const results = await Promise.all(publishPromises);
+              
+              // Update post status based on results
+              const hasErrors = results.some(r => r.result.error);
+              if (hasErrors) {
+                updatePost(postId, { status: "Failed Publishing" });
+                throw new Error("Some posts failed to publish");
+              } else {
+                updatePost(postId, { status: scheduledTime ? "Scheduled" : "Published" });
+              }
+
+              // Add success activity
               addActivity({
                 postId,
-                actor: "System",
-                action: "published this post",
-                type: "published",
+                actor: getCurrentUserDisplayNameFromStore(get()),
+                action: scheduledTime ? "scheduled this post" : "published this post",
+                type: scheduledTime ? "scheduled" : "published",
                 metadata: {
-                  publishTime: new Date()
+                  publishTime: scheduledTime
                 }
               });
             },
@@ -819,10 +862,13 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         syncPostHistory: (brandId, pageId) => {
           return withLoading(
             async () => {
-              const brand = findBrand(get().workspaces, brandId);
-              if (!brand) throw new Error("Brand not found");
+              const workspace = get().getActiveWorkspace();
+              if (!workspace?.brand || workspace.brand.id !== brandId) {
+                throw new Error("Brand not found");
+              }
 
-              const page = findPage(brand, pageId);
+              const brand = workspace.brand;
+              const page = brand.socialPages.find(p => p.id === pageId);
               if (!page) throw new Error("Page not found");
 
               const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
@@ -852,10 +898,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         getPost: (id: string) => {
-          const brand = get().getActiveWorkspace()?.brand;
-          if (brand) {
-            const found = brand.contents.find((p) => p.id === id);
-            if (found) return found;
+          const workspace = get().getActiveWorkspace();
+          if (workspace) {
+            for (const board of workspace.boards) {
+              const found = board.posts.find((p) => p.id === id);
+              if (found) return found;
+            }
           }
           return undefined;
         },
@@ -1345,12 +1393,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         addPost: async (boardId?: string) => {
           const st = get();
-          const brand = st.getActiveBrand();
-          if (!brand) return null;
           const ws = st.getActiveWorkspace();
+          if (!ws) return null;
           const bId = boardId ?? st.activeBoardId ?? (ws?.boards[0]?.id ?? "default");
 
-          const postId = await storeApi.createPostAndUpdateStore(brand.id, bId, {
+          const postId = await storeApi.createPostAndUpdateStore(ws.id, bId, {
             caption: { synced: true, default: "" },
             status: "Draft",
             format: "",
@@ -1364,11 +1411,15 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
         duplicatePost: (orig) => {
           const st = get();
-          const brand = st.getActiveBrand();
-          if (!brand) return null;
+          const workspace = st.getActiveWorkspace();
+          if (!workspace) return null;
+          
+          const board = workspace.boards.find(b => b.id === orig.boardId);
+          if (!board) return null;
+          
           const copy: Post = {
             ...orig,
-                          id: "dup-" + uuidv4(),
+            id: "dup-" + uuidv4(),
             updatedAt: new Date(),
           };
           
@@ -1376,32 +1427,41 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const correctStatus = determineCorrectStatus(copy.status, copy.publishDate);
           copy.status = correctStatus;
           
-          brand.contents.push(copy);
+          board.posts.push(copy);
           set({ workspaces: [...st.workspaces] });
           return copy;
         },
         setActivePosts: (posts) => {
           set((s) => {
-            const brand = s.getActiveBrand();
+            const workspace = s.getActiveWorkspace();
             const currentBoardId = s.activeBoardId;
-            if (!brand || !currentBoardId) return {};
+            if (!workspace || !currentBoardId) return {};
             
-            // Preserve posts from other boards and only update posts for the current board
-            const otherBoardPosts = brand.contents.filter(p => p.boardId !== currentBoardId);
-            brand.contents = [...otherBoardPosts, ...posts];
+            // Find the current board and update its posts
+            const board = workspace.boards.find(b => b.id === currentBoardId);
+            if (board) {
+              board.posts = posts;
+            }
             
             return { workspaces: [...s.workspaces] };
           });
         },
         sharePostsToBrand: (postIds, targetBrandId) => {
           const st = get();
-          let targ: Brand | undefined;
+          let targetWorkspace: Workspace | undefined;
+          let targetBoard: Board | undefined;
+          
           outer: for (const w of st.workspaces) {
             if (w.brand && w.brand.id === targetBrandId) {
-              targ = w.brand; break outer;
+              targetWorkspace = w;
+              // Use the first board as target for shared posts
+              targetBoard = w.boards[0];
+              break outer;
             }
           }
-          if (!targ) return;
+          
+          if (!targetWorkspace || !targetBoard) return;
+          
           const newArr: Post[] = [];
           for (const pid of postIds) {
             const ex = st.getPost(pid);
@@ -1409,7 +1469,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             const cloned: Post = {
               ...ex,
               id: "share-" + uuidv4(),
-              brandId: targ.id,
+              workspaceId: targetWorkspace.id,
+              boardId: targetBoard.id,
               updatedAt: new Date(),
             };
             
@@ -1420,7 +1481,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             newArr.push(cloned);
           }
           if (newArr.length) {
-            targ.contents.push(...newArr);
+            targetBoard.posts.push(...newArr);
             set({ workspaces: [...st.workspaces] });
           }
         },
@@ -1438,13 +1499,13 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brand: ws.brand ? {
-                ...ws.brand,
-                contents: ws.brand.contents.map((p) => {
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
                   if (p.id !== postId) return p;
                   return { ...p, blocks: [...p.blocks, newBlock] };
                 }),
-              } : ws.brand,
+              })),
             })),
           }));
           return bid;
@@ -1453,16 +1514,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brand: ws.brand ? {
-                ...ws.brand,
-                contents: ws.brand.contents.map((p) => {
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
                   if (p.id !== postId) return p;
                   return {
                     ...p,
                     blocks: p.blocks.filter((b) => b.id !== blockId),
                   };
                 }),
-              } : ws.brand,
+              })),
             })),
           }));
         },
@@ -1471,9 +1532,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brand: ws.brand ? {
-                ...ws.brand,
-                contents: ws.brand.contents.map((p) => {
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
                   if (p.id !== postId) return p;
                   return {
                     ...p,
@@ -1494,7 +1555,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     })
                   };
                 }),
-              } : ws.brand,
+              })),
             })),
           }));
           return newVid;
@@ -1504,9 +1565,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             const newState = {
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brand: ws.brand ? {
-                  ...ws.brand,
-                  contents: ws.brand.contents.map((p) => {
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
                     if (p.id !== postId) return p;
                     return {
                       ...p,
@@ -1517,15 +1578,14 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       ),
                     };
                   }),
-                } : ws.brand,
+                })),
               })),
             };
             
             // Add revision activity
             const post = newState.workspaces
-              .map(w => w.brand)
-              .filter(b => b !== undefined)
-              .flatMap(b => b!.contents)
+              .flatMap(w => w.boards)
+              .flatMap(b => b.posts)
               .find(p => p.id === postId);
             
             if (post) {
@@ -1547,9 +1607,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   const updatedState = {
                     workspaces: newState.workspaces.map((ws) => ({
                       ...ws,
-                      brand: ws.brand ? {
-                        ...ws.brand,
-                        contents: ws.brand.contents.map((p) => {
+                      boards: ws.boards.map((b) => ({
+                        ...b,
+                        posts: b.posts.map((p) => {
                           if (p.id !== postId) return p;
                           return {
                             ...p,
@@ -1563,7 +1623,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                             ],
                           };
                         }),
-                      } : ws.brand,
+                      })),
                     })),
                   };
                   
@@ -1608,16 +1668,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   set((s) => ({
                     workspaces: s.workspaces.map((ws) => ({
                       ...ws,
-                      brand: ws.brand ? {
-                        ...ws.brand,
-                        contents: ws.brand.contents.map((p) => {
+                      boards: ws.boards.map((b) => ({
+                        ...b,
+                        posts: b.posts.map((p) => {
                           if (p.id !== postId) return p;
                           return {
                             ...p,
                             status: "Needs Revisions" as Status,
                           };
                         }),
-                      } : ws.brand,
+                      })),
                     })),
                   }));
                 }
@@ -1628,9 +1688,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => ({
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brand: ws.brand ? {
-                  ...ws.brand,
-                  contents: ws.brand.contents.map((p) => {
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
                     if (p.id !== postId) return p;
                     const c: BaseComment = {
                       id: comment.id,
@@ -1645,7 +1705,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       comments: [...p.comments, c],
                     };
                   }),
-                } : ws.brand,
+                })),
               })),
             }));
             return comment.id;
@@ -1655,9 +1715,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => ({
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brand: ws.brand ? {
-                  ...ws.brand,
-                  contents: ws.brand.contents.map((p) => {
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
                     if (p.id !== postId) return p;
                     const c: BaseComment = {
                       id: cid,
@@ -1672,7 +1732,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       comments: [...p.comments, c],
                     };
                   }),
-                } : ws.brand,
+                })),
               })),
             }));
             return cid;
@@ -1710,16 +1770,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   set((s) => ({
                     workspaces: s.workspaces.map((ws) => ({
                       ...ws,
-                      brand: ws.brand ? {
-                        ...ws.brand,
-                        contents: ws.brand.contents.map((p) => {
+                      boards: ws.boards.map((b) => ({
+                        ...b,
+                        posts: b.posts.map((p) => {
                           if (p.id !== postId) return p;
                           return {
                             ...p,
                             status: "Needs Revisions" as Status,
                           };
                         }),
-                      } : ws.brand,
+                      })),
                     })),
                   }));
                 }
@@ -1730,9 +1790,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => ({
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brand: ws.brand ? {
-                  ...ws.brand,
-                  contents: ws.brand.contents.map((p) => {
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
                     if (p.id !== postId) return p;
                     return {
                       ...p,
@@ -1753,7 +1813,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       }),
                     };
                   }),
-                } : ws.brand,
+                })),
               })),
             }));
             return comment.id;
@@ -1763,9 +1823,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => ({
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brand: ws.brand ? {
-                  ...ws.brand,
-                  contents: ws.brand.contents.map((p) => {
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
                     if (p.id !== postId) return p;
                     return {
                       ...p,
@@ -1786,7 +1846,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       }),
                     };
                   }),
-                } : ws.brand,
+                })),
               })),
             }));
             return cid;
@@ -1834,16 +1894,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   set((s) => ({
                     workspaces: s.workspaces.map((ws) => ({
                       ...ws,
-                      brand: ws.brand ? {
-                        ...ws.brand,
-                        contents: ws.brand.contents.map((p) => {
+                      boards: ws.boards.map((b) => ({
+                        ...b,
+                        posts: b.posts.map((p) => {
                           if (p.id !== postId) return p;
                           return {
                             ...p,
                             status: "Needs Revisions" as Status,
                           };
                         }),
-                      } : ws.brand,
+                      })),
                     })),
                   }));
                 }
@@ -1854,9 +1914,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => ({
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brand: ws.brand ? {
-                  ...ws.brand,
-                  contents: ws.brand.contents.map((p) => {
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
                     if (p.id !== postId) return p;
                     return {
                       ...p,
@@ -1884,7 +1944,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       })
                     };
                   }),
-                } : ws.brand,
+                })),
               })),
             }));
             return comment.id;
@@ -1894,9 +1954,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((s) => ({
               workspaces: s.workspaces.map((ws) => ({
                 ...ws,
-                brand: ws.brand ? {
-                  ...ws.brand,
-                  contents: ws.brand.contents.map((p) => {
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
                     if (p.id !== postId) return p;
                     return {
                       ...p,
@@ -1924,7 +1984,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                       })
                     };
                   }),
-                } : ws.brand,
+                })),
               })),
             }));
             return cid;
@@ -1937,9 +1997,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
-              brand: ws.brand ? {
-                ...ws.brand,
-                contents: ws.brand.contents.map((p) => {
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
                   if (p.id !== act.postId) return p;
                   return {
                     ...p,
@@ -1953,7 +2013,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     ],
                   };
                 }),
-              } : ws.brand,
+              })),
             })),
           }));
         },
@@ -2392,8 +2452,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             
             const newWs = s.workspaces.map((ws) => ({
               ...ws,
-              brand: ws.brand ? (() => {
-                const updatedContents = ws.brand!.contents.map((p) => {
+              boards: ws.boards.map((board) => {
+                const updatedPosts = board.posts.map((p) => {
                   const correctStatus = determineCorrectStatus(p.status, p.publishDate);
                   if (correctStatus !== p.status) {
                     console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publishDate: ${p.publishDate})`);
@@ -2404,12 +2464,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   return p;
                 });
                 
-                // Only create new brand object if contents changed
+                // Only create new board object if posts changed
                 if (hasChanges) {
-                  return { ...ws.brand!, contents: updatedContents };
+                  return { ...board, posts: updatedPosts };
                 }
-                return ws.brand;
-              })() : ws.brand,
+                return board;
+              }),
             }));
             
             if (updatedCount > 0) {
@@ -2477,8 +2537,8 @@ export const usePostStatusTimeUpdater = () => {
   const checkIfUpdatesNeeded = React.useCallback(() => {
     const now = new Date();
     for (const ws of workspaces) {
-      if (ws.brand) {
-        for (const post of ws.brand.contents) {
+      for (const board of ws.boards) {
+        for (const post of board.posts) {
           if (post.publishDate) {
             const publishDate = post.publishDate instanceof Date ? post.publishDate : new Date(post.publishDate);
             if (!isNaN(publishDate.getTime())) {

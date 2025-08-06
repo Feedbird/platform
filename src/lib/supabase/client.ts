@@ -64,7 +64,7 @@ export interface Board {
 
 export interface Post {
   id: string
-  brand_id: string
+  workspace_id: string
   board_id: string
   caption: any
   status: string

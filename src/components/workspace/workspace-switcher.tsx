@@ -95,18 +95,16 @@ export default function WorkspaceSwitcher() {
     setTimeout(hide, 600)
   }
 
-  const handleAdd = async (name: string, logo: string | null, brand: {name:string, colors:string[], fonts:string[], link:string, voice:string, prefs:string, logo?:string|null}) => {
+  const handleAdd = async (name: string, logo: string | null) => {
 
     const userEmail = user?.email || 'demo@example.com'
     
     const wsId = await addWorkspace(name, userEmail, logo ?? '')
     console.log('@@@@@@@@@@@@@wsId: ', wsId);
-    // ensure workspace selected so addBrand targets correct workspace
+    // ensure workspace selected
     select(wsId)
 
-    await addBrand(brand.name, brand.logo ?? undefined, { colors: brand.colors, fonts: brand.fonts }, brand.link, brand.voice, brand.prefs)
-
-    toast.success(`Workspace “${name}” created with brand “${brand.name}”`)
+    toast.success(`Workspace "${name}" created`)
   }
 
   if (!isMounted) {

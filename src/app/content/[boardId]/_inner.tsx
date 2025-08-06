@@ -45,8 +45,8 @@ export function BoardInner() {
   const view = search.get("view") === "calendar" ? "calendar" : 
                search.get("view") === "grid" ? "grid" : "table";
 
-  // 4. Pull all posts for the current brand, filtered by the active board.
-  // Grab the entire contents array of the active brand once. Because the array
+  // 4. Pull all posts for the current workspace, filtered by the active board.
+  // Grab the entire contents array of the active workspace once. Because the array
   // reference only changes when posts themselves change, this prevents
   // re-rendering on unrelated store updates (e.g. other settings toggles).
   const allPosts = useStoreWithEqualityFn(

@@ -17,7 +17,8 @@ import {
 import { 
   Platform, 
   FileKind,
-  SocialPage as SocialPageType 
+  SocialPage as SocialPageType,
+  ContentFormat
 } from "@/lib/social/platforms/platform-types";
 
 /* all possible socials */
@@ -207,100 +208,55 @@ function makeBlock(kind: FileKind): Block {
  * Build a single post and assign it to a board
  */
 function makePost(
-  brandId: string, 
+  workspaceId: string, 
   boardId: string, 
   brandPlatforms: Platform[],
   brandPages: SocialPageType[],
   month: number
 ): Post {
-  // 20% chance the format is empty (not yet determined)
-  const random = faker.number.int({ min: 0, max: 9 });
-  const format = faker.helpers.arrayElement<
-        "image" | "carousel" | "story" | "video" | "email" | "blog"
-      >(["image", "carousel", "story", "video", "email", "blog"]);
-
-  /* match format → file kind */
-  const fileKind: FileKind = format === "video" ? "video" : "image";
-
-  /* now build blocks with the chosen kind */
-  const blocks = Array.from(
-    { length: faker.number.int({ min: 1, max: 2 }) },
-    () => makeBlock(fileKind),
-  );
-
-  /* … everything else stays exactly the same … */
-  
-  // If preview (blocks) and caption exist, status should not be "Draft"
-  const captionText = faker.lorem.sentence();
-  const hasContent = blocks.length > 0 && captionText.trim().length > 0;
-  
-  // Generate initial status based on content availability
-  let initialStatus: Status;
-  if (!hasContent) {
-    initialStatus = "Draft";
-  } else {
-    // For posts with content, choose from non-draft statuses
-    const nonDraftStatuses = STATUSES.filter(status => status !== "Draft");
-    initialStatus = faker.helpers.arrayElement(nonDraftStatuses);
-  }
-  
-  // Generate publish date based on status requirements
-  let publishDate: Date | null = null;
-  const now = new Date();
-  const oneMonthAgo = new Date(now);
-  oneMonthAgo.setMonth(now.getMonth() - 1);
-  const oneMonthAhead = new Date(now);
-  oneMonthAhead.setMonth(now.getMonth() + 1);
-  
-  // If status requires a publish date, generate one
-  if (initialStatus === "Scheduled" || initialStatus === "Published" || initialStatus === "Failed Publishing") {
-    if (initialStatus === "Scheduled") {
-      // Scheduled posts should have future dates
-      publishDate = faker.date.between({ from: now, to: oneMonthAhead });
-    } else {
-      // Published or Failed Publishing should have past dates
-      publishDate = faker.date.between({ from: oneMonthAgo, to: now });
-    }
-  } else {
-    // For other statuses, randomly decide whether to have a publish date
-    publishDate = faker.helpers.arrayElement([
-      faker.date.between({ from: oneMonthAgo, to: now }), // Past date within 1 month
-      faker.date.between({ from: now, to: oneMonthAhead }), // Future date within 1 month
-      null, // No date
-    ]);
-  }
-  
-  // Apply the business rule: determine correct status based on publish date
-  const finalStatus = determineCorrectStatus(initialStatus, publishDate);
-  
   const postPlatforms = faker.helpers.arrayElements(brandPlatforms, { min: 1, max: 3 })
   const availablePages = brandPages.filter(p => postPlatforms.includes(p.platform) && p.connected);
-  const selectedPages = faker.helpers.arrayElements(availablePages, { min: 1, max: Math.max(1, availablePages.length) });
-  const pageIds = selectedPages.map(p => p.id);
-
-  return {
+  const selectedPages = faker.helpers.arrayElements(availablePages, { min: 1, max: Math.min(availablePages.length, 3) });
+  
+  const statuses: Status[] = ["Draft", "Pending Approval", "Approved", "Published", "Needs Revisions", "Revised"];
+  const formats: ContentFormat[] = ["image", "video", "carousel", "story", "email"];
+  
+  const post: Post = {
     id: uuidv4(),
-    brandId,
+    workspaceId,
     boardId,
     caption: {
       synced: true,
-      default: captionText,
-      perPlatform: {},
+      default: faker.lorem.sentence(),
     },
-    status: finalStatus,
-    format,
-    publishDate,
-    updatedAt: null as unknown as Date,
+    status: faker.helpers.arrayElement(statuses),
+    format: faker.helpers.arrayElement(formats),
+    publishDate: faker.datatype.boolean() ? faker.date.future() : null,
+    updatedAt: faker.date.recent(),
     platforms: postPlatforms,
-    pages: pageIds,
-    month: month,
-    blocks,
-    comments: Array.from(
-      { length: faker.number.int({ min: 0, max: 3 }) },
-      () => makeComment("You"),
-    ),
-    activities: [],
+    pages: selectedPages.map(p => p.id),
+    billingMonth: faker.date.month(),
+    month,
+    settings: {
+      location: faker.datatype.boolean(),
+      tagAccounts: faker.datatype.boolean(),
+      thumbnail: faker.datatype.boolean(),
+      locationTags: faker.datatype.boolean() ? [faker.location.city()] : [],
+      taggedAccounts: faker.datatype.boolean() ? [faker.internet.userName()] : [],
+    },
+    hashtags: {
+      synced: true,
+      default: faker.lorem.words(3).split(' ').map(w => `#${w}`).join(' '),
+    },
+    blocks: Array.from({ length: faker.number.int({ min: 1, max: 3 }) }, () => makeBlock(faker.helpers.arrayElement(['image', 'video'] as FileKind[]))),
+    comments: buildNestedBaseComments(1, 3),
+    activities: []
   };
+
+  // Apply business rule to determine correct status
+  post.status = determineCorrectStatus(post.status, post.publishDate);
+  
+  return post;
 }
 
 /** 
@@ -342,12 +298,12 @@ function makeBrand(): Brand {
   // posts – boardId will be filled later when workspace boards are known
   const posts: Post[] = [];
   return {
-    id: bid,
+    id: uuidv4(),
     name: faker.company.name(),
     logo: faker.image.avatarGitHub(),
     styleGuide: {
-      fonts: ["Inter","Roboto","Georgia"],
-      colors:["#000","#fff","#ff6900"]
+      fonts: [faker.internet.domainWord()],
+      colors: [faker.internet.color()],
     },
     platforms: brandPlatforms,
     socialAccounts: [],
@@ -355,7 +311,6 @@ function makeBrand(): Brand {
     link: faker.internet.url(),
     voice: faker.company.buzzPhrase(),
     prefs: faker.lorem.sentence(),
-    contents: posts,
   };
 }
 
@@ -371,22 +326,24 @@ export async function generateDummyWorkspaces(count=2): Promise<Workspace[]> {
     }
 
     // Create boards (clone default boards with unique ids per workspace if needed)
-    const boards = DEFAULT_BOARDS.map((b) => ({ ...b }));
+    const boards: Board[] = DEFAULT_BOARDS.map((b) => ({ 
+      ...b, 
+      posts: [] 
+    }));
 
-    // To ensure 20 posts are visible per board, we'll assign all posts to the first brand.
-    // The previous logic distributed them, which is why you didn't see all 20 at once.
+    // To ensure 20 posts are visible per board, we'll assign all posts to the boards.
     if (brandArr.length > 0) {
       const primaryBrand = brandArr[0];
       for (const board of boards) {
         // 10 posts for Month 1
         for (let p = 0; p < 10; p++) {
-          const post = makePost(primaryBrand.id, board.id, primaryBrand.platforms ?? [], primaryBrand.socialPages, 1);
-          primaryBrand.contents.push(post);
+          const post = makePost(wid, board.id, primaryBrand.platforms ?? [], primaryBrand.socialPages, 1);
+          board.posts.push(post);
         }
         // 10 posts for Month 2
         for (let p = 0; p < 10; p++) {
-          const post = makePost(primaryBrand.id, board.id, primaryBrand.platforms ?? [], primaryBrand.socialPages, 2);
-          primaryBrand.contents.push(post);
+          const post = makePost(wid, board.id, primaryBrand.platforms ?? [], primaryBrand.socialPages, 2);
+          board.posts.push(post);
         }
       }
     }
@@ -432,6 +389,7 @@ const DEFAULT_BOARDS: Board[] = [
       approvalDays: 7,
     },
     createdAt: new Date('2025-01-01'),
+    posts: [],
   },
   { 
     id: "short-form-videos", 
@@ -450,6 +408,7 @@ const DEFAULT_BOARDS: Board[] = [
       approvalDays: 7,
     },
     createdAt: new Date('2025-01-01'),
+    posts: [],
   },
   { 
     id: "email-design", 
@@ -468,5 +427,6 @@ const DEFAULT_BOARDS: Board[] = [
       approvalDays: 7,
     },
     createdAt: new Date('2025-01-01'),
+    posts: [],
   },
 ];

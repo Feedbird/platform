@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS boards (
 
 CREATE TABLE IF NOT EXISTS posts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
   board_id UUID REFERENCES boards(id) ON DELETE CASCADE,
   caption JSONB NOT NULL,
   status TEXT NOT NULL,
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS members (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_brands_workspace_id ON brands(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_boards_workspace_id ON boards(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_posts_brand_id ON posts(brand_id);
+CREATE INDEX IF NOT EXISTS idx_posts_workspace_id ON posts(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_posts_board_id ON posts(board_id);
 CREATE INDEX IF NOT EXISTS idx_social_accounts_brand_id ON social_accounts(brand_id);
 CREATE INDEX IF NOT EXISTS idx_social_pages_brand_id ON social_pages(brand_id);
@@ -151,70 +151,293 @@ ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE social_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE social_pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE board_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE members ENABLE ROW LEVEL SECURITY;
 
--- Create policies (you may need to adjust these based on your authentication setup)
--- For now, we'll allow all operations (you should restrict these based on user authentication)
+-- Create policies for users table
+CREATE POLICY "Users can view their own data" ON users
+  FOR SELECT USING (auth.uid()::text = id::text);
 
--- Users table policies
-CREATE POLICY "Users are viewable by everyone" ON users FOR SELECT USING (true);
-CREATE POLICY "Users can insert their own data" ON users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update their own data" ON users FOR UPDATE USING (true);
+CREATE POLICY "Users can update their own data" ON users
+  FOR UPDATE USING (auth.uid()::text = id::text);
 
--- Workspaces table policies
-CREATE POLICY "Workspaces are viewable by everyone" ON workspaces FOR SELECT USING (true);
-CREATE POLICY "Workspaces can be created by everyone" ON workspaces FOR INSERT WITH CHECK (true);
-CREATE POLICY "Workspaces can be updated by everyone" ON workspaces FOR UPDATE USING (true);
-CREATE POLICY "Workspaces can be deleted by everyone" ON workspaces FOR DELETE USING (true);
+-- Create policies for workspaces table
+CREATE POLICY "Users can view workspaces they are members of" ON workspaces
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = workspaces.id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
 
--- Brands table policies
-CREATE POLICY "Brands are viewable by everyone" ON brands FOR SELECT USING (true);
-CREATE POLICY "Brands can be created by everyone" ON brands FOR INSERT WITH CHECK (true);
-CREATE POLICY "Brands can be updated by everyone" ON brands FOR UPDATE USING (true);
-CREATE POLICY "Brands can be deleted by everyone" ON brands FOR DELETE USING (true);
+CREATE POLICY "Users can create workspaces" ON workspaces
+  FOR INSERT WITH CHECK (auth.jwt() ->> 'email' IS NOT NULL);
 
--- Boards table policies
-CREATE POLICY "Boards are viewable by everyone" ON boards FOR SELECT USING (true);
-CREATE POLICY "Boards can be created by everyone" ON boards FOR INSERT WITH CHECK (true);
-CREATE POLICY "Boards can be updated by everyone" ON boards FOR UPDATE USING (true);
-CREATE POLICY "Boards can be deleted by everyone" ON boards FOR DELETE USING (true);
+CREATE POLICY "Users can update workspaces they are members of" ON workspaces
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = workspaces.id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
 
--- Posts table policies
-CREATE POLICY "Posts are viewable by everyone" ON posts FOR SELECT USING (true);
-CREATE POLICY "Posts can be created by everyone" ON posts FOR INSERT WITH CHECK (true);
-CREATE POLICY "Posts can be updated by everyone" ON posts FOR UPDATE USING (true);
-CREATE POLICY "Posts can be deleted by everyone" ON posts FOR DELETE USING (true);
+-- Create policies for brands table
+CREATE POLICY "Users can view brands in their workspaces" ON brands
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = brands.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
 
--- Social accounts table policies
-CREATE POLICY "Social accounts are viewable by everyone" ON social_accounts FOR SELECT USING (true);
-CREATE POLICY "Social accounts can be created by everyone" ON social_accounts FOR INSERT WITH CHECK (true);
-CREATE POLICY "Social accounts can be updated by everyone" ON social_accounts FOR UPDATE USING (true);
-CREATE POLICY "Social accounts can be deleted by everyone" ON social_accounts FOR DELETE USING (true);
+CREATE POLICY "Users can create brands in their workspaces" ON brands
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = brands.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
 
--- Social pages table policies
-CREATE POLICY "Social pages are viewable by everyone" ON social_pages FOR SELECT USING (true);
-CREATE POLICY "Social pages can be created by everyone" ON social_pages FOR INSERT WITH CHECK (true);
-CREATE POLICY "Social pages can be updated by everyone" ON social_pages FOR UPDATE USING (true);
-CREATE POLICY "Social pages can be deleted by everyone" ON social_pages FOR DELETE USING (true);
+CREATE POLICY "Users can update brands in their workspaces" ON brands
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = brands.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
 
--- Board templates table policies
-CREATE POLICY "Board templates are viewable by everyone" ON board_templates FOR SELECT USING (true);
-CREATE POLICY "Board templates can be created by everyone" ON board_templates FOR INSERT WITH CHECK (true);
-CREATE POLICY "Board templates can be updated by everyone" ON board_templates FOR UPDATE USING (true);
-CREATE POLICY "Board templates can be deleted by everyone" ON board_templates FOR DELETE USING (true);
+CREATE POLICY "Users can delete brands in their workspaces" ON brands
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = brands.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
 
--- Members table policies
-CREATE POLICY "Members are viewable by everyone" ON members FOR SELECT USING (true);
-CREATE POLICY "Members can be created by everyone" ON members FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can be updated by everyone" ON members FOR UPDATE USING (true);
-CREATE POLICY "Members can be deleted by everyone" ON members FOR DELETE USING (true);
+-- Create policies for boards table
+CREATE POLICY "Users can view boards in their workspaces" ON boards
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = boards.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
 
--- Post history table policies
-CREATE POLICY "Post history is viewable by everyone" ON post_history FOR SELECT USING (true);
-CREATE POLICY "Post history can be created by everyone" ON post_history FOR INSERT WITH CHECK (true);
-CREATE POLICY "Post history can be updated by everyone" ON post_history FOR UPDATE USING (true);
-CREATE POLICY "Post history can be deleted by everyone" ON post_history FOR DELETE USING (true);
+CREATE POLICY "Users can create boards in their workspaces" ON boards
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = boards.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can update boards in their workspaces" ON boards
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = boards.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can delete boards in their workspaces" ON boards
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = boards.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- Create policies for posts table
+CREATE POLICY "Users can view posts in their workspaces" ON posts
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = posts.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can create posts in their workspaces" ON posts
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = posts.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can update posts in their workspaces" ON posts
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = posts.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can delete posts in their workspaces" ON posts
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM members 
+      WHERE members.workspace_id = posts.workspace_id 
+      AND members.email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- Create policies for social_accounts table
+CREATE POLICY "Users can view social accounts in their workspaces" ON social_accounts
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_accounts.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can create social accounts in their workspaces" ON social_accounts
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_accounts.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can update social accounts in their workspaces" ON social_accounts
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_accounts.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can delete social accounts in their workspaces" ON social_accounts
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_accounts.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- Create policies for social_pages table
+CREATE POLICY "Users can view social pages in their workspaces" ON social_pages
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_pages.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can create social pages in their workspaces" ON social_pages
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_pages.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can update social pages in their workspaces" ON social_pages
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_pages.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can delete social pages in their workspaces" ON social_pages
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      JOIN brands b ON b.workspace_id = m.workspace_id
+      WHERE b.id = social_pages.brand_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- Create policies for board_templates table
+CREATE POLICY "Users can view board templates" ON board_templates
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can create board templates" ON board_templates
+  FOR INSERT WITH CHECK (auth.jwt() ->> 'email' IS NOT NULL);
+
+CREATE POLICY "Users can update board templates" ON board_templates
+  FOR UPDATE USING (auth.jwt() ->> 'email' IS NOT NULL);
+
+CREATE POLICY "Users can delete board templates" ON board_templates
+  FOR DELETE USING (auth.jwt() ->> 'email' IS NOT NULL);
+
+-- Create policies for post_history table
+CREATE POLICY "Users can view post history" ON post_history
+  FOR SELECT USING (auth.jwt() ->> 'email' IS NOT NULL);
+
+CREATE POLICY "Users can create post history" ON post_history
+  FOR INSERT WITH CHECK (auth.jwt() ->> 'email' IS NOT NULL);
+
+CREATE POLICY "Users can update post history" ON post_history
+  FOR UPDATE USING (auth.jwt() ->> 'email' IS NOT NULL);
+
+CREATE POLICY "Users can delete post history" ON post_history
+  FOR DELETE USING (auth.jwt() ->> 'email' IS NOT NULL);
+
+-- Create policies for members table
+CREATE POLICY "Users can view members in their workspaces" ON members
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = members.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can create members in their workspaces" ON members
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = members.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can update members in their workspaces" ON members
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = members.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can delete members in their workspaces" ON members
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = members.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
 
 -- Create functions for automatic updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
