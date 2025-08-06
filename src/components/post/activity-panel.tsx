@@ -314,7 +314,7 @@ export function RevisionComment({
               <div
                 style={{
                   display: "inline-flex",
-                  padding: "2px 6px 2px 4px",
+                  padding: "2px 6px 2px 3px",
                   alignItems: "center",
                   gap: "4px",
                   width: "auto",

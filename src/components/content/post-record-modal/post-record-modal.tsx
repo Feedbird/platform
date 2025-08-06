@@ -853,7 +853,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                       {boardRules?.revisionRules && boardRules.firstMonth && (
                         <>
                           {boardRules.firstMonth === -1 ? (
-                            <div className="px-2 py-[5px] bg-White rounded outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidden">
+                            <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidden">
                               <img
                                 src="/images/boards/unlimited.svg"
                                 alt="Unlimited Revisions"
@@ -862,7 +862,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                               <span className="text-xs font-medium">Unlimited Revisions</span>
                             </div>
                           ) : boardRules.firstMonth > 0 ? (
-                            <div className="px-2 py-[5px] bg-White rounded outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidden">
+                            <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidden">
                               <CircleArrowOutDownRight className="w-4 h-4 text-[#2183FF]" />
                               <span className="text-xs font-medium">
                                 {boardRules.firstMonth} Revision Round{boardRules.firstMonth > 1 ? "s" : ""}
@@ -889,7 +889,7 @@ export function PostRecordModal({ postId, open, onClose }:{
 
                         if (unresolvedCount > 0 && latestUnresolved) {
                           return (
-                            <div className="flex items-center gap-1 pl-2 pr-1 py-1 bg-white rounded outline outline-1 outline-offset-[-1px] outline-main">
+                            <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
                               <img
                                 src="/images/boards/message-chat-square-on.svg"
                                 alt="Unresolved Group Comment"
@@ -899,7 +899,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                                 {latestUnresolved.author} left group comments {timeAgo(latestUnresolved.createdAt)}
                               </span>
                               <button
-                                className="px-1 py-[1px] rounded bg-main text-white text-xs font-semibold"
+                                className="px-1 py-[1px] h-4 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
                                 style={{ border: "1px solid #2183FF" }}
                                 type="button"
                                 onClick={() => {
@@ -913,7 +913,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                           );
                         } else {
                           return (
-                            <div className="flex items-center gap-1 pl-2 pr-1 py-1 bg-white rounded outline outline-1 outline-offset-[-1px] outline-main">
+                            <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
                               <img
                                 src="/images/boards/message-chat-square.svg"
                                 alt="Group Comments"
@@ -926,7 +926,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                                 {totalCount}
                               </span>
                               <button
-                                className="px-1 py-[1px] h-4.5 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
+                                className="px-1 py-[1px] h-4 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
                                 style={{ border: "1px solid #2183FF" }}
                                 type="button"
                                 onClick={() => {

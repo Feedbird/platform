@@ -199,7 +199,7 @@ export function ManageSocialsDialog(props: {
                 "w-full flex flex-col items-center text-xs px-4 py-3 rounded-[6px] transition-all cursor-pointer",
                 p === activePlatform 
                   ? "bg-[#EDF6FF] text-blue-600 border border-feedbird" 
-                  : "border border-white"
+                  : "border border-elementStroke"
               )}>
               <ChannelIcons channels={[p]} size={24} />
             </button>

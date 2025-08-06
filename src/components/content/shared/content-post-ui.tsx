@@ -92,7 +92,7 @@ export function StatusChip({
     <div
       style={{
         display: "inline-flex",
-        padding: "4px 8px 4px 4px",
+        padding: "2px 6px 2px 3px",
         alignItems: "center",
         gap: "4px",
         width: widthFull ? "100%" : "auto",
