@@ -465,10 +465,15 @@ export const storeApi = {
       const workspace = await workspaceApi.updateWorkspace(id, updates)
       const store = useFeedbirdStore.getState()
       
-      // Update store
-      store.workspaces = store.workspaces.map(w => 
+      // Update store using Zustand setter to trigger re-renders
+      const updatedWorkspaces = store.workspaces.map(w => 
         w.id === id ? { ...w, ...updates } : w
       )
+      
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: updatedWorkspaces
+      })
       
       return workspace
     } catch (error) {
@@ -482,7 +487,7 @@ export const storeApi = {
       await workspaceApi.deleteWorkspace(id)
       const store = useFeedbirdStore.getState()
       
-      // Update store
+      // Update store using Zustand setter to trigger re-renders
       const newWorkspaces = store.workspaces.filter(w => w.id !== id)
       let newActiveWorkspaceId = store.activeWorkspaceId
       let newActiveBrandId = store.activeBrandId
@@ -494,10 +499,13 @@ export const storeApi = {
         newActiveBoardId = null
       }
       
-      store.workspaces = newWorkspaces
-      store.activeWorkspaceId = newActiveWorkspaceId
-      store.activeBrandId = newActiveBrandId
-      store.activeBoardId = newActiveBoardId
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: newWorkspaces,
+        activeWorkspaceId: newActiveWorkspaceId,
+        activeBrandId: newActiveBrandId,
+        activeBoardId: newActiveBoardId
+      })
     } catch (error) {
       console.error('Failed to delete workspace:', error)
       throw error
@@ -527,8 +535,8 @@ export const storeApi = {
       
       const store = useFeedbirdStore.getState()
       
-      // Update store
-      store.workspaces = store.workspaces.map(w => {
+      // Update store using Zustand setter to trigger re-renders
+      const updatedWorkspaces = store.workspaces.map(w => {
         if (w.id === workspaceId) {
           return {
             ...w,
@@ -550,6 +558,11 @@ export const storeApi = {
         return w
       })
       
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: updatedWorkspaces
+      })
+      
       return brand.id
     } catch (error) {
       console.error('Failed to create brand:', error)
@@ -562,11 +575,16 @@ export const storeApi = {
       const brand = await brandApi.updateBrand(id, updates)
       const store = useFeedbirdStore.getState()
       
-      // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      // Update store using Zustand setter to trigger re-renders
+      const updatedWorkspaces = store.workspaces.map(w => ({
         ...w,
         brand: w.brand && w.brand.id === id ? { ...w.brand, ...updates } : w.brand
       }))
+      
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: updatedWorkspaces
+      })
       
       return brand
     } catch (error) {
@@ -580,17 +598,24 @@ export const storeApi = {
       await brandApi.deleteBrand(id)
       const store = useFeedbirdStore.getState()
       
-      // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      // Update store using Zustand setter to trigger re-renders
+      const updatedWorkspaces = store.workspaces.map(w => ({
         ...w,
         brand: w.brand && w.brand.id === id ? undefined : w.brand
       }))
       
       // Update active brand if needed
+      let newActiveBrandId = store.activeBrandId
       if (store.activeBrandId === id) {
-        const activeWorkspace = store.workspaces.find(w => w.id === store.activeWorkspaceId)
-        store.activeBrandId = activeWorkspace?.brand?.id || null
+        const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
+        newActiveBrandId = activeWorkspace?.brand?.id || null
       }
+      
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: updatedWorkspaces,
+        activeBrandId: newActiveBrandId
+      })
     } catch (error) {
       console.error('Failed to delete brand:', error)
       throw error
@@ -617,10 +642,14 @@ export const storeApi = {
         rules
       })
       
+      // Fetch the posts that were automatically created for this board
+      const posts = await postApi.getPost({ board_id: board.id })
+      const boardPosts = Array.isArray(posts) ? posts : [posts]
+      
       const store = useFeedbirdStore.getState()
       
-      // Update store
-      store.workspaces = store.workspaces.map(w => {
+      // Update store using Zustand setter to trigger re-renders
+      const updatedWorkspaces = store.workspaces.map(w => {
         if (w.id === workspaceId) {
           return {
             ...w,
@@ -633,7 +662,25 @@ export const storeApi = {
               rules: board.rules,
               groupData: board.group_data || [],
               createdAt: new Date(),
-              posts: []
+              posts: boardPosts.map(post => ({
+                id: post.id,
+                workspaceId: post.workspace_id,
+                boardId: post.board_id,
+                caption: post.caption,
+                status: post.status as any,
+                format: post.format,
+                publishDate: post.publish_date ? new Date(post.publish_date) : null,
+                updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+                platforms: (post.platforms || []) as any,
+                pages: post.pages || [],
+                billingMonth: post.billing_month,
+                month: post.month || 1,
+                settings: post.settings,
+                hashtags: post.hashtags,
+                blocks: post.blocks || [],
+                comments: post.comments || [],
+                activities: post.activities || []
+              }))
             }]
           }
         }
@@ -641,10 +688,14 @@ export const storeApi = {
       })
       
       // Update board navigation
-      const activeWorkspace = store.workspaces.find(w => w.id === workspaceId)
-      if (activeWorkspace) {
-        store.boardNav = boardsToNav(activeWorkspace.boards)
-      }
+      const activeWorkspace = updatedWorkspaces.find(w => w.id === workspaceId)
+      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards) : []
+      
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: updatedWorkspaces,
+        boardNav: newBoardNav
+      })
       
       return board.id
     } catch (error) {
@@ -658,8 +709,8 @@ export const storeApi = {
       const board = await boardApi.updateBoard(id, updates)
       const store = useFeedbirdStore.getState()
       
-      // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      // Update store using Zustand setter to trigger re-renders
+      const updatedWorkspaces = store.workspaces.map(w => ({
         ...w,
         boards: w.boards.map(b => 
           b.id === id ? { ...b, ...updates } : b
@@ -667,10 +718,14 @@ export const storeApi = {
       }))
       
       // Update board navigation
-      const activeWorkspace = store.workspaces.find(w => w.id === store.activeWorkspaceId)
-      if (activeWorkspace) {
-        store.boardNav = boardsToNav(activeWorkspace.boards)
-      }
+      const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
+      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards) : []
+      
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: updatedWorkspaces,
+        boardNav: newBoardNav
+      })
       
       return board
     } catch (error) {
@@ -684,23 +739,29 @@ export const storeApi = {
       await boardApi.deleteBoard(id)
       const store = useFeedbirdStore.getState()
       
-      // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      // Update store using Zustand setter to trigger re-renders
+      const updatedWorkspaces = store.workspaces.map(w => ({
         ...w,
         boards: w.boards.filter(b => b.id !== id)
       }))
       
       // Update active board if needed
+      let newActiveBoardId = store.activeBoardId
       if (store.activeBoardId === id) {
-        const activeWorkspace = store.workspaces.find(w => w.id === store.activeWorkspaceId)
-        store.activeBoardId = activeWorkspace?.boards[0]?.id || null
+        const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
+        newActiveBoardId = activeWorkspace?.boards[0]?.id || null
       }
       
       // Update board navigation
-      const activeWorkspace = store.workspaces.find(w => w.id === store.activeWorkspaceId)
-      if (activeWorkspace) {
-        store.boardNav = boardsToNav(activeWorkspace.boards)
-      }
+      const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
+      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards) : []
+      
+      // Use Zustand setter to update store
+      useFeedbirdStore.setState({
+        workspaces: updatedWorkspaces,
+        activeBoardId: newActiveBoardId,
+        boardNav: newBoardNav
+      })
     } catch (error) {
       console.error('Failed to delete board:', error)
       throw error

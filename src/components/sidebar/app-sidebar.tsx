@@ -5,6 +5,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 
 import {
   Sidebar,
@@ -609,7 +610,16 @@ export function AppSidebar() {
       // TODO: Implement archive functionality
       alert(`Archive board: ${item.label}`);
     } else if (action === 'delete') {
-        removeBoard(item.id);
+      removeBoard(item.id)
+        .then(() => {
+          toast.success(`Board "${item.label}" deleted successfully`);
+        })
+        .catch((error) => {
+          console.error('Failed to delete board:', error);
+          toast.error('Failed to delete board', {
+            description: error instanceof Error ? error.message : 'An unexpected error occurred'
+          });
+        });
     } else {
       alert(`${action} on ${item.label}`);
     }

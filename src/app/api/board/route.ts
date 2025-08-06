@@ -119,6 +119,63 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Create three default posts for the new board
+    const defaultPosts = [
+      {
+        workspace_id: validatedData.workspace_id,
+        board_id: data.id,
+        caption: { synced: true, default: "" },
+        status: "Draft",
+        format: "",
+        platforms: [],
+        pages: [],
+        month: 1,
+        blocks: [],
+        comments: [],
+        activities: []
+      },
+      {
+        workspace_id: validatedData.workspace_id,
+        board_id: data.id,
+        caption: { synced: true, default: "" },
+        status: "Draft",
+        format: "",
+        platforms: [],
+        pages: [],
+        month: 1,
+        blocks: [],
+        comments: [],
+        activities: []
+      },
+      {
+        workspace_id: validatedData.workspace_id,
+        board_id: data.id,
+        caption: { synced: true, default: "" },
+        status: "Draft",
+        format: "",
+        platforms: [],
+        pages: [],
+        month: 1,
+        blocks: [],
+        comments: [],
+        activities: []
+      }
+    ]
+
+    // Insert the default posts
+    const { data: posts, error: postsError } = await supabase
+      .from('posts')
+      .insert(defaultPosts)
+      .select()
+
+    if (postsError) {
+      console.error('Error creating default posts:', postsError)
+      // Don't fail the board creation if posts fail, just log the error
+      console.warn('Board created but failed to create default posts')
+    } else {
+      console.log(`Created ${posts?.length || 0} default posts for board ${data.id}`)
+    }
+
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
