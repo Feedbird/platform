@@ -11,7 +11,8 @@ import {
   MoreHorizontal, CircleChevronDown,
   CalendarIcon,
   SquareCheckBig,
-  CircleArrowOutDownRight
+  CircleArrowOutDownRight,
+  ChartBar
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -78,6 +79,8 @@ import { MapPin, AtSign, Image as ImageIcon } from "lucide-react";
 
 /* shared UI bits */
 import { StatusChip } from "@/components/content/shared/content-post-ui";
+import { Span } from "next/dist/trace";
+import { ImageConfigContext } from "next/dist/shared/lib/image-config-context.shared-runtime";
 
 // Wrapper component to convert between platform names and page IDs
 function PlatformsEditor({ post }: { post: Post }) {
@@ -691,12 +694,13 @@ export function PostRecordModal({ postId, open, onClose }:{
   const post = posts.find((p) => p.id === postId);
 
   /* local states */
-  const [pane, setPane] = useState<"version"|"activity">("activity");
+  const [pane, setPane] = useState<"version"|"activity"|"analytics">("activity");
   const [expanded, setExpanded] = useState(true);
   const [slots, setSlots] = useState<ReturnType<typeof getSuggestedSlots>|null>(null);
   const [activeBlock, setActiveBlock] = useState<Block|null>(null);
   const [previewBlock, setPreviewBlock] = useState<{block: Block, versionId: string}|null>(null);
   const [allowCommenting, setAllowCommenting] = useState(false);
+  const [rightSidebarVisible, setRightSidebarVisible] = useState(true);
 
   if (!post) {
     // Post might not be available yet if things are loading.
@@ -947,9 +951,25 @@ export function PostRecordModal({ postId, open, onClose }:{
                 </div>
 
                 {/* right: date => expand => attach => ... */}
-                <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-darkGrey"/>
-                  <span className="text-sm text-black">{dateDisplay}</span>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="text-darkGrey"/>
+                    <span className="text-sm text-black">{dateDisplay}</span>
+                  </div>
+                  {/* right-side toggle button */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"
+                    onClick={() => setRightSidebarVisible(!rightSidebarVisible)}
+                  >
+                    <Image
+                      src="/images/icons/header-right.svg"
+                      alt="Toggle sidebar"
+                      width={16}
+                      height={16}
+                    />
+                  </Button>
                 </div>
               </header>
 
@@ -1012,65 +1032,67 @@ export function PostRecordModal({ postId, open, onClose }:{
             </div>
 
             {/* right sidebar */}
-            <motion.aside key={pane} className="w-[360px] shrink-0 flex h-full flex-col border-l border-elementStroke bg-white">
+            {rightSidebarVisible && (
+              <motion.aside key={pane} className="w-[360px] shrink-0 flex h-full flex-col border-l border-elementStroke bg-white">
               {/* sidebar header */}
-              <header className="h-12 flex items-center justify-between border-b px-4 bg-white border-elementStroke">
-                {pane == 'activity' ? (
-                  <span className="text-base font-semibold text-black">Activity</span> 
-                ) : (
-                  <span className="text-base font-semibold text-black">Version History</span> 
-                )}
-                <div className="flex items-center gap-2">
-                {pane == 'activity' ? (
+              <header className="h-12 flex items-center border-b px-4 bg-white border-elementStroke">
+                <div className="flex w-full items-center gap-2 justify-between">
                   <div className="flex items-center gap-1 p-[2px] bg-[#F7F7F7] rounded-[6px] h-full">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setPane('activity')}
                       className={cn(
-                        'px-2 gap-1.5 text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer bg-white',
+                        'px-2 gap-1.5 text-grey rounded-[6px] h-[24px] cursor-pointer has-[>svg]:!px-2',
+                        pane === 'activity' ? 'bg-white shadow' : ''
                       )}
                     >
-                      <MessageCircle size={14}/>
-                      Activity
+                      <Image
+                        src="/images/boards/message.svg"
+                        alt="Filter"
+                        width={16}
+                        height={16}
+                      />
+                      <span className="text-sm font-medium text-black">Activity</span>
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setPane('version')}
                       className={cn(
-                        'px-2 gap-1.5 text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
+                        'px-2 gap-1.5 text-grey rounded-[6px] h-[24px] cursor-pointer has-[>svg]:!px-2',
+                        pane === 'version' ? 'bg-white shadow' : ''
                       )}
                     >
-                      <Clock size={14}/>
-                      Version
+                      <Image
+                        src="/images/boards/clock.svg"
+                        alt="Filter"
+                        width={16}
+                        height={16}
+                      />
+                      <span className="text-sm font-medium text-black">Version</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPane('version')}
+                      className={cn(
+                        'px-2 text-grey rounded-[6px] h-[24px] cursor-pointer has-[>svg]:!px-2',
+                        pane === 'analytics' ? 'bg-white shadow' : ''
+                      )}
+                    >
+                      <Image
+                        src="/images/boards/analytics.svg"
+                        alt="Analytics"
+                        width={16}
+                        height={16}
+                      />
+                      <span className="text-sm font-medium text-black">Analytics</span>
                     </Button>
                   </div>
-                ) : (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={()=>setPane("version")}
-                      className="bg-muted h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"
-                    >
-                      <Clock size={18}/>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={()=>setPane("activity")}
-                      className={"h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"}
-                    >
-                      <MessageCircle size={18}/>
-                    </Button>
-                  </>
-                )}
+                
                   <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10">
                     <MoreHorizontal size={18}/>
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10" onClick={onClose}>
-                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               </header>
@@ -1084,6 +1106,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                 }
               </div>
             </motion.aside>
+            )}
           </div>
         </DialogContent>
       </Dialog>

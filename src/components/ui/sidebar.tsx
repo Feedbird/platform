@@ -274,7 +274,7 @@ function SidebarTrigger({
       {...props}
     >
       <Image
-        src="/images/icons/header-panel-left.svg"
+        src="/images/icons/header-left.svg"
         alt="Filter"
         width={18}
         height={18}
