@@ -1400,8 +1400,14 @@ export function PostTable({
           }, [post.id]);
           return (
             <div
-              className="flex flex-1 px-[4px] py-[4px] h-full"
-              onClick={() => post.blocks.length && onOpen?.(post.id)}
+              className="flex flex-1 h-full"
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('[data-preview-exempt]')) return;
+                if (post.blocks.length > 0) {
+                  console.log("Parent clicked");
+                  onOpen?.(post.id);
+                }
+              }}
             >
               <MemoBlocksPreview
                 blocks={post.blocks}

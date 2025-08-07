@@ -635,8 +635,8 @@ export default function CalendarView({
                         {/* Play icon overlay */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                           <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow">
-                            <svg viewBox="0 0 12 12" className="w-3 h-3 fill-white">
-                              <polygon points="3,2 10,6 3,10 3,2" />
+                            <svg viewBox="0 0 12 12" className="w-3 h-3 fill-white" style={{ display: "block" }}>
+                              <polygon points="4,2 11,6 4,10 4,2" />
                             </svg>
                           </div>
                         </div>

@@ -1,13 +1,13 @@
 "use client";
 
 import { Block } from "@/lib/store/use-feedbird-store";
-import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
+import { cn, calculateAspectRatioWidth, getAspectRatioType, RowHeightType } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
 
 type AspectRatioType = "1:1" | "4:5" | "9:16";
 
-export function BlockThumbnail({ block, height }: { block: Block; height: number }) {
+export function BlockThumbnail({ block, height, rowHeight }: { block: Block; height: number; rowHeight: RowHeightType }) {
   const currentVer = block.versions.find((v) => v.id === block.currentVersionId);
   const [aspectRatioType, setAspectRatioType] = useState<AspectRatioType>("1:1");
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -83,6 +83,20 @@ export function BlockThumbnail({ block, height }: { block: Block; height: number
     return { width: `${calculatedWidth}px` };
   })();
 
+  // Calculate play button size based on row height
+  const getPlayButtonSize = () => {
+    switch (rowHeight) {
+      case "Small":
+        return { container: "w-3 h-3", icon: "w-2 h-2" };
+      case "Medium":
+        return { container: "w-4 h-4", icon: "w-2.5 h-2.5" };
+      default:
+        return { container: "w-5 h-5", icon: "w-3 h-3" };
+    }
+  };
+
+  const playButtonSize = getPlayButtonSize();
+
   return (
     <div
       className={cn(
@@ -107,7 +121,11 @@ export function BlockThumbnail({ block, height }: { block: Block; height: number
           />
           {/* Play button overlay – keeps original background untouched */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-            <Play className="w-6 h-6 text-white drop-shadow-md" />
+            <div className={cn("bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow", playButtonSize.container)}>
+              <svg viewBox="0 0 12 12" className={cn("fill-white", playButtonSize.icon)} style={{ display: "block" }}>
+                <polygon points="4,2 11,6 4,10 4,2" />
+              </svg>
+            </div>
           </div>
         </>
       ) : (

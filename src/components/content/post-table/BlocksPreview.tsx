@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Block } from "@/lib/store/use-feedbird-store";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, X, CircleCheck } from "lucide-react";
 import { cn, calculateAspectRatioWidth, getAspectRatioType, RowHeightType, getRowHeightPixels } from "@/lib/utils";
 import { BlockThumbnail } from "./BlockThumbnail";
 import ClipLoader from "react-spinners/ClipLoader";
@@ -32,6 +32,20 @@ export function BlocksPreview({
   const [showText, setShowText] = useState(false);
 
   const { uploads, startUploads } = useUploader({ postId });
+
+  // Calculate sizes based on row height
+  const getSizes = () => {
+    switch (rowHeight) {
+      case "Small":
+        return { spinner: 12, text: 8, icon: "w-3 h-3" };
+      case "Medium":
+        return { spinner: 16, text: 10, icon: "w-4 h-4" };
+      default:
+        return { spinner: 24, text: 14, icon: "w-6 h-6" };
+    }
+  };
+
+  const sizes = getSizes();
 
   // Effect to calculate dimensions for image and video uploads
   useEffect(() => {
@@ -92,15 +106,11 @@ export function BlocksPreview({
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    // If there are existing items, let the parent handle the click
-    if (blocks.length > 0 || uploads.length > 0) {
-      // Don't stop propagation - let the parent handle showing detail view
-      return;
-    }
-    
-    // Only stop propagation and open file browser when cell is empty
+
+
+  const handlePlusButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log("Plus clicked");
     fileInputRef.current?.click();
   };
 
@@ -114,11 +124,8 @@ export function BlocksPreview({
   };
 
   const handleMouseEnter = () => {
-    // Only show hover effect when there are no existing items
-    if (blocks.length === 0 && uploads.length === 0) {
-      setIsHovered(true);
-      checkWidthAndUpdateText();
-    }
+    setIsHovered(true);
+    checkWidthAndUpdateText();
   };
 
   // Show drop overlay when dragging files over the cell
@@ -127,17 +134,16 @@ export function BlocksPreview({
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center w-full h-full cursor-pointer transition-colors duration-150"
+      className="relative flex items-center w-full h-full cursor-pointer transition-colors duration-150 pl-3 pr-1 py-1"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setIsHovered(false)}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={handleClick}
     >
       {/* Drop overlay - shown when dragging files over the cell */}
       {shouldShowDropOverlay && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
+        <div className="absolute inset-0 flex items-center justify-center z-10 border border-[1px] border-solid border-main">
           <div
             className={cn(
               "flex flex-row items-center gap-2",
@@ -145,32 +151,37 @@ export function BlocksPreview({
               "left-1/2 -translate-x-1/2"
             )}
           >
-            <div
-              className="flex flex-row items-center px-[4px] py-[1px] h-5 w-5 rounded-[4px] bg-white"
-              style={{
-                boxShadow:
-                  "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
-              }}
-            >
-              <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
-            </div>
-            <span className="text-xs text-[#5C5E63] font-normal whitespace-nowrap">
+            <span className="text-sm text-main font-normal whitespace-nowrap">
               Drop files here
             </span>
           </div>
         </div>
       )}
 
+      {/* Plus button - shown on the left when hovering */}
+      {isHovered && !shouldShowDropOverlay && (
+        <div className="flex-shrink-0 mr-1">
+          <div
+            className="flex flex-row items-center justify-center px-[4px] py-[1px] h-5.5 w-5.5 rounded-[4px] bg-white cursor-pointer"
+            style={{
+              boxShadow:
+                "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
+            }}
+            data-preview-exempt
+            onClick={handlePlusButtonClick}
+          >
+            <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
+          </div>
+        </div>
+      )}
+
       {/* Blocks and uploads container */}
-      {(blocks.length > 0 || uploads.length > 0) && !isHovered && !shouldShowDropOverlay && (
+      {(blocks.length > 0 || uploads.length > 0) && !shouldShowDropOverlay && (
         <div
-          className="
-            block-previews-container
-            flex flex-row gap-[2px]
-            w-full h-full
-            overflow-x-hidden
-            overflow-y-hidden
-          "
+          className={cn(
+            "block-previews-container flex flex-row gap-[2px] w-full h-full overflow-x-hidden overflow-y-hidden",
+            isHovered && "ml-2" // Add margin when hovering to move blocks to the right
+          )}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {/* Upload in progress - shown at the left end */}
@@ -234,34 +245,83 @@ export function BlocksPreview({
                 {up.status === "uploading" && (
                   <>
                     {/* Dim overlay */}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      {/* Clip loader always visible while uploading */}
-                      <ClipLoader color="#FFFFFF" size={24} />
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center">
+                      {/* Rotating spinner using inline style for rotation */}
+                      <img
+                        src="/images/icons/spinner-gradient.svg"
+                        alt="Upload progress bar"
+                        style={{
+                          width: `${sizes.spinner}px`,
+                          height: `${sizes.spinner}px`,
+                          animation: "spin 1s linear infinite"
+                        }}
+                      />
+                      <span 
+                        className="mt-1 text-white font-medium"
+                        style={{
+                          fontSize: `${sizes.text}px`
+                        }}
+                      >
+                        {typeof up.progress === "number" ? `${Math.round(up.progress)}%` : ""}
+                      </span>
+                      {/* Add keyframes for spin animation */}
+                      <style>
+                        {`
+                          @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                          }
+                        `}
+                      </style>
                     </div>
                     {/* Bottom progress bar */}
-                    <div className="absolute left-0 bottom-0 w-full h-[3px] bg-white/20">
+                    {/* <div className="absolute left-0 bottom-0 w-full h-[3px] bg-white/20">
                       <div
                         className="h-full bg-blue-400 transition-all"
                         style={{ width: `${up.progress}%` }}
                       />
-                    </div>
+                    </div> */}
                   </>
                 )}
                 {up.status === "error" && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-600/80 text-white text-xs gap-2">
-                    <X className="w-6 h-6" />
-                    <span>Error</span>
+                    <X className={sizes.icon} />
+                    <span style={{ fontSize: `${sizes.text}px` }}>Error</span>
                   </div>
                 )}
                 {up.status === "processing" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white text-xs gap-2">
-                    <ClipLoader color="#FFFFFF" size={24} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+                    <img
+                        src="/images/icons/spinner-gradient.svg"
+                        alt="Upload progress bar"
+                        style={{
+                          width: `${sizes.spinner}px`,
+                          height: `${sizes.spinner}px`,
+                          animation: "spin 1s linear infinite"
+                        }}
+                      />
+                      <span 
+                        className="mt-1 text-white font-medium"
+                        style={{
+                          fontSize: `${sizes.text}px`
+                        }}
+                      >
+                        100%
+                      </span>
+                      {/* Add keyframes for spin animation */}
+                      <style>
+                        {`
+                          @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                          }
+                        `}
+                      </style>
                   </div>
                 )}
                 {up.status === "done" && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-600/70 text-white text-xs gap-2">
-                    <Check className="w-6 h-6" />
-                    <span>Uploaded</span>
+                    <CircleCheck className={sizes.icon} />
                   </div>
                 )}
               </div>
@@ -270,36 +330,11 @@ export function BlocksPreview({
 
           {/* Existing blocks - shown after uploads */}
           {blocks.map((block) => (
-            <BlockThumbnail key={block.id} block={block} height={getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight)} />
+            <BlockThumbnail key={block.id} block={block} height={getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight)} rowHeight={rowHeight} />
           ))}
         </div>
       )}
 
-      {/* Action group: plus button + optional text - only visible when hovering and no existing items */}
-      {isHovered && (blocks.length === 0 && uploads.length === 0) && !shouldShowDropOverlay && (
-        <div
-          className={cn(
-            "flex flex-row items-center gap-2",
-            "absolute transition-all duration-200",
-            "left-1/2 -translate-x-1/2"
-          )}
-        >
-          <div
-            className="flex flex-row items-center px-[4px] py-[1px] h-5 w-5 rounded-[4px] bg-white"
-            style={{
-              boxShadow:
-                "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
-            }}
-          >
-            <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
-          </div>
-          {showText && (
-            <span className="text-xs text-[#5C5E63] font-normal whitespace-nowrap">
-              Drop files here
-            </span>
-          )}
-        </div>
-      )}
 
       <input
         ref={fileInputRef}
@@ -307,6 +342,7 @@ export function BlocksPreview({
         multiple
         accept="image/*,video/*"
         className="hidden"
+        data-preview-exempt
         onChange={handleFileSelect}
       />
     </div>
