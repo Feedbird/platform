@@ -114,17 +114,22 @@ export default function BrandDialog({ open, onOpenChange, mode = 'create', brand
   /* ───────────────────────── render ───────────────────────────── */
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(
-        'p-0 border-0 rounded-none h-screen w-screen',
-        'sm:max-w-none max-w-[100vw]',
-        '[&>button:last-child]:hidden', // hide default close-X
-      )}>
+      <DialogContent
+        centered={false}
+        overlayClassName="top-0 right-0 bottom-0 left-[var(--app-sidebar-gap,16rem)]"
+        className={cn(
+          'p-0 border-l border-elementStroke rounded-none h-svh w-[calc(100vw-var(--app-sidebar-gap,16rem))] max-w-none',
+          'sm:max-w-none',
+          'fixed top-0 left-[var(--app-sidebar-gap,16rem)] translate-x-0 translate-y-0 z-[60]',
+          '[&>button:last-child]:hidden',
+        )}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Brand modal</DialogTitle>
         </DialogHeader>
 
         {/* Top-bar */}
-        <div className="h-16 flex items-center justify-between border-b px-4">
+        <div className="h-12 flex items-center justify-between border-b px-4">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={close} className="cursor-pointer">
               <ChevronLeft className="h-5 w-5"/>
@@ -136,7 +141,7 @@ export default function BrandDialog({ open, onOpenChange, mode = 'create', brand
         </div>
 
         {/* Body */}
-        <div className="flex flex-col items-center w-full overflow-y-auto">
+        <div className="flex flex-col items-center w-full overflow-y-auto h-[calc(100svh-48px)]">
           <div className="p-10 space-y-6 w-full max-w-4xl">
             {/* intro blurb */}
             <div className="space-y-1">

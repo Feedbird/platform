@@ -27,7 +27,7 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
+const SIDEBAR_WIDTH = "260px"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3.5rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -125,6 +125,15 @@ function SidebarProvider({
     }),
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
+
+  // Expose current sidebar gap as a global CSS variable so portals (e.g., dialogs)
+  // can align overlays/content without covering the sidebar.
+  React.useEffect(() => {
+    const root = document.documentElement
+    // When on mobile, the sidebar is a Sheet overlay, so main content should be full width.
+    const gap = isMobile ? "0px" : state === "collapsed" ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH
+    root.style.setProperty("--app-sidebar-gap", gap)
+  }, [state, isMobile])
 
   return (
     <SidebarContext.Provider value={contextValue}>
