@@ -2399,6 +2399,8 @@ export function PostTable({
           {/* ─── Shared header ───────────────────────────────────── */}
           <RenderHeader table={table} stickyStyles={stickyStyles} />
 
+          {groups.length > 0 && (
+            <>
           {/* ─── Gap row between header and first group ─────────── */}
           <tbody>
             <tr>
@@ -2410,7 +2412,7 @@ export function PostTable({
           </tbody>
 
           {/* ─── One <tbody> per final group ────────────────────── */}
-          {groups.length > 0 && groups.map((group, idx) => {
+          {groups.map((group, idx) => {
             const key = JSON.stringify(group.groupValues);
             const isExpanded = !!flatGroupExpanded[key];
 
@@ -2585,6 +2587,57 @@ export function PostTable({
               </tbody>
             );
           })}
+          </>
+          )}
+          {
+            groups.length == 0 && (
+              <TableBody>
+                <TableRow className="group hover:bg-[#F9FAFB]">
+                  {(() => {
+                    const visibleColumns = table.getVisibleLeafColumns();
+                    const firstCol = visibleColumns[0];
+                    const secondCol = visibleColumns[1];
+                    const thirdCol = visibleColumns[2];
+
+                    const stickyWidth = firstCol.getSize() + secondCol.getSize() + thirdCol.getSize();
+                    const restOfCols = visibleColumns.slice(3);
+
+                    return (
+                      <>
+                        <TableCell
+                          colSpan={3}
+                          className="px-3 py-3 bg-white border-t border-b border-[#EAE9E9]"
+                          style={{
+                            ...stickyStyles('drag', 10),
+                            width: stickyWidth,
+                          }}
+                        >
+                          <button
+                            className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
+                            onClick={handleAddRowUngrouped}
+                          >
+                            <PlusIcon size={16} />
+                            Add new record
+                          </button>
+                        </TableCell>
+                        {restOfCols.map((col, index) => (
+                          <TableCell
+                            key={col.id}
+                            className={cn(
+                              "px-3 py-3 bg-white border-t border-b border-[#EAE9E9]",
+                            )}
+                            style={{
+                              width: col.getSize(),
+                            }}
+                          />
+                        ))}
+                      </>
+                    );
+                  })()}
+                </TableRow>
+              </TableBody>
+            )
+          }
         </table>
       </div>
     );
