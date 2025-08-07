@@ -12,7 +12,7 @@ const CreatePostSchema = z.object({
   publish_date: z.string().datetime().optional(),
   platforms: z.array(z.string()).optional(),
   pages: z.array(z.string()).optional(),
-  billing_month: z.string().optional(),
+  billing_month: z.string().nullable().optional(),
   month: z.number().min(1).max(12).optional(),
   settings: z.any().optional(),
   hashtags: z.any().optional(),
@@ -28,7 +28,7 @@ const UpdatePostSchema = z.object({
   publish_date: z.string().datetime().optional(),
   platforms: z.array(z.string()).optional(),
   pages: z.array(z.string()).optional(),
-  billing_month: z.string().optional(),
+  billing_month: z.string().nullable().optional(),
   month: z.number().min(1).max(12).optional(),
   settings: z.any().optional(),
   hashtags: z.any().optional(),
@@ -123,7 +123,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const validatedData = CreatePostSchema.parse(body)
-
     // Verify workspace exists
     const { data: workspace } = await supabase
       .from('workspaces')

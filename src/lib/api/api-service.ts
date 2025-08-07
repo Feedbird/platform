@@ -324,6 +324,38 @@ export const postApi = {
       method: 'DELETE',
     })
   },
+
+  // Bulk create posts
+  bulkCreatePosts: async (posts: {
+    workspace_id: string
+    board_id: string
+    caption: any
+    status: string
+    format: string
+    publish_date?: string
+    platforms?: string[]
+    pages?: string[]
+    billing_month?: string
+    month?: number
+    settings?: any
+    hashtags?: any
+    blocks?: any[]
+    comments?: any[]
+    activities?: any[]
+  }[]): Promise<{ message: string; posts: Post[] }> => {
+    return apiRequest<{ message: string; posts: Post[] }>('/post/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ posts }),
+    })
+  },
+
+  // Bulk delete posts
+  bulkDeletePosts: async (postIds: string[]): Promise<{ message: string; deleted_posts: Post[] }> => {
+    return apiRequest<{ message: string; deleted_posts: Post[] }>('/post/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ post_ids: postIds }),
+    })
+  },
 }
 
 // Zustand store integration functions
@@ -775,6 +807,7 @@ export const storeApi = {
     postData: any
   ) => {
     try {
+      console.log("createPostAndUpdateStore", workspaceId, boardId, postData);
       const post = await postApi.createPost({
         workspace_id: workspaceId,
         board_id: boardId,
@@ -912,6 +945,84 @@ export const storeApi = {
       useFeedbirdStore.setState({ workspaces: store.workspaces });
     } catch (error) {
       console.error('Failed to delete post:', error)
+      throw error
+    }
+  },
+
+  // Bulk create posts and update store
+  bulkCreatePostsAndUpdateStore: async (
+    workspaceId: string,
+    boardId: string,
+    postsData: any[]
+  ) => {
+    try {
+      const result = await postApi.bulkCreatePosts(postsData)
+      const store = useFeedbirdStore.getState()
+      
+      // Transform posts to match store format
+      const transformedPosts = result.posts.map(post => ({
+        id: post.id,
+        workspaceId: post.workspace_id,
+        boardId: post.board_id,
+        caption: post.caption,
+        status: post.status as any,
+        format: post.format,
+        publishDate: post.publish_date ? new Date(post.publish_date) : null,
+        updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+        platforms: (post.platforms || []) as any,
+        pages: post.pages || [],
+        billingMonth: post.billing_month,
+        month: post.month || 1,
+        settings: post.settings,
+        hashtags: post.hashtags,
+        blocks: post.blocks || [],
+        comments: post.comments || [],
+        activities: post.activities || []
+      }))
+      
+      // Update store
+      store.workspaces = store.workspaces.map(w => ({
+        ...w,
+        boards: w.boards.map(b => {
+          if (b.id === boardId) {
+            return {
+              ...b,
+              posts: [...b.posts, ...transformedPosts]
+            }
+          }
+          return b
+        })
+      }))
+      // Trigger store update for listeners
+      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      
+      return result.posts.map(p => p.id)
+    } catch (error) {
+      console.error('Failed to bulk create posts:', error)
+      throw error
+    }
+  },
+
+  // Bulk delete posts and update store
+  bulkDeletePostsAndUpdateStore: async (postIds: string[]) => {
+    try {
+      const result = await postApi.bulkDeletePosts(postIds)
+      const store = useFeedbirdStore.getState()
+      
+      // Update store
+      store.workspaces = store.workspaces.map(w => ({
+        ...w,
+        boards: w.boards.map(b => ({
+          ...b,
+          posts: b.posts.filter(p => !postIds.includes(p.id))
+        }))
+      }))
+      // Trigger store update for listeners
+      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      
+      return result.deleted_posts
+    } catch (error) {
+      console.error('Failed to bulk delete posts:', error)
       throw error
     }
   }

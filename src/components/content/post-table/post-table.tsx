@@ -919,20 +919,43 @@ export function PostTable({
     setTableData((prev) => [...prev, newPost]);
   }
 
-  function handleDuplicatePosts(posts: Post[]) {
+  async function handleDuplicatePosts(posts: Post[]) {
     // Clear any existing timeout
     if (duplicateUndoTimeoutRef.current) {
       clearTimeout(duplicateUndoTimeoutRef.current);
     }
 
     const duplicatedPosts: Post[] = [];
-    posts.forEach((orig) => {
-      const dup = store.duplicatePost(orig);
-      if (dup) {
-        duplicatedPosts.push(dup);
-        setTableData((prev) => [...prev, dup]);
+    
+    if (posts.length > 1) {
+      // For multiple posts, use bulkAddPosts for better performance
+      const postsData = posts.map(orig => ({
+        caption: orig.caption,
+        status: orig.status,
+        format: orig.format,
+        publishDate: orig.publishDate,
+        platforms: orig.platforms,
+        pages: orig.pages,
+        billingMonth: orig.billingMonth,
+        month: orig.month,
+        settings: orig.settings,
+        hashtags: orig.hashtags,
+        blocks: orig.blocks,
+        comments: orig.comments,
+        activities: orig.activities,
+      }));
+
+      const boardId = posts[0].boardId;
+      duplicatedPosts.push(...(await store.bulkAddPosts(boardId, postsData)));
+    } else {
+      // For single post, use the existing duplicatePost method
+      for (const orig of posts) {
+        const dup = await store.duplicatePost(orig);
+        if (dup) {
+          duplicatedPosts.push(dup);
+        }
       }
-    });
+    }
 
     // Store duplicated posts and show undo message
     setDuplicatedPosts(prev => [...prev, ...duplicatedPosts]);
@@ -946,7 +969,7 @@ export function PostTable({
     }, 5000);
   }
 
-  function handleUndoDuplicate() {
+  async function handleUndoDuplicate() {
     // Clear the timeout
     if (duplicateUndoTimeoutRef.current) {
       clearTimeout(duplicateUndoTimeoutRef.current);
@@ -958,8 +981,11 @@ export function PostTable({
     setDuplicatedPosts(prev => prev.slice(0, -lastDuplicatedCount));
     setTableData(prev => prev.filter(p => !postsToRemove.map(dp => dp.id).includes(p.id)));
     
-    // Update the store to reflect the removed posts - use deletePost for each post
-    postsToRemove.forEach(post => store.deletePost(post.id));
+    // Use bulk delete for better performance
+    const postIdsToRemove = postsToRemove.map(post => post.id);
+    if (postIdsToRemove.length > 0) {
+      await store.bulkDeletePosts(postIdsToRemove);
+    }
     
     setShowDuplicateUndoMessage(false);
   }
@@ -2902,10 +2928,11 @@ export function PostTable({
     table.resetRowSelection();
 
     // Auto-hide undo message after 5 seconds
-    undoTimeoutRef.current = setTimeout(() => {
+    undoTimeoutRef.current = setTimeout(async () => {
       setShowUndoMessage(false);
-      // When timeout expires, permanently delete the posts from store
-      selected.forEach((p) => store.deletePost(p.id));
+      // When timeout expires, permanently delete the posts from store using bulk delete
+      const postIds = selected.map(p => p.id);
+      await store.bulkDeletePosts(postIds);
     }, 5000);
   }
 

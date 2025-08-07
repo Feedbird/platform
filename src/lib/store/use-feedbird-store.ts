@@ -323,11 +323,13 @@ export interface FeedbirdStore {
   deleteGroupCommentAiSummaryItem: (boardId: string, month: number, commentId: string, summaryIndex: number) => void;
   
   deletePost: (postId: string) => Promise<void>;
+  bulkDeletePosts: (postIds: string[]) => Promise<void>;
   approvePost: (id: string) => Promise<void>;
   requestChanges: (id: string, comment?: string) => Promise<void>;
   setPostRevised: (id: string) => Promise<void>;
   addPost: (boardId?: string) => Promise<Post | null>;
-  duplicatePost: (orig: Post) => Post | null;
+  bulkAddPosts: (boardId: string, posts: Omit<Post, 'id' | 'workspaceId' | 'boardId' | 'updatedAt'>[]) => Promise<Post[]>;
+  duplicatePost: (orig: Post) => Promise<Post | null>;
   setActivePosts: (posts: Post[]) => void;
   sharePostsToBrand: (postIds: string[], targetBrandId: string) => void;
   addBlock: (postId: string, kind: FileKind) => string;
@@ -1316,6 +1318,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         deletePost: async (postId) => {
           await storeApi.deletePostAndUpdateStore(postId);
         },
+        bulkDeletePosts: async (postIds) => {
+          await storeApi.bulkDeletePostsAndUpdateStore(postIds);
+        },
         approvePost: async (id) => {
           const post = get().getPost(id);
           if (!post) return;
@@ -1409,7 +1414,51 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
           return get().getPost(postId) ?? null;
         },
-        duplicatePost: (orig) => {
+        bulkAddPosts: async (boardId, posts) => {
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return [];
+
+          // Transform posts to API format
+          const postsData = posts.map(post => {
+            const postData: any = {
+              workspace_id: ws.id,
+              board_id: boardId,
+              caption: post.caption,
+              status: post.status,
+              format: post.format,
+              platforms: post.platforms,
+              pages: post.pages,
+              month: post.month,
+              blocks: post.blocks,
+              comments: post.comments,
+              activities: post.activities,
+            };
+
+            // Only include optional fields if they have values
+            if (post.publishDate) {
+              postData.publish_date = post.publishDate.toISOString();
+            }
+            if (post.billingMonth) {
+              postData.billing_month = post.billingMonth;
+            }
+            if (post.settings) {
+              postData.settings = post.settings;
+            }
+            if (post.hashtags) {
+              postData.hashtags = post.hashtags;
+            }
+
+            return postData;
+          });
+
+          const postIds = await storeApi.bulkCreatePostsAndUpdateStore(ws.id, boardId, postsData);
+          
+          // Get the created posts from store
+          const createdPosts = postIds.map(id => st.getPost(id)).filter(Boolean) as Post[];
+          return createdPosts;
+        },
+        duplicatePost: async (orig) => {
           const st = get();
           const workspace = st.getActiveWorkspace();
           if (!workspace) return null;
@@ -1417,19 +1466,46 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const board = workspace.boards.find(b => b.id === orig.boardId);
           if (!board) return null;
           
-          const copy: Post = {
-            ...orig,
-            id: "dup-" + uuidv4(),
-            updatedAt: new Date(),
-          };
-          
-          // Apply business rule to duplicated post
-          const correctStatus = determineCorrectStatus(copy.status, copy.publishDate);
-          copy.status = correctStatus;
-          
-          board.posts.push(copy);
-          set({ workspaces: [...st.workspaces] });
-          return copy;
+          try {
+            // Create duplicated post in database
+            const postData: any = {
+              caption: orig.caption,
+              status: orig.status,
+              format: orig.format,
+              platforms: orig.platforms,
+              pages: orig.pages,
+              month: orig.month,
+              blocks: orig.blocks,
+              comments: orig.comments,
+              activities: orig.activities,
+            };
+
+            // Only include publish_date if it exists
+            if (orig.publishDate) {
+              postData.publish_date = orig.publishDate.toISOString();
+            }
+
+            // Only include optional fields if they have values
+            if (orig.billingMonth) {
+              postData.billing_month = orig.billingMonth;
+            }
+            if (orig.settings) {
+              postData.settings = orig.settings;
+            }
+            if (orig.hashtags) {
+              postData.hashtags = orig.hashtags;
+            }
+
+            const postId = await storeApi.createPostAndUpdateStore(workspace.id, orig.boardId, postData);
+            
+            // Get the created post from updated store
+            const updatedStore = get();
+            const duplicatedPost = updatedStore.getPost(postId);
+            return duplicatedPost || null;
+          } catch (error) {
+            console.error('Failed to duplicate post:', error);
+            return null;
+          }
         },
         setActivePosts: (posts) => {
           set((s) => {
