@@ -83,6 +83,7 @@ export function useApiOperations() {
     color?: string,
     rules?: any
   ) => {
+    console.log("createBoard", name, description, image, color, rules);
     return withLoading('createBoard', () => store.addBoard(name, description, image, color, rules))
   }, [store, withLoading])
 

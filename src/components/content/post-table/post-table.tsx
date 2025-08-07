@@ -875,23 +875,26 @@ export function PostTable({
   async function handleAddRowUngrouped() {
     // Only create 3 posts if there are no posts at all
     if (tableData.length === 0) {
-      const newPosts: Post[] = [];
-      for (let i = 0; i < 3; i++) {
-        const np = await store.addPost();
-        if (np) {
-          // ensure status is Draft but leave format empty
-          await updatePost(np.id, { status: "Draft" });
-          newPosts.push({ ...np, status: "Draft" });
-        }
-      }
-      if (newPosts.length > 0) {
-        setTableData(newPosts);
+      // Create 3 posts with Draft status using bulkAddPosts
+      const postsData = Array(3).fill(null).map(() => ({
+        caption: { synced: false, default: "" },
+        status: "Draft" as Status,
+        format: "",
+        publishDate: null,
+        platforms: [],
+        pages: [],
+        month: 1,
+        blocks: [],
+        comments: [],
+        activities: [],
+      }));
+
+      const boardId = tableData[0]?.boardId || store.activeBoardId;
+      if (boardId) {
+        await store.bulkAddPosts(boardId, postsData);
       }
     } else {
       const newPost = await store.addPost();
-      if (newPost) {
-        setTableData((prev) => [...prev, newPost]);
-      }
     }
   }
 
@@ -915,8 +918,6 @@ export function PostTable({
 
     // Ensure store reflects any direct mutations
     await updatePost(newPost.id, { status: newPost.status });
-
-    setTableData((prev) => [...prev, newPost]);
   }
 
   async function handleDuplicatePosts(posts: Post[]) {
