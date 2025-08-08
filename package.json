@@ -71,6 +71,7 @@
     "fluent-ffmpeg": "^2.1.2",
     "formidable": "^3.5.4",
     "framer-motion": "^12.8.0",
+    "geist": "^1.4.2",
     "lucide-react": "^0.487.0",
     "material-react-table": "^3.2.1",
     "next": "15.3.0",

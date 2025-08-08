@@ -79,13 +79,13 @@ const defaultPlatformNav: NavLink[] = [
     selectedImage: "/images/sidebar/messages-on-active.svg",
     href: "/messages",
   },
-  {
-    id: "notifications",
-    label: "Notifications",
-    image: "/images/sidebar/notifications-on.svg",
-    selectedImage: "/images/sidebar/notifications-on-active.svg",
-    href: "/notifications",
-  },
+  // {
+  //   id: "notifications",
+  //   label: "Notifications",
+  //   image: "/images/sidebar/notifications-on.svg",
+  //   selectedImage: "/images/sidebar/notifications-on-active.svg",
+  //   href: "/notifications",
+  // },
   {
     id: "approvals",
     label: "Approvals",
@@ -194,7 +194,7 @@ function BoardDropdownMenu({
                      focus:outline-none"
           onClick={(e) => e.stopPropagation()}
         >
-          <MoreHorizontal className="w-4 h-4 text-[#5C5E63]" />
+          <MoreHorizontal className="w-4 h-4 text-black" />
         </button>
       </DropdownMenuTrigger>
 
@@ -249,7 +249,7 @@ const BoardCount = ({
 
   const styles = cn(
     "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none",
-    isActive && boardColor ? "text-white" : "text-[#5C5E63]"
+    isActive && boardColor ? "text-white" : "text-black"
   );
 
   if (count === null) {
@@ -315,9 +315,8 @@ export const RenderNavItems = React.memo(function RenderNavItems({
               asChild
               className={cn(
                 "group/row gap-[6px] p-[6px] text-sm font-semibold",
-                "cursor-pointer focus:outline-none",
-                active ? "bg-[#D7E9FF]" : "hover:bg-[#F4F5F6]",
-                "text-black"
+                "cursor-pointer focus:outline-none hover:bg-[#F4F5F6]",
+                active ? "bg-[#F4F5F6]" : "",
               )}
             >
               {nav.href ? (
@@ -330,8 +329,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     <div 
                       className={cn(
                         "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
-                        // Apply board color as background to icon container when active
-                        active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
                       )}
                       style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                     >
@@ -339,15 +336,15 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         src={imageSrc}
                         alt={nav.label}
                         className={cn(
-                          isBoard ? "w-3.5 h-3.5" : "w-4.5 h-4.5",
+                          "w-3.5 h-3.5",
                           // Make icon white when board is active and has a colored background
-                          active && isBoard && boardColor && "filter brightness-0 invert"
+                          active && "filter brightness-0 invert"
                         )}
                         loading="lazy"
                       />
                     </div>
                   )}
-                  <span className={cn("text-sm font-medium truncate", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
+                  <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
 
                   {isBoard && (
                     <div className="flex items-center gap-1 ml-auto">
@@ -357,7 +354,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       />
                       <div
                         className={cn(
-                          "flex items-center rounded",
+                          "flex items-center rounded font-normal",
                           active && boardColor ? "text-white" : "text-black"
                         )}
                         style={
@@ -380,8 +377,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     <div 
                     className={cn(
                       "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
-                      // Apply board color as background to icon container when active
-                      active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
                     )}
                     style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                   >
@@ -389,7 +384,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       src={imageSrc}
                       alt={nav.label}
                       className={cn(
-                        isBoard ? "w-3.5 h-3.5" : "w-4.5 h-4.5",
+                        "w-3.5 h-3.5",
                         // Make icon white when board is active and has a colored background
                         active && isBoard && boardColor && "filter brightness-0 invert"
                       )}
@@ -397,7 +392,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     />
                   </div>
                   )}
-                  <span className={cn("text-sm font-medium truncate", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
+                  <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
                 </button>
               )}
             </SidebarMenuButton>
@@ -410,7 +405,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
               className={cn(
                 "group/row p-[6px] text-sm font-semibold",
                 "cursor-pointer focus:outline-none",
-                "text-black"
+                "font-normal text-black"
               )}
             >
               {nav.href ? (
@@ -423,8 +418,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     <div 
                       className={cn(
                         "w-5 h-5 rounded flex items-center justify-center",
-                        // Apply board color as background to icon container when active
-                        active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
                       )}
                       style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                     >
@@ -432,7 +425,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         src={imageSrc}
                         alt={nav.label}
                         className={cn(
-                          isBoard ? "w-3.5 h-3.5" : "w-4.5 h-4.5",
+                          "w-3.5 h-3.5",
                           // Make icon white when board is active and has a colored background
                           active && isBoard && boardColor && "filter brightness-0 invert"
                         )}
@@ -450,8 +443,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     <div 
                     className={cn(
                       "w-5 h-5 rounded flex items-center justify-center",
-                      // Apply board color as background to icon container when active
-                      active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
                     )}
                     style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                   >
@@ -459,7 +450,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       src={imageSrc}
                       alt={nav.label}
                       className={cn(
-                        isBoard ? "w-3.5 h-3.5" : "w-4.5 h-4.5",
+                        "w-3.5 h-3.5",
                         // Make icon white when board is active and has a colored background
                         active && isBoard && boardColor && "filter brightness-0 invert"
                       )}
@@ -484,8 +475,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       <div 
                         className={cn(
                           "w-5 h-5 rounded flex items-center justify-center",
-                          // Apply board color as background to icon container when active
-                          active && isBoard && boardColor ? "" : isBoard ? "bg-[#E7E9EF]" : "bg-transparent"
                         )}
                         style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                       >
@@ -493,18 +482,18 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                           src={imageSrc} 
                           alt={nav.label} 
                           className={cn(
-                            isBoard ? "w-3.5 h-3.5" : "w-4.5 h-4.5",
+                            "w-3.5 h-3.5",
                             // Make icon white when board is active and has a colored background
                             active && isBoard && boardColor && "filter brightness-0 invert"
                           )} 
                         />
                       </div>
                     )}
-                    <span className={cn("text-sm font-medium truncate", active ? "text-black" : "text-darkGrey")}>{nav.label}</span>
+                    <span className={cn("text-sm font-medium truncate font-normal text-black")}>{nav.label}</span>
                     {isBoard && 
                       <div
                         className={cn(
-                          "flex items-center rounded",
+                          "flex items-center rounded font-normal",
                           active && boardColor ? "text-white" : "text-black"
                         )}
                         style={
@@ -694,7 +683,7 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-border-primary text-foreground gap-2 w-[260px] bg-[#FBFBFB]"
+          className="border-r border-border-primary text-foreground gap-2 w-[260px] bg-[#FAFAFA]"
     >
       {/* ---------------------------------------------------------------- */}
       {/*  HEADER                                                         */}
@@ -723,7 +712,7 @@ export function AppSidebar() {
           ) : (
             <SidebarGroupLabel>
               <div className="flex items-center justify-between w-full">
-                <span className="text-[10px] font-semibold text-[#75777C] tracking-wide">BOARDS</span>
+                <span className="text-xs font-medium text-[#75777C] tracking-wide">Boards</span>
                 <button onClick={() => setIsAddBoardModalOpen(!!activeWorkspace)} className="hover:bg-gray-100 rounded cursor-pointer  ">
                   <Image
                     src={`/images/sidebar/plus.svg`}
@@ -756,8 +745,8 @@ export function AppSidebar() {
                   className="flex items-center text-[#75777C] gap-1.5"
                   onClick={() => setSocialOpen((o) => !o)}
                 >
-                  {socialOpen ? <ChevronDown className="w-4.5 h-4.5" /> : <ChevronRight className="w-4.5 h-4.5" />}
-                  <span className="text-[10px] font-semibold tracking-wide">SOCIALS</span>
+                  {socialOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  <span className="text-xs font-medium tracking-wide">Socials</span>
                 </div>
                 <button onClick={() => setIsManageSocialsOpen(!!activeBrand)} className="hover:bg-gray-100 rounded">
                   <Image
