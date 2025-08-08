@@ -152,29 +152,103 @@ export function getRowHeightOptions() {
 }
 
 /**
- * Generate a unique color for each month with better distribution
- * Uses a combination of hue rotation and saturation/lightness variations
- * to ensure months close together have very different colors
+ * Exact palettes for months 1–10.
  */
-export function getMonthColor(month: number): string {
-  // Use a larger multiplier to spread colors more widely
-  const baseHue = (month * 30) % 360; // 30 degrees apart instead of 7
-  
-  // Add variation based on month position to create more distinct colors
-  const saturation = 60 + (month % 3) * 15; // 60%, 75%, or 90%
-  const lightness = 85 + (month % 2) * 10;  // 85% or 95%
-  
-  return `hsl(${baseHue}, ${saturation}%, ${lightness}%)`;
+const MONTH_COLORS: string[] = [
+  '#D2E2FF', // 1
+  '#C4ECFF', // 2
+  '#C2F4F0', // 3
+  '#DDF9E4', // 4
+  '#FEEAB6', // 5
+  '#FFE0CD', // 6
+  '#FFD4E0', // 7
+  '#FBD1FC', // 8
+  '#E0DAFD', // 9
+  '#E5E9F0', // 10
+];
+
+const BULLET_COLORS: string[] = [
+  '#4076D7', // 1
+  '#58C2F5', // 2
+  '#3CD3C7', // 3
+  '#0DAD69', // 4
+  '#E6BB4B', // 5
+  '#E08852', // 6
+  '#E26286', // 7
+  '#DB68DD', // 8
+  '#836FE1', // 9
+  '#85A3D7', // 10
+];
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const normalized = hex.replace('#', '');
+  const isShort = normalized.length === 3;
+  const full = isShort
+    ? normalized.split('').map((c) => c + c).join('')
+    : normalized;
+  const num = parseInt(full, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (v: number) => v.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
+
+// Darken by mixing toward black by a small fraction (e.g., 0.08 → 8%)
+function darkenHex(hex: string, fraction: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const f = Math.max(0, Math.min(1, fraction));
+  const nr = Math.round(r * (1 - f));
+  const ng = Math.round(g * (1 - f));
+  const nb = Math.round(b * (1 - f));
+  return rgbToHex(nr, ng, nb);
+}
+
+// Lighten by mixing toward white by a small fraction (e.g., 0.08 → 8%)
+function lightenHex(hex: string, fraction: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const f = Math.max(0, Math.min(1, fraction));
+  const nr = Math.round(r + (255 - r) * f);
+  const ng = Math.round(g + (255 - g) * f);
+  const nb = Math.round(b + (255 - b) * f);
+  return rgbToHex(nr, ng, nb);
 }
 
 /**
- * Generate a darker variant of the month color for bullets/indicators
- * Uses the same hue but with lower lightness for contrast
+ * Return a background color for a given month number.
+ * - Months 1–10: fixed, stable colors
+ * - Months 11–12: similar to months 1–2 with small saturation/lightness tweaks
+ */
+export function getMonthColor(month: number): string {
+  const m = Math.max(1, Math.min(50, Math.floor(month)));
+  const decadeIndex = Math.floor((m - 1) / 10); // 0..4 for 1..50
+  const baseIndex = (m - 1) % 10; // 0..9 maps within decade
+  const base = MONTH_COLORS[baseIndex];
+
+  if (decadeIndex === 0) return base; // 1..10 exact
+  if (decadeIndex === 1) return lightenHex(base, 0.06); // 11..20
+  if (decadeIndex === 2) return lightenHex(base, 0.12); // 21..30
+  if (decadeIndex === 3) return darkenHex(base, 0.06); // 31..40
+  return darkenHex(base, 0.12); // 41..50
+}
+
+/**
+ * Darker variant for bullets/indicators using the same base hue rules.
  */
 export function getBulletColor(month: number): string {
-  const baseHue = (month * 30) % 360;
-  const saturation = 60 + (month % 3) * 15;
-  const lightness = 35 + (month % 2) * 10; // 35% or 45% for darker variant
-  
-  return `hsl(${baseHue}, ${saturation}%, ${lightness}%)`;
+  const m = Math.max(1, Math.min(50, Math.floor(month)));
+  const decadeIndex = Math.floor((m - 1) / 10); // 0..4
+  const baseIndex = (m - 1) % 10;
+  const base = BULLET_COLORS[baseIndex];
+
+  if (decadeIndex === 0) return base; // 1..10 exact
+  if (decadeIndex === 1) return lightenHex(base, 0.04); // 11..20
+  if (decadeIndex === 2) return lightenHex(base, 0.06); // 21..30
+  if (decadeIndex === 3) return darkenHex(base, 0.06); // 31..40
+  return darkenHex(base, 0.08); // 41..50
 }
