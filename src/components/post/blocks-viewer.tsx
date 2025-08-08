@@ -1,8 +1,8 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Block } from "@/lib/store/use-feedbird-store";
 import { Paperclip, Maximize2, MessageCircleMore, ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
 
 interface BlocksViewerProps {
   blocks: Block[];
@@ -15,6 +15,25 @@ export function BlocksViewer({ blocks, onExpandBlock }: BlocksViewerProps) {
       <div className="text-sm text-muted-foreground">No blocks</div>
     );
   }
+
+  // Preload image dimensions and capture video dimensions when metadata is available
+  const [blockDimensions, setBlockDimensions] = useState<Record<string, { w: number; h: number }>>({});
+
+  useEffect(() => {
+    // Preload dimensions for image blocks
+    blocks.forEach((block) => {
+      if (blockDimensions[block.id]) return;
+      const current = block.versions.find((v) => v.id === block.currentVersionId);
+      if (!current) return;
+      if (current.file.kind === "image" && current.file.url) {
+        const img = new Image();
+        img.src = current.file.url;
+        img.onload = () => {
+          setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: img.naturalWidth, h: img.naturalHeight } }));
+        };
+      }
+    });
+  }, [blocks, blockDimensions]);
 
   return (
     <div className="flex flex-col p-3 rounded-md border border-buttonStroke gap-2">
@@ -33,6 +52,13 @@ export function BlocksViewer({ blocks, onExpandBlock }: BlocksViewerProps) {
           if (!current) return null;
 
           const isVideo = current.file.kind === "video";
+          const dims = blockDimensions[block.id];
+
+          // Target display height; width adjusts based on nearest supported ratio (1:1, 4:5, 9:16)
+          const targetHeight = 480;
+          const computedWidth = dims
+            ? Math.max(120, Math.round(calculateAspectRatioWidth(dims.w, dims.h, targetHeight)))
+            : 480; // fallback to square until dimensions known
 
           return (
             <div
@@ -41,18 +67,33 @@ export function BlocksViewer({ blocks, onExpandBlock }: BlocksViewerProps) {
                 "relative group overflow-hidden border border-gray-300 rounded-md shadow-sm",
                 "flex-shrink-0 transition-transform hover:shadow-md"
               )}
-              style={{ width: 480, height: 480 }} // normal ~480x480
+              style={{ width: computedWidth, height: targetHeight }}
               onClick={() => onExpandBlock(block)}
             >
               {/* media */}
               {isVideo ? (
-                <video
-                  src={current.file.url}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                <>
+                  <video
+                    src={current.file.url}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onLoadedMetadata={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      if (!el.videoWidth || !el.videoHeight) return;
+                      setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: el.videoWidth, h: el.videoHeight } }));
+                    }}
+                  />
+                  {/* Center play icon overlay */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                    <div className="h-8 w-8 rounded-sm flex items-center justify-center overflow-hidden drop-shadow" style={{ background: "#1C1D1FCC" }}>
+                      <svg viewBox="0 0 12 12" className="fill-white" style={{ width: 18, height: 18, display: "block" }}>
+                        <polygon points="3.6,2 10.5,6 3.5,10 3.5,2" />
+                      </svg>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <img
                   src={current.file.url}
