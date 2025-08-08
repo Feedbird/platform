@@ -17,7 +17,7 @@ export const statusConfig: Record<Status, {
 }> = {
   "Draft": {
     icon: "/images/status/draft.svg",
-    bgColor: "#F1F4F9",
+    bgColor: "#F4F7FA",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
