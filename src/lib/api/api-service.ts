@@ -363,6 +363,9 @@ export const storeApi = {
   // Load workspaces for current user
   loadUserWorkspaces: async (email: string) => {
     try {
+      // mark loading in store
+      useFeedbirdStore.setState({ workspacesLoading: true })
+
       const workspaces = await workspaceApi.getWorkspacesByCreator(email)
       const store = useFeedbirdStore.getState()
       
@@ -449,23 +452,37 @@ export const storeApi = {
         })
       )
 
-      // Update Zustand store in a single batched update so that subscribers are notified.
-      // Keep whatever workspace the user already selected. If none, leave it null
-      const activeWorkspaceId = store.activeWorkspaceId ?? null
+      // Decide active workspace:
+      // - keep existing selection if it still exists
+      // - otherwise, auto-select the first workspace (if any)
+      let nextActiveWorkspaceId = store.activeWorkspaceId ?? null
+      if (!nextActiveWorkspaceId || !workspacesWithBrands.some(w => w.id === nextActiveWorkspaceId)) {
+        nextActiveWorkspaceId = workspacesWithBrands[0]?.id ?? null
+      }
 
-      // Derive board navigation only if an active workspace is set
-      const activeWs = workspacesWithBrands.find(w => w.id === activeWorkspaceId)
+      const activeWs = nextActiveWorkspaceId
+        ? workspacesWithBrands.find(w => w.id === nextActiveWorkspaceId)
+        : undefined
+
       const boardNav = activeWs ? boardsToNav(activeWs.boards) : []
+      const activeBrandId = activeWs?.brand?.id ?? null
+      const activeBoardId = activeWs?.boards[0]?.id ?? null
 
       useFeedbirdStore.setState({
         workspaces: workspacesWithBrands,
+        activeWorkspaceId: nextActiveWorkspaceId,
+        activeBrandId,
+        activeBoardId,
         boardNav,
-        // NOTE: we intentionally do NOT force-select an active workspace here
+        workspacesLoading: false,
+        workspacesInitialized: true,
       })
 
       return workspacesWithBrands
     } catch (error) {
       console.error('Failed to load user workspaces:', error)
+      // ensure loading flags reset even on error
+      useFeedbirdStore.setState({ workspacesLoading: false, workspacesInitialized: true })
       throw error
     }
   },

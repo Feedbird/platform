@@ -13,6 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TopProgressBar } from "@/components/layout/top-progress-bar";
 import { DynamicTitle } from "@/components/layout/dynamic-title";
 import PortalRoot from '@/components/portal-root/portal-root';
+import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -20,6 +21,8 @@ interface AuthenticatedLayoutProps {
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const { isLoaded, isSignedIn, user } = useUser();
+  const workspacesLoading = useFeedbirdStore(s => s.workspacesLoading);
+  const workspacesInitialized = useFeedbirdStore(s => s.workspacesInitialized);
 
   // Debug logging
   console.log('AuthenticatedLayout state:', { isLoaded, isSignedIn, userId: user?.id });
@@ -33,6 +36,18 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
           <p className="text-sm text-muted-foreground">
             {!isLoaded ? 'Loading...' : 'Authenticating...'}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Wait for workspace data to load after auth
+  if (!workspacesInitialized || workspacesLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Loading workspaces…</p>
         </div>
       </div>
     );

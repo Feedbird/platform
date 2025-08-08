@@ -259,6 +259,10 @@ export interface FeedbirdStore {
   user: User | null;
   
   workspaces: Workspace[];
+  /** True while fetching workspaces from database */
+  workspacesLoading: boolean;
+  /** Set to true after first load attempt completes (success or failure) */
+  workspacesInitialized: boolean;
   activeWorkspaceId: string | null;
   activeBrandId: string | null;
   activeBoardId: string | null;
@@ -501,6 +505,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       user: null,
       
       workspaces: [],
+        workspacesLoading: false,
+        workspacesInitialized: false,
       activeWorkspaceId: null,
       activeBrandId: null,
       activeBoardId: null,
