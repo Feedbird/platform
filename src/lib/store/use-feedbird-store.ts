@@ -53,6 +53,8 @@ export interface GroupComment {
   resolvedAt?: Date;
   resolvedBy?: string;
   aiSummary?: string[];
+  /** Emails of users who have read this comment */
+  readBy?: string[];
   messages: GroupMessage[]; // Direct replies to this comment
 }
 
@@ -325,6 +327,7 @@ export interface FeedbirdStore {
   deleteGroupMessage: (boardId: string, month: number, commentId: string, messageId: string) => void;
   updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string[]) => void;
   deleteGroupCommentAiSummaryItem: (boardId: string, month: number, commentId: string, summaryIndex: number) => void;
+  markGroupCommentRead: (boardId: string, month: number, commentId: string) => void;
   
   deletePost: (postId: string) => Promise<void>;
   bulkDeletePosts: (postIds: string[]) => Promise<void>;
@@ -2158,16 +2161,19 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
-        // Group data methods implementation
+        // Group data methods implementation (DB first)
         addGroupComment: (boardId, month, text, author) => {
           const commentId = uuidv4();
-          const newComment: GroupComment = {
+          const userEmail: string | null = (get() as any).user?.email ?? null;
+          // Optimistic local object to use in case of failure
+          const optimisticComment: GroupComment = {
             id: commentId,
             author,
             text,
             createdAt: new Date(),
             resolved: false,
             messages: [],
+            readBy: userEmail ? [userEmail] : [],
             aiSummary: [
               "Love the overall vibe, but the first 3 seconds felt a bit slow to grab attention.",
               "Typography is nice but hard to read on mobile due to size.",
@@ -2175,42 +2181,49 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             ]
           };
 
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => {
-              // Only update the active workspace
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              
-              return {
-                ...ws,
-                boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
-                  
-                  const existingGroupData = board.groupData || [];
-                  const monthGroupData = existingGroupData.find(gd => gd.month === month);
-                  
-                  if (monthGroupData) {
-                    // Update existing month group data
-                    const updatedGroupData = existingGroupData.map(gd => 
-                      gd.month === month 
-                        ? { ...gd, comments: [...gd.comments, newComment] }
-                        : gd
-                    );
-                    return { ...board, groupData: updatedGroupData };
-                  } else {
-                    // Create new month group data
-                    const newGroupData: BoardGroupData = {
-                      month,
-                      comments: [newComment],
-                      revisionCount: 0
-                    };
-                    return { ...board, groupData: [...existingGroupData, newGroupData] };
-                  }
-                })
-              };
-            })
-          }));
-          
+          // Persist to DB by updating board.group_data, then sync store from server response
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return commentId;
+
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const nextGroupData: BoardGroupData[] = (() => {
+            const monthGroup = currentGroupData.find(gd => gd.month === month);
+            if (monthGroup) {
+              return currentGroupData.map(gd => gd.month === month ? {
+                ...gd,
+                comments: [...gd.comments, optimisticComment]
+              } : gd);
+            }
+            return [...currentGroupData, { month, comments: [optimisticComment], revisionCount: 0 }];
+          })();
+
+          // DB first: update board.group_data, which will then update the store via storeApi
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
           return commentId;
+        },
+
+        /** Mark a specific group comment as read by current user (adds email to readBy). DB-first */
+        markGroupCommentRead: (boardId: string, month: number, commentId: string) => {
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return;
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const userEmail: string | null = (get() as any).user?.email ?? null;
+          if (!userEmail) return;
+
+          const nextGroupData = currentGroupData.map(gd => {
+            if (gd.month !== month) return gd;
+            return {
+              ...gd,
+              comments: gd.comments.map(c => c.id === commentId
+                ? { ...c, readBy: Array.from(new Set([...(c.readBy || []), userEmail])) }
+                : c)
+            };
+          });
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
         },
 
         updateGroupComment: (boardId, month, commentId, data) => {
@@ -2272,40 +2285,25 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         resolveGroupComment: (boardId, month, commentId, resolvedBy) => {
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => {
-              // Only update the active workspace
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              
-              return {
-                ...ws,
-                boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
-                  
-                  const updatedGroupData = (board.groupData || []).map(gd => {
-                    if (gd.month !== month) return gd;
-                    
-                    return {
-                      ...gd,
-                      comments: gd.comments.map(comment => 
-                        comment.id === commentId 
-                          ? { 
-                              ...comment, 
-                              resolved: true, 
-                              resolvedAt: new Date(), 
-                              resolvedBy,
-                              updatedAt: new Date()
-                            }
-                          : comment
-                      )
-                    };
-                  });
-                  
-                  return { ...board, groupData: updatedGroupData };
-                })
-              };
-            })
-          }));
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return;
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const nextGroupData = currentGroupData.map(gd => {
+            if (gd.month !== month) return gd;
+            return {
+              ...gd,
+              comments: gd.comments.map(c => c.id === commentId ? {
+                ...c,
+                resolved: true,
+                resolvedAt: new Date(),
+                resolvedBy,
+                updatedAt: new Date(),
+              } : c)
+            };
+          });
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
         },
 
         addGroupMessage: (boardId, month, commentId, text, author, parentMessageId) => {
@@ -2318,57 +2316,32 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             replies: []
           };
 
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => {
-              // Only update the active workspace
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              
-              return {
-                ...ws,
-                boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
-                  
-                  const updatedGroupData = (board.groupData || []).map(gd => {
-                    if (gd.month !== month) return gd;
-                    
-                    return {
-                      ...gd,
-                      comments: gd.comments.map(comment => {
-                        if (comment.id !== commentId) return comment;
-                        
-                        if (!parentMessageId) {
-                          // Add as direct reply to comment
-                          return {
-                            ...comment,
-                            messages: [...comment.messages, newMessage]
-                          };
-                        } else {
-                          // Add as reply to a specific message
-                          const addMessageToReplies = (messages: GroupMessage[]): GroupMessage[] => {
-                            return messages.map(msg => {
-                              if (msg.id === parentMessageId) {
-                                return { ...msg, replies: [...msg.replies, newMessage] };
-                              } else {
-                                return { ...msg, replies: addMessageToReplies(msg.replies) };
-                              }
-                            });
-                          };
-                          
-                          return {
-                            ...comment,
-                            messages: addMessageToReplies(comment.messages)
-                          };
-                        }
-                      })
-                    };
-                  });
-                  
-                  return { ...board, groupData: updatedGroupData };
-                })
-              };
-            })
-          }));
-          
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return messageId;
+
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const nextGroupData = currentGroupData.map(gd => {
+            if (gd.month !== month) return gd;
+            return {
+              ...gd,
+              comments: gd.comments.map(comment => {
+                if (comment.id !== commentId) return comment;
+                if (!parentMessageId) {
+                  return { ...comment, messages: [...comment.messages, newMessage] };
+                }
+                const addToReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                  return messages.map(msg => msg.id === parentMessageId
+                    ? { ...msg, replies: [...msg.replies, newMessage] }
+                    : { ...msg, replies: addToReplies(msg.replies) }
+                  );
+                };
+                return { ...comment, messages: addToReplies(comment.messages) };
+              })
+            };
+          });
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
           return messageId;
         },
 

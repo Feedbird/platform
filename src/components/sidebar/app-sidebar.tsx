@@ -307,7 +307,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           /*  ICON SELECTION                                            */
           /*  Use the original image and apply color styling instead    */
           /* ----------------------------------------------------------- */
-          const imageSrc = active && nav.selectedImage ? nav.selectedImage : nav.image;
+          const imageSrc = nav.image;
 
           // Create separate content for expanded and collapsed states
           const ExpandedContent = (
@@ -338,7 +338,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         className={cn(
                           "w-3.5 h-3.5",
                           // Make icon white when board is active and has a colored background
-                          active && "filter brightness-0 invert"
+                          active && isBoard && boardColor && "filter brightness-0 invert"
                         )}
                         loading="lazy"
                       />

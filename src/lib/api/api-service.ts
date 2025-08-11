@@ -757,25 +757,35 @@ export const storeApi = {
     try {
       const board = await boardApi.updateBoard(id, updates)
       const store = useFeedbirdStore.getState()
-      
-      // Update store using Zustand setter to trigger re-renders
+
+      // Update store using the server's latest board data to avoid drift
       const updatedWorkspaces = store.workspaces.map(w => ({
         ...w,
-        boards: w.boards.map(b => 
-          b.id === id ? { ...b, ...updates } : b
-        )
+        boards: w.boards.map(b => {
+          if (b.id !== id) return b
+          return {
+            ...b,
+            name: (board as any).name ?? b.name,
+            image: (board as any).image ?? b.image,
+            selectedImage: (board as any).selected_image ?? b.selectedImage,
+            description: (board as any).description ?? b.description,
+            color: (board as any).color ?? b.color,
+            rules: (board as any).rules ?? b.rules,
+            // Map server field group_data -> client field groupData
+            groupData: (board as any).group_data !== undefined ? (board as any).group_data : (updates.group_data !== undefined ? updates.group_data : b.groupData),
+          }
+        })
       }))
-      
+
       // Update board navigation
       const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
       const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards) : []
-      
-      // Use Zustand setter to update store
+
       useFeedbirdStore.setState({
         workspaces: updatedWorkspaces,
         boardNav: newBoardNav
       })
-      
+
       return board
     } catch (error) {
       console.error('Failed to update board:', error)
