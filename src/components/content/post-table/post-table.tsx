@@ -670,6 +670,21 @@ export function PostTable({
 
   const [rowHeight, setRowHeight] = React.useState<RowHeightType>("Medium");
 
+  // Auto-adjust default Preview column width when row height changes
+  React.useEffect(() => {
+    const rh = getRowHeightPixels(rowHeight);
+    const thumbHeight = rh > 10 ? rh - 8 : rh; // matches BlocksPreview thumbnail height logic
+    const paddings = 12 + 4; // pl-3 + pr-1
+    const gap = 2; // small inter-item gap
+    const target = Math.max(90, thumbHeight + paddings + gap);
+
+    setColumnSizing((prev: Record<string, number>) => {
+      const current = prev?.preview as number | undefined;
+      if (typeof current === 'number' && current >= target) return prev;
+      return { ...prev, preview: target };
+    });
+  }, [rowHeight]);
+
   // State to track if scrolling is needed
   const [isScrollable, setIsScrollable] = React.useState(false);
 
