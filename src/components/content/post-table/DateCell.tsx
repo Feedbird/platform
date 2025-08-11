@@ -645,7 +645,7 @@ export function UpdateDateCell({ post }: { post: Post }) {
   const d = post.updatedAt ? new Date(post.updatedAt) : null;
   const display = d ? formatDateTime(d) : "—";
   return (
-    <span className="text-sm text-[#5C5E63] font-normal whitespace-nowrap min-w-[110px] overflow-hidden text-ellipsis">
+    <span className="text-xs text-[#5C5E63] font-normal whitespace-nowrap min-w-[110px] overflow-hidden text-ellipsis">
       {display}
     </span>
   );
