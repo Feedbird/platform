@@ -141,7 +141,7 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
              style={{ filter: "invert(1) brightness(2)" }}
            />
            <span className="text-xs text-white font-medium">
-             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+             {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
            </span>
          </div>
        </div>
@@ -212,7 +212,7 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
                    style={{ filter: "invert(1) brightness(2)" }}
                  />
                  <span className="text-xs">
-                   {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+                   {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
                  </span>
                </div>
 
@@ -314,7 +314,7 @@ function DragOverlayItem({ post }: { post: Post }) {
              style={{ filter: "invert(1) brightness(2)" }}
            />
            <span className="text-xs text-white font-medium">
-             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+             {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
            </span>
          </div>
        </div>

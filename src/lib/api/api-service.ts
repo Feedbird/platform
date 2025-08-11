@@ -373,6 +373,14 @@ export const postApi = {
       body: JSON.stringify({ post_ids: postIds }),
     })
   },
+
+  // Auto-schedule post (server computes publish_date)
+  autoSchedule: async (postId: string, status: string): Promise<Post> => {
+    return apiRequest<Post>('/post/auto-schedule', {
+      method: 'POST',
+      body: JSON.stringify({ post_id: postId, status: status })
+    })
+  },
 }
 
 // Zustand store integration functions
@@ -459,7 +467,7 @@ export const storeApi = {
                 caption: p.caption,
                 status: p.status as any,
                 format: p.format,
-                publishDate: p.publish_date ? new Date(p.publish_date) : null,
+                publish_date: p.publish_date ? new Date(p.publish_date) : null,
                 updatedAt: p.updated_at ? new Date(p.updated_at) : null,
                 platforms: (p.platforms || []) as any,
                 pages: p.pages || [],
@@ -774,7 +782,7 @@ export const storeApi = {
                 caption: post.caption,
                 status: post.status as any,
                 format: post.format,
-                publishDate: post.publish_date ? new Date(post.publish_date) : null,
+                publish_date: post.publish_date ? new Date(post.publish_date) : null,
                 updatedAt: post.updated_at ? new Date(post.updated_at) : null,
                 platforms: (post.platforms || []) as any,
                 pages: post.pages || [],
@@ -913,7 +921,7 @@ export const storeApi = {
                 caption: post.caption,
                 status: post.status as any,
                 format: post.format,
-                publishDate: post.publish_date ? new Date(post.publish_date) : null,
+                publish_date: post.publish_date ? new Date(post.publish_date) : null,
                 updatedAt: post.updated_at ? new Date(post.updated_at) : null,
                 platforms: (post.platforms || []) as any,
                 pages: post.pages || [],
@@ -961,6 +969,35 @@ export const storeApi = {
       return post
     } catch (error) {
       console.error('Failed to update post:', error)
+      throw error
+    }
+  },
+
+  autoScheduleAndUpdateStore: async (postId: string, status: string) => {
+    try {
+      const updated = await postApi.autoSchedule(postId, status)
+      const store = useFeedbirdStore.getState()
+
+      // Update store with server values
+      store.workspaces = store.workspaces.map(w => ({
+        ...w,
+        boards: w.boards.map(b => ({
+          ...b,
+          posts: b.posts.map(p => {
+            if (p.id !== postId) return p
+            return {
+              ...p,
+              status: (updated as any).status as any,
+              publish_date: (updated as any).publish_date ? new Date((updated as any).publish_date) : null,
+              updatedAt: (updated as any).updated_at ? new Date((updated as any).updated_at) : p.updatedAt,
+            }
+          })
+        }))
+      }))
+      useFeedbirdStore.setState({ workspaces: store.workspaces })
+      return updated
+    } catch (error) {
+      console.error('Failed to auto-schedule post:', error)
       throw error
     }
   },
@@ -1050,7 +1087,7 @@ export const storeApi = {
         caption: post.caption,
         status: post.status as any,
         format: post.format,
-        publishDate: post.publish_date ? new Date(post.publish_date) : null,
+        publish_date: post.publish_date ? new Date(post.publish_date) : null,
         updatedAt: post.updated_at ? new Date(post.updated_at) : null,
         platforms: (post.platforms || []) as any,
         pages: post.pages || [],

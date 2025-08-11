@@ -766,9 +766,9 @@ export function PostRecordModal({ postId, open, onClose }:{
 
   // Display date as: May 18, 2025   11:44
   // with date part in black, time part in grey
-  const dateDisplay = post.publishDate
+  const dateDisplay = post.publish_date
     ? (() => {
-        const dateObj = post.publishDate;
+        const dateObj = post.publish_date;
         const datePart = dateObj.toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",

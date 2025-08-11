@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Post } from "@/lib/store/use-feedbird-store";
-import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
+import { storeApi } from "@/lib/api/api-service";
 import { format } from "date-fns";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ChevronDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -34,12 +35,13 @@ export function PublishDateCell({
   updatePost: (id: string, updates: Partial<Post>) => void;
   allPosts: Post[];
 }) {
-  const savedDate = post.publishDate ? new Date(post.publishDate) : undefined;
+  const savedDate = post.publish_date ? new Date(post.publish_date) : undefined;
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
   const [showPostingPanel, setShowPostingPanel] = useState(false);
 
   const isScheduled = post.status === "Scheduled";
+  const isApproved = post.status === "Approved";
   const isPublished = post.status === "Published";
   const isFailedPublishing = post.status === "Failed Publishing";
   const hasDate = !!savedDate;
@@ -80,6 +82,16 @@ export function PublishDateCell({
 
   const statusStyling = getStatusStyling();
 
+  // Board rule: auto-schedule on?
+  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const activeBoardId = useFeedbirdStore((s) => s.activeBoardId);
+  const currentBoard = React.useMemo(
+    () => activeWorkspace?.boards.find((b) => b.id === activeBoardId),
+    [activeWorkspace, activeBoardId]
+  );
+  const isAutoScheduleOn = !!currentBoard?.rules?.autoSchedule;
+  const showSwitchInsteadOfIcon = isAutoScheduleOn && hasDate && !isPublished && !isFailedPublishing;
+
   // Tooltip text depending on state
   const tooltipLabel = React.useMemo(() => {
     if (!hasDate) return "Select publish time";
@@ -97,24 +109,27 @@ export function PublishDateCell({
   const publishPostToAllPages = useFeedbirdStore((s) => s.publishPostToAllPages);
 
   /* ---------- Actions ---------- */
-  function handleAutoSchedule() {
-    const suggestions = getSuggestedSlots(post, allPosts, 5);
-    if (suggestions.length > 0) {
-      updatePost(post.id, { publishDate: suggestions[0].date, status: "Scheduled" });
-    } else {
-      // fallback => next week 9:00am
-      const fallback = new Date();
-      fallback.setDate(fallback.getDate() + 7);
-      fallback.setHours(9, 0, 0, 0);
-      updatePost(post.id, { publishDate: fallback, status: "Scheduled" });
-    }
+  async function handleAutoSchedule() {
+    const nextStatus = post.status === "Approved" ? "Scheduled" : post.status;
+    await storeApi.autoScheduleAndUpdateStore(post.id, nextStatus as any);
     setPopoverOpen(false);
   }
 
   function handleUnschedule() {
-    // Revert to draft or remove publishDate
-    updatePost(post.id, { status: "Draft", publishDate: undefined });
+    // If it was scheduled, move to Approved; otherwise remain original status.
+    const nextStatus = post.status === "Scheduled" ? "Approved" : post.status;
+    updatePost(post.id, { status: nextStatus, publish_date: undefined });
   }
+
+  const handleSwitchToggle = (checked: boolean) => {
+    if (!checked) {
+      handleUnschedule();
+      return;
+    }
+    if (!isPublished && !isFailedPublishing) {
+      updatePost(post.id, { status: "Scheduled" });
+    }
+  };
 
   useEffect(() => {
     if (!popoverOpen) setShowSelector(false);
@@ -138,41 +153,74 @@ export function PublishDateCell({
                           <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
                             padding: "1px 6px 1px 4px",
                             border: `1px solid ${statusStyling.borderColor}`,
-                            backgroundColor: statusStyling.backgroundColor,
+                            backgroundColor: showSwitchInsteadOfIcon ? "#E5EEFF" : statusStyling.backgroundColor,
                             width: "fit-content"
                           }}>
-                            <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
-                              backgroundColor: statusStyling.iconBackgroundColor
-                            }}>
-                              <Image 
-                                src={statusStyling.iconSrc} 
-                                alt="Publish Date" 
-                                width={12} 
-                                height={12}
-                                className="filter brightness-0 invert"
-                                style={{ filter: 'brightness(0) invert(1)' }}
-                              />
-                            </div>
+                            {showSwitchInsteadOfIcon ? (
+                              <div
+                                className="px-0.5"
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                                onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                              >
+                                <Switch
+                                  checked={!!post.publish_date}
+                                  onCheckedChange={handleSwitchToggle}
+                                  className="h-3.5 w-6 rounded-full data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
+                                  icon={
+                                    <span className="flex items-center justify-center w-full h-full">
+                                      <img
+                                        src="/images/boards/stars-01.svg"
+                                        alt="star"
+                                        className="w-2.5 h-2.5"
+                                      />
+                                    </span>
+                                  }
+                                  />
+                              </div>
+                                  ) : (
+                              <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
+                                backgroundColor: statusStyling.iconBackgroundColor
+                              }}>
+                                <Image 
+                                  src={statusStyling.iconSrc} 
+                                  alt="Publish Date" 
+                                  width={12} 
+                                  height={12}
+                                  className="filter brightness-0 invert"
+                                  style={{ filter: 'brightness(0) invert(1)' }}
+                                />
+                                  </div>
+                              )}
                             <span className="text-xs text-[#133495] font-semibold whitespace-nowrap" style={{
                               lineHeight: "18px",
                             }}>{displayText}</span>
                           </div>
                         ) : (
-                          /* If no time: show icon button with + icon + "Select time" label */
-                          <div className={cn(
-                            "flex flex-row items-center gap-1 rounded-[4px] bg-white",
-                            )} style={{
-                              padding: "3px 6px 3px 4px",
-                              boxShadow: "0px 0px 0px 1px #D3D3D3",
-                              width: "fit-content"
-                            }}>
-                              <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
-                                <Plus className={cn(
-                                  "w-3 h-3 text-[#5C5E63]",
-                                )}/>
-                              </div>
-                             <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
-                          </div>
+                          // If no time set
+                          isApproved ? (
+                            // Approved + no date: plain text with chevron, no bg/image
+                            <div className="flex flex-row items-center gap-1 cursor-pointer">
+                              <span className="text-xs text-[#5C5E63] font-medium">No time is set yet</span>
+                              <ChevronDown className="w-3 h-3 text-[#5C5E63]" />
+                            </div>
+                          ) : (
+                            /* Default no-time UI */
+                            <div className={cn(
+                              "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                              )} style={{
+                                padding: "3px 6px 3px 4px",
+                                boxShadow: "0px 0px 0px 1px #D3D3D3",
+                                width: "fit-content"
+                              }}>
+                                <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                                  <Plus className={cn(
+                                    "w-3 h-3 text-[#5C5E63]",
+                                  )}/>
+                                </div>
+                               <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
+                            </div>
+                          )
                         )}
                       </div>
                     </PopoverTrigger>
@@ -292,7 +340,7 @@ export function PublishDateCell({
                     }}
                     onSchedule={(d) => {
                       updatePost(post.id, {
-                        publishDate: d,
+                        publish_date: d,
                         status: "Scheduled",
                       });
                     }}
@@ -312,21 +360,45 @@ export function PublishDateCell({
                     <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
                       padding: "1px 6px 1px 4px",
                       border: `1px solid ${statusStyling.borderColor}`,
-                      backgroundColor: statusStyling.backgroundColor,
+                      backgroundColor: showSwitchInsteadOfIcon ? "#E5EEFF" : statusStyling.backgroundColor,
                       width: "fit-content"
                     }}>
+                    {showSwitchInsteadOfIcon ? (
+                      <div
+                        className="px-0.5"
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                        onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                      >
+                        <Switch
+                          checked={!!post.publish_date}
+                          onCheckedChange={handleSwitchToggle}
+                          className="h-3.5 w-6 rounded-full data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
+                          icon={
+                            <span className="flex items-center justify-center w-full h-full">
+                              <img
+                                src="/images/boards/stars-01.svg"
+                                alt="star"
+                                className="w-2.5 h-2.5"
+                              />
+                            </span>
+                          }
+                        />
+                      </div>
+                      ) : (
                       <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
                         backgroundColor: statusStyling.iconBackgroundColor
                       }}>
-                        <Image 
-                          src={statusStyling.iconSrc} 
-                          alt="Publish Date" 
-                          width={12} 
-                          height={12}
-                          className="filter brightness-0 invert"
-                          style={{ filter: 'brightness(0) invert(1)' }}
-                        />
+                          <Image 
+                            src={statusStyling.iconSrc} 
+                            alt="Publish Date" 
+                            width={12} 
+                            height={12}
+                            className="filter brightness-0 invert"
+                            style={{ filter: 'brightness(0) invert(1)' }}
+                          />
                       </div>
+                        )}
                       <span className="text-xs font-semibold whitespace-nowrap" style={{
                         lineHeight: "18px",
                         color: statusStyling.textColor
@@ -459,8 +531,8 @@ export function PublishDateCell({
         onClose={() => setConfirmScheduleOpen(false)}
         onConfirm={async () => {
           // "ScheduledTime" publish
-          if (post.publishDate) {
-            await publishPostToAllPages(post.id, new Date(post.publishDate));
+          if (post.publish_date) {
+            await publishPostToAllPages(post.id, new Date(post.publish_date));
           } else {
             await publishPostToAllPages(post.id);
           }
@@ -496,7 +568,7 @@ function ConfirmScheduleDialog({
 }) {
   const { executeWithLoading } = useAsyncLoading();
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
-  const dt = post.publishDate ? formatDateTime(new Date(post.publishDate)) : "(none)";
+  const dt = post.publish_date ? formatDateTime(new Date(post.publish_date)) : "(none)";
 
   // Get the actual pages for post.pages
   const selectedPages: SocialPage[] =
@@ -575,7 +647,7 @@ function ConfirmPublishNowDialog({
 }) {
   const { executeWithLoading } = useAsyncLoading();
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
-  const dt = post.publishDate ? formatDateTime(new Date(post.publishDate)) : "(none)";
+  const dt = post.publish_date ? formatDateTime(new Date(post.publish_date)) : "(none)";
 
   // Get the actual pages for post.pages
   const selectedPages: SocialPage[] =

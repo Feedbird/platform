@@ -70,7 +70,7 @@ const SORT_OPTIONS = [
       icon: <CalendarIcon className="mr-1 h-3 w-3" />,
     },
     {
-      id: "publishDate",
+      id: "publish_date",
       label: "Post Time",
       icon: <CalendarIcon className="mr-1 h-3 w-3" />,
     },

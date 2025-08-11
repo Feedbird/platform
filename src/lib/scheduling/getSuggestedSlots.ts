@@ -87,8 +87,8 @@ export function getSuggestedSlots(
   const now = new Date();
   const takenSlots = new Set(
     allPosts
-      .filter(p => p.status === "Scheduled" && p.id !== post.id && p.publishDate)
-      .map(p => toKey(p.publishDate as Date))
+      .filter(p => p.status === "Scheduled" && p.id !== post.id && p.publish_date)
+      .map(p => toKey(p.publish_date as Date))
   );
 
   const DAYS_LOOKAHEAD = 30;

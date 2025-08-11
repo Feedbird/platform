@@ -554,7 +554,7 @@ export function ActivityPanel({
           </div>
           <div className="pt-2">
             <span className="text-sm text-muted-foreground">
-              {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+              {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
             </span>
           </div>
         </div>

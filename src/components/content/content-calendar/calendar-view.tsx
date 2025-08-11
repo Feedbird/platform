@@ -334,7 +334,7 @@ interface EventProps {
 /** Convert Post[] -> FC events */
 function postsToEvents(posts: Post[]) {
   return posts.map((p) => {
-    const start = p.publishDate || undefined;
+    const start = p.publish_date || undefined;
     const end = start ? new Date(start.getTime() + 1000) : undefined; // +1 s to avoid FC's default 2-hour span
 
     return {
@@ -462,7 +462,7 @@ export default function CalendarView({
     // Persist the change to the Zustand store so it's saved (and persisted by the middleware)
     const updatePost = useFeedbirdStore.getState().updatePost;
     updatePost(arg.event.id, {
-      publishDate: newDate,
+      publish_date: newDate,
       status: "Scheduled",
     });
 

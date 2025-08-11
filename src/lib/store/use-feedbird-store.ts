@@ -170,7 +170,7 @@ export interface Post {
   caption: CaptionData;
   status: Status;
   format: string;
-  publishDate: Date | null;
+  publish_date: Date | null;
   updatedAt: Date | null;
   platforms: Platform[];  // Array of platforms this post is for
   pages: string[];  // Array of social page IDs
@@ -549,7 +549,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: false,
               approvalDeadline: false,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "Small",
             }
           },
@@ -564,7 +564,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "X-Large",
               firstMonth: 5,
               ongoingMonth: 3,
@@ -582,7 +582,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: false,
               approvalDeadline: false,
               groupBy: "status",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "Large",
             }
           },
@@ -615,7 +615,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "X-Large",
               firstMonth: 6,
               ongoingMonth: 3,
@@ -633,7 +633,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "XX-Large",
               firstMonth: 5,
               ongoingMonth: 2,
@@ -669,7 +669,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "X-Large",
               firstMonth: 4,
               ongoingMonth: 2,
@@ -1328,7 +1328,18 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         // posts
         updatePost: async (pid, data) => {
-          await storeApi.updatePostAndUpdateStore(pid, data);
+          const st = get();
+          const prev = st.getPost(pid);
+          const isApproving = data?.status === 'Approved';
+          const wasNotScheduled = prev?.status !== 'Scheduled';
+          const ws = st.getActiveWorkspace();
+          const board = ws?.boards.find(b => b.id === prev?.boardId);
+          const shouldAuto = board?.rules?.autoSchedule === true;
+          if (isApproving && wasNotScheduled && shouldAuto) {
+              await storeApi.autoScheduleAndUpdateStore(pid, "Scheduled");
+            } else {
+            await storeApi.updatePostAndUpdateStore(pid, data);
+          }
         }, 
         deletePost: async (postId) => {
           await storeApi.deletePostAndUpdateStore(postId);
@@ -1451,8 +1462,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             };
 
             // Only include optional fields if they have values
-            if (post.publishDate) {
-              postData.publish_date = post.publishDate.toISOString();
+            if (post.publish_date) {
+              postData.publish_date = post.publish_date.toISOString();
             }
             if (post.billingMonth) {
               postData.billing_month = post.billingMonth;
@@ -1496,8 +1507,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             };
 
             // Only include publish_date if it exists
-            if (orig.publishDate) {
-              postData.publish_date = orig.publishDate.toISOString();
+            if (orig.publish_date) {
+              postData.publish_date = orig.publish_date.toISOString();
             }
 
             // Only include optional fields if they have values
@@ -1566,7 +1577,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             };
             
             // Apply business rule to shared post
-            const correctStatus = determineCorrectStatus(cloned.status, cloned.publishDate);
+            const correctStatus = determineCorrectStatus(cloned.status, cloned.publish_date);
             cloned.status = correctStatus;
             
             newArr.push(cloned);
@@ -2419,9 +2430,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               ...ws,
               boards: ws.boards.map((board) => {
                 const updatedPosts = board.posts.map((p) => {
-                  const correctStatus = determineCorrectStatus(p.status, p.publishDate);
+                  const correctStatus = determineCorrectStatus(p.status, p.publish_date);
                   if (correctStatus !== p.status) {
-                    console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publishDate: ${p.publishDate})`);
+                    console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publish_date: ${p.publish_date})`);
                     updatedCount++;
                     hasChanges = true;
                     return { ...p, status: correctStatus };
@@ -2504,10 +2515,10 @@ export const usePostStatusTimeUpdater = () => {
     for (const ws of workspaces) {
       for (const board of ws.boards) {
         for (const post of board.posts) {
-          if (post.publishDate) {
-            const publishDate = post.publishDate instanceof Date ? post.publishDate : new Date(post.publishDate);
-            if (!isNaN(publishDate.getTime())) {
-              const isPast = publishDate < now;
+          if (post.publish_date) {
+            const publish_date = post.publish_date instanceof Date ? post.publish_date : new Date(post.publish_date);
+            if (!isNaN(publish_date.getTime())) {
+              const isPast = publish_date < now;
               const needsUpdate = (isPast && post.status !== "Published" && post.status !== "Failed Publishing") ||
                                 (!isPast && (post.status === "Published" || post.status === "Failed Publishing"));
               if (needsUpdate) {
@@ -2580,14 +2591,14 @@ const findAccount = (brand: Brand | undefined, accountId: string) =>
  * If publish date is in the past, status should be 'Published' or 'Failed Publishing'
  * If publish date is in the future or null, status should be one of the other statuses
  */
-function determineCorrectStatus(currentStatus: Status, publishDate: Date | null): Status {
+function determineCorrectStatus(currentStatus: Status, publish_date: Date | null): Status {
   // If no publish date, keep current status
-  if (!publishDate) {
+  if (!publish_date) {
     return currentStatus;
   }
 
   // Convert to Date object if it's a string (due to JSON serialization)
-  const publishDateObj = publishDate instanceof Date ? publishDate : new Date(publishDate);
+  const publishDateObj = publish_date instanceof Date ? publish_date : new Date(publish_date);
   
   // Check if the date is valid
   if (isNaN(publishDateObj.getTime())) {

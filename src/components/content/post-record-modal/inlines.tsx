@@ -197,7 +197,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
   const updatePost = useFeedbirdStore(s => s.updatePost);
   const addActivity = useFeedbirdStore(s => s.addActivity);
 
-  const savedDate  = post.publishDate ? new Date(post.publishDate) : null;
+  const savedDate  = post.publish_date ? new Date(post.publish_date) : null;
   const hasDate    = !!savedDate;
   const isSched    = post.status === "Scheduled";
   const isPub      = post.status === "Published";
@@ -221,13 +221,13 @@ export function InlineDateEditor({ post }: { post: Post }) {
     
     if (suggestions.length) {
       scheduledDate = suggestions[0].date;
-      updatePost(post.id, { publishDate: scheduledDate });
+      updatePost(post.id, { publish_date: scheduledDate });
     } else {
       const fallback = new Date();
       fallback.setDate(fallback.getDate() + 7);
       fallback.setHours(9, 0, 0, 0);
       scheduledDate = fallback;
-      updatePost(post.id, { publishDate: fallback });
+      updatePost(post.id, { publish_date: fallback });
     }
     
     // Add scheduling activity
@@ -245,7 +245,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
     const [hh, mm] = timeVal.split(":").map(Number);
     const dt = new Date(tempDate);
     dt.setHours(hh, mm, 0, 0);
-    updatePost(post.id, { publishDate: dt });
+    updatePost(post.id, { publish_date: dt });
     
     // Add scheduling activity
     addActivity({
@@ -270,16 +270,16 @@ export function InlineDateEditor({ post }: { post: Post }) {
       action: "scheduled this post",
       type: "scheduled",
       metadata: {
-        publishTime: post.publishDate || new Date()
+        publishTime: post.publish_date || new Date()
       }
     });
   }
   function handleUnsched() {
-    updatePost(post.id, { publishDate: undefined, status: "Draft" });
+    updatePost(post.id, { publish_date: undefined, status: "Draft" });
   }
   function handlePublish() {
     const publishTime = new Date();
-    updatePost(post.id, { status: "Published", publishDate: publishTime });
+    updatePost(post.id, { status: "Published", publish_date: publishTime });
     
     // Add publishing activity
     addActivity({

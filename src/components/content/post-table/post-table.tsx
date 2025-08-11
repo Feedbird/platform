@@ -93,6 +93,7 @@ import Papa from "papaparse";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { RowHeightType, getRowHeightPixels } from "@/lib/utils";
 import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
+import { Switch } from "@/components/ui/switch";
 
 type FinalGroup = {
   groupValues: Record<string, any>   // e.g. { status: "Pending Approval", channels: "TikTok,LinkedIn" }
@@ -828,7 +829,7 @@ export function PostTable({
     children: [],
   });
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>(
-    {'platforms': 'Socials', 'publishDate': 'Post Time', 'updatedAt': 'Updated'}
+    {'platforms': 'Socials', 'publish_date': 'Post Time', 'updatedAt': 'Updated'}
   );
   
   const [renameColumnId, setRenameColumnId] = React.useState<string | null>(
@@ -925,7 +926,7 @@ export function PostTable({
         caption: { synced: false, default: "" },
         status: "Draft" as Status,
         format: "",
-        publishDate: null,
+        publish_date: null,
         platforms: [],
         pages: [],
         month: 1,
@@ -951,11 +952,11 @@ export function PostTable({
     Object.entries(groupValues).forEach(([key, value]) => {
       if (key === 'status') newPost.status = value as Status;
       if (key === 'format') newPost.format = value as ContentFormat;
-      if (key === 'publishDate') {
+      if (key === 'publish_date') {
         const dt = parse(String(value), "MMM, yyyy", new Date());
         if (!isNaN(dt.getTime())) {
             dt.setDate(15);
-            newPost.publishDate = dt;
+            newPost.publish_date = dt;
         }
       }
       // Add other properties as needed based on your grouping columns
@@ -979,7 +980,7 @@ export function PostTable({
         caption: orig.caption,
         status: orig.status,
         format: orig.format,
-        publishDate: orig.publishDate,
+        publish_date: orig.publish_date,
         platforms: orig.platforms,
         pages: orig.pages,
         billingMonth: orig.billingMonth,
@@ -1763,19 +1764,54 @@ export function PostTable({
         },
       },
       {
-        id: "publishDate",
-        accessorKey: "publishDate",
+        id: "publish_date",
+        accessorKey: "publish_date",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
-            <Image src={`/images/columns/post-time.svg`} alt="Publish Date" width={14} height={14} />
-            {"Post Time"}
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
+              <Image src={`/images/columns/post-time.svg`} alt="Publish Date" width={14} height={14} />
+              {"Post Time"}
+            </div>
+            <Switch
+              checked={!!boardRules?.autoSchedule}
+              onCheckedChange={(checked) => {
+                if (!activeBoardId) return;
+                const prevRules: BoardRules | undefined = boardRules;
+                const mergedRules: BoardRules = {
+                  autoSchedule: checked,
+                  revisionRules: prevRules?.revisionRules ?? false,
+                  approvalDeadline: prevRules?.approvalDeadline ?? false,
+                  firstMonth: prevRules?.firstMonth,
+                  ongoingMonth: prevRules?.ongoingMonth,
+                  approvalDays: prevRules?.approvalDays,
+                  groupBy: prevRules?.groupBy ?? null,
+                  sortBy: prevRules?.sortBy ?? null,
+                  rowHeight: prevRules?.rowHeight ?? rowHeight,
+                };
+                updateBoard(activeBoardId, { rules: mergedRules });
+              }}
+              className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
+              icon={
+                <span className="flex items-center justify-center w-full h-full">
+                  <img
+                    src="/images/boards/stars-01.svg"
+                    alt="star"
+                    className="w-2.5 h-2.5"
+                    style={{
+                      filter: boardRules?.autoSchedule ? undefined : 'grayscale(2) brightness(0.85)',
+                    }}
+                  />
+                </span>
+              }
+            />
           </div>
         ),
         minSize: 110,
         size: 230,
+        enableSorting : false,
         enableGrouping: true,
         getGroupingValue: (row) => {
-          return formatYearMonth(row.publishDate || undefined);
+          return formatYearMonth(row.publish_date || undefined);
         },
         cell: ({ row }) => {
           const post = row.original;
@@ -1812,7 +1848,7 @@ export function PostTable({
       },
       
     ];
-  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn]);
+  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn, boardRules, activeBoardId, updateBoard]);
 
   /** 2) user-defined columns **/
   const userColumnDefs: ColumnDef<Post>[] = React.useMemo(() => {
@@ -1976,7 +2012,7 @@ export function PostTable({
         "revision",
         "approve",
         "settings",
-        "publishDate",
+        "publish_date",
         "updatedAt",
       ]);
     }
@@ -2036,7 +2072,7 @@ export function PostTable({
         }
         return <FormatBadge kind={fmt as ContentFormat} widthFull={false} />;
       }
-      case "publishDate":
+      case "publish_date":
         if(!val) return <span className="text-base text-muted-foreground font-semibold">No time is set yet</span>;
         return <span className="text-base font-semibold">{String(val)}</span>;
       case "month":
@@ -2344,27 +2380,27 @@ export function PostTable({
               <>
               <div className="flex items-center">
                 {approvalInfo.type === 'approved' ? (
-                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-emerald-100 flex justify-center items-center gap-1 overflow-hidden">
+                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-emerald-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
                     <img 
                       src="/images/publish/check-circle.svg" 
                       alt="approved" 
-                      className="w-4 h-4"
+                      className="w-4 h-4 flex-shrink-0"
                     />
                     <span className="text-xs font-semibold leading-none">
                       {approvalInfo.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
-                    <span className="text-xs text-emerald-600 font-medium">
+                    <span className="text-xs text-emerald-600 font-medium truncate">
                       APPROVED
                     </span>
                   </div>
                 ) : approvalInfo.type === 'deadline' ? (
-                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-orange-100 flex justify-center items-center gap-1 overflow-hidden">
+                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-orange-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
                     <img 
                       src="/images/publish/clock-fast-forward.svg" 
                       alt="deadline" 
-                      className="w-4 h-4"
+                      className="w-4 h-4 flex-shrink-0"
                     />
-                    <span className="text-xs font-medium">
+                    <span className="text-xs font-medium truncate">
                       {approvalInfo.daysLeft} DAYS LEFT TO REVIEW
                     </span>
                   </div>

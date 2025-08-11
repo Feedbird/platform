@@ -57,14 +57,14 @@ const STATUSES: Status[] = [
  * If publish date is in the past, status should be 'Published' or 'Failed Publishing'
  * If publish date is in the future or null, status should be one of the other statuses
  */
-function determineCorrectStatus(currentStatus: Status, publishDate: Date | null): Status {
+function determineCorrectStatus(currentStatus: Status, publish_date: Date | null): Status {
   // If no publish date, keep current status
-  if (!publishDate) {
+  if (!publish_date) {
     return currentStatus;
   }
 
   // Convert to Date object if it's a string (due to JSON serialization)
-  const publishDateObj = publishDate instanceof Date ? publishDate : new Date(publishDate);
+  const publishDateObj = publish_date instanceof Date ? publish_date : new Date(publish_date);
   
   // Check if the date is valid
   if (isNaN(publishDateObj.getTime())) {
@@ -231,7 +231,7 @@ function makePost(
     },
     status: faker.helpers.arrayElement(statuses),
     format: faker.helpers.arrayElement(formats),
-    publishDate: faker.datatype.boolean() ? faker.date.future() : null,
+    publish_date: faker.datatype.boolean() ? faker.date.future() : null,
     updatedAt: faker.date.recent(),
     platforms: postPlatforms,
     pages: selectedPages.map(p => p.id),
@@ -254,7 +254,7 @@ function makePost(
   };
 
   // Apply business rule to determine correct status
-  post.status = determineCorrectStatus(post.status, post.publishDate);
+  post.status = determineCorrectStatus(post.status, post.publish_date);
   
   return post;
 }
