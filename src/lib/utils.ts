@@ -6,6 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Truncate text to a maximum number of characters, appending an ellipsis
+ * when the input exceeds the limit.
+ */
+export function truncateText(value: string, maxCharacters: number, ellipsis: string = '…'): string {
+  if (!value) return ''
+  if (value.length <= maxCharacters) return value
+  return value.slice(0, maxCharacters) + ellipsis
+}
+
+/**
  * Calculate the nearest aspect ratio from the target ratios (1:1, 4:5, 9:16)
  * and return the appropriate width for a given height
  */

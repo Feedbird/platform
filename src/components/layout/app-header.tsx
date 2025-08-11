@@ -47,7 +47,7 @@ import UploadProgressInline from "@/components/content/post-table/UploadProgress
 
 import { useFeedbirdStore }   from '@/lib/store/use-feedbird-store'
 import Link                   from 'next/link'
-import { cn }                 from '@/lib/utils'
+import { cn, truncateText }   from '@/lib/utils'
 
 export function AppHeader() {
   return (
@@ -440,7 +440,7 @@ function HeaderInner() {
                   className="text-sm font-medium text-black px-[8px] py-[5px] cursor-pointer hover:text-primary"
                   onClick={() => setBrandDetailsSidebarOpen(true)}
                 >
-                  {brand.name}
+                  {truncateText(brand.name, 10)}
                 </span>
                 <div className="w-0 h-2.5 outline outline-1 outline-offset-[-0.50px] outline-gray-100"></div>
                 <BrandSocialIcons />
