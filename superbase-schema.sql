@@ -118,6 +118,17 @@ CREATE TABLE IF NOT EXISTS post_history (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Activities table (normalized from posts.activities JSONB)
+CREATE TABLE IF NOT EXISTS activities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  actor TEXT NOT NULL,
+  action TEXT NOT NULL,
+  type TEXT NOT NULL,
+  metadata JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Members table
 CREATE TABLE IF NOT EXISTS members (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -141,6 +152,7 @@ CREATE INDEX IF NOT EXISTS idx_post_history_page_id ON post_history(page_id);
 CREATE INDEX IF NOT EXISTS idx_members_workspace_id ON members(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_members_board_id ON members(board_id);
 CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);
+CREATE INDEX IF NOT EXISTS idx_activities_post_id ON activities(post_id);
 
 -- Create RLS (Row Level Security) policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -153,6 +165,7 @@ ALTER TABLE social_pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE board_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for users table
 CREATE POLICY "Users can view their own data" ON users
@@ -401,6 +414,47 @@ CREATE POLICY "Users can update post history" ON post_history
 
 CREATE POLICY "Users can delete post history" ON post_history
   FOR DELETE USING (auth.jwt() ->> 'email' IS NOT NULL);
+
+-- Create policies for activities table
+CREATE POLICY "Users can view activities in their workspaces" ON activities
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM posts p
+      JOIN members m ON m.workspace_id = p.workspace_id
+      WHERE p.id = activities.post_id
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can create activities in their workspaces" ON activities
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM posts p
+      JOIN members m ON m.workspace_id = p.workspace_id
+      WHERE p.id = activities.post_id
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can update activities in their workspaces" ON activities
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM posts p
+      JOIN members m ON m.workspace_id = p.workspace_id
+      WHERE p.id = activities.post_id
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+
+CREATE POLICY "Users can delete activities in their workspaces" ON activities
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM posts p
+      JOIN members m ON m.workspace_id = p.workspace_id
+      WHERE p.id = activities.post_id
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
 
 -- Create policies for members table
 CREATE POLICY "Users can view members in their workspaces" ON members

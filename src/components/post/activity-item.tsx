@@ -153,9 +153,12 @@ export function ActivityItem({ activity, onViewVersionHistory, onRevertApproval 
           />
             {getActivityText()}
         </div>
-        <span className="text-xs text-grey">
-          {format(new Date(activity.at), "MMM d, p")}
-        </span>
+         <span className="text-xs text-grey">
+           {(() => {
+             const at = activity.at instanceof Date ? activity.at : new Date(activity.at as any);
+             return isNaN(at.getTime()) ? '' : format(at, "MMM d, p");
+           })()}
+         </span>
       </div>
       <div className="flex items-center gap-2 pl-5">
         {getActionButton()}

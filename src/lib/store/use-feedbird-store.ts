@@ -18,7 +18,7 @@ import { handleError } from "../utils/error-handler";
 import { BaseError } from "../utils/exceptions/base-error";
 import { withLoading } from "../utils/loading/loading-store";
 import { RowHeightType } from "../utils";
-import { storeApi, commentApi } from '@/lib/api/api-service'
+import { storeApi, commentApi, activityApi } from '@/lib/api/api-service'
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
 
 export interface BoardRules {
@@ -37,6 +37,8 @@ export interface BoardRules {
 export interface GroupMessage {
   id: string;
   author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
   text: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -46,6 +48,8 @@ export interface GroupMessage {
 export interface GroupComment {
   id: string;
   author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
   text: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -102,6 +106,8 @@ export interface BaseComment {
   parentId?: string;
   createdAt: Date;
   author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
   text: string;
   revisionRequested?: boolean;
 }
@@ -1723,219 +1729,123 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         // Comments
         addPostComment: async (postId, text, parentId, revisionRequested) => {
-          const cid = uuidv4();
-          const now = new Date();
-          
-          try {
-            // Call API to add comment to database
-            const { commentApi } = await import('@/lib/api/api-service');
-            const comment = await commentApi.addPostComment({
-              post_id: postId,
-              text,
-              parent_id: parentId,
-              revision_requested: revisionRequested,
-              author: getCurrentUserDisplayNameFromStore(get()),
-            });
+          const { commentApi } = await import('@/lib/api/api-service');
+          const comment = await commentApi.addPostComment({
+            post_id: postId,
+            text,
+            parent_id: parentId,
+            revision_requested: revisionRequested,
+            author: getCurrentUserDisplayNameFromStore(get()),
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
+          });
 
-            // If this is a revision comment, update the post status in the store
-            if (revisionRequested) {
-              const currentPost = get().getPost(postId);
-              if (currentPost) {
-                const allowedStatusesForRevision = [
-                  "Pending Approval",
-                  "Revised", 
-                  "Approved"
-                ];
-                
-                // If current status is in the allowed list, update to "Needs Revisions"
-                if (allowedStatusesForRevision.includes(currentPost.status)) {
-                  // Update the post status in the store
-                  set((s) => ({
-                    workspaces: s.workspaces.map((ws) => ({
-                      ...ws,
-                      boards: ws.boards.map((b) => ({
-                        ...b,
-                        posts: b.posts.map((p) => {
-                          if (p.id !== postId) return p;
-                          return {
-                            ...p,
-                            status: "Needs Revisions" as Status,
-                          };
-                        }),
-                      })),
+          if (revisionRequested) {
+            const currentPost = get().getPost(postId);
+            if (currentPost) {
+              const allowedStatusesForRevision = ["Pending Approval", "Revised", "Approved"];
+              if (allowedStatusesForRevision.includes(currentPost.status)) {
+                set((s) => ({
+                  workspaces: s.workspaces.map((ws) => ({
+                    ...ws,
+                    boards: ws.boards.map((b) => ({
+                      ...b,
+                      posts: b.posts.map((p) => (
+                        p.id !== postId ? p : { ...p, status: "Needs Revisions" as Status }
+                      )),
                     })),
-                  }));
-                }
+                  })),
+                }));
               }
             }
-
-            // Update store with the comment from database
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    const c: BaseComment = {
-                      id: comment.id,
-                      parentId: comment.parent_id,
-                      createdAt: new Date(comment.created_at),
-                      author: comment.author,
-                      text: comment.text,
-                      revisionRequested: comment.revision_requested
-                    };
-                    return {
-                      ...p,
-                      comments: [...p.comments, c],
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return comment.id;
-          } catch (error) {
-            console.error('Failed to add post comment:', error);
-            // Fallback to local-only update if API fails
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    const c: BaseComment = {
-                      id: cid,
-                      parentId,
-                      createdAt: now,
-                      author: getCurrentUserDisplayNameFromStore(get()),
-                      text,
-                      revisionRequested
-                    };
-                    return {
-                      ...p,
-                      comments: [...p.comments, c],
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return cid;
           }
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
+                  if (p.id !== postId) return p;
+                  const c: BaseComment = {
+                    id: comment.id,
+                    parentId: comment.parent_id,
+                    createdAt: new Date(comment.created_at),
+                    author: comment.author,
+                    authorEmail: (get() as any).user?.email,
+                    authorImageUrl: (get() as any).user?.imageUrl,
+                    text: comment.text,
+                    revisionRequested: comment.revision_requested,
+                  };
+                  return { ...p, comments: [...p.comments, c] };
+                }),
+              })),
+            })),
+          }));
+          return comment.id;
         },
         addBlockComment: async (postId, blockId, text, parentId, revisionRequested) => {
-          const cid = uuidv4();
-          const now = new Date();
-          
-          try {
-            // Call API to add comment to database
-            const { commentApi } = await import('@/lib/api/api-service');
-            const comment = await commentApi.addBlockComment({
-              post_id: postId,
-              block_id: blockId,
-              text,
-              parent_id: parentId,
-              revision_requested: revisionRequested,
-              author: getCurrentUserDisplayNameFromStore(get()),
-            });
+          const { commentApi } = await import('@/lib/api/api-service');
+          const comment = await commentApi.addBlockComment({
+            post_id: postId,
+            block_id: blockId,
+            text,
+            parent_id: parentId,
+            revision_requested: revisionRequested,
+            author: getCurrentUserDisplayNameFromStore(get()),
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
+          });
 
-            // If this is a revision comment, update the post status in the store
-            if (revisionRequested) {
-              const currentPost = get().getPost(postId);
-              if (currentPost) {
-                const allowedStatusesForRevision = [
-                  "Pending Approval",
-                  "Revised", 
-                  "Approved"
-                ];
-                
-                // If current status is in the allowed list, update to "Needs Revisions"
-                if (allowedStatusesForRevision.includes(currentPost.status)) {
-                  // Update the post status in the store
-                  set((s) => ({
-                    workspaces: s.workspaces.map((ws) => ({
-                      ...ws,
-                      boards: ws.boards.map((b) => ({
-                        ...b,
-                        posts: b.posts.map((p) => {
-                          if (p.id !== postId) return p;
-                          return {
-                            ...p,
-                            status: "Needs Revisions" as Status,
-                          };
-                        }),
-                      })),
+          if (revisionRequested) {
+            const currentPost = get().getPost(postId);
+            if (currentPost) {
+              const allowedStatusesForRevision = ["Pending Approval", "Revised", "Approved"];
+              if (allowedStatusesForRevision.includes(currentPost.status)) {
+                set((s) => ({
+                  workspaces: s.workspaces.map((ws) => ({
+                    ...ws,
+                    boards: ws.boards.map((b) => ({
+                      ...b,
+                      posts: b.posts.map((p) => (
+                        p.id !== postId ? p : { ...p, status: "Needs Revisions" as Status }
+                      )),
                     })),
-                  }));
-                }
+                  })),
+                }));
               }
             }
-
-            // Update store with the comment from database
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        const c: BaseComment = {
-                          id: comment.id,
-                          parentId: comment.parent_id,
-                          createdAt: new Date(comment.created_at),
-                          author: comment.author,
-                          text: comment.text,
-                          revisionRequested: comment.revision_requested
-                        };
-                        return {
-                          ...b,
-                          comments: [...b.comments, c],
-                        };
-                      }),
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return comment.id;
-          } catch (error) {
-            console.error('Failed to add block comment:', error);
-            // Fallback to local-only update if API fails
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        const c: BaseComment = {
-                          id: cid,
-                          parentId,
-                          createdAt: now,
-                          author: getCurrentUserDisplayNameFromStore(get()),
-                          text,
-                          revisionRequested
-                        };
-                        return {
-                          ...b,
-                          comments: [...b.comments, c],
-                        };
-                      }),
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return cid;
           }
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
+                  if (p.id !== postId) return p;
+                  return {
+                    ...p,
+                    blocks: p.blocks.map((b) => {
+                      if (b.id !== blockId) return b;
+                      const c: BaseComment = {
+                        id: comment.id,
+                        parentId: comment.parent_id,
+                        createdAt: new Date(comment.created_at),
+                        author: comment.author,
+                        authorEmail: (get() as any).user?.email,
+                        authorImageUrl: (get() as any).user?.imageUrl,
+                        text: comment.text,
+                        revisionRequested: comment.revision_requested,
+                      };
+                      return { ...b, comments: [...b.comments, c] };
+                    }),
+                  };
+                }),
+              })),
+            })),
+          }));
+          return comment.id;
         },
         addVersionComment: async (
           postId: string,
@@ -1946,139 +1856,84 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           parentId?: string,
           revisionRequested?: boolean
         ) => {
-          const cid = uuidv4();
-          const now = new Date();
-          
-          try {
-            // Call API to add comment to database
-            const { commentApi } = await import('@/lib/api/api-service');
-            const comment = await commentApi.addVersionComment({
-              post_id: postId,
-              block_id: blockId,
-              version_id: verId,
-              text,
-              parent_id: parentId,
-              revision_requested: revisionRequested,
-              author: getCurrentUserDisplayNameFromStore(get()),
-              rect,
-            });
+          const { commentApi } = await import('@/lib/api/api-service');
+          const comment = await commentApi.addVersionComment({
+            post_id: postId,
+            block_id: blockId,
+            version_id: verId,
+            text,
+            parent_id: parentId,
+            revision_requested: revisionRequested,
+            author: getCurrentUserDisplayNameFromStore(get()),
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
+            rect,
+          });
 
-            // If this is a revision comment, check if we need to update the post status
-            if (revisionRequested) {
-              const currentPost = get().getPost(postId);
-              if (currentPost) {
-                const allowedStatusesForRevision = [
-                  "Pending Approval",
-                  "Revised", 
-                  "Approved"
-                ];
-                
-                // If current status is in the allowed list, update to "Needs Revisions"
-                if (allowedStatusesForRevision.includes(currentPost.status)) {
-                  // Update the post status in the store
-                  set((s) => ({
-                    workspaces: s.workspaces.map((ws) => ({
-                      ...ws,
-                      boards: ws.boards.map((b) => ({
-                        ...b,
-                        posts: b.posts.map((p) => {
-                          if (p.id !== postId) return p;
-                          return {
-                            ...p,
-                            status: "Needs Revisions" as Status,
-                          };
-                        }),
-                      })),
+          if (revisionRequested) {
+            const currentPost = get().getPost(postId);
+            if (currentPost) {
+              const allowedStatusesForRevision = ["Pending Approval", "Revised", "Approved"];
+              if (allowedStatusesForRevision.includes(currentPost.status)) {
+                set((s) => ({
+                  workspaces: s.workspaces.map((ws) => ({
+                    ...ws,
+                    boards: ws.boards.map((b) => ({
+                      ...b,
+                      posts: b.posts.map((p) => (
+                        p.id !== postId ? p : { ...p, status: "Needs Revisions" as Status }
+                      )),
                     })),
-                  }));
-                }
+                  })),
+                }));
               }
             }
-
-            // Update store with the comment from database
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        return {
-                          ...b,
-                          versions: b.versions.map((v) => {
-                            if (v.id !== verId) return v;
-                            const c: VersionComment = {
-                              id: comment.id,
-                              parentId: comment.parent_id,
-                              createdAt: new Date(comment.created_at),
-                              author: comment.author,
-                              text: comment.text,
-                              revisionRequested: comment.revision_requested
-                            };
-                            if (comment.rect) c.rect = comment.rect;
-                            return {
-                              ...v,
-                              comments: [...v.comments, c],
-                            };
-                          }),
-                        };
-                      })
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return comment.id;
-          } catch (error) {
-            console.error('Failed to add version comment:', error);
-            // Fallback to local-only update if API fails
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        return {
-                          ...b,
-                          versions: b.versions.map((v) => {
-                            if (v.id !== verId) return v;
-                            const c: VersionComment = {
-                              id: cid,
-                              parentId,
-                              createdAt: now,
-                              author: getCurrentUserDisplayNameFromStore(get()),
-                              text,
-                              revisionRequested
-                            };
-                            if (rect) c.rect = rect;
-                            return {
-                              ...v,
-                              comments: [...v.comments, c],
-                            };
-                          }),
-                        };
-                      })
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return cid;
           }
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
+                  if (p.id !== postId) return p;
+                  return {
+                    ...p,
+                    blocks: p.blocks.map((b) => {
+                      if (b.id !== blockId) return b;
+                      return {
+                        ...b,
+                        versions: b.versions.map((v) => {
+                          if (v.id !== verId) return v;
+                          const c: VersionComment = {
+                            id: comment.id,
+                            parentId: comment.parent_id,
+                            createdAt: new Date(comment.created_at),
+                            author: comment.author,
+                            authorEmail: (get() as any).user?.email,
+                            authorImageUrl: (get() as any).user?.imageUrl,
+                            text: comment.text,
+                            revisionRequested: comment.revision_requested,
+                          };
+                          if (comment.rect) c.rect = comment.rect;
+                          return { ...v, comments: [...v.comments, c] };
+                        }),
+                      };
+                    })
+                  };
+                }),
+              })),
+            })),
+          }));
+          return comment.id;
         },
 
         // Activities
         addActivity: (act) => {
-          const id = uuidv4();
+          const optimisticId = uuidv4();
+          const optimisticAt = new Date();
+
+          // Optimistic update
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
@@ -2091,8 +1946,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     activities: [
                       {
                         ...act,
-                        id,
-                        at: new Date(),
+                        id: optimisticId,
+                        at: optimisticAt,
                       },
                       ...p.activities
                     ],
@@ -2101,6 +1956,57 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               })),
             })),
           }));
+
+          // Persist to DB
+          activityApi.addActivity({
+            post_id: act.postId,
+            actor: act.actor,
+            action: act.action,
+            type: act.type,
+            metadata: act.metadata,
+          }).then((saved) => {
+            // Replace optimistic entry with saved one (using returned id/created_at)
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
+                    if (p.id !== act.postId) return p;
+                    return {
+                      ...p,
+                      activities: p.activities.map((a) =>
+                        a.id === optimisticId
+                          ? {
+                              ...a,
+                              id: saved.id,
+                              at: new Date(saved.created_at),
+                            }
+                          : a
+                      ),
+                    };
+                  }),
+                })),
+              })),
+            }));
+          }).catch(() => {
+            // On failure, remove the optimistic activity
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
+                    if (p.id !== act.postId) return p;
+                    return {
+                      ...p,
+                      activities: p.activities.filter((a) => a.id !== optimisticId),
+                    };
+                  }),
+                })),
+              })),
+            }));
+          });
         },
 
         // Boards
@@ -2169,6 +2075,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const optimisticComment: GroupComment = {
             id: commentId,
             author,
+            authorEmail: userEmail || undefined,
+            authorImageUrl: (get() as any).user?.imageUrl,
             text,
             createdAt: new Date(),
             resolved: false,
@@ -2311,6 +2219,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const newMessage: GroupMessage = {
             id: messageId,
             author,
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
             text,
             createdAt: new Date(),
             replies: []

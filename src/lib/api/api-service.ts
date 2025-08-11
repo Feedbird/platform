@@ -1,4 +1,21 @@
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+
+// Normalize activities from API/DB into store Activity shape
+function normalizeActivities(items: any[] | undefined) {
+  return (items || []).map((a: any) => {
+    const created = a.created_at ?? a.at;
+    const postId = a.post_id ?? a.postId;
+    return {
+      id: a.id,
+      postId,
+      actor: a.actor,
+      action: a.action,
+      type: a.type,
+      at: created instanceof Date ? created : new Date(created),
+      metadata: a.metadata,
+    } as any;
+  });
+}
 import { User, Workspace, Brand, Board, Post } from '@/lib/supabase/client'
 
 // API Base URL
@@ -394,6 +411,23 @@ export const storeApi = {
         }
       })
 
+      // Helper to normalize activities from DB/API to store shape
+      const normalizeActivities = (items: any[] | undefined) => {
+        return (items || []).map((a: any) => {
+          const created = a.created_at ?? a.at;
+          const postId = a.post_id ?? a.postId;
+          return {
+            id: a.id,
+            postId,
+            actor: a.actor,
+            action: a.action,
+            type: a.type,
+            at: created instanceof Date ? created : new Date(created),
+            metadata: a.metadata,
+          } as any;
+        });
+      };
+
       // Fetch brand and posts for each workspace
       const workspacesWithBrands = await Promise.all(
         transformedWorkspaces.map(async ws => {
@@ -406,7 +440,19 @@ export const storeApi = {
               const postsResp = await postApi.getPost({ board_id: board.id })
               const posts = Array.isArray(postsResp) ? postsResp as Post[] : [postsResp as Post]
 
-              const transformedPosts = posts.map(p => ({
+              // Fetch activities per post and attach to each post
+              const postsWithActivities = await Promise.all(
+                posts.map(async (p) => {
+                  try {
+                    const acts = await activityApi.getActivities(p.id)
+                    return { ...p, activities: normalizeActivities(acts) }
+                  } catch {
+                    return { ...p, activities: normalizeActivities(p.activities) }
+                  }
+                })
+              )
+
+              const transformedPosts = postsWithActivities.map(p => ({
                 id: p.id,
                 workspaceId: p.workspace_id ?? ws.id,
                 boardId: p.board_id,
@@ -423,7 +469,7 @@ export const storeApi = {
                 hashtags: p.hashtags,
                 blocks: p.blocks || [],
                 comments: p.comments || [],
-                activities: p.activities || []
+                activities: normalizeActivities(p.activities)
               }))
 
               return {
@@ -694,6 +740,16 @@ export const storeApi = {
       // Fetch the posts that were automatically created for this board
       const posts = await postApi.getPost({ board_id: board.id })
       const boardPosts = Array.isArray(posts) ? posts : [posts]
+      const boardPostsWithActivities = await Promise.all(
+        boardPosts.map(async (post) => {
+          try {
+            const acts = await activityApi.getActivities(post.id)
+            return { ...post, activities: normalizeActivities(acts) }
+          } catch {
+            return { ...post, activities: normalizeActivities(post.activities) }
+          }
+        })
+      )
       
       const store = useFeedbirdStore.getState()
       
@@ -711,7 +767,7 @@ export const storeApi = {
               rules: board.rules,
               groupData: board.group_data || [],
               createdAt: new Date(),
-              posts: boardPosts.map(post => ({
+                 posts: boardPostsWithActivities.map(post => ({
                 id: post.id,
                 workspaceId: post.workspace_id,
                 boardId: post.board_id,
@@ -728,7 +784,7 @@ export const storeApi = {
                 hashtags: post.hashtags,
                 blocks: post.blocks || [],
                 comments: post.comments || [],
-                activities: post.activities || []
+                   activities: normalizeActivities(post.activities)
               }))
             }]
           }
@@ -1091,6 +1147,8 @@ export const commentApi = {
     parent_id?: string
     revision_requested?: boolean
     author: string
+    authorEmail?: string
+    authorImageUrl?: string
   }) => {
     return apiRequest<any>('/post/comment', {
       method: 'POST',
@@ -1123,6 +1181,8 @@ export const commentApi = {
     parent_id?: string
     revision_requested?: boolean
     author: string
+    authorEmail?: string
+    authorImageUrl?: string
   }) => {
     return apiRequest<any>('/post/block/comment', {
       method: 'POST',
@@ -1156,6 +1216,8 @@ export const commentApi = {
     parent_id?: string
     revision_requested?: boolean
     author: string
+    authorEmail?: string
+    authorImageUrl?: string
     rect?: { x: number; y: number; w: number; h: number }
   }) => {
     return apiRequest<any>('/post/block/version/comment', {
@@ -1179,3 +1241,22 @@ export const commentApi = {
 }
 
 export { ApiError } 
+ 
+// Activity API functions
+export const activityApi = {
+  getActivities: async (postId: string) => {
+    return apiRequest<any[]>(`/post/activity?post_id=${postId}`)
+  },
+  addActivity: async (data: {
+    post_id: string
+    actor: string
+    action: string
+    type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing'
+    metadata?: any
+  }) => {
+    return apiRequest<any>('/post/activity', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+}

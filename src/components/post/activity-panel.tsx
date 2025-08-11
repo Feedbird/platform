@@ -34,54 +34,15 @@ import {
 } from "@/lib/store/use-feedbird-store";
 import { cn } from "@/lib/utils";
 import { StatusChip } from "@/components/content/shared/content-post-ui";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ActivityItem } from "./activity-item";
 import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
+import { formatTimeAgo } from "@/lib/utils";
 
-export function ago(d: Date) {
-  const s = ~~((Date.now() - +d) / 1000);
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${~~(s / 60)}m ago`;
-  if (s < 86400) return `${~~(s / 3600)}h ago`;
-  return d.toLocaleDateString();
-}
+// using shared formatTimeAgo from utils
 
-const COLORS = [
-  "bg-rose-500",
-  "bg-pink-500",
-  "bg-fuchsia-500",
-  "bg-purple-500",
-  "bg-violet-500",
-  "bg-indigo-500",
-  "bg-blue-500",
-  "bg-sky-500",
-  "bg-cyan-500",
-  "bg-teal-500",
-  "bg-emerald-500",
-  "bg-green-500",
-  "bg-lime-500",
-  "bg-yellow-500",
-  "bg-amber-500",
-];
-
-export function avatarColor(name: string) {
-  return COLORS[
-    name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length
-  ];
-}
-
-export function Avatar({ name }: { name: string }) {
-  return (
-    <div
-      className={cn(
-        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0",
-        avatarColor(name)
-      )}
-    >
-      {name[0].toUpperCase()}
-    </div>
-  );
-}
+// Removed local Avatar in favor of shared UI Avatar with imageUrl support
 
 function MessageItem({
   c,
@@ -164,12 +125,15 @@ function MessageItem({
                   fill="none"
                 />
               </svg>
-              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                {c.author.charAt(0).toUpperCase()}
-              </div>
+              <Avatar className="w-5 h-5">
+                <AvatarImage src={c.authorImageUrl} alt={c.author} />
+                <AvatarFallback className="text-[10px] font-medium">
+                  {c.author?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <span className="text-sm font-medium text-black">{c.author}</span>
             </div>
-            <span className="text-xs text-darkGrey">{ago(new Date(c.createdAt))}</span>
+            <span className="text-xs text-darkGrey">{formatTimeAgo(c.createdAt)}</span>
           </div>
           
           {/* Message content */}
@@ -248,7 +212,7 @@ export function RevisionComment({
   const commentContentRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const [lineStyle, setLineStyle] = useState<React.CSSProperties>({});
-
+  console.log("comment: ", c);
   useLayoutEffect(() => {
     const calculateLineStyle = () => {
       if (showCommentReplies && replies.length > 0 && commentContentRef.current && lastMessageRef.current) {
@@ -291,12 +255,15 @@ export function RevisionComment({
             {/* Header with avatar, name and time in same div */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                  {c.author.charAt(0).toUpperCase()}
-                </div>
+                <Avatar className="w-5 h-5">
+                  <AvatarImage src={c.authorImageUrl} alt={c.author} />
+                  <AvatarFallback className="text-[10px] font-medium">
+                    {c.author?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="text-sm font-medium text-black">{c.author}</span>
               </div>
-              <span className="text-xs text-darkGrey">{ago(new Date(c.createdAt))}</span>
+              <span className="text-xs text-darkGrey">{formatTimeAgo(c.createdAt)}</span>
             </div>
             
             {/* Comment content */}
@@ -605,7 +572,11 @@ export function ActivityPanel({
           (activities.length > 0 ) ? (
             <ScrollArea className="flex-1 min-h-0 p-4 pb-[130px]">
                              <div className="relative">
-                 {sortedActivities.map((activity, index) => (
+                 {sortedActivities.map((activity, index) => {
+                   const matchingComment = comments.find(
+                     (c) => c.id === activity.metadata?.commentId
+                   );
+                   return (
                    <div
                      key={activity.id} 
                      ref={el => { activityRefs.current[index] = el; }} 
@@ -642,6 +613,8 @@ export function ActivityPanel({
                                id: activity.metadata.commentId,
                                text: activity.metadata.revisionComment,
                                author: activity.actor,
+                               authorEmail: matchingComment?.authorEmail,
+                               authorImageUrl: matchingComment?.authorImageUrl,
                                createdAt: activity.at,
                                parentId: undefined,
                              } as BaseComment}
@@ -654,7 +627,7 @@ export function ActivityPanel({
                        </div>
                      )}
                    </div>
-                 ))}
+                 )})}
               </div>
               <div ref={endRef} />
             </ScrollArea>

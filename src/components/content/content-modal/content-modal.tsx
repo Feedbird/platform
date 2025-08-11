@@ -47,6 +47,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { avatarColor, CommentsPanel } from "@/components/post/comments-panel";
+import { formatTimeAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
   useFeedbirdStore,
@@ -54,7 +55,7 @@ import {
   VersionComment,
   Post,
 } from "@/lib/store/use-feedbird-store";
-import { Avatar, ago } from "@/components/post/comments-panel";
+import { Avatar } from "@/components/post/comments-panel";
 
 /* ------------------------------------------------------------------
    #1 “PinBubble” – Renders a single comment in pinned sub-thread
@@ -79,9 +80,7 @@ function PinBubble({
       <div className="flex gap-3 items-center">
         <Avatar name={comment.author} />
         <span className="font-medium text-sm text-black">{comment.author}</span>
-        <span className="text-xs text-muted-foreground">
-          {ago(new Date(comment.createdAt))}
-        </span>
+        <span className="text-xs text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
       </div>
 
       {/* actual bubble => comment text + reply button */}

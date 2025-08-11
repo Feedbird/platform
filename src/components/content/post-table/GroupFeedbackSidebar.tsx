@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { X, Bell, ArrowRight, Smile, AtSign, MessageSquare, CheckCircle, ChevronDown, ChevronLeft, Copy, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { GroupComment, GroupMessage } from "@/lib/store/use-feedbird-store";
 import EmojiPicker from "emoji-picker-react";
+import { formatTimeAgo as sharedFormatTimeAgo } from "@/lib/utils";
 
 interface GroupFeedbackSidebarProps {
   isOpen: boolean;
@@ -101,9 +103,12 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   fill="none"
                 />
               </svg>
-              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                {message.author.charAt(0).toUpperCase()}
-              </div>
+              <Avatar className="w-5 h-5">
+                <AvatarImage src={message.authorImageUrl} alt={message.author} />
+                <AvatarFallback className="text-[10px] font-medium">
+                  {message.author?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <span className="text-sm font-medium text-black">{message.author}</span>
             </div>
             <span className="text-xs text-darkGrey">{formatTimeAgo(message.createdAt)}</span>
@@ -226,9 +231,12 @@ const CommentItem: React.FC<{
             {/* Header with avatar, name and time in same div */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                  {comment.author.charAt(0).toUpperCase()}
-                </div>
+                <Avatar className="w-5 h-5">
+                  <AvatarImage src={comment.authorImageUrl} alt={comment.author} />
+                  <AvatarFallback className="text-[10px] font-medium">
+                    {comment.author?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="text-sm font-medium text-black">{comment.author}</span>
               </div>
               <span className="text-xs text-darkGrey">{formatTimeAgo(comment.createdAt)}</span>
@@ -370,19 +378,7 @@ export function GroupFeedbackSidebar({
     }
   };
 
-  const formatTimeAgo = (date: Date | string) => {
-    const now = new Date();
-    const d = typeof date === "string" ? new Date(date) : date;
-    const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-    
-    if (diff < 60) return "Just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-    if (diff < 2592000) return `${Math.floor(diff / 604800)}w ago`;
-    if (diff < 31536000) return `${Math.floor(diff / 2592000)}mo ago`;
-    return `${Math.floor(diff / 31536000)}y ago`;
-  };
+  const formatTimeAgo = (date: Date | string) => sharedFormatTimeAgo(date);
 
   const toggleReplies = (commentId: string) => {
     setShowReplies(prev => ({
@@ -505,9 +501,12 @@ export function GroupFeedbackSidebar({
                         <div className="bg-white p-3 rounded-sm border border-grey/20">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                                {comment.author.charAt(0).toUpperCase()}
-                              </div>
+                              <Avatar className="w-5 h-5">
+                                <AvatarImage src={comment.authorImageUrl} alt={comment.author} />
+                                <AvatarFallback className="text-[10px] font-medium">
+                                  {comment.author?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
                               <span className="text-sm font-medium text-black">{comment.author}</span>
                             </div>
                             <span className="text-xs text-darkGrey">{formatTimeAgo(comment.createdAt)}</span>

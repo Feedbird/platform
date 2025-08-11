@@ -10,6 +10,8 @@ const CreateBlockCommentSchema = z.object({
   parent_id: z.string().uuid().optional(),
   revision_requested: z.boolean().optional(),
   author: z.string().min(1, 'Author is required'),
+  authorEmail: z.string().email().optional(),
+  authorImageUrl: z.string().url().optional(),
 })
 
 const UpdateBlockCommentSchema = z.object({
@@ -106,6 +108,8 @@ export async function POST(req: NextRequest) {
       parent_id: validatedData.parent_id,
       created_at: new Date().toISOString(),
       author: validatedData.author,
+      authorEmail: validatedData.authorEmail,
+      authorImageUrl: validatedData.authorImageUrl,
       text: validatedData.text,
       revision_requested: validatedData.revision_requested || false,
     }

@@ -152,6 +152,23 @@ export function getRowHeightOptions() {
 }
 
 /**
+ * Format a date as a concise relative time string (e.g., "Just now", "5m ago", "2h ago").
+ */
+export function formatTimeAgo(date: Date | string): string {
+  const now = new Date();
+  const d = typeof date === "string" ? new Date(date) : date;
+  const diffSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
+
+  if (diffSeconds < 60) return "Just now";
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`;
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`;
+  if (diffSeconds < 604800) return `${Math.floor(diffSeconds / 86400)}d ago`;
+  if (diffSeconds < 2592000) return `${Math.floor(diffSeconds / 604800)}w ago`;
+  if (diffSeconds < 31536000) return `${Math.floor(diffSeconds / 2592000)}mo ago`;
+  return `${Math.floor(diffSeconds / 31536000)}y ago`;
+}
+
+/**
  * Exact palettes for months 1–10.
  */
 const MONTH_COLORS: string[] = [

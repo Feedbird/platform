@@ -27,15 +27,7 @@ import {
   BaseComment,
   useFeedbirdStore,
 } from "@/lib/store/use-feedbird-store";
-import { cn } from "@/lib/utils";
-
-export function ago(d: Date) {
-  const s = ~~((Date.now() - +d) / 1000);
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${~~(s / 60)}m ago`;
-  if (s < 86400) return `${~~(s / 3600)}h ago`;
-  return d.toLocaleDateString();
-}
+import { cn, formatTimeAgo } from "@/lib/utils";
 
 const COLORS = [
   "bg-rose-500",
@@ -93,9 +85,7 @@ export function Bubble({
         <div className="flex gap-3 items-center">
           <Avatar name={c.author} />
           <span className="font-medium text-sm text-black">{c.author}</span>
-          <span className="text-xs text-muted-foreground">
-            {ago(new Date(c.createdAt))}
-          </span>
+          <span className="text-xs text-muted-foreground">{formatTimeAgo(c.createdAt)}</span>
         </div>
         <div className="pl-11 rounded-xl w-full">
           <div className="bg-white border rounded-[8px] shadow-sm w-full p-2">
