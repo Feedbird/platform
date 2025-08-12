@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -18,11 +18,13 @@ import {
   Send,
   Archive,
   X,
+  Calendar,
 } from "lucide-react";
 
 // Toggle import removed as it's not used presently
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { DateTimeSelector } from "@/components/content/post-table/DateTimeSelector";
 import {
   HoverCard,
   HoverCardTrigger,
@@ -43,6 +45,7 @@ import {
 } from "@/components/content/shared/content-post-ui";
 import { cn, getMonthColor, getBulletColor } from '@/lib/utils'
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useSidebar } from "@/components/ui/sidebar";
 // Reuse existing thumbnail component for consistent video/image preview
 
 
@@ -50,14 +53,13 @@ import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
    CSS overrides for FullCalendar
    ------------------------------------------------------------------ */
 const calendarStyles = `
-  /* Basic text in the toolbar is smaller */
   .my-toolbar * {
     font-size: 0.85rem !important;
   }
 
   /* Day-of-week headers smaller, lighter text (we will hide the entire header row) */
   .fc .fc-col-header-cell {
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--calendar-scale, 1));
     font-weight: 400;
     color: #666;
   }
@@ -93,7 +95,7 @@ const calendarStyles = `
   /* Maintain 169:240 (width:height) scale with 12px padding but without hard-coding exact pixel sizes */
   .fc-daygrid-day-frame {
     position: relative;
-    padding: 12px !important;
+    padding: calc(12px * var(--calendar-scale, 1)) !important;
     overflow: visible;
   }
 
@@ -146,6 +148,18 @@ const calendarStyles = `
     display: block;
   }
 
+  /* Allow taller events in compact month view */
+  .fc-dayGridMonthCompact-view .fc-daygrid-day-events {
+    overflow: visible !important;
+  }
+  .fc-dayGridMonthCompact-view .fc-daygrid-event-harness,
+  .fc-dayGridMonthCompact-view .fc-daygrid-event,
+  .fc-dayGridMonthCompact-view .fc-event,
+  .fc-dayGridMonthCompact-view .fc-h-event {
+    height: auto !important;
+    max-height: none !important;
+  }
+
   
   /* Empty cell aspect ratios for grid consistency */
   .fc-dayGridMonth-view .fc-daygrid-day-events:not(:has(a.fc-event))::before {
@@ -179,11 +193,10 @@ const calendarStyles = `
     display: flex;
     background-color: #fff;
     flex-direction: column;
-    gap: 8px;
+    gap: calc(8px * var(--calendar-scale, 1));
     width: 100%;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--calendar-scale, 1));
     aspect-ratio: 145 / 188;
-    margin-bottom: 8px; /* bottom padding */
     cursor: pointer;
     border: 1px solid #e5e7eb; /* light border */
     box-shadow: 0 2px 4px rgba(0,0,0,0.12); /* subtle bottom shadow */
@@ -200,13 +213,13 @@ const calendarStyles = `
     background-size: cover;
     background-position: center;
     background-color: #e5e7eb; /* gray placeholder */
-    border-radius: 6px;
+    border-radius: calc(6px * var(--calendar-scale, 1));
   }
 
   .my-event-item .caption-box {
     background-color: #fff;
-    border-radius: 6px;
-    padding: 4px 6px;
+    border-radius: calc(6px * var(--calendar-scale, 1));
+    padding: calc(4px * var(--calendar-scale, 1)) calc(6px * var(--calendar-scale, 1));
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -215,40 +228,136 @@ const calendarStyles = `
 
  .my-event-item .caption-text {
     font-weight: 500 !important; /* font-medium */
-    line-height: 1.125rem !important; /* tighter line height */
+    font-size: calc(0.875rem * var(--calendar-scale, 1)) !important;
+    line-height: calc(1.125rem * var(--calendar-scale, 1)) !important; /* tighter line height */
     color: #000 !important;
     display: -webkit-box !important;
     -webkit-box-orient: vertical !important;
     -webkit-line-clamp: 2 !important; /* show exactly two lines */
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    max-height: 2.25rem !important; /* exactly 2 lines (1.125rem * 2) */
+    /* Force a consistent two-line block height regardless of title length */
+    min-height: calc(2.25rem * var(--calendar-scale, 1)) !important; /* 2 * line-height */
+    max-height: calc(2.25rem * var(--calendar-scale, 1)) !important; /* 2 * line-height */
+    height: calc(2.25rem * var(--calendar-scale, 1)) !important;        /* 2 * line-height */
     word-break: break-word !important;
     white-space: normal !important; /* ensure text wraps */
-    padding-top: 4px;
   }
 
   .my-event-item .meta {
-    font-size: 0.6rem;
+    font-size: calc(0.6rem * var(--calendar-scale, 1));
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 4px;
   }
 
   /* Platform icon stack overlap */
   .platform-stack > * + * {
-    margin-left: -8px; /* overlap amount */
+    margin-left: calc(-8px * var(--calendar-scale, 1)); /* overlap amount */
   }
 
   /* Compact specific overlap */
   .my-event-item-compact .platform-stack > * + * {
-    margin-left: -6px;
+    margin-left: calc(-6px * var(--calendar-scale, 1));
   }
 
   /* blue tint for the time icon */
   .time-icon {
     filter: invert(29%) sepia(93%) saturate(2612%) hue-rotate(203deg) brightness(94%) contrast(101%);
+    width: calc(14px * var(--calendar-scale, 1)) !important;
+    height: calc(14px * var(--calendar-scale, 1)) !important;
+  }
+
+  /* Time label text scaling */
+  .my-event-item .time-label { 
+    font-size: calc(0.875rem * var(--calendar-scale, 1));
+  }
+  .my-event-item-compact .time-label {
+    font-size: calc(0.7rem * var(--compact-scale, var(--calendar-scale, 1)));
+  }
+
+  /* Ensure time icon scales in compact card */
+  .my-event-item-compact .time-icon {
+    width: calc(14px * var(--compact-scale, var(--calendar-scale, 1))) !important;
+    height: calc(14px * var(--compact-scale, var(--calendar-scale, 1))) !important;
+  }
+
+  /* Format icon scaling */
+  .my-event-item .format-icon {
+    width: calc(22px * var(--calendar-scale, 1)) !important;
+    height: calc(22px * var(--calendar-scale, 1)) !important;
+  }
+  .my-event-item-compact .format-icon {
+    width: calc(16px * var(--compact-scale, var(--calendar-scale, 1))) !important;
+    height: calc(16px * var(--compact-scale, var(--calendar-scale, 1))) !important;
+  }
+
+  /* Status badge scaling */
+  .my-event-item .status-badge {
+    padding: calc(4px * var(--calendar-scale, 1)) calc(6px * var(--calendar-scale, 1));
+    border-radius: calc(4px * var(--calendar-scale, 1));
+  }
+  .my-event-item .status-badge img {
+    width: calc(14px * var(--calendar-scale, 1)) !important;
+    height: calc(14px * var(--calendar-scale, 1)) !important;
+  }
+  .my-event-item .status-badge span {
+    font-size: calc(0.75rem * var(--calendar-scale, 1));
+  }
+
+  /* Platform icon sizes */
+  .my-event-item .platform-stack img {
+    width: calc(24px * var(--calendar-scale, 1)) !important;
+    height: calc(24px * var(--calendar-scale, 1)) !important;
+  }
+  .my-event-item-compact .platform-stack img {
+    width: calc(16px * var(--compact-scale, var(--calendar-scale, 1))) !important;
+    height: calc(16px * var(--compact-scale, var(--calendar-scale, 1))) !important;
+  }
+
+  /* More badge (e.g., 3+) sizing for platform stacks */
+  .platform-more-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background-color: #d1d5db; /* gray-300 */
+    color: #374151; /* gray-700 */
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .platform-more-badge-lg {
+    height: calc(24px * var(--calendar-scale, 1));
+    min-width: calc(24px * var(--calendar-scale, 1));
+    padding: 0 calc(6px * var(--calendar-scale, 1));
+    font-size: calc(0.75rem * var(--calendar-scale, 1));
+  }
+  .platform-more-badge-sm {
+    height: calc(20px * var(--calendar-scale, 1));
+    min-width: calc(20px * var(--calendar-scale, 1));
+    padding: 0 calc(6px * var(--calendar-scale, 1));
+    font-size: calc(0.7rem * var(--calendar-scale, 1));
+  }
+
+  /* In compact cards, make +N badge match platform icon size */
+  .my-event-item-compact .platform-more-badge {
+    height: calc(16px * var(--compact-scale, var(--calendar-scale, 1)));
+    min-width: calc(16px * var(--compact-scale, var(--calendar-scale, 1)));
+    padding: 0;
+    font-size: calc(0.55rem * var(--compact-scale, var(--calendar-scale, 1)));
+    line-height: 1;
+  }
+
+  /* Play overlay scaling */
+  .my-event-item .play-overlay .circle {
+    width: calc(32px * var(--calendar-scale, 1));
+    height: calc(32px * var(--calendar-scale, 1));
+  }
+  .my-event-item .play-overlay .triangle {
+    border-top-width: calc(6px * var(--calendar-scale, 1));
+    border-bottom-width: calc(6px * var(--calendar-scale, 1));
+    border-left-width: calc(8px * var(--calendar-scale, 1));
   }
 
   /* -------------------------------------------------------------
@@ -256,30 +365,39 @@ const calendarStyles = `
      ------------------------------------------------------------- */
   .my-event-item-compact {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     width: 100%;
-    border-radius: 6px;
+    aspect-ratio: 145 / 48; /* ensures card height scales with width */
+    border-radius: calc(6px * var(--compact-scale, var(--calendar-scale, 1)));
     border: 1px solid #e5e7eb;
     background-color: #fff;
-    padding: 4px 6px;
-    gap: 8px;
+    padding: calc(4px * var(--calendar-scale, 1)) calc(4px * var(--calendar-scale, 1));
+    gap: calc(8px * var(--calendar-scale, 1));
     cursor: pointer;
-    margin-bottom: 6px;
+    margin-bottom: calc(6px * var(--compact-scale, var(--calendar-scale, 1)));
     box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    overflow: hidden;
   }
   .my-event-item-compact:hover {
     opacity: 0.95;
   }
   .my-event-item-compact .thumb {
-    width: 52px;
-    height: 52px;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    width: auto;
     flex-shrink: 0;
-    border-radius: 4px;
+    align-self: stretch;
+    border-radius: calc(4px * var(--compact-scale, var(--calendar-scale, 1)));
     background-size: cover;
     background-position: center;
     background-color: #e5e7eb;
     position: relative;
     overflow: hidden;
+  }
+  /* Right column fills card height so rows can pin top/bottom */
+  .my-event-item-compact .right-col {
+    height: 100%;
+    align-self: stretch;
   }
   .my-event-item-compact .platform-stack img + img {
     margin-left: -6px;
@@ -301,14 +419,14 @@ const calendarStyles = `
      ------------------------------------------------------------------ */
   /* Day header styling using FullCalendar's default "day number" anchor */
   .fc .fc-daygrid-day-top {
-    padding: 4px 0; /* small top padding */
+    padding: calc(4px * var(--calendar-scale, 1)) 0; /* small top padding */
   }
 
   .fc .fc-daygrid-day-number {
     display: flex !important; /* turn anchor into flex container */
     justify-content: space-between;
     width: 100%;
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--calendar-scale, 1));
     font-weight: 500;
     color: #333;
     text-decoration: none; /* remove default underline */
@@ -389,6 +507,96 @@ export default function CalendarView({
 
   // Approximate dropdown width used for edge detection / positioning
   const MENU_WIDTH = 200;
+
+  // When the app sidebar collapses/expands, FullCalendar needs a nudge to recompute widths.
+  const { state: sidebarState } = useSidebar();
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const api = calendarRef.current?.getApi();
+      api?.updateSize();
+    }, 240); // align with sidebar transition
+    return () => window.clearTimeout(timer);
+  }, [sidebarState]);
+
+  // Also listen for the actual CSS width transition end of the sidebar gap
+  useEffect(() => {
+    const gapEl = document.querySelector('[data-slot="sidebar-gap"]') as HTMLElement | null;
+    if (!gapEl) return;
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.propertyName !== 'width') return;
+      const api = calendarRef.current?.getApi();
+      api?.updateSize();
+    };
+    gapEl.addEventListener('transitionend', onTransitionEnd);
+    return () => gapEl.removeEventListener('transitionend', onTransitionEnd);
+  }, []);
+
+  // Custom date/time selector dialog state (for compact hover action)
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectorEvent, setSelectorEvent] = useState<{
+    id: string;
+    publish_date?: Date | null;
+    platforms: Platform[];
+  } | null>(null);
+
+  const openDateSelectorForEvent = (arg: any) => {
+    const eprops = arg.event.extendedProps as EventProps;
+    setSelectorEvent({
+      id: arg.event.id,
+      publish_date: (arg.event.start as Date) ?? null,
+      platforms: eprops.platforms ?? [],
+    });
+    setSelectorOpen(true);
+  };
+
+  /**
+   * Responsive scale factor based on container width.
+   * We target ~1200px as the design baseline and scale down to 0.75 at 768px.
+   */
+  useEffect(() => {
+    const root = document.getElementById('calendar-responsive-root');
+    if (!root) return;
+
+    const computeScale = (width: number) => {
+      const baseline = 1200; // px
+      const minScale = 0.6;
+      const raw = width / baseline;
+      const scale = Math.max(minScale, Math.min(raw, 1));
+      return Number.isFinite(scale) ? scale : 1;
+    };
+
+    let resizeTimer: number | null = null;
+
+    const applyScaleAndResize = (width: number) => {
+      const scale = computeScale(width);
+      root.style.setProperty('--calendar-scale', String(scale));
+
+      // Debounce FullCalendar resize to align with sidebar transition (~200ms)
+      if (resizeTimer) {
+        window.clearTimeout(resizeTimer);
+      }
+      resizeTimer = window.setTimeout(() => {
+        const api = calendarRef.current?.getApi();
+        if (api) {
+          api.updateSize();
+        }
+      }, 220);
+    };
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const cr = entry.contentRect;
+        applyScaleAndResize(cr.width);
+      }
+    });
+    ro.observe(root);
+    // Initial
+    applyScaleAndResize(root.clientWidth);
+    return () => {
+      ro.disconnect();
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+    };
+  }, []);
 
   // Build FC events from posts
   const events = useMemo(() => postsToEvents(posts), [posts]);
@@ -515,11 +723,22 @@ export default function CalendarView({
   }
 
   // Reusable action list component (Post Now, Unschedule, Archive)
-  const ActionList = () => (
+  const ActionList = ({ onSelectAnotherDate }: { onSelectAnotherDate?: () => void }) => (
     <div className="flex flex-col bg-white rounded-md shadow-lg min-w-[200px] p-2 text-sm">
       <button className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer">
         <Send className="w-4 h-4 text-gray-700" />
         Post Now
+      </button>
+      <button
+        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSelectAnotherDate?.();
+        }}
+      >
+        <Calendar className="w-4 h-4 text-gray-700" />
+        Select another date
       </button>
       <button className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 rounded cursor-pointer">
         <X className="w-4 h-4 text-gray-700" />
@@ -546,10 +765,12 @@ export default function CalendarView({
 
     /* Helper to render up to 5 platform icons, with "+N" overflow */
     const renderPlatforms = (size: "lg" | "sm") => {
-      const total = eprops.platforms.length;
+      const platforms = ["facebook", "instagram", "tiktok", "youtube", "facebook", "facebook", "facebook"];
+      const total = platforms.length;
       const maxIcons = 5;
       const iconClass = size === "lg" ? "w-6 h-6" : "w-5 h-5";
-      const displayed = total > maxIcons ? eprops.platforms.slice(0, 4) : eprops.platforms;
+      const moreBadgeClass = size === "lg" ? "platform-more-badge platform-more-badge-lg" : "platform-more-badge platform-more-badge-sm";
+      const displayed = total > maxIcons ? platforms.slice(0, 4) : platforms;
 
       return (
         <>
@@ -562,12 +783,7 @@ export default function CalendarView({
             />
           ))}
           {total > maxIcons && (
-            <span
-              key="more"
-              className={`${iconClass} rounded-full bg-gray-300 flex items-center justify-center text-sm font-semibold text-gray-700`}
-            >
-              {total - 4}+
-            </span>
+            <span key="more" className={moreBadgeClass}>{total - 4}+</span>
           )}
         </>
       );
@@ -653,30 +869,29 @@ export default function CalendarView({
               })()}
 
               {/* Right side details inside card */}
-              <div className="flex flex-col flex-1">
-                <div className="flex items-center gap-1 text-xs">
+              <div className="right-col flex flex-col justify-between flex-1">
+                <div className="flex items-start gap-1 text-xs">
                   <img
                     src="/images/columns/updated-time.svg"
                     alt="time"
                     className="time-icon w-4 h-4 object-contain"
                   />
-                  <span className="text-blue-600 font-medium">{timeLabel}</span>
+                  <span className="time-label text-blue-600 font-medium">{timeLabel}</span>
                 </div>
-                <div className="flex items-center justify-between mt-3">
+                <div className="flex items-end justify-between mt-auto">
                   <div className="flex platform-stack">{renderPlatforms("sm")}</div>
                   {eprops.format && (
                     <img
                       src={`/images/format/${eprops.format}.svg`}
                       alt={eprops.format}
-                      className="w-5 h-5 object-contain"
+                      className="format-icon object-contain"
                     />
                   )}
                 </div>
               </div>
             </div>
           </HoverCardTrigger>
-          {/* Hover preview panel */}
-          <HoverCardContent
+          {/* <HoverCardContent
             side="right"
             align="center"
             sideOffset={8}
@@ -685,9 +900,7 @@ export default function CalendarView({
               data-[side=right]:after:-left-1.5 data-[side=right]:after:shadow-md
               data-[side=left]:after:-right-1.5"
           >
-            {/* Left details column */}
             <div className="flex flex-col justify-between">
-              {/* Schedule */}
               <div>
                 <div className="text-xs font-medium text-gray-500">Schedule</div>
                 <div className="flex items-center gap-1 bg-sky-100 rounded px-2 py-0.5 h-5 mt-2">
@@ -703,13 +916,11 @@ export default function CalendarView({
                 </div>
               </div>
 
-              {/* Socials */}
               <div>
                 <div className="text-xs font-medium text-gray-500">Socials</div>
                 <div className="flex items-center gap-0.5 mt-2">{renderPlatforms("sm")}</div>
               </div>
 
-              {/* Format */}
               {eprops.format && (
               <div>
                 <div className="text-xs font-medium text-gray-500">Format</div>
@@ -720,7 +931,6 @@ export default function CalendarView({
               </div>
               )}
 
-              {/* Month */}
               <div>
                 <div className="text-xs font-medium text-gray-500">Month</div>
                   <div className="flex items-center gap-1 rounded-full py-0.5 h-5 mt-2">
@@ -745,7 +955,6 @@ export default function CalendarView({
               </div>
             </div>
 
-            {/* Right media preview */}
             <div className="relative w-56 h-56 rounded overflow-hidden shadow">
               {(() => {
                 if (!eprops.block) {
@@ -790,6 +999,9 @@ export default function CalendarView({
                 );
               })()}
             </div>
+          </HoverCardContent> */}
+          <HoverCardContent className="p-0 shadow-lg w-[200px]" side="right" sideOffset={8} align="start">
+            <ActionList onSelectAnotherDate={() => openDateSelectorForEvent(arg)} />
           </HoverCardContent>
         </HoverCard>
       );
@@ -810,7 +1022,7 @@ export default function CalendarView({
           >
             {/* Status badge overlay – use same colours as table view */}
             <div
-              className="absolute top-2 left-2 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm"
+              className="absolute top-2 left-2 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm status-badge"
               style={{
                 pointerEvents: 'none',
                 zIndex: 10,
@@ -865,9 +1077,9 @@ export default function CalendarView({
                         loop
                         playsInline
                       />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow-md">
-                          <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[8px] border-t-transparent border-b-transparent border-l-white" />
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none play-overlay">
+                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow-md circle">
+                          <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[8px] border-t-transparent border-b-transparent border-l-white triangle" />
                         </div>
                       </div>
                       {/* Platform icons overlay */}
@@ -891,7 +1103,7 @@ export default function CalendarView({
 
             {/* Caption box */}
             <div className="caption-box">
-              <div className="caption-text text-ms">
+              <div className="caption-text">
                 {arg.event.title}
               </div>
               <div className="meta">
@@ -901,13 +1113,13 @@ export default function CalendarView({
                     alt="time"
                     className="time-icon w-3.5 h-3.5 object-contain"
                   />
-                  <span className="text-blue-600 leading-none text-sm">{timeLabel}</span>
+                  <span className="time-label text-blue-600 leading-none">{timeLabel}</span>
                 </div>
                 {eprops.format && (
                 <img
                   src={`/images/format/${eprops.format}.svg`}
                   alt={eprops.format}
-                  className="w-5.5 h-5.5 object-contain"
+                  className="format-icon object-contain"
                 />
                 )}
               </div>
@@ -916,7 +1128,7 @@ export default function CalendarView({
         </HoverCardTrigger>
         {/* Action list popover */}
         <HoverCardContent className="p-0 shadow-lg w-[200px]" side="right" sideOffset={8} align="start">
-          <ActionList />
+          <ActionList onSelectAnotherDate={() => openDateSelectorForEvent(arg)} />
         </HoverCardContent>
       </HoverCard>
     );
@@ -944,30 +1156,43 @@ export default function CalendarView({
   }
 
   return (
-    <div className="w-full flex justify-center relative h-full">
+    <div className="w-full flex flex-1 relative h-full" id="calendar-responsive-root">
       <style>{calendarStyles}</style>
 
-      {/* Context menu for compact cards */}
-      <DropdownMenu open={contextMenuOpen} onOpenChange={setContextMenuOpen} modal={false}>
-        <DropdownMenuTrigger className="hidden" />
-        <DropdownMenuContent
-          align="start"
-          sideOffset={4}
-          style={{
-            position: 'fixed',
-            left: contextMenuPosition.x,
-            top: contextMenuPosition.y,
-            transform: 'translateY(-50%)',
-          }}
-          className="p-0 shadow-lg w-[200px]"
-        >
-          <ActionList />
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Custom Date/Time selector dialog for compact hover -> 'Select another date' */}
+      <Dialog open={selectorOpen} onOpenChange={setSelectorOpen}>
+        <DialogContent className="p-0 border-none bg-transparent shadow-none" aria-describedby={undefined}>
+          <DialogTitle className="sr-only">Select custom date and time</DialogTitle>
+          {selectorEvent && (
+            <DateTimeSelector
+              post={{ id: selectorEvent.id, publish_date: selectorEvent.publish_date as any, platforms: selectorEvent.platforms as any } as Post}
+              allPosts={posts}
+              onClose={() => setSelectorOpen(false)}
+              onSchedule={(d) => {
+                const api = calendarRef.current?.getApi();
+                const event = api?.getEventById(selectorEvent.id);
+                event?.setStart?.(d);
+                event?.setEnd?.(new Date(d.getTime() + 1000));
+                useFeedbirdStore.getState().updatePost(selectorEvent.id, {
+                  publish_date: d,
+                  status: "Scheduled",
+                });
+                setSelectorOpen(false);
+              }}
+              onPublishNow={() => {
+                const publishNow = useFeedbirdStore.getState().publishPostToAllPages as any;
+                if (typeof publishNow === 'function') publishNow(selectorEvent.id);
+                setSelectorOpen(false);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-      <div className="rounded-lg bg-background text-foreground shadow-sm flex flex-col relative overflow-auto">
+
+      <div className="rounded-lg bg-background text-foreground shadow-sm flex flex-col relative overflow-auto min-w-[814px]">
         {/* Top toolbar */}
-        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-between p-2.5 sticky top-0 z-10 bg-background border-b">
+        <div className="my-toolbar flex flex-col gap-2 md:flex-row md:items-center md:justify-end p-2.5 sticky top-0 z-10 bg-background border-b">
           {/* Left side controls */}
           <div className="flex items-center gap-2">
             <Button
@@ -1097,6 +1322,8 @@ export default function CalendarView({
           expandRows={viewId === 'dayGridWeek'}
           fixedWeekCount={false}
           height="auto"
+          handleWindowResize
+          windowResizeDelay={220}
         />
       </div>
     </div>

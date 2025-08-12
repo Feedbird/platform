@@ -683,7 +683,7 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-          className="border-r border-border-primary text-foreground gap-2 w-[260px] bg-[#FAFAFA]"
+          className="border-r border-border-primary text-foreground gap-2 bg-[#FAFAFA]"
     >
       {/* ---------------------------------------------------------------- */}
       {/*  HEADER                                                         */}
