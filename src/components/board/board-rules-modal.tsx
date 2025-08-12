@@ -128,6 +128,7 @@ interface BoardRulesModalProps {
   onBack: () => void; // New prop for going back to add-board-modal
   onSave: (rules: BoardRules) => void;
   initialRules?: Partial<BoardRules>;
+  primaryLabel?: string; // Button text, defaults to "Create"
 }
 
 export function BoardRulesModal({ 
@@ -135,7 +136,8 @@ export function BoardRulesModal({
   onClose, 
   onBack,
   onSave, 
-  initialRules = {} 
+  initialRules = {},
+  primaryLabel = 'Create',
 }: BoardRulesModalProps) {
   const [rules, setRules] = React.useState<BoardRules>({
     autoSchedule: false,
@@ -530,7 +532,7 @@ export function BoardRulesModal({
               className="bg-[#125AFF] text-white cursor-pointer" 
               onClick={handleSave}
             >
-              Create
+              {primaryLabel}
             </Button>
           </div>
         </DialogFooter>
