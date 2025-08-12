@@ -83,10 +83,16 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
   };
 
   const isVideo = (post: Post): boolean => {
-    return post.blocks?.some(block => {
+    // Match the same "first media block" selection logic as getPostThumbnail
+    const mediaBlock = post.blocks?.find(block => {
       const currentVer = block.versions.find(v => v.id === block.currentVersionId);
-      return currentVer && currentVer.file.kind === "video";
-    }) || false;
+      return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+    });
+
+    if (!mediaBlock) return false;
+
+    const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+    return currentVer?.file.kind === "video";
   };
 
   return (
@@ -278,10 +284,15 @@ function DragOverlayItem({ post }: { post: Post }) {
   };
 
   const isVideo = (post: Post): boolean => {
-    return post.blocks?.some(block => {
+    const mediaBlock = post.blocks?.find(block => {
       const currentVer = block.versions.find(v => v.id === block.currentVersionId);
-      return currentVer && currentVer.file.kind === "video";
-    }) || false;
+      return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+    });
+
+    if (!mediaBlock) return false;
+
+    const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+    return currentVer?.file.kind === "video";
   };
 
   return (
@@ -330,7 +341,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
 
   // Update local state when posts prop changes
   React.useEffect(() => {
-    setItems(posts);
+    setItems(posts.filter((p) => p.status === "Scheduled" || p.status === "Published"));
   }, [posts]);
 
   const sensors = useSensors(

@@ -765,12 +765,11 @@ export default function CalendarView({
 
     /* Helper to render up to 5 platform icons, with "+N" overflow */
     const renderPlatforms = (size: "lg" | "sm") => {
-      const platforms = ["facebook", "instagram", "tiktok", "youtube", "facebook", "facebook", "facebook"];
-      const total = platforms.length;
+      const total = eprops.platforms.length;
       const maxIcons = 5;
       const iconClass = size === "lg" ? "w-6 h-6" : "w-5 h-5";
       const moreBadgeClass = size === "lg" ? "platform-more-badge platform-more-badge-lg" : "platform-more-badge platform-more-badge-sm";
-      const displayed = total > maxIcons ? platforms.slice(0, 4) : platforms;
+      const displayed = total > maxIcons ? eprops.platforms.slice(0, 4) : eprops.platforms;
 
       return (
         <>
