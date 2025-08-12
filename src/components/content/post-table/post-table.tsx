@@ -680,8 +680,6 @@ export function PostTable({
     const target = Math.max(90, thumbHeight + paddings + gap);
 
     setColumnSizing((prev: Record<string, number>) => {
-      const current = prev?.preview as number | undefined;
-      if (typeof current === 'number' && current >= target) return prev;
       return { ...prev, preview: target };
     });
   }, [rowHeight]);
