@@ -341,7 +341,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
 
   // Update local state when posts prop changes
   React.useEffect(() => {
-    setItems(posts.filter((p) => p.status === "Scheduled" || p.status === "Published"));
+    setItems(posts.filter((p) => p.status === "Scheduled" || p.status === "Published" || p.status === "Failed Publishing"));
   }, [posts]);
 
   const sensors = useSensors(
