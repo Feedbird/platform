@@ -23,6 +23,7 @@ import {
 
 // Toggle import removed as it's not used presently
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { DateTimeSelector } from "@/components/content/post-table/DateTimeSelector";
 import {
@@ -148,14 +149,14 @@ const calendarStyles = `
     display: block;
   }
 
-  /* Allow taller events in compact month view */
-  .fc-dayGridMonthCompact-view .fc-daygrid-day-events {
+  /* Allow taller events in compact mode */
+  .compact-mode .fc-daygrid-day-events {
     overflow: visible !important;
   }
-  .fc-dayGridMonthCompact-view .fc-daygrid-event-harness,
-  .fc-dayGridMonthCompact-view .fc-daygrid-event,
-  .fc-dayGridMonthCompact-view .fc-event,
-  .fc-dayGridMonthCompact-view .fc-h-event {
+  .compact-mode .fc-daygrid-event-harness,
+  .compact-mode .fc-daygrid-event,
+  .compact-mode .fc-event,
+  .compact-mode .fc-h-event {
     height: auto !important;
     max-height: none !important;
   }
@@ -166,7 +167,7 @@ const calendarStyles = `
     aspect-ratio: 145 / 188;
   }
 
-  .fc-dayGridMonthCompact-view .fc-daygrid-day-events:not(:has(a.fc-event))::before {
+  .compact-mode .fc-dayGridMonth-view .fc-daygrid-day-events:not(:has(a.fc-event))::before {
     aspect-ratio: 145 / 80;
   }
 
@@ -491,6 +492,7 @@ export default function CalendarView({
 
   const [viewId, setViewId] = useState("dayGridMonth");
   const [showWeekends, setShowWeekends] = useState(true);
+  const [isCompact, setIsCompact] = useState(false);
 
   // const [titleHTML, setTitleHTML] = useState(""); // Removed unused title state
   const [periodLabel, setPeriodLabel] = useState<string>("");
@@ -759,7 +761,6 @@ export default function CalendarView({
    * - action buttons
    */
   function renderEventContent(arg: any) {
-    const isCompact = arg.view?.type === "dayGridMonthCompact"; // Compact view check
     const eprops = arg.event.extendedProps as EventProps;
     const timeLabel = arg.event.start ? format(arg.event.start, "p") : "";
 
@@ -1155,7 +1156,7 @@ export default function CalendarView({
   }
 
   return (
-    <div className="w-full flex flex-1 relative h-full" id="calendar-responsive-root">
+    <div className={cn("w-full flex flex-1 relative h-full", isCompact && "compact-mode")} id="calendar-responsive-root">
       <style>{calendarStyles}</style>
 
       {/* Custom Date/Time selector dialog for compact hover -> 'Select another date' */}
@@ -1252,19 +1253,14 @@ export default function CalendarView({
             >
               Month
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleChangeView("dayGridMonthCompact")}
-              className={cn(
-                'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
-                viewId === 'dayGridMonthCompact'
-                  ? 'bg-white shadow'
-                  : ''
-              )}
-            >
-              Compact
-            </Button>
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <span className="text-sm text-black font-medium">Compact</span>
+            <Switch 
+              checked={isCompact} 
+              onCheckedChange={setIsCompact} 
+              className="data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer"
+            />
           </div>
         </div>
 
@@ -1286,10 +1282,6 @@ export default function CalendarView({
             dayGridTwoWeeks: {
               type: "dayGrid",
               duration: { weeks: 2 },
-            },
-            dayGridMonthCompact: {
-              type: "dayGrid",
-              duration: { months: 1 },
             },
           }}
           // Show/hide weekends
