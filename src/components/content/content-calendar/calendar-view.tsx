@@ -203,6 +203,7 @@ const calendarStyles = `
     box-shadow: 0 2px 4px rgba(0,0,0,0.12); /* subtle bottom shadow */
     overflow: hidden; /* ensure rounded corners clip children */
     position: relative;
+    margin-bottom: calc(8px * var(--calendar-scale, 1));
   }
   .my-event-item:hover {
     opacity: 0.95;
