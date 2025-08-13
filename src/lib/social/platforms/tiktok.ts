@@ -12,15 +12,15 @@ const config: SocialPlatformConfig = {
   name: 'TikTok',
   channel: 'tiktok',
   icon: '/images/platforms/tiktok.svg',
-  authUrl: 'https://www.tiktok.com/auth/authorize/',
+  authUrl: 'https://www.tiktok.com/v2/auth/authorize/',
+  // https://developers.tiktok.com/doc/tiktok-api-scopes
   scopes: [
     'user.info.basic',
     'user.info.profile',
     'user.info.stats',
     'video.list',
     'video.upload',
-    'video.publish',
-    'video.delete'
+    'video.publish'
   ],
   apiVersion: 'v2',
   baseUrl: 'https://open.tiktokapis.com',
@@ -53,10 +53,12 @@ const config: SocialPlatformConfig = {
 
 interface TikTokTokenResponse {
   access_token: string;
-  refresh_token: string;
   expires_in: number;
+  refresh_token: string;
+  refresh_expires_in: number;
   open_id: string;
   scope: string;
+  token_type: string;
 }
 
 interface TikTokUserInfo {
@@ -75,61 +77,98 @@ interface TikTokUserInfo {
 }
 
 export class TikTokPlatform extends BasePlatform {
+  // Constants to avoid repetition
+  private readonly USER_INFO_FIELDS = [
+    'open_id',
+    'union_id',
+    'display_name',
+    'bio_description',
+    'profile_deep_link',
+    'is_verified',
+    'follower_count',
+    'following_count',
+    'likes_count',
+    'video_count'
+  ];
+
   constructor(env: { clientId: string; clientSecret: string; redirectUri: string }) {
     super(config, env);
   }
 
-  async connectAccount(code: string): Promise<SocialAccount> {
-    // Exchange code for access token
-    const tokenResponse = await this.fetchWithAuth<TikTokTokenResponse>(`${config.baseUrl}/oauth/access_token/`, {
+  // TikTok-specific auth URL generator
+  getAuthUrl(): string {
+    const url = new URL(this.config.authUrl);
+    url.searchParams.set('client_key', this.env.clientId);
+    url.searchParams.set('redirect_uri', this.env.redirectUri);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('scope', this.config.scopes.join(','));
+    url.searchParams.set('state', crypto.randomUUID());
+    return url.toString();
+  }
+
+  // Helper method to reduce duplicate token request code
+  private async makeTokenRequest(params: Record<string, string>): Promise<TikTokTokenResponse> {
+    const formData = new URLSearchParams(params);
+    
+    const response = await fetch(`${config.baseUrl}/v2/oauth/token/`, {
       method: 'POST',
-      token: '',
-      body: JSON.stringify({
-        client_key: this.env.clientId,
-        client_secret: this.env.clientSecret,
-        code,
-        grant_type: 'authorization_code'
-      })
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cache-Control': 'no-cache'
+      },
+      body: formData
     });
 
-    // Get user info
-    const userInfo = await this.fetchWithAuth<TikTokUserInfo>(`${config.baseUrl}/user/info/`, {
-      token: tokenResponse.access_token,
-      queryParams: {
-        fields: [
-          'open_id',
-          'union_id',
-          'display_name',
-          'bio_description',
-          'profile_deep_link',
-          'is_verified',
-          'follower_count',
-          'following_count',
-          'likes_count',
-          'video_count'
-        ].join(',')
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: { message: response.statusText } }));
+      throw new Error(error.error?.message || 'Token request failed');
+    }
+
+    return response.json();
+  }
+
+  // Helper method to reduce duplicate user info requests
+  private async getUserInfo(token: string, fields: string[] = this.USER_INFO_FIELDS) {
+    const response = await this.fetchWithAuth<{ data: TikTokUserInfo }>(
+      `${config.baseUrl}/v2/user/info/`,
+      {
+        token,
+        queryParams: { fields: fields.join(',') }
       }
+    );
+    return response.data.user;
+  }
+
+  async connectAccount(code: string): Promise<SocialAccount> {
+    const tokenData = await this.makeTokenRequest({
+      client_key: this.env.clientId,
+      client_secret: this.env.clientSecret,
+      code: code,
+      grant_type: 'authorization_code',
+      redirect_uri: this.env.redirectUri
     });
+
+    const userInfo = await this.getUserInfo(tokenData.access_token);
 
     return {
       id: crypto.randomUUID(),
       platform: 'tiktok',
-      name: userInfo.user.display_name,
-      accountId: userInfo.user.open_id,
-      authToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token,
-      expiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
+      name: userInfo.display_name,
+      accountId: userInfo.open_id,
+      authToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       connected: true,
       status: 'active',
       metadata: {
-        unionId: userInfo.user.union_id,
-        bio: userInfo.user.bio_description,
-        profileUrl: userInfo.user.profile_deep_link,
-        isVerified: userInfo.user.is_verified,
-        followerCount: userInfo.user.follower_count,
-        followingCount: userInfo.user.following_count,
-        likesCount: userInfo.user.likes_count,
-        videoCount: userInfo.user.video_count
+        unionId: userInfo.union_id,
+        bio: userInfo.bio_description,
+        profileUrl: userInfo.profile_deep_link,
+        isVerified: userInfo.is_verified,
+        followerCount: userInfo.follower_count,
+        followingCount: userInfo.following_count,
+        likesCount: userInfo.likes_count,
+        videoCount: userInfo.video_count
       }
     };
   }
@@ -139,64 +178,44 @@ export class TikTokPlatform extends BasePlatform {
       throw new Error('No refresh token available');
     }
 
-    const response = await this.fetchWithAuth<TikTokTokenResponse>(`${config.baseUrl}/oauth/refresh_token/`, {
-      method: 'POST',
-      token: '',
-      body: JSON.stringify({
-        client_key: this.env.clientId,
-        client_secret: this.env.clientSecret,
-        refresh_token: acc.refreshToken,
-        grant_type: 'refresh_token'
-      })
+    const tokenData = await this.makeTokenRequest({
+      client_key: this.env.clientId,
+      client_secret: this.env.clientSecret,
+      refresh_token: acc.refreshToken,
+      grant_type: 'refresh_token'
     });
 
     return {
       ...acc,
-      authToken: response.access_token,
-      refreshToken: response.refresh_token,
-      expiresAt: new Date(Date.now() + response.expires_in * 1000)
+      authToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000)
     };
   }
 
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
     // TikTok doesn't have separate pages, the account itself is the page
-    const userInfo = await this.fetchWithAuth<TikTokUserInfo>(`${config.baseUrl}/user/info/`, {
-      token: acc.authToken,
-      queryParams: {
-        fields: [
-          'open_id',
-          'union_id',
-          'display_name',
-          'bio_description',
-          'profile_deep_link',
-          'is_verified',
-          'follower_count',
-          'following_count',
-          'likes_count',
-          'video_count'
-        ].join(',')
-      }
-    });
+    const userInfo = await this.getUserInfo(acc.authToken);
 
     return [{
       id: crypto.randomUUID(),
       platform: 'tiktok',
       entityType: 'profile',
-      name: userInfo.user.display_name,
-      pageId: userInfo.user.open_id,
+      name: userInfo.display_name,
+      pageId: userInfo.open_id,
       authToken: acc.authToken,
       connected: true,
       status: 'active',
       accountId: acc.id,
       statusUpdatedAt: new Date(),
-      followerCount: userInfo.user.follower_count,
-      postCount: userInfo.user.video_count,
+      followerCount: userInfo.follower_count,
+      postCount: userInfo.video_count,
       metadata: {
-        bio: userInfo.user.bio_description,
-        profileUrl: userInfo.user.profile_deep_link,
-        isVerified: userInfo.user.is_verified,
-        followingCount: userInfo.user.following_count,
-        likesCount: userInfo.user.likes_count
+        bio: userInfo.bio_description,
+        profileUrl: userInfo.profile_deep_link,
+        isVerified: userInfo.is_verified,
+        followingCount: userInfo.following_count,
+        likesCount: userInfo.likes_count
       }
     }];
   }
@@ -383,8 +402,28 @@ export class TikTokPlatform extends BasePlatform {
   }
 
   async disconnectAccount(acc: SocialAccount): Promise<void> {
-    acc.connected = false;
-    acc.status = 'disconnected';
+    try {
+      // Revoke the access token with TikTok
+      const formData = new URLSearchParams({
+        client_key: this.env.clientId,
+        client_secret: this.env.clientSecret,
+        token: acc.authToken
+      });
+
+      await fetch(`${config.baseUrl}/v2/oauth/revoke/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cache-Control': 'no-cache'
+        },
+        body: formData
+      });
+    } catch (error) {
+      console.warn('Failed to revoke TikTok token:', error);
+    } finally {
+      acc.connected = false;
+      acc.status = 'disconnected';
+    }
   }
 
   async connectPage(acc: SocialAccount, pageId: string): Promise<SocialPage> {
@@ -403,15 +442,7 @@ export class TikTokPlatform extends BasePlatform {
 
   async checkPageStatus(page: SocialPage): Promise<SocialPage> {
     try {
-      await this.fetchWithAuth(
-        `${config.baseUrl}/user/info/`,
-        {
-          token: page.authToken,
-          queryParams: {
-            fields: ['open_id'].join(',')
-          }
-        }
-      );
+      await this.getUserInfo(page.authToken, ['open_id']);
       return { ...page, status: 'active', statusUpdatedAt: new Date() };
     } catch {
       return { ...page, status: 'expired', statusUpdatedAt: new Date() };
