@@ -581,20 +581,30 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
     return a.id.localeCompare(b.id);
   }, []);
 
-  const [items, setItems] = React.useState<Post[]>(
-    () => posts
-      .filter((p) => p.status === "Scheduled" || p.status === "Published" || p.status === "Failed Publishing")
-      .sort(sortByPublishDate)
-  );
+  // Compute initial filtered posts and remember if we already performed the initial ordering
+  const initialFiltered = posts
+    .filter((p) => p.status === "Scheduled" || p.status === "Published" || p.status === "Failed Publishing");
+  const hasInitialOrderedRef = React.useRef<boolean>(initialFiltered.length > 0);
+
+  const [items, setItems] = React.useState<Post[]>(() => initialFiltered.sort(sortByPublishDate));
   const setActivePosts = useFeedbirdStore((s) => s.setActivePosts);
 
   // Update local state when posts prop changes
   React.useEffect(() => {
-    setItems(
-      posts
-        .filter((p) => p.status === "Scheduled" || p.status === "Published" || p.status === "Failed Publishing")
-        .sort(sortByPublishDate)
-    );
+    const nextFiltered = posts
+      .filter((p) => p.status === "Scheduled" || p.status === "Published" || p.status === "Failed Publishing");
+
+    // First non-empty load: order by date once
+    if (!hasInitialOrderedRef.current) {
+      if (nextFiltered.length > 0) {
+        setItems(nextFiltered.sort(sortByPublishDate));
+        hasInitialOrderedRef.current = true;
+      } else {
+        setItems([]);
+      }
+      return;
+    }
+
   }, [posts, sortByPublishDate]);
 
   const sensors = useSensors(
@@ -620,62 +630,71 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
       if (oldIndex !== -1 && newIndex !== -1) {
         const a = itemsSnapshot[oldIndex];
         const b = itemsSnapshot[newIndex];
+        const aDate = a.publish_date;
+        const bDate = b.publish_date;
 
-        // Immediately swap positions locally for responsiveness
+        // Immediately swap positions AND publish times locally for responsiveness
         setItems((prev) => {
           const next = [...prev];
-          const tmp = next[oldIndex];
-          next[oldIndex] = next[newIndex];
-          next[newIndex] = tmp;
+          const idxA = next.findIndex(p => p.id === a.id);
+          const idxB = next.findIndex(p => p.id === b.id);
+          if (idxA === -1 || idxB === -1) return prev;
+          const tmp = next[idxA];
+          next[idxA] = next[idxB];
+          next[idxB] = tmp;
+          // After swapping positions, assign swapped publish times to the corresponding posts
+          next[idxB] = { ...next[idxB], publish_date: bDate } as any; // A now at idxB gets B's time
+          next[idxA] = { ...next[idxA], publish_date: aDate } as any; // B now at idxA gets A's time
           return next;
         });
 
+        // Optimistically update store times so other views reflect the change immediately
+        {
+          const store = useFeedbirdStore.getState();
+          store.workspaces = store.workspaces.map(w => ({
+            ...w,
+            boards: w.boards.map(bd => ({
+              ...bd,
+              posts: bd.posts.map(p => {
+                if (p.id === a.id) return { ...p, publish_date: bDate } as any;
+                if (p.id === b.id) return { ...p, publish_date: aDate } as any;
+                return p;
+              })
+            }))
+          }));
+          useFeedbirdStore.setState({ workspaces: store.workspaces });
+        }
+
         // Persist swapped times to backend, then update store and local state times
-        const toIso = (d: any) => {
+        const toIsoOrNull = (d: any) => {
+          if (!d) return null;
           const date = d instanceof Date ? d : new Date(d);
-          return date.toISOString();
+          return isNaN(date.getTime()) ? null : date.toISOString();
         };
         (async () => {
           try {
-            await postApi.updatePost(a.id, {
-              publish_date: toIso(b.publish_date),
-            });
-            await postApi.updatePost(b.id, {
-              publish_date: toIso(a.publish_date),
-            });
-
-            // Update store after successful DB updates
+            await Promise.all([
+              postApi.updatePost(a.id, { publish_date: toIsoOrNull(bDate) as any }),
+              postApi.updatePost(b.id, { publish_date: toIsoOrNull(aDate) as any }),
+            ]);
+          } catch (err) {
+            console.error('Failed to swap publish dates:', err);
+            // Optional: revert position swap on error
+            setItems(itemsSnapshot);
+            // Revert store times on error
             const store = useFeedbirdStore.getState();
             store.workspaces = store.workspaces.map(w => ({
               ...w,
               boards: w.boards.map(bd => ({
                 ...bd,
                 posts: bd.posts.map(p => {
-                  if (p.id === a.id) {
-                    return { ...p, publish_date: b.publish_date } as any;
-                  }
-                  if (p.id === b.id) {
-                    return { ...p, publish_date: a.publish_date } as any;
-                  }
+                  if (p.id === a.id) return { ...p, publish_date: aDate } as any;
+                  if (p.id === b.id) return { ...p, publish_date: bDate } as any;
                   return p;
                 })
               }))
             }));
             useFeedbirdStore.setState({ workspaces: store.workspaces });
-
-            // Update local items times to reflect server state
-            setItems((prev) => {
-              const next = [...prev];
-              const idxA = next.findIndex(p => p.id === a.id);
-              const idxB = next.findIndex(p => p.id === b.id);
-              if (idxA !== -1) next[idxA] = { ...next[idxA], publish_date: b.publish_date } as any;
-              if (idxB !== -1) next[idxB] = { ...next[idxB], publish_date: a.publish_date } as any;
-              return next;
-            });
-          } catch (err) {
-            console.error('Failed to swap publish dates:', err);
-            // Optional: revert position swap on error
-            setItems(itemsSnapshot);
           }
         })();
       }
@@ -683,7 +702,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
 
     setActiveId(null);
     setOverId(null);
-  }, [setActivePosts]);
+  }, [items]);
 
   const handleDragMove = React.useCallback((event: DragMoveEvent) => {
     setOverId(event.over?.id as string | null);
