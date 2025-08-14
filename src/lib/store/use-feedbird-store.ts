@@ -1162,35 +1162,28 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         disconnectSocialPage: async (brandId: string, pageId: string) => {
-          const brand = get().getActiveBrand();
-          const page = brand?.socialPages.find(p => p.id === pageId);
-          if (!page) throw new Error(`Page with ID ${pageId} not found.`);
-
-          const account = brand?.socialAccounts.find(a => a.id === page.accountId);
-          if (!account) throw new Error(`Account not found for page ${pageId}`);
-
           try {
-            // TikTok: Revoke token first
-            if (page.platform === 'tiktok') {
-              const tiktokOps = getPlatformOperations('tiktok');
-              if (!tiktokOps) throw new Error('TikTok platform operations not found');
-              await tiktokOps.disconnectAccount(account);
+            // Call secure backend API
+            const response = await fetch('/api/social-account/disconnect', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                brandId,
+                pageId
+              })
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.error || 'Failed to disconnect page');
             }
 
-            // Check if this is the only page for this account
-            const pagesForSameAccount = brand?.socialPages.filter(p => p.accountId === page.accountId) || [];
-            
-            if (pagesForSameAccount.length === 1) {
-              // Only page - delete entire account
-              await socialAccountApi.deleteSocialAccount(account.id);
-            } else {
-              // Multiple pages - delete only this page
-              await socialAccountApi.deleteSocialPage(pageId); 
-            }
-
+            // Reload social accounts to get updated data
             await get().loadSocialAccounts(brandId);
           } catch (error) {
-            console.error(`Failed to disconnect page ${page.name}:`, error);
+            console.error('Failed to disconnect page:', error);
             throw error;
           }
         },
