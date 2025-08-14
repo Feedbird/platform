@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPlatformOperations } from '@/lib/social/platforms';
 import { socialAccountApi } from '@/lib/api/social-accounts';
 import { supabase } from '@/lib/supabase/client';
+import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
-    const {  pageId, brandId } = await req.json();
+    const { pageId, brandId } = await req.json();
 
     if (!brandId) {
       return NextResponse.json({ error: 'Brand ID is required' }, { status: 400 });
@@ -32,51 +33,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
     }
 
-    // Handle  disconnection
-      const page = brand.social_accounts
-        ?.flatMap((acc: any) => acc.social_pages || [])
-        .find((p: any) => p.id === pageId);
+    // Handle disconnection
+    const page = brand.social_accounts
+      ?.flatMap((acc: any) => acc.social_pages || [])
+      .find((p: any) => p.id === pageId);
 
-      if (!page) {
-        return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    if (!page) {
+      return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    }
+
+    const account = brand.social_accounts?.find((a: any) => a.id === page.account_id);
+    if (!account) {
+      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+    }
+
+    // TikTok: Revoke token first (server-side)
+    if (account.platform === 'tiktok') {
+      const tiktokOps = getPlatformOperations('tiktok');
+      if (tiktokOps) {
+        await tiktokOps.disconnectAccount({
+          id: account.id,
+          platform: account.platform,
+          name: account.name,
+          accountId: account.account_id,
+          authToken: account.auth_token,
+          connected: account.connected,
+          status: account.status
+        });
       }
+    }
 
-      const account = brand.social_accounts?.find((a: any) => a.id === page.account_id);
-      if (!account) {
-        return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-      }
+    // Check if this is the only page for this account
+    const pagesForSameAccount = brand.social_accounts
+      ?.flatMap((acc: any) => acc.social_pages || [])
+      .filter((p: any) => p.account_id === page.account_id) || [];
 
-      // TikTok: Revoke token first (server-side)
-      if (account.platform === 'tiktok') {
-        const tiktokOps = getPlatformOperations('tiktok');
-        if (tiktokOps) {
-          await tiktokOps.disconnectAccount({
-            id: account.id,
-            platform: account.platform,
-            name: account.name,
-            accountId: account.account_id,
-            authToken: account.auth_token,
-            connected: account.connected,
-            status: account.status
-          });
-        }
-      }
+    if (pagesForSameAccount.length === 1) {
+      // Only page - delete entire account
+      await socialAccountApi.deleteSocialAccount(account.id);
+    } else {
+      // Multiple pages - delete only this page
+      await socialAccountApi.deleteSocialPage(pageId);
+    }
 
-      // Check if this is the only page for this account
-      const pagesForSameAccount = brand.social_accounts
-        ?.flatMap((acc: any) => acc.social_pages || [])
-        .filter((p: any) => p.account_id === page.account_id) || [];
-
-      if (pagesForSameAccount.length === 1) {
-        // Only page - delete entire account
-        await socialAccountApi.deleteSocialAccount(account.id);
-      } else {
-        // Multiple pages - delete only this page
-        await socialAccountApi.deleteSocialPage(pageId);
-      }
-
-      return NextResponse.json({ success: true, message: 'Page disconnected' });
-
+    return NextResponse.json({ success: true, message: 'Page disconnected' });
 
   } catch (error) {
     console.error('Error disconnecting social account:', error);
@@ -85,4 +85,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

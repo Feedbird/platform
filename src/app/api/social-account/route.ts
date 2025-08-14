@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { socialAccountApi } from '@/lib/api/social-accounts';
+import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
 
 // GET - Load social accounts for a brand
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const brandId = searchParams.get('brandId');
@@ -20,6 +21,6 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 
