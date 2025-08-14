@@ -166,5 +166,17 @@ export const socialAccountApi = {
       console.error('Failed to delete social account:', accountError);
       throw new Error('Failed to delete account');
     }
+  },
+
+  async deleteSocialPage(pageId: string) {
+    const { error } = await supabase
+      .from('social_pages')
+      .delete()
+      .eq('id', pageId);
+
+    if (error) {
+      console.error('Failed to delete social page:', error);
+      throw new Error('Failed to delete page');
+    }
   }
 };

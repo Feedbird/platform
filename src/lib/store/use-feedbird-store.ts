@@ -286,7 +286,6 @@ export interface FeedbirdStore {
   setActiveBrand: (id: string) => void;
   setActiveBoard: (id: string) => void;
   connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => string;
-  disconnectSocialAccount: (brandId: string, accountId: string) => void;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
   confirmSocialPage: (brandId: string, pageId: string) => Promise<void>;
   disconnectSocialPage: (brandId: string, pageId: string) => Promise<void>;
@@ -1060,30 +1059,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           return localReturnId;
         },
 
-        disconnectSocialAccount: (brandId: string, accountId: string) => {
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brand: ws.brand && ws.brand.id === brandId ? (() => {
-                // Remove the given account & all its pages
-                const account = ws.brand!.socialAccounts.find((a) => a.id === accountId);
-                if (!account) return ws.brand;
-
-                return {
-                  ...ws.brand!,
-                  socialAccounts: ws.brand!.socialAccounts.filter(
-                    (a) => a.id !== accountId
-                  ),
-                  // remove pages of that account's platform
-                  socialPages: ws.brand!.socialPages.filter(
-                    (p) => p.platform !== account.platform
-                  ),
-                };
-              })() : ws.brand,
-            })),
-          }));
-        },
-
         stageSocialPages: (brandId, platform, pages, localAccountId) => {
           set((state) => {
             const newWs = state.workspaces.map((ws) => ({
@@ -1191,23 +1166,29 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const page = brand?.socialPages.find(p => p.id === pageId);
           if (!page) throw new Error(`Page with ID ${pageId} not found.`);
 
-          const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
-          if (!ops) throw new Error(`No platform operations for ${page.platform}.`);
+          const account = brand?.socialAccounts.find(a => a.id === page.accountId);
+          if (!account) throw new Error(`Account not found for page ${pageId}`);
 
           try {
-            // You might want a disconnect method in your platform operations
-            // For now, we just remove it from the store.
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                brand: ws.brand && ws.brand.id === brandId ? {
-                  ...ws.brand,
-                  socialPages: (ws.brand.socialPages ?? []).filter(
-                    (p) => p.id !== pageId
-                  ),
-                } : ws.brand,
-              })),
-            }));
+            // TikTok: Revoke token first
+            if (page.platform === 'tiktok') {
+              const tiktokOps = getPlatformOperations('tiktok');
+              if (!tiktokOps) throw new Error('TikTok platform operations not found');
+              await tiktokOps.disconnectAccount(account);
+            }
+
+            // Check if this is the only page for this account
+            const pagesForSameAccount = brand?.socialPages.filter(p => p.accountId === page.accountId) || [];
+            
+            if (pagesForSameAccount.length === 1) {
+              // Only page - delete entire account
+              await socialAccountApi.deleteSocialAccount(account.id);
+            } else {
+              // Multiple pages - delete only this page
+              await socialAccountApi.deleteSocialPage(pageId); 
+            }
+
+            await get().loadSocialAccounts(brandId);
           } catch (error) {
             console.error(`Failed to disconnect page ${page.name}:`, error);
             throw error;
