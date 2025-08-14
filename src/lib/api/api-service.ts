@@ -1197,4 +1197,24 @@ export const commentApi = {
   },
 }
 
+// Social Account API functions
+export const socialAccountApi = {
+  // Get social accounts for a brand
+  getSocialAccounts: async (brandId: string) => {
+    return apiRequest<any[]>(`/social-account?brandId=${brandId}`)
+  },
+
+  // Disconnect social page or account
+  disconnectSocial: async (data: {
+    brandId: string
+    pageId?: string
+    accountId?: string
+  }) => {
+    return apiRequest<{ success: boolean; message: string }>('/social-account/disconnect', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+}
+
 export { ApiError } 

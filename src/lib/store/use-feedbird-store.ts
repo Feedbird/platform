@@ -18,8 +18,7 @@ import { handleError } from "../utils/error-handler";
 import { BaseError } from "../utils/exceptions/base-error";
 import { withLoading } from "../utils/loading/loading-store";
 import { RowHeightType } from "../utils";
-import { storeApi, commentApi } from '@/lib/api/api-service'
-import { socialAccountApi } from '@/lib/api/social-accounts'
+import { storeApi, commentApi, socialAccountApi } from '@/lib/api/api-service'
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
 
 export interface BoardRules {
@@ -1163,22 +1162,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         disconnectSocialPage: async (brandId: string, pageId: string) => {
           try {
-            // Call secure backend API
-            const response = await fetch('/api/social-account/disconnect', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                brandId,
-                pageId
-              })
+            // Use proper API service instead of raw fetch
+            await socialAccountApi.disconnectSocial({
+              brandId,
+              pageId
             });
-
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(error.error || 'Failed to disconnect page');
-            }
 
             // Reload social accounts to get updated data
             await get().loadSocialAccounts(brandId);
@@ -1272,10 +1260,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         // Database-first social account methods
         loadSocialAccounts: async (brandId: string) => {
           try {
+            // Use proper API service instead of raw fetch
             const accounts = await socialAccountApi.getSocialAccounts(brandId);
             
             // Extract all pages from all accounts into a flat array
-            const allPages = accounts.flatMap(acc => 
+            const allPages = accounts.flatMap((acc: any) => 
               (acc.social_pages || []).map((page: any) => ({
                 id: page.id,
                 platform: page.platform,
@@ -1299,7 +1288,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 ...ws,
                 brand: ws.brand && ws.brand.id == brandId ? {
                   ...ws.brand,
-                  socialAccounts: accounts.map(acc => ({
+                  socialAccounts: accounts.map((acc: any) => ({
                     id: acc.id,
                     platform: acc.platform,
                     name: acc.name,
