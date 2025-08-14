@@ -103,7 +103,9 @@ export interface SocialAccount {
   accountId   : string;              // provider's native id
   authToken   : string;
   refreshToken?: string;
-  expiresAt?  : Date;                // short-lived tokens
+  accessTokenExpiresAt?: Date;       // access token expiration
+  refreshTokenExpiresAt?: Date;      // refresh token expiration
+  tokenIssuedAt?: Date;              // when token was issued
   connected   : boolean;
   status      : PageStatus;
   metadata?: Record<string, any>;
@@ -117,6 +119,7 @@ export interface SocialPage {
   name          : string;            // "My FB Page", "Board: Recipes"
   pageId        : string;            // provider id
   authToken     : string;            // *page* access token (if any)
+  authTokenExpiresAt?: Date;         // page token expiration
   connected     : boolean;
   status        : PageStatus;          // "active" | "expired" | "pending" | ...
   accountId     : string;            // FK -> SocialAccount.id

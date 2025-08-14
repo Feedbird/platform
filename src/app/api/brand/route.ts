@@ -28,12 +28,17 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
     const workspace_id = searchParams.get('workspace_id')
+    const includeSocial = searchParams.get('include_social') === 'true'
 
     if (id) {
       // Get specific brand
+      const selectQuery = includeSocial 
+        ? `*, social_accounts (*, social_pages (*))`
+        : '*'
+      
       const { data, error } = await supabase
         .from('brands')
-        .select('*')
+        .select(selectQuery)
         .eq('id', id)
         .single()
 
@@ -55,9 +60,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(data)
     } else if (workspace_id) {
       // Get brand by workspace (one-to-one relationship)
+      const selectQuery = includeSocial 
+        ? `*, social_accounts (*, social_pages (*))`
+        : '*'
+      
       const { data, error } = await supabase
         .from('brands')
-        .select('*')
+        .select(selectQuery)
         .eq('workspace_id', workspace_id)
         .maybeSingle()
 

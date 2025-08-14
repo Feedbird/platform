@@ -149,10 +149,11 @@ export const workspaceApi = {
 // Brand API functions
 export const brandApi = {
   // Get brand by ID or by workspace (now returns single brand)
-  getBrand: async (params: { id?: string; workspace_id?: string }): Promise<Brand | null> => {
+  getBrand: async (params: { id?: string; workspace_id?: string; include_social?: boolean }): Promise<Brand | null> => {
     const searchParams = new URLSearchParams()
     if (params.id) searchParams.append('id', params.id)
     if (params.workspace_id) searchParams.append('workspace_id', params.workspace_id)
+    if (params.include_social) searchParams.append('include_social', 'true')
     
     return apiRequest<Brand | null>(`/brand?${searchParams.toString()}`)
   },
@@ -397,7 +398,7 @@ export const storeApi = {
       // Fetch brand and posts for each workspace
       const workspacesWithBrands = await Promise.all(
         transformedWorkspaces.map(async ws => {
-          const brandResp = await brandApi.getBrand({ workspace_id: ws.id })
+          const brandResp = await brandApi.getBrand({ workspace_id: ws.id, include_social: true })
           const brand = brandResp || null
 
           // Load posts for each board
@@ -445,8 +446,34 @@ export const storeApi = {
               voice: (brand as any).voice,
               prefs: (brand as any).prefs,
               platforms: (brand as any).platforms || [],
-              socialAccounts: (brand as any).social_accounts || [],
-              socialPages: (brand as any).social_pages || []
+              socialAccounts: ((brand as any).social_accounts || []).map((acc: any) => ({
+                id: acc.id,
+                platform: acc.platform,
+                name: acc.name,
+                accountId: acc.account_id,
+                authToken: acc.auth_token,
+                connected: acc.connected,
+                status: acc.status,
+                socialPages: acc.social_pages || []
+              })),
+              socialPages: ((brand as any).social_accounts || []).flatMap((acc: any) => 
+                (acc.social_pages || []).map((page: any) => ({
+                  id: page.id,
+                  platform: page.platform,
+                  entityType: page.entity_type || 'page',
+                  name: page.name,
+                  pageId: page.page_id,
+                  authToken: page.auth_token,
+                  connected: page.connected,
+                  status: page.status,
+                  accountId: acc.id,
+                  statusUpdatedAt: page.status_updated_at ? new Date(page.status_updated_at) : undefined,
+                  lastSyncAt: page.last_sync_at ? new Date(page.last_sync_at) : undefined,
+                  followerCount: page.follower_count,
+                  postCount: page.post_count,
+                  metadata: page.metadata
+                }))
+              )
             } : undefined
           }
         })
@@ -477,6 +504,8 @@ export const storeApi = {
         workspacesLoading: false,
         workspacesInitialized: true,
       })
+
+
 
       return workspacesWithBrands
     } catch (error) {

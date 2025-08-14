@@ -150,6 +150,10 @@ export class TikTokPlatform extends BasePlatform {
 
     const userInfo = await this.getUserInfo(tokenData.access_token);
 
+    const now = new Date();
+    const accessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
+    const refreshTokenExpiresAt = new Date(now.getTime() + tokenData.refresh_expires_in * 1000);
+
     return {
       id: crypto.randomUUID(),
       platform: 'tiktok',
@@ -157,7 +161,9 @@ export class TikTokPlatform extends BasePlatform {
       accountId: userInfo.open_id,
       authToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
-      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
+      accessTokenExpiresAt,
+      refreshTokenExpiresAt,
+      tokenIssuedAt: now,
       connected: true,
       status: 'active',
       metadata: {
@@ -185,11 +191,17 @@ export class TikTokPlatform extends BasePlatform {
       grant_type: 'refresh_token'
     });
 
+    const now = new Date();
+    const accessTokenExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000);
+    const refreshTokenExpiresAt = new Date(now.getTime() + tokenData.refresh_expires_in * 1000);
+
     return {
       ...acc,
       authToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
-      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000)
+      accessTokenExpiresAt,
+      refreshTokenExpiresAt,
+      tokenIssuedAt: now
     };
   }
 

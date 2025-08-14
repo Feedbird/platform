@@ -19,6 +19,7 @@ import { BaseError } from "../utils/exceptions/base-error";
 import { withLoading } from "../utils/loading/loading-store";
 import { RowHeightType } from "../utils";
 import { storeApi, commentApi } from '@/lib/api/api-service'
+import { socialAccountApi } from '@/lib/api/social-accounts'
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
 
 export interface BoardRules {
@@ -293,6 +294,10 @@ export interface FeedbirdStore {
   checkPageStatus: (brandId: string, pageId: string) => Promise<void>;
   deletePagePost: (brandId: string, pageId: string, postId: string) => Promise<void>;
   getPageCounts: () => Record<Platform, number>;
+  
+  // Database-first social account methods
+  loadSocialAccounts: (brandId: string) => Promise<void>;
+  handleOAuthSuccess: (brandId: string) => Promise<void>;
   getActiveWorkspace: () => Workspace | undefined;
   getActiveBrand: () => Brand | undefined;
   getActivePosts: () => Post[];
@@ -1289,6 +1294,73 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             throw err;
           }
         },
+
+        // Database-first social account methods
+        loadSocialAccounts: async (brandId: string) => {
+          try {
+            const accounts = await socialAccountApi.getSocialAccounts(brandId);
+            
+            // Extract all pages from all accounts into a flat array
+            const allPages = accounts.flatMap(acc => 
+              (acc.social_pages || []).map((page: any) => ({
+                id: page.id,
+                platform: page.platform,
+                entityType: page.entity_type || 'page',
+                name: page.name,
+                pageId: page.page_id,
+                authToken: page.auth_token,
+                connected: page.connected,
+                status: page.status,
+                accountId: acc.id, // Link to the account
+                statusUpdatedAt: page.status_updated_at ? new Date(page.status_updated_at) : undefined,
+                lastSyncAt: page.last_sync_at ? new Date(page.last_sync_at) : undefined,
+                followerCount: page.follower_count,
+                postCount: page.post_count,
+                metadata: page.metadata
+              }))
+            );
+            
+            set((state) => ({
+              workspaces: state.workspaces.map(ws => ({
+                ...ws,
+                brand: ws.brand && ws.brand.id == brandId ? {
+                  ...ws.brand,
+                  socialAccounts: accounts.map(acc => ({
+                    id: acc.id,
+                    platform: acc.platform,
+                    name: acc.name,
+                    accountId: acc.account_id,
+                    authToken: acc.auth_token,
+                    // refreshToken: acc.refresh_token,
+                    // expiresAt: acc.expires_at,
+                    connected: acc.connected,
+                    status: acc.status,
+                    // metadata: acc.metadata,
+                    socialPages: acc.social_pages || []
+                  })),
+                  socialPages: allPages
+                } : ws.brand
+              }))
+            }));
+
+            console.log('state.workspaces', get().workspaces.find(ws => ws.brand?.id == brandId));
+
+          } catch (error) {
+            console.error('Failed to load social accounts:', error);
+            // You can add toast notification here if needed
+          }
+        },
+
+        handleOAuthSuccess: async (brandId: string) => {
+          try {
+            await get().loadSocialAccounts(brandId);
+            // You can add success toast here if needed
+          } catch (error) {
+            console.error('Failed to handle OAuth success:', error);
+            // You can add error toast here if needed
+          }
+        },
+
 
         getPageCounts: () => {
           const brand = get().getActiveBrand();
