@@ -274,10 +274,16 @@ export class TikTokPlatform extends BasePlatform {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          page,
+          pageId: page.id,
           post: {
             content: content.text,
-            mediaUrls: content.media?.urls ?? []
+            mediaUrls: content.media?.urls ?? [],
+            privacyLevel: options?.visibility || 'SELF_ONLY',
+            disableDuet: options?.disableDuet || false,
+            disableStitch: options?.disableStitch || false,
+            disableComment: options?.disableComment || false,
+            brandContentToggle: options?.brandContentToggle || false,
+            brandOrganicToggle: options?.brandOrganicToggle || false
           }
         }),
       });
@@ -285,78 +291,115 @@ export class TikTokPlatform extends BasePlatform {
       return res.json();
     }
 
-  //  get secure token from the database
-  const token = await getSecureToken(page.id);
-  if (!token) {
-    throw new Error('No auth token available');
-  }
+    // Get secure token from the database
+    const token = await getSecureToken(page.id);
+    if (!token) {
+      throw new Error('No auth token available');
+    }
 
     const videoUrl = content.media!.urls[0];
 
-    // 1. Get upload URL
-    const uploadResponse = await this.fetchWithAuth<{
+    // 1. Query creator info first (required by TikTok)
+    const creatorInfo = await this.fetchWithAuth<{
       data: {
-        upload_url: string;
-        access_key: string;
+        privacy_level_options: string[];
+        max_video_post_duration_sec: number;
+        nickname: string;
       };
-    }>(`${config.baseUrl}/share/video/upload/`, {
+    }>(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
+      method: 'GET',
+      token: token
+    });
+
+    // Validate privacy level
+    const privacyLevel = options?.visibility === 'private' ? 'SELF_ONLY' : 'PUBLIC_TO_EVERYONE';
+    if (!creatorInfo.data.privacy_level_options.includes(privacyLevel)) {
+      throw new Error(`Invalid privacy level. Available options: ${creatorInfo.data.privacy_level_options.join(', ')}`);
+    }
+
+    // 2. Initialize video post with PULL_FROM_URL
+    const initResponse = await this.fetchWithAuth<{
+      data: {
+        publish_id: string;
+      };
+      error: {
+        code: string;
+        message: string;
+        log_id: string;
+      };
+    }>(`${config.baseUrl}/v2/post/publish/video/init/`, {
       method: 'POST',
       token: token,
       body: JSON.stringify({
+        post_info: {
+          title: content.text,
+          privacy_level: privacyLevel,
+          disable_duet: options?.disableDuet || false,
+          disable_stitch: options?.disableStitch || false,
+          disable_comment: options?.disableComment || false,
+          brand_content_toggle: options?.brandContentToggle || false,
+          brand_organic_toggle: options?.brandOrganicToggle || false
+        },
         source_info: {
-          source: 'FILE_UPLOAD',
-          video_size: 0, // Will be set after fetching video
-          chunk_size: 0
+          source: 'PULL_FROM_URL',
+          video_url: videoUrl
         }
       })
     });
 
-    // 2. Upload the video
-    const videoResponse = await fetch(videoUrl);
-    const videoBlob = await videoResponse.blob();
-
-    const uploadResult = await fetch(uploadResponse.data.upload_url, {
-      method: 'POST',
-      body: videoBlob,
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!uploadResult.ok) {
-      throw new Error('Failed to upload video');
+    if (initResponse.error?.code !== 'ok') {
+      throw new Error(`TikTok API Error: ${initResponse.error?.message} (${initResponse.error?.code})`);
     }
 
-    // 3. Create the post
-    const publishResponse = await this.fetchWithAuth<{
-      data: {
-        share_id: string;
-        create_time: number;
-      };
-    }>(`${config.baseUrl}/share/video/upload/`, {
-      method: 'POST',
-      token: token,
-      body: JSON.stringify({
-        video_id: uploadResponse.data.access_key,
-        title: content.text,
-        privacy_level: options?.visibility === 'private' ? 'SELF_ONLY' : 'PUBLIC',
-        disable_duet: false,
-        disable_stitch: false,
-        disable_comment: false,
-        visibility_type: 'PUBLIC'
-      })
-    });
+    // 3. Check post status until complete
+    let status = 'PROCESSING';
+    let attempts = 0;
+    const maxAttempts = 30; // 5 minutes with 10-second intervals
 
-    return {
-      id: publishResponse.data.share_id,
-      pageId: page.id,
-      postId: publishResponse.data.share_id,
-      content: content.text,
-      mediaUrls: [videoUrl],
-      status: 'published',
-      publishedAt: new Date(publishResponse.data.create_time * 1000)
-    };
+    while (status === 'PROCESSING' && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      attempts++;
+
+      const statusResponse = await this.fetchWithAuth<{
+        data: {
+          status: string;
+          share_id?: string;
+          create_time?: number;
+        };
+        error: {
+          code: string;
+          message: string;
+        };
+      }>(`${config.baseUrl}/v2/post/publish/status/fetch/`, {
+        method: 'POST',
+        token: token,
+        body: JSON.stringify({
+          publish_id: initResponse.data.publish_id
+        })
+      });
+
+      if (statusResponse.error?.code !== 'ok') {
+        throw new Error(`Status check failed: ${statusResponse.error?.message}`);
+      }
+
+      status = statusResponse.data.status;
+
+      if (status === 'SUCCESS') {
+        return {
+          id: statusResponse.data.share_id!,
+          pageId: page.id,
+          postId: statusResponse.data.share_id!,
+          content: content.text,
+          mediaUrls: [videoUrl],
+          status: 'published',
+          publishedAt: new Date(statusResponse.data.create_time! * 1000)
+        };
+      } else if (status === 'FAILED') {
+        throw new Error('Video posting failed on TikTok');
+      }
+    }
+
+    throw new Error('Video posting timed out');
   }
 
   async getPostHistory(page: SocialPage, limit = 20): Promise<PostHistory[]> {
@@ -429,6 +472,44 @@ export class TikTokPlatform extends BasePlatform {
         views: video.stats.play_count
       }
     }));
+  }
+
+  async getCreatorInfo(page: SocialPage): Promise<{
+    privacyLevelOptions: string[];
+    maxVideoPostDurationSec: number;
+    nickname: string;
+  }> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/tiktok/creator-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageId: page.id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    const token = await getSecureToken(page.id);
+    if (!token) {
+      throw new Error('No auth token available');
+    }
+
+    const response = await this.fetchWithAuth<{
+      data: {
+        privacy_level_options: string[];
+        max_video_post_duration_sec: number;
+        nickname: string;
+      };
+    }>(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
+      method: 'GET',
+      token: token
+    });
+
+    return {
+      privacyLevelOptions: response.data.privacy_level_options,
+      maxVideoPostDurationSec: response.data.max_video_post_duration_sec,
+      nickname: response.data.nickname
+    };
   }
 
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> {

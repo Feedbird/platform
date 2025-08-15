@@ -206,6 +206,13 @@ export interface PlatformOperations {
   // Platform-specific operations
   getPlatformFeatures(): SocialPlatformConfig['features'];
   validateContent(content: PostContent): { isValid: boolean; errors?: string[] };
+  
+  // TikTok-specific operations
+  getCreatorInfo?(page: SocialPage): Promise<{
+    privacyLevelOptions: string[];
+    maxVideoPostDurationSec: number;
+    nickname: string;
+  }>;
 }
 
 export interface PlatformPage {
@@ -229,4 +236,10 @@ export interface PublishOptions {
     enabled: boolean;
     platforms?: Platform[];
   };
+  // TikTok-specific options
+  disableDuet?: boolean;
+  disableStitch?: boolean;
+  disableComment?: boolean;
+  brandContentToggle?: boolean;
+  brandOrganicToggle?: boolean;
 }
