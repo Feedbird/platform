@@ -101,11 +101,11 @@ export interface SocialAccount {
   platform    : Platform;
   name        : string;              // "John Smith", "ACME Inc"
   accountId   : string;              // provider's native id
-  authToken   : string;
+  authToken?  : string;
   refreshToken?: string;
-  accessTokenExpiresAt?: Date;       // access token expiration
-  refreshTokenExpiresAt?: Date;      // refresh token expiration
-  tokenIssuedAt?: Date;              // when token was issued
+  accessTokenExpiresAt?: Date;
+  refreshTokenExpiresAt?: Date;
+  tokenIssuedAt?: Date;
   connected   : boolean;
   status      : PageStatus;
   metadata?: Record<string, any>;
@@ -118,8 +118,8 @@ export interface SocialPage {
   entityType    : "page" | "board" | "channel" | "profile" | "organization";
   name          : string;            // "My FB Page", "Board: Recipes"
   pageId        : string;            // provider id
-  authToken     : string;            // *page* access token (if any)
-  authTokenExpiresAt?: Date;         // page token expiration
+  authToken?    : string;            // optional for frontend security
+  authTokenExpiresAt?: Date;
   connected     : boolean;
   status        : PageStatus;          // "active" | "expired" | "pending" | ...
   accountId     : string;            // FK -> SocialAccount.id

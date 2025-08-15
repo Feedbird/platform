@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { SECURE_SOCIAL_ACCOUNT_WITH_PAGES } from '@/lib/utils/secure-queries'
 
 // Validation schemas
 const CreateBrandSchema = z.object({
@@ -32,15 +33,43 @@ export async function GET(req: NextRequest) {
 
     if (id) {
       // Get specific brand
-      const selectQuery = includeSocial 
-        ? `*, social_accounts (*, social_pages (*))`
-        : '*'
+      let data, error;
       
-      const { data, error } = await supabase
-        .from('brands')
-        .select(selectQuery)
-        .eq('id', id)
-        .single()
+      if (includeSocial) {
+        // Secure query that excludes sensitive tokens
+        const { data: brandData, error: brandError } = await supabase
+          .from('brands')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (brandError) {
+          error = brandError;
+        } else if (brandData) {
+          // Get social accounts without sensitive tokens
+          const { data: accounts, error: accountsError } = await supabase
+            .from('social_accounts')
+            .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
+            .eq('brand_id', id);
+            
+          if (accountsError) {
+            error = accountsError;
+          } else {
+            data = {
+              ...brandData,
+              social_accounts: accounts
+            };
+          }
+        }
+      } else {
+        const { data: brandData, error: brandError } = await supabase
+          .from('brands')
+          .select('*')
+          .eq('id', id)
+          .single();
+        data = brandData;
+        error = brandError;
+      }
 
       if (error) {
         console.error('Error fetching brand:', error)
@@ -60,15 +89,45 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(data)
     } else if (workspace_id) {
       // Get brand by workspace (one-to-one relationship)
-      const selectQuery = includeSocial 
-        ? `*, social_accounts (*, social_pages (*))`
-        : '*'
+      let data, error;
       
-      const { data, error } = await supabase
-        .from('brands')
-        .select(selectQuery)
-        .eq('workspace_id', workspace_id)
-        .maybeSingle()
+      if (includeSocial) {
+        // Secure query that excludes sensitive tokens
+        const { data: brandData, error: brandError } = await supabase
+          .from('brands')
+          .select('*')
+          .eq('workspace_id', workspace_id)
+          .maybeSingle();
+          
+        if (brandError) {
+          error = brandError;
+        } else if (brandData) {
+          // Get social accounts without sensitive tokens
+          const { data: accounts, error: accountsError } = await supabase
+            .from('social_accounts')
+            .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
+            .eq('brand_id', brandData.id);
+            
+          if (accountsError) {
+            error = accountsError;
+          } else {
+            data = {
+              ...brandData,
+              social_accounts: accounts
+            };
+          }
+        } else {
+          data = brandData; // null if no brand found
+        }
+      } else {
+        const { data: brandData, error: brandError } = await supabase
+          .from('brands')
+          .select('*')
+          .eq('workspace_id', workspace_id)
+          .maybeSingle();
+        data = brandData;
+        error = brandError;
+      }
 
       if (error) {
         console.error('Error fetching brand:', error)

@@ -3,6 +3,7 @@ import { getPlatformOperations } from '@/lib/social/platforms';
 import { socialAccountApi } from '@/lib/api/social-accounts';
 import { supabase } from '@/lib/supabase/client';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
+import { SOCIAL_ACCOUNT_WITH_TOKENS } from '@/lib/utils/secure-queries';
 
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
@@ -16,14 +17,13 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Page ID is required' }, { status: 400 });
     }
 
-    // Get the brand with social accounts and pages
+    // Get the brand with social accounts and pages (secure query)
     const { data: brand, error: brandError } = await supabase
       .from('brands')
       .select(`
         *,
         social_accounts (
-          *,
-          social_pages (*)
+          ${SOCIAL_ACCOUNT_WITH_TOKENS}
         )
       `)
       .eq('id', brandId)

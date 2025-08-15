@@ -284,7 +284,7 @@ export interface FeedbirdStore {
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
   setActiveBoard: (id: string) => void;
-  connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => string;
+  connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId">) => string;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
   confirmSocialPage: (brandId: string, pageId: string) => Promise<void>;
   disconnectSocialPage: (brandId: string, pageId: string) => Promise<void>;
@@ -1010,7 +1010,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             return { activeBrandId: id };
           }),
 
-        connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => {
+        connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId">) => {
           let localReturnId = crypto.randomUUID();
           set((state) => ({
             workspaces: state.workspaces.map((w) => ({
@@ -1031,7 +1031,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                             ...a,
                             connected: true,
                             status: "active",
-                            authToken: account.authToken,
                           }
                         : a
                     ),
@@ -1044,7 +1043,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   name: account.name,
                   accountId: account.accountId,
                   platform,
-                  authToken: account.authToken,
                   connected: true,
                   status: "active",
                 };
@@ -1263,7 +1261,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             // Use proper API service instead of raw fetch
             const accounts = await socialAccountApi.getSocialAccounts(brandId);
             
-            // Extract all pages from all accounts into a flat array
+            // Extract all pages from all accounts into a flat array (exclude sensitive tokens)
             const allPages = accounts.flatMap((acc: any) => 
               (acc.social_pages || []).map((page: any) => ({
                 id: page.id,
@@ -1271,7 +1269,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 entityType: page.entity_type || 'page',
                 name: page.name,
                 pageId: page.page_id,
-                authToken: page.auth_token,
                 connected: page.connected,
                 status: page.status,
                 accountId: acc.id, // Link to the account
@@ -1293,12 +1290,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     platform: acc.platform,
                     name: acc.name,
                     accountId: acc.account_id,
-                    authToken: acc.auth_token,
-                    // refreshToken: acc.refresh_token,
-                    // expiresAt: acc.expires_at,
                     connected: acc.connected,
                     status: acc.status,
-                    // metadata: acc.metadata,
+                    metadata: acc.metadata,
                     socialPages: acc.social_pages || []
                   })),
                   socialPages: allPages

@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { getPlatformOperations } from "@/lib/social/platforms";
+import { getSecureToken } from "@/lib/utils/token-manager";
 
 const ops = getPlatformOperations("tiktok")!;
 
 const Body = z.object({
-  page: z.any(),
+  pageId: z.string(),
   limit: z.number().int().positive().max(100).optional(),
 });
 
@@ -14,7 +15,16 @@ export async function POST(req: NextRequest) {
     const body = Body.parse(await req.json());
     console.log("[API] TikTok history → body", body);
 
-    const videos = await ops.getPostHistory(body.page, body.limit ?? 20);
+    // Get secure token (handles refresh if needed)
+    const token = await getSecureToken(body.pageId);
+    
+    // Create page object with secure token
+    const page = {
+      id: body.pageId,
+      authToken: token
+    } as any;
+
+    const videos = await ops.getPostHistory(page, body.limit ?? 20);
     console.log(`[API] TikTok history → ${videos.length} videos`);
     return Response.json(videos);
 

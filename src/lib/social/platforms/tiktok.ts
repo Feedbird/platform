@@ -7,6 +7,7 @@ import type {
   PublishOptions,
   SocialPlatformConfig,
 } from './platform-types';
+import { getSecureToken } from '@/lib/utils/token-manager';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
@@ -209,6 +210,10 @@ export class TikTokPlatform extends BasePlatform {
 
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
     // TikTok doesn't have separate pages, the account itself is the page
+    if (!acc.authToken) {
+      throw new Error('No auth token available');
+    }
+
     const userInfo = await this.getUserInfo(acc.authToken);
 
     return [{
@@ -269,7 +274,7 @@ export class TikTokPlatform extends BasePlatform {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pageId: page.id,
+          page,
           post: {
             content: content.text,
             mediaUrls: content.media?.urls ?? []
@@ -279,6 +284,12 @@ export class TikTokPlatform extends BasePlatform {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     }
+
+  //  get secure token from the database
+  const token = await getSecureToken(page.id);
+  if (!token) {
+    throw new Error('No auth token available');
+  }
 
     const videoUrl = content.media!.urls[0];
 
@@ -290,7 +301,7 @@ export class TikTokPlatform extends BasePlatform {
       };
     }>(`${config.baseUrl}/share/video/upload/`, {
       method: 'POST',
-      token: page.authToken,
+      token: token,
       body: JSON.stringify({
         source_info: {
           source: 'FILE_UPLOAD',
@@ -309,7 +320,7 @@ export class TikTokPlatform extends BasePlatform {
       body: videoBlob,
       headers: {
         'Content-Type': 'application/octet-stream',
-        'Authorization': `Bearer ${page.authToken}`
+        'Authorization': `Bearer ${token}`
       }
     });
 
@@ -325,7 +336,7 @@ export class TikTokPlatform extends BasePlatform {
       };
     }>(`${config.baseUrl}/share/video/upload/`, {
       method: 'POST',
-      token: page.authToken,
+      token: token,
       body: JSON.stringify({
         video_id: uploadResponse.data.access_key,
         title: content.text,
@@ -353,10 +364,15 @@ export class TikTokPlatform extends BasePlatform {
       const res = await fetch('/api/social/tiktok/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page, limit }),
+        body: JSON.stringify({ pageId: page.id, limit }),
       });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
+    }
+
+    const token = await getSecureToken(page.id);
+    if (!token) {
+      throw new Error('No auth token available');
     }
 
     const response = await this.fetchWithAuth<{
@@ -380,7 +396,7 @@ export class TikTokPlatform extends BasePlatform {
         }>;
       };
     }>(`${config.baseUrl}/video/list/`, {
-      token: page.authToken,
+      token: token,
       queryParams: {
         fields: [
           'id',
@@ -426,6 +442,11 @@ export class TikTokPlatform extends BasePlatform {
       return res.json();
     }
 
+    const token = await getSecureToken(page.id);
+    if (!token) {
+      throw new Error('No auth token available');
+    }
+
     const response = await this.fetchWithAuth<{
       data: {
         stats: {
@@ -436,7 +457,7 @@ export class TikTokPlatform extends BasePlatform {
         };
       };
     }>(`${config.baseUrl}/video/query/`, {
-      token: page.authToken,
+      token: token,
       queryParams: {
         fields: ['stats'].join(','),
         video_id: postId
@@ -453,6 +474,10 @@ export class TikTokPlatform extends BasePlatform {
 
   async disconnectAccount(acc: SocialAccount): Promise<void> {
     try {
+      if (!acc.authToken) {
+        throw new Error('No auth token available');
+      }
+
       // Revoke the access token with TikTok
       const formData = new URLSearchParams({
         client_key: this.env.clientId,
@@ -492,7 +517,11 @@ export class TikTokPlatform extends BasePlatform {
 
   async checkPageStatus(page: SocialPage): Promise<SocialPage> {
     try {
-      await this.getUserInfo(page.authToken, ['open_id']);
+      const token = await getSecureToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+      await this.getUserInfo(token, ['open_id']);
       return { ...page, status: 'active', statusUpdatedAt: new Date() };
     } catch {
       return { ...page, status: 'expired', statusUpdatedAt: new Date() };
@@ -510,11 +539,16 @@ export class TikTokPlatform extends BasePlatform {
       return res.json();
     }
 
+    const token = await getSecureToken(page.id);
+    if (!token) {
+      throw new Error('No auth token available');
+    }
+
     await this.fetchWithAuth(
       `${config.baseUrl}/video/delete/`,
       {
         method: 'POST',
-        token: page.authToken,
+        token: token,
         body: JSON.stringify({
           video_id: postId
         })

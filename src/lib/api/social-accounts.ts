@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { SECURE_SOCIAL_ACCOUNT_WITH_PAGES } from '@/lib/utils/secure-queries';
 
 export const socialAccountApi = {
   async saveSocialAccount(data: {
@@ -129,10 +130,7 @@ export const socialAccountApi = {
   async getSocialAccounts(brandId: string) {
     const { data, error } = await supabase
       .from('social_accounts')
-      .select(`
-        *,
-        social_pages (*)
-      `)
+      .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
       .eq('brand_id', brandId)
       .order('created_at', { ascending: false });
 
