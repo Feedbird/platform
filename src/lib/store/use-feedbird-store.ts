@@ -819,7 +819,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               }
 
               const publishPromises = connectedPages.map(async (page) => {
-                const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+                const ops = getPlatformOperations(page.platform);
                 if (!ops) {
                   throw new Error(`Platform operations not found for ${page.platform}`);
                 }
@@ -882,7 +882,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               const page = brand.socialPages.find(p => p.id === pageId);
               if (!page) throw new Error("Page not found");
 
-              const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+              const ops = getPlatformOperations(page.platform);
               if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
 
               const fetched = await ops.getPostHistory(page, 20);
@@ -1124,7 +1124,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const acct = brand.socialAccounts.find((a) => a.id === page.accountId);
           if (!acct) throw new Error(`Account for page ${pageId} not found.`);
 
-          const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+          const ops = getPlatformOperations(page.platform);
           if (!ops) throw new Error(`No platform operations for ${page.platform}`);
 
           try {
@@ -1232,7 +1232,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             console.error("deletePagePost: page not found");
             return;
           }
-          const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+          const ops = getPlatformOperations(page.platform);
           if (!ops?.deletePost) {
             console.error("deletePagePost: ops.deletePost not implemented");
             return;

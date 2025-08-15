@@ -8,6 +8,8 @@ import type {
   SocialPlatformConfig,
 } from './platform-types';
 
+const IS_BROWSER = typeof window !== 'undefined';
+
 const config: SocialPlatformConfig = {
   name: 'TikTok',
   channel: 'tiktok',
@@ -262,6 +264,22 @@ export class TikTokPlatform extends BasePlatform {
     content: PostContent,
     options?: PublishOptions
   ): Promise<PostHistory> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/tiktok/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pageId: page.id,
+          post: {
+            content: content.text,
+            mediaUrls: content.media?.urls ?? []
+          }
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     const videoUrl = content.media!.urls[0];
 
     // 1. Get upload URL
@@ -331,6 +349,16 @@ export class TikTokPlatform extends BasePlatform {
   }
 
   async getPostHistory(page: SocialPage, limit = 20): Promise<PostHistory[]> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/tiktok/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, limit }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     const response = await this.fetchWithAuth<{
       data: {
         videos: Array<{
@@ -388,6 +416,16 @@ export class TikTokPlatform extends BasePlatform {
   }
 
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/tiktok/analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, postId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     const response = await this.fetchWithAuth<{
       data: {
         stats: {
@@ -462,6 +500,16 @@ export class TikTokPlatform extends BasePlatform {
   }
 
   async deletePost(page: SocialPage, postId: string): Promise<void> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/tiktok/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, postId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     await this.fetchWithAuth(
       `${config.baseUrl}/video/delete/`,
       {
