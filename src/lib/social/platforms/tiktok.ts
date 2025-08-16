@@ -146,25 +146,15 @@ export class TikTokPlatform extends BasePlatform {
 
   // Helper method to fetch creator info (reusable across methods)
   private async fetchCreatorInfo(token: string) {
-    const response = await this.fetchWithAuth<{
-      data: {
-        creator_avatar_url: string;
-        creator_username: string;
-        creator_nickname: string;
-        privacy_level_options: string[];
-        comment_disabled: boolean;
-        duet_disabled: boolean;
-        stitch_disabled: boolean;
-        max_video_post_duration_sec: number;
-      };
-    }>(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
+    const response = await fetch(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
       method: 'POST',
-      token: token,
       headers: {
-        'Content-Type': 'application/json; charset=UTF-8'
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': `Bearer ${token}`
       }
     });
-    return response.data;
+    const data = await response.json();
+    return data.data;
   }
 
   async connectAccount(code: string): Promise<SocialAccount> {
