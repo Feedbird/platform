@@ -15,6 +15,18 @@ const Body = z.object({
     disableComment: z.boolean().optional(),
     brandContentToggle: z.boolean().optional(),
     brandOrganicToggle: z.boolean().optional(),
+    autoAddMusic: z.boolean().optional(),
+    allowDownload: z.boolean().optional(),
+    allowStitch: z.boolean().optional(),
+    allowDuet: z.boolean().optional(),
+    videoCovers: z.object({
+      coverImageId: z.string().optional(),
+      coverTapTime: z.number().optional(),
+    }).optional(),
+    contentDisclosure: z.object({
+      contentDisclosure: z.boolean(),
+      contentDisclosureIcon: z.string().optional(),
+    }).optional(),
   }),
 });
 
@@ -39,6 +51,12 @@ export async function POST(req: NextRequest) {
       disableComment: body.post.disableComment,
       brandContentToggle: body.post.brandContentToggle,
       brandOrganicToggle: body.post.brandOrganicToggle,
+      autoAddMusic: body.post.autoAddMusic,
+      allowDownload: body.post.allowDownload,
+      allowStitch: body.post.allowStitch,
+      allowDuet: body.post.allowDuet,
+      videoCovers: body.post.videoCovers,
+      contentDisclosure: body.post.contentDisclosure,
     });
     
     console.log(`[API] TikTok publish → success`, result);
