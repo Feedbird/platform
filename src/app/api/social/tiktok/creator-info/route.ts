@@ -3,7 +3,6 @@ import { z } from "zod";
 import { getPlatformOperations } from "@/lib/social/platforms";
 import { getSecureToken } from "@/lib/utils/token-manager";
 
-const ops = getPlatformOperations("tiktok")!;
 
 const Body = z.object({
   pageId: z.string(),
@@ -12,13 +11,17 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = Body.parse(await req.json());
-    console.log("[API] TikTok creator info → body", body);
 
     // Create page object with just the ID (token will be fetched securely)
     const page = { id: body.pageId } as any;
     
+    const ops = getPlatformOperations("tiktok")!;
+
+    if (!ops.getCreatorInfo) {
+      return Response.json({ error: "getCreatorInfo operation not found" }, { status: 500 });
+    }
+
     const creatorInfo = await ops.getCreatorInfo(page);
-    console.log(`[API] TikTok creator info → success`, creatorInfo);
     return Response.json(creatorInfo);
 
   } catch (e: any) {

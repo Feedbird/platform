@@ -142,6 +142,29 @@ export class TikTokPlatform extends BasePlatform {
     return response.data.user;
   }
 
+  // Helper method to fetch creator info (reusable across methods)
+  private async fetchCreatorInfo(token: string) {
+    const response = await this.fetchWithAuth<{
+      data: {
+        creator_avatar_url: string;
+        creator_username: string;
+        creator_nickname: string;
+        privacy_level_options: string[];
+        comment_disabled: boolean;
+        duet_disabled: boolean;
+        stitch_disabled: boolean;
+        max_video_post_duration_sec: number;
+      };
+    }>(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
+      method: 'POST',
+      token: token,
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8'
+      }
+    });
+    return response.data;
+  }
+
   async connectAccount(code: string): Promise<SocialAccount> {
     const tokenData = await this.makeTokenRequest({
       client_key: this.env.clientId,
@@ -223,6 +246,7 @@ export class TikTokPlatform extends BasePlatform {
       name: userInfo.display_name,
       pageId: userInfo.open_id,
       authToken: acc.authToken,
+      authTokenExpiresAt: acc.accessTokenExpiresAt,
       connected: true,
       status: 'active',
       accountId: acc.id,
@@ -300,21 +324,12 @@ export class TikTokPlatform extends BasePlatform {
     const videoUrl = content.media!.urls[0];
 
     // 1. Query creator info first (required by TikTok)
-    const creatorInfo = await this.fetchWithAuth<{
-      data: {
-        privacy_level_options: string[];
-        max_video_post_duration_sec: number;
-        nickname: string;
-      };
-    }>(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
-      method: 'GET',
-      token: token
-    });
+    const creatorInfo = await this.fetchCreatorInfo(token);
 
     // Validate privacy level
     const privacyLevel = options?.visibility === 'private' ? 'SELF_ONLY' : 'PUBLIC_TO_EVERYONE';
-    if (!creatorInfo.data.privacy_level_options.includes(privacyLevel)) {
-      throw new Error(`Invalid privacy level. Available options: ${creatorInfo.data.privacy_level_options.join(', ')}`);
+    if (!creatorInfo.privacy_level_options.includes(privacyLevel)) {
+      throw new Error(`Invalid privacy level. Available options: ${creatorInfo.privacy_level_options.join(', ')}`);
     }
 
     // 2. Initialize video post with PULL_FROM_URL
@@ -338,7 +353,15 @@ export class TikTokPlatform extends BasePlatform {
           disable_stitch: options?.disableStitch || false,
           disable_comment: options?.disableComment || false,
           brand_content_toggle: options?.brandContentToggle || false,
-          brand_organic_toggle: options?.brandOrganicToggle || false
+          brand_organic_toggle: options?.brandOrganicToggle || false,
+          auto_add_music: options?.autoAddMusic !== undefined ? options.autoAddMusic : true,
+          allow_download: options?.allowDownload !== undefined ? options.allowDownload : true,
+          ...(options?.videoCovers && {
+            video_cover_timestamp_ms: (options.videoCovers.coverTapTime || 0) * 1000
+          }),
+          ...(options?.contentDisclosure?.contentDisclosure && {
+            content_disclosure: options.contentDisclosure.contentDisclosure
+          })
         },
         source_info: {
           source: 'PULL_FROM_URL',
@@ -478,6 +501,11 @@ export class TikTokPlatform extends BasePlatform {
     privacyLevelOptions: string[];
     maxVideoPostDurationSec: number;
     nickname: string;
+    creatorAvatarUrl: string;
+    creatorUsername: string;
+    commentDisabled: boolean;
+    duetDisabled: boolean;
+    stitchDisabled: boolean;
   }> {
     if (IS_BROWSER) {
       const res = await fetch('/api/social/tiktok/creator-info', {
@@ -494,21 +522,17 @@ export class TikTokPlatform extends BasePlatform {
       throw new Error('No auth token available');
     }
 
-    const response = await this.fetchWithAuth<{
-      data: {
-        privacy_level_options: string[];
-        max_video_post_duration_sec: number;
-        nickname: string;
-      };
-    }>(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
-      method: 'GET',
-      token: token
-    });
+    const creatorInfo = await this.fetchCreatorInfo(token);
 
     return {
-      privacyLevelOptions: response.data.privacy_level_options,
-      maxVideoPostDurationSec: response.data.max_video_post_duration_sec,
-      nickname: response.data.nickname
+      privacyLevelOptions: creatorInfo.privacy_level_options,
+      maxVideoPostDurationSec: creatorInfo.max_video_post_duration_sec,
+      nickname: creatorInfo.creator_nickname,
+      creatorAvatarUrl: creatorInfo.creator_avatar_url,
+      creatorUsername: creatorInfo.creator_username,
+      commentDisabled: creatorInfo.comment_disabled,
+      duetDisabled: creatorInfo.duet_disabled,
+      stitchDisabled: creatorInfo.stitch_disabled
     };
   }
 
