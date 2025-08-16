@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { getPlatformOperations } from "@/lib/social/platforms";
 import { getSecureToken } from "@/lib/utils/token-manager";
+import type { TikTokCreatorInfo } from "@/lib/social/platforms/platform-types";
 
 
 const Body = z.object({
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "getCreatorInfo operation not found" }, { status: 500 });
     }
 
-    const creatorInfo = await ops.getCreatorInfo(page);
+    const creatorInfo: TikTokCreatorInfo = await ops.getCreatorInfo(page);
     return Response.json(creatorInfo);
 
   } catch (e: any) {

@@ -11,7 +11,8 @@ import type {
   ContentFormat,
   SocialAccount, 
   SocialPage,
-  PostHistory
+  PostHistory,
+  PostSettings
 } from "@/lib/social/platforms/platform-types";
 import { getPlatformOperations } from "../social/platforms";
 import { handleError } from "../utils/error-handler";
@@ -20,6 +21,8 @@ import { withLoading } from "../utils/loading/loading-store";
 import { RowHeightType } from "../utils";
 import { storeApi, commentApi, socialAccountApi } from '@/lib/api/api-service'
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
+import { mapTikTokSettingsToPublishOptions } from "@/lib/utils/tiktok-settings-mapper";
+
 
 export interface BoardRules {
   autoSchedule: boolean;
@@ -169,17 +172,8 @@ export interface Post {
   billingMonth?: string;
   month: number;  // Month number (1-50)
 
-  /** Per-post settings such as location tag, tagged accounts, custom thumbnail, etc. */
-  settings?: {
-    /* flags */
-    location?: boolean;
-    tagAccounts?: boolean;
-    thumbnail?: boolean;
-
-    /* actual data */
-    locationTags?: string[];
-    taggedAccounts?: string[];
-  };
+  /** Per-post settings such as location tag, tagged accounts, custom thumbnail, and platform-specific options */
+  settings?: PostSettings;
 
   /** Hashtags data with sync/unsync functionality */
   hashtags?: CaptionData;
@@ -824,15 +818,49 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   throw new Error(`Platform operations not found for ${page.platform}`);
                 }
 
-                const publishResult = await ops.publishPost(page, {
-                   text: post.caption.default,
-                   media: {
-                     type: "image" as const,
-                     urls: processedBlocks.flatMap(block => 
-                       block.versions.flatMap(version => version.media?.map(m => m.src) || [])
-                     )
-                   }
-                 }, { scheduledTime });
+                // Prepare base publish options
+                let publishOptions: any = { scheduledTime };
+                let postContent: any;
+
+                // For TikTok pages, format content according to TikTok API requirements
+                if (page.platform === 'tiktok') {
+                  
+                  // Use TikTok settings if available, otherwise use defaults
+                  if (post.settings?.tiktok) {
+                    const tiktokOptions = mapTikTokSettingsToPublishOptions(post.settings.tiktok);
+                    publishOptions = { ...publishOptions, ...tiktokOptions };
+                  }
+
+                  // Format content for TikTok API
+                  postContent = {
+                    text: post.caption.default,
+                    media: {
+                      type: "video" as const, // TikTok primarily supports video content
+                      urls: processedBlocks.flatMap(block => 
+                        block.versions.flatMap(version => {
+                          // Handle both version.file and version.media structures
+                          if (version.file?.url) {
+                            return [version.file.url];
+                          }
+                          return version.media?.map(m => m.src) || [];
+                        })
+                      )
+                    }
+                  };
+                } else {
+                  // Standard content format for other platforms
+                  postContent = {
+                    text: post.caption.default,
+                    media: {
+                      type: "image" as const,
+                      urls: processedBlocks.flatMap(block => 
+                        block.versions.flatMap(version => version.media?.map(m => m.src) || [])
+                      )
+                    }
+                  };
+                }
+
+                const publishResult = await ops.publishPost(page, postContent , publishOptions);
 
                 return {
                   pageId: page.id,

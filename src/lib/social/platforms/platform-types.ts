@@ -8,6 +8,13 @@ export type Platform =
   | "tiktok"
   | "google";
 
+// TikTok Privacy Levels (from TikTok API)
+export type TikTokPrivacyLevel = 
+  | "PUBLIC_TO_EVERYONE"
+  | "MUTUAL_FOLLOW_FRIENDS" 
+  | "FOLLOWER_OF_CREATOR"
+  | "SELF_ONLY";
+
 // Status Types
 export type PageStatus = "active" | "expired" | "pending" | "disconnected" | "error";
 export type PostStatus = "draft" | "scheduled" | "published" | "failed" | "deleted";
@@ -208,11 +215,7 @@ export interface PlatformOperations {
   validateContent(content: PostContent): { isValid: boolean; errors?: string[] };
   
   // TikTok-specific operations
-  getCreatorInfo?(page: SocialPage): Promise<{
-    privacyLevelOptions: string[];
-    maxVideoPostDurationSec: number;
-    nickname: string;
-  }>;
+  getCreatorInfo?(page: SocialPage): Promise<TikTokCreatorInfo>;
 }
 
 export interface PlatformPage {
@@ -236,10 +239,56 @@ export interface PublishOptions {
     enabled: boolean;
     platforms?: Platform[];
   };
-  // TikTok-specific options
+  // TikTok-specific options (expanded)
   disableDuet?: boolean;
   disableStitch?: boolean;
   disableComment?: boolean;
   brandContentToggle?: boolean;
   brandOrganicToggle?: boolean;
+  autoAddMusic?: boolean;
+  allowDownload?: boolean;
+  allowStitch?: boolean;
+  allowDuet?: boolean;
+  videoCoverTimestampMs?: number;
+  isAigc?: boolean;
+  videoCovers?: {
+    coverImageId?: string;
+    coverTapTime?: number;
+  };
+  contentDisclosure?: {
+    contentDisclosure: boolean;
+    contentDisclosureIcon?: string;
+  };
+}
+
+// TikTok-specific interfaces
+export interface TikTokCreatorInfo {
+  creatorAvatarUrl: string;
+  creatorUsername: string;
+  creatorNickname: string;
+  privacyLevelOptions: TikTokPrivacyLevel[];
+  commentDisabled: boolean;
+  duetDisabled: boolean;
+  stitchDisabled: boolean;
+  maxVideoPostDurationSec: number;
+}
+
+export interface TikTokSettings {
+  privacyLevel: TikTokPrivacyLevel;
+  disableDuet: boolean;
+  disableStitch: boolean;
+  disableComment: boolean;
+  videoCoverTimestampMs?: number;
+  brandContentToggle: boolean;
+  brandOrganicToggle: boolean;
+  autoAddMusic: boolean;
+  isAigc: boolean;
+}
+
+// Post Settings Structure (includes platform-specific settings)
+export interface PostSettings {
+  locationTags: string[];
+  taggedAccounts: string[];
+  thumbnail: boolean;
+  tiktok?: TikTokSettings;
 }

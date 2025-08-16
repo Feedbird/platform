@@ -81,6 +81,8 @@ import { MapPin, AtSign, Image as ImageIcon } from "lucide-react";
 import { StatusChip } from "@/components/content/shared/content-post-ui";
 import { Span } from "next/dist/trace";
 import { ImageConfigContext } from "next/dist/shared/lib/image-config-context.shared-runtime";
+import { TikTokSettingsPanel } from './tiktok-settings';
+import type { TikTokSettings } from '@/lib/social/platforms/platform-types';
 
 // Wrapper component to convert between platform names and page IDs
 function PlatformsEditor({ post }: { post: Post }) {
@@ -292,42 +294,59 @@ function FormatEditor({ post }: { post: Post }) {
 // Settings editor component using the same style as SettingsCell
 function SettingsEditor({ post }: { post: Post }) {
   const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const brand = useFeedbirdStore((s) => s.getActiveBrand());
   const [open, setOpen] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
 
-  // Settings data structure
-  interface SettingsData {
-    locationTags: string[];
-    taggedAccounts: string[];
-    thumbnail: boolean;
-  }
+  // Get the first TikTok page ID if TikTok is selected
+  const tiktokPageId = React.useMemo(() => {
+    if (!post.platforms.includes('tiktok') || !brand?.socialPages) return null;
+    const tiktokPage = brand.socialPages.find(page => 
+      page.platform === 'tiktok' && page.connected
+    );
+    return tiktokPage?.id || null;
+  }, [post.platforms, brand?.socialPages]);
 
-  // Default settings
-  const initial: SettingsData = {
+  // Default TikTok settings
+  const defaultTikTokSettings: TikTokSettings = {
+    privacyLevel: 'PUBLIC_TO_EVERYONE',
+    disableDuet: false,
+    disableStitch: false,
+    disableComment: false,
+    brandContentToggle: false,
+    brandOrganicToggle: false,
+    autoAddMusic: true,
+    isAigc: false,
+  };
+
+  // Local state for all settings
+  const [local, setLocal] = React.useState({
     locationTags: post.settings?.locationTags ?? [],
     taggedAccounts: post.settings?.taggedAccounts ?? [],
     thumbnail: post.settings?.thumbnail ?? false,
-  };
-
-  const [local, setLocal] = React.useState<SettingsData>(initial);
+    tiktok: post.settings?.tiktok ?? defaultTikTokSettings,
+  });
 
   // Helper booleans for UI
   const activeFlags = {
     location: local.locationTags.length > 0,
     tagAccounts: local.taggedAccounts.length > 0,
     thumbnail: local.thumbnail,
+    tiktok: post.platforms.includes('tiktok'),
   };
 
   const LABELS = {
     location: "Location Tag",
-    tagAccounts: "Tag Accounts",
+    tagAccounts: "Tag Accounts", 
     thumbnail: "Custom Thumbnail",
+    tiktok: "TikTok Settings",
   };
 
   const ICONS = {
     location: <Image src={`/images/settings/map.svg`} alt="Location" width={16} height={16} />,
     tagAccounts: <Image src={`/images/settings/at-sign.svg`} alt="Tag Accounts" width={16} height={16} />,
     thumbnail: <Image src={`/images/settings/image.svg`} alt="Thumbnail" width={16} height={16} />,
+    tiktok: <Image src={`/images/platforms/tiktok.svg`} alt="TikTok" width={16} height={16} />,
   };
 
   const iconClass = (active: boolean) =>
@@ -342,6 +361,9 @@ function SettingsEditor({ post }: { post: Post }) {
           return { ...prev, locationTags: [] };
         case 'tagAccounts':
           return { ...prev, taggedAccounts: [] };
+        case 'tiktok':
+          // TikTok settings are managed by platform selection, not toggleable here
+          return prev;
       }
     });
   }
@@ -372,7 +394,9 @@ function SettingsEditor({ post }: { post: Post }) {
             >
               <div className="flex items-center gap-[8px]">
                 <TooltipProvider>
-                  {(Object.keys(ICONS) as (keyof typeof ICONS)[]).map((k) => (
+                  {(Object.keys(ICONS) as (keyof typeof ICONS)[])
+                    .filter(k => k !== 'tiktok' || post.platforms.includes('tiktok'))
+                    .map((k) => (
                     <Tooltip key={k}>
                       <TooltipTrigger asChild>
                         <span className="h-6 w-6 flex items-center justify-center cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10">{React.cloneElement(ICONS[k] as any, {
@@ -394,7 +418,9 @@ function SettingsEditor({ post }: { post: Post }) {
 
           <PopoverContent className="pt-[8px] py-[12px] px-[12px] w-50" align="center" side="bottom" sideOffset={6}>
             <p className="text-base font-semibold mb-[6px]">Settings</p>
-            {(Object.keys(LABELS) as (keyof typeof LABELS)[]).map((k) => (
+            {(Object.keys(LABELS) as (keyof typeof LABELS)[])
+              .filter(k => k !== 'tiktok' || post.platforms.includes('tiktok'))
+              .map((k) => (
               <label key={k} className="flex items-center justify-between py-[8px] gap-2 cursor-pointer">
                 <div className="flex items-center gap-2">
                   {React.cloneElement(ICONS[k] as any, { className: iconClass(activeFlags[k]) })}
@@ -402,7 +428,8 @@ function SettingsEditor({ post }: { post: Post }) {
                 </div>
                 <Checkbox 
                   checked={activeFlags[k]} 
-                  onCheckedChange={() => toggleFlag(k)}
+                  onCheckedChange={() => k !== 'tiktok' && toggleFlag(k)}
+                  disabled={k === 'tiktok'}
                   className={cn(
                     "h-4 w-4 rounded-none border border-[#D0D5DD] transition-colors duration-150 ease-in-out rounded-[3px]",
                     "hover:border-[#2183FF]",
@@ -431,7 +458,9 @@ function SettingsEditor({ post }: { post: Post }) {
         <HoverCardContent className="p-2 w-[220px]">
          <p className="text-sm font-semibold mb-1">Post settings</p>
          <div className="flex items-center gap-2">
-           {(Object.keys(ICONS) as (keyof typeof ICONS)[]).map((k) => (
+           {(Object.keys(ICONS) as (keyof typeof ICONS)[])
+             .filter(k => k !== 'tiktok' || post.platforms.includes('tiktok'))
+             .map((k) => (
              <div key={k} className="flex items-center gap-1">
                {React.cloneElement(ICONS[k] as any, { className: iconClass(activeFlags[k]) })}
                <span className={cn("text-xs font-semibold", activeFlags[k] ? "text-green-600" : "text-red-500")}>
@@ -444,26 +473,45 @@ function SettingsEditor({ post }: { post: Post }) {
 
       {/* Settings Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="w-[512px] p-4 flex flex-col gap-6 rounded-[12px] bg-white">
+        <DialogContent className="w-[512px] max-h-[80vh] p-4 flex flex-col gap-6 rounded-[12px] bg-white">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-black">Settings</DialogTitle>
           </DialogHeader>
 
-          <Tabs defaultValue="location" className="w-full mt-0 flex flex-col gap-6">
+          <Tabs defaultValue={post.platforms.includes('tiktok') ? 'tiktok' : 'location'} className="w-full mt-0 flex flex-col gap-6 flex-1 min-h-0">
             <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
+              {post.platforms.includes('tiktok') && (
+                <TabsTrigger value="tiktok" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                  {ICONS.tiktok} TikTok
+                </TabsTrigger>
+              )}
               <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
-                {ICONS.location} Location Tag
+                {ICONS.location} Location
               </TabsTrigger>
               <TabsTrigger value="tags" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
-                {ICONS.tagAccounts} Tag Accounts
+                {ICONS.tagAccounts} Tags
               </TabsTrigger>
               <TabsTrigger value="thumb" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
-                {ICONS.thumbnail} Custom Thumbnail
+                {ICONS.thumbnail} Thumbnail
               </TabsTrigger>
             </TabsList>
 
-            {/* Location Tab */}
-            <TabsContent value="location" className="space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-2">
+              {/* TikTok Tab */}
+              {post.platforms.includes('tiktok') && (
+                <TabsContent value="tiktok" className="space-y-4 m-0 h-full">
+                  <TikTokSettingsPanel
+                    pageId={tiktokPageId}
+                    settings={local.tiktok}
+                    onChange={(tiktokSettings) => 
+                      setLocal(prev => ({ ...prev, tiktok: tiktokSettings }))
+                    }
+                  />
+                </TabsContent>
+              )}
+
+              {/* Location Tab */}
+              <TabsContent value="location" className="space-y-3 m-0 h-full">
               <label className="flex items-center gap-2 text-sm font-medium text-black">Location</label>
               <Input
                 placeholder="Example: San Francisco, CA"
@@ -509,10 +557,11 @@ function SettingsEditor({ post }: { post: Post }) {
               </div>
             </TabsContent>
 
-            {/* Thumbnail Tab */}
-            <TabsContent value="thumb" className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">Custom thumbnail feature coming soon.</div>
-            </TabsContent>
+              {/* Thumbnail Tab */}
+              <TabsContent value="thumb" className="space-y-3 text-sm text-muted-foreground m-0 h-full">
+                <div className="flex items-center gap-2">Custom thumbnail feature coming soon.</div>
+              </TabsContent>
+            </div>
           </Tabs>
 
           <div className="flex justify-between gap-2 pt-4">
@@ -525,7 +574,13 @@ function SettingsEditor({ post }: { post: Post }) {
             </Button>
             <Button
               onClick={()=>{
-                updatePost(post.id, { settings: local });
+                const updatedSettings = {
+                  locationTags: local.locationTags,
+                  taggedAccounts: local.taggedAccounts,
+                  thumbnail: local.thumbnail,
+                  ...(post.platforms.includes('tiktok') && { tiktok: local.tiktok })
+                };
+                updatePost(post.id, { settings: updatedSettings });
                 setModalOpen(false);
               }}
               className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm"
