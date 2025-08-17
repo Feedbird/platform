@@ -26,7 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, AtSign, Image as ImageIcon, X } from "lucide-react";
+import { MapPin, AtSign, Image as ImageIcon, X, AlertCircle } from "lucide-react";
 import type { PostSettings, Platform, TikTokSettings } from "@/lib/social/platforms/platform-types";
 import { TikTokSettingsPanel } from '../post-record-modal/tiktok-settings';
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
@@ -105,9 +105,14 @@ export function SettingsEditCell({
     disableDuet: false,
     disableStitch: false,
     disableComment: false,
+    
+    // Commercial Content Disclosure (OFF by default as required by TikTok)
+    commercialContentToggle: false,
     brandContentToggle: false,
     brandOrganicToggle: false,
-    autoAddMusic: true,
+    
+    // Content Settings
+    autoAddMusic: false,
     isAigc: false,
   };
 
@@ -119,6 +124,9 @@ export function SettingsEditCell({
   }), [value]);
 
   const [local, setLocal] = React.useState<PostSettings>(initial);
+
+  // TikTok validation state
+  const [tiktokValidation, setTiktokValidation] = React.useState(true);
 
   /* Helper booleans for UI */
   const activeFlags: SettingFlags = {
@@ -289,6 +297,9 @@ export function SettingsEditCell({
                     onChange={(tiktokSettings) => 
                       setLocal(prev => ({ ...prev, tiktok: tiktokSettings }))
                     }
+                    onValidationChange={(isValid) => {
+                      setTiktokValidation(isValid);
+                    }}
                   />
                 </TabsContent>
               )}
@@ -366,11 +377,27 @@ export function SettingsEditCell({
                 onChange(updatedSettings);
                 setModalOpen(false);
               }}
-              className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm"
+              disabled={platforms.includes('tiktok') && !tiktokValidation}
+              className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Changes
             </Button>
           </div>
+          
+          {/* TikTok validation error message - positioned below buttons */}
+          {platforms.includes('tiktok') && !tiktokValidation && (
+            <div className="flex items-center gap-2 text-xs text-red-600 mt-2">
+              <AlertCircle className="h-3 w-3" />
+              <span>
+                {local.tiktok?.commercialContentToggle && !local.tiktok?.brandContentToggle && !local.tiktok?.brandOrganicToggle 
+                  ? "Commercial content requires at least one brand option selected."
+                  : local.tiktok?.brandContentToggle && local.tiktok?.privacyLevel === 'SELF_ONLY'
+                  ? "Branded content cannot be set to private. Please change privacy settings."
+                  : "TikTok settings validation failed. Please check your configuration."
+                }
+              </span>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </HoverCard>

@@ -10,8 +10,13 @@ export function mapTikTokSettingsToPublishOptions(tiktokSettings: TikTokSettings
     disableDuet: tiktokSettings.disableDuet,
     disableStitch: tiktokSettings.disableStitch,
     disableComment: tiktokSettings.disableComment,
+    
+    // Commercial Content Disclosure
+    commercialContentToggle: tiktokSettings.commercialContentToggle,
     brandContentToggle: tiktokSettings.brandContentToggle,
     brandOrganicToggle: tiktokSettings.brandOrganicToggle,
+    
+    // Content Settings
     autoAddMusic: tiktokSettings.autoAddMusic,
     isAigc: tiktokSettings.isAigc,
     videoCoverTimestampMs: tiktokSettings.videoCoverTimestampMs,
@@ -34,8 +39,13 @@ export function getDefaultTikTokSettings(creatorInfo?: {
     disableDuet: creatorInfo?.duetDisabled || false,
     disableStitch: creatorInfo?.stitchDisabled || false,
     disableComment: creatorInfo?.commentDisabled || false,
+    
+    // Commercial Content Disclosure (OFF by default as required by TikTok)
+    commercialContentToggle: false,
     brandContentToggle: false,
     brandOrganicToggle: false,
+    
+    // Content Settings
     autoAddMusic: false,
     isAigc: false,
   };

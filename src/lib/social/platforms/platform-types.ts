@@ -244,8 +244,13 @@ export interface PublishOptions {
   disableDuet?: boolean;
   disableStitch?: boolean;
   disableComment?: boolean;
-  brandContentToggle?: boolean;
-  brandOrganicToggle?: boolean;
+  
+  // Commercial Content Disclosure (Required by TikTok)
+  commercialContentToggle?: boolean;
+  brandContentToggle?: boolean;      // For third-party brands (Paid Partnership)
+  brandOrganicToggle?: boolean;      // For your own business (Brand Organic)
+  
+  // Content Settings
   autoAddMusic?: boolean;
   allowDownload?: boolean;
   allowStitch?: boolean;
@@ -269,10 +274,15 @@ export interface TikTokCreatorInfo {
   creatorUsername: string;
   creatorNickname: string;
   privacyLevelOptions: TikTokPrivacyLevel[];
+  
+  // Interaction settings from creator's app
   commentDisabled: boolean;
   duetDisabled: boolean;
   stitchDisabled: boolean;
+  
+  // Content constraints
   maxVideoPostDurationSec: number;
+
 }
 
 export interface TikTokSettings {
@@ -281,10 +291,19 @@ export interface TikTokSettings {
   disableStitch: boolean;
   disableComment: boolean;
   videoCoverTimestampMs?: number;
-  brandContentToggle: boolean;
-  brandOrganicToggle: boolean;
+  
+  // Commercial Content Disclosure (Required by TikTok)
+  commercialContentToggle: boolean; // Must be OFF by default
+  brandContentToggle: boolean;      // For third-party brands (Paid Partnership)
+  brandOrganicToggle: boolean;      // For your own business (Brand Organic)
+  
+  // Content Settings
   autoAddMusic: boolean;
   isAigc: boolean;
+  
+  // Validation fields from creator info
+  maxVideoDurationSec?: number;
+  canPostMore?: boolean;
 }
 
 // Post Settings Structure (includes platform-specific settings)

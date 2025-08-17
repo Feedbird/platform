@@ -16,18 +16,42 @@ interface TikTokSettingsPanelProps {
   settings: TikTokSettings;
   onChange: (settings: TikTokSettings) => void;
   disabled?: boolean;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 export function TikTokSettingsPanel({ 
   pageId, 
   settings, 
   onChange, 
-  disabled = false 
+  disabled = false,
+  onValidationChange
 }: TikTokSettingsPanelProps) {
   const { creatorInfo, loading, error } = useTikTokCreatorInfo({ 
     pageId, 
     enabled: !!pageId 
   });
+
+  // Validation logic for TikTok settings
+  React.useEffect(() => {
+    if (!onValidationChange) return;
+    
+    let isValid = true;
+    
+    // Check if commercial content is properly configured
+    if (settings.commercialContentToggle) {
+      // Must have at least one brand option selected
+      if (!settings.brandContentToggle && !settings.brandOrganicToggle) {
+        isValid = false;
+      }
+      
+      // Branded content cannot be private
+      if (settings.brandContentToggle && settings.privacyLevel === 'SELF_ONLY') {
+        isValid = false;
+      }
+    }
+    
+    onValidationChange(isValid);
+  }, [settings, onValidationChange]);
 
   if (!pageId) {
     return (
@@ -69,6 +93,7 @@ export function TikTokSettingsPanel({
     key: K, 
     value: TikTokSettings[K]
   ) => {
+
     onChange({ ...settings, [key]: value });
   };
 
@@ -129,16 +154,43 @@ export function TikTokSettingsPanel({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {creatorInfo.privacyLevelOptions.map((privacy) => (
-              <SelectItem key={privacy} value={privacy}>
-                <div>
-                  <div className="font-medium">{formatPrivacyLabel(privacy)}</div>
-                  <div className="text-xs text-gray-600">{getPrivacyDescription(privacy)}</div>
-                </div>
-              </SelectItem>
-            ))}
+            {creatorInfo.privacyLevelOptions.map((privacy) => {
+              // Disable private option when branded content is selected
+              const isDisabled = privacy === 'SELF_ONLY' && 
+                settings.commercialContentToggle && 
+                settings.brandContentToggle;
+              
+              return (
+                <SelectItem 
+                  key={privacy} 
+                  value={privacy}
+                  disabled={isDisabled}
+                  className={isDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                >
+                  <div>
+                    <div className="font-medium">{formatPrivacyLabel(privacy)}</div>
+                    <div className="text-xs text-gray-600">{getPrivacyDescription(privacy)}</div>
+                    {isDisabled && (
+                      <div className="text-xs text-orange-600 mt-1">
+                        Branded content cannot be private
+                      </div>
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
+        
+        {/* Privacy Restriction Warning */}
+        {settings.commercialContentToggle && settings.brandContentToggle && settings.privacyLevel === 'SELF_ONLY' && (
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-200">
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+            <p className="text-xs text-orange-800">
+              Branded content visibility cannot be set to private. Please select a public visibility option.
+            </p>
+          </div>
+        )}
       </div>
 
       <Separator />
@@ -228,17 +280,6 @@ export function TikTokSettingsPanel({
         <Label className="text-sm font-medium">Video Settings</Label>
         
         <div className="space-y-3">
-          {/* Auto Add Music */}
-          <div className="flex items-center justify-between">
-            <Label htmlFor="auto-add-music" className="text-sm">Auto-add Music</Label>
-            <Switch
-              id="auto-add-music"
-              checked={settings.autoAddMusic}
-              onCheckedChange={(checked) => updateSetting('autoAddMusic', checked)}
-              disabled={disabled}
-            />
-          </div>
-
           {/* Video Cover Timestamp */}
           <div className="space-y-2">
             <Label htmlFor="video-cover" className="text-sm">
@@ -268,35 +309,144 @@ export function TikTokSettingsPanel({
 
       <Separator />
 
-      {/* Brand Content Settings */}
+      {/* Commercial Content Disclosure (Required by TikTok) */}
       <div className="space-y-4">
-        <Label className="text-sm font-medium">Brand Content</Label>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium">Commercial Content Disclosure</Label>
+          <Tooltip>
+            <TooltipTrigger>
+              <Info className="h-4 w-4 text-blue-500" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Required by TikTok for promotional content</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         
-        <div className="space-y-3">
-          {/* Paid Partnership */}
+        <div className="space-y-4">
+          {/* Commercial Content Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="brand-content" className="text-sm">Paid Partnership</Label>
-              <p className="text-xs text-gray-600">Mark as sponsored content</p>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="commercial-content" className="text-sm">Commercial Content</Label>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-blue-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>You need to indicate if your content promotes yourself, a third party, or both. At least one brand option must be selected.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <p className="text-xs text-gray-600">This content promotes a brand, product, or service</p>
             </div>
             <Switch
-              id="brand-content"
-              checked={settings.brandContentToggle}
-              onCheckedChange={(checked) => updateSetting('brandContentToggle', checked)}
+              id="commercial-content"
+              checked={settings.commercialContentToggle}
+              onCheckedChange={(checked) => {
+                if (!checked) {
+                  // Reset all settings in one update when commercial content is disabled
+                  onChange({
+                    ...settings,
+                    commercialContentToggle: false,
+                    brandContentToggle: false,
+                    brandOrganicToggle: false
+                  });
+                } else {
+                  // Enable commercial content
+                  onChange({
+                    ...settings,
+                    commercialContentToggle: true
+                  });
+                }
+              }}
               disabled={disabled}
             />
           </div>
 
-          {/* Own Business */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="brand-organic" className="text-sm">Promote Own Business</Label>
-              <p className="text-xs text-gray-600">Promoting your own brand/business</p>
+          {/* Brand Options (only shown when commercial content is enabled) */}
+          {settings.commercialContentToggle && (
+            <div className="pl-4 space-y-3 border-l-2 border-gray-200">
+              {/* Your Brand */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="brand-organic" className="text-sm">Your Brand</Label>
+                  <p className="text-xs text-gray-600">Promoting yourself or your own business</p>
+                </div>
+                <Switch
+                  id="brand-organic"
+                  checked={settings.brandOrganicToggle}
+                  onCheckedChange={(checked) => updateSetting('brandOrganicToggle', checked)}
+                  disabled={disabled}
+                />
+              </div>
+
+              {/* Branded Content */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="brand-content" className="text-sm">Branded Content</Label>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-4 w-4 text-blue-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Branded content visibility cannot be set to private. If you select this option, your privacy will automatically switch to public.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-xs text-gray-600">Promoting another brand or third party</p>
+                </div>
+                <Switch
+                  id="brand-content"
+                  checked={settings.brandContentToggle}
+                  onCheckedChange={(checked) => {
+                    if (checked && settings.privacyLevel === 'SELF_ONLY') {
+                      // Auto-switch to public when branded content is enabled
+                      onChange({
+                        ...settings,
+                        brandContentToggle: checked,
+                        privacyLevel: 'PUBLIC_TO_EVERYONE'
+                      });
+                    } else {
+                      onChange({
+                        ...settings,
+                        brandContentToggle: checked
+                      });
+                    }
+                  }}
+                  disabled={disabled}
+                />
+              </div>
+
+              {/* Validation Message */}
+              {settings.commercialContentToggle && !settings.brandContentToggle && !settings.brandOrganicToggle && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-200">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  <p className="text-xs text-orange-800">
+                    You must select at least one brand option to proceed
+                  </p>
+                </div>
+              )}
             </div>
+          )}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Content Settings */}
+      <div className="space-y-4">
+        <Label className="text-sm font-medium">Content Settings</Label>
+        
+        <div className="space-y-3">
+          {/* Auto Add Music */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="auto-add-music" className="text-sm">Auto-add Music</Label>
             <Switch
-              id="brand-organic"
-              checked={settings.brandOrganicToggle}
-              onCheckedChange={(checked) => updateSetting('brandOrganicToggle', checked)}
+              id="auto-add-music"
+              checked={settings.autoAddMusic}
+              onCheckedChange={(checked) => updateSetting('autoAddMusic', checked)}
               disabled={disabled}
             />
           </div>
@@ -316,6 +466,84 @@ export function TikTokSettingsPanel({
           </div>
         </div>
       </div>
+
+      {/* Policy Compliance & Declarations */}
+      {(settings.commercialContentToggle || settings.autoAddMusic) && (
+        <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Info className="h-4 w-4 text-blue-600" />
+            <Label className="text-sm font-medium text-blue-900">Policy Compliance Required</Label>
+          </div>
+          
+          <div className="space-y-3">
+            {/* Content Labeling Information */}
+            {settings.commercialContentToggle && (
+              <div className="space-y-2">
+                <p className="text-xs text-blue-800 font-medium">Your content will be labeled as:</p>
+                {settings.brandOrganicToggle && !settings.brandContentToggle && (
+                  <div className="flex items-center gap-2 p-2 bg-blue-100 rounded">
+                    <span className="text-xs font-semibold text-blue-900">"Promotional content"</span>
+                  </div>
+                )}
+                {settings.brandContentToggle && !settings.brandOrganicToggle && (
+                  <div className="flex items-center gap-2 p-2 bg-blue-100 rounded">
+                    <span className="text-xs font-semibold text-blue-900">"Paid partnership"</span>
+                  </div>
+                )}
+                {settings.brandContentToggle && settings.brandOrganicToggle && (
+                  <div className="flex items-center gap-2 p-2 bg-blue-100 rounded">
+                    <span className="text-xs font-semibold text-blue-900">"Paid partnership"</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Policy Agreements */}
+            <div className="space-y-2">
+              <p className="text-xs text-blue-800 font-medium">By posting, you agree to:</p>
+              <div className="space-y-1">
+                {/* Music Usage Confirmation - always required when music is enabled */}
+                {settings.autoAddMusic && (
+                  <p className="text-xs text-blue-700">
+                    • <a 
+                        href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        TikTok's Music Usage Confirmation
+                      </a>
+                  </p>
+                )}
+                
+                {/* Branded Content Policy - only when commercial content is enabled */}
+                {settings.commercialContentToggle && (
+                  <p className="text-xs text-blue-700">
+                    • <a 
+                        href="https://www.tiktok.com/legal/page/global/bc-policy/en" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        TikTok's Branded Content Policy
+                      </a>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Publishing Restrictions */}
+            {settings.commercialContentToggle && !settings.brandContentToggle && !settings.brandOrganicToggle && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-200">
+                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <p className="text-xs text-orange-800">
+                  You must select at least one brand option to proceed with publishing
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
