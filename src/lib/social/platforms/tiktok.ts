@@ -154,6 +154,11 @@ export class TikTokPlatform extends BasePlatform {
       }
     });
     const data = await response.json();
+
+    if(data.error?.code !== 'ok') {
+      throw new Error(`TikTok API Error: ${data.error?.message} (${data.error?.code})`);
+    }
+
     return data.data;
   }
 
@@ -305,20 +310,36 @@ export class TikTokPlatform extends BasePlatform {
       throw new Error('No auth token available');
     }
 
+    const mediaType = content.media?.type;
 
-    // 1. Query creator info first (required by TikTok)
-    const creatorInfo = await this.fetchCreatorInfo(token);
-
-    // Validate privacy level
-    const privacyLevel = options?.visibility === 'private' ? 'SELF_ONLY' : 'PUBLIC_TO_EVERYONE';
-    if (!creatorInfo.privacy_level_options.includes(privacyLevel)) {
-      throw new Error(`Invalid privacy level. Available options: ${creatorInfo.privacy_level_options.join(', ')}`);
+    if (!content.media || !content.media.urls) {
+      throw new Error('No media found');
     }
+
+    let media ={}
+
+   if(mediaType === 'video') {
+    media = {
+      video_url: content.media?.urls[0],
+    }
+   } else if(mediaType === 'image' || mediaType === 'carousel') {
+    if(content.media?.urls?.length && content.media?.urls?.length > 35) {
+      throw new Error('TikTok only supports up to 35 images in a carousel');
+    }
+    media = {
+      photo_images: content.media?.urls,
+      photo_cover_index: 0
+    }
+   }else{
+    throw new Error('Unsupported media type');
+   }
+
+
 
     const tiktokBody = {
       post_info: {
         title: content.text,
-        privacy_level: privacyLevel,
+        privacy_level: options?.privacyLevel || 'SELF_ONLY',
         disable_duet: options?.disableDuet || false,
         disable_stitch: options?.disableStitch || false,
         disable_comment: options?.disableComment || false,
@@ -338,14 +359,16 @@ export class TikTokPlatform extends BasePlatform {
       },
       source_info: {
         source: 'PULL_FROM_URL',
-        video_url: content.media?.urls[0],
-        image_url: content.media?.urls[0]
-      }
+        ...media,
+      },
+      ...(mediaType != 'video' && {
+        post_mode: "DIRECT_POST",
+        media_type: "PHOTO",
+      })
     } 
 
 
-    // 2. Initialize video post with PULL_FROM_URL
-    const initResponse = await fetch(`${config.baseUrl}/v2/post/publish/video/init/`, {
+    const initResponse = await fetch(`${config.baseUrl}/v2/post/publish/${mediaType == 'video' ? 'video' : 'content'}/init/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

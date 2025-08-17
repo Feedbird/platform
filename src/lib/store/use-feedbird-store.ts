@@ -835,7 +835,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   postContent = {
                     text: post.caption.default,
                     media: {
-                      type: "video" as const, // TikTok primarily supports video content
+                      type: post.format,
                       urls: processedBlocks.flatMap(block => 
                         block.versions.flatMap(version => {
                           // Handle both version.file and version.media structures

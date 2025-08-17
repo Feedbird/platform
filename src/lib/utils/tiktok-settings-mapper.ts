@@ -6,6 +6,7 @@ import type { TikTokSettings, PublishOptions } from '@/lib/social/platforms/plat
 export function mapTikTokSettingsToPublishOptions(tiktokSettings: TikTokSettings): Partial<PublishOptions> {
   return {
     visibility: tiktokSettings.privacyLevel === 'SELF_ONLY' ? 'private' : 'public',
+    privacyLevel: tiktokSettings.privacyLevel,
     disableDuet: tiktokSettings.disableDuet,
     disableStitch: tiktokSettings.disableStitch,
     disableComment: tiktokSettings.disableComment,

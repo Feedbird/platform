@@ -259,6 +259,7 @@ export interface PublishOptions {
     contentDisclosure: boolean;
     contentDisclosureIcon?: string;
   };
+  privacyLevel?: TikTokPrivacyLevel;
 }
 
 // TikTok-specific interfaces
