@@ -13,12 +13,16 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body: any = Body.parse(await req.json());
-    console.log("[API] TikTok publish → body", body);
     
     const result = await ops.publishPost(body.page, body.content, body.options);
     
     console.log(`[API] TikTok publish → success`, result);
-    return Response.json(result);
+
+    if(result.publishId) {
+      //Check post status until complete
+      ops.checkPostStatusAndUpdate(result.publishId, body.page.id);
+    }
+    return  Response.json(result);
 
   } catch (e: any) {
     console.error("[API] TikTok publish error\n", e);

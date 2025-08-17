@@ -162,6 +162,64 @@ export class TikTokPlatform extends BasePlatform {
     return data.data;
   }
 
+  /**
+   * Check post status and update the post accordingly
+   * This function can be called separately to monitor post status
+   */
+  public async checkPostStatusAndUpdate(publishId: string, pageId: string): Promise<void> {
+    const token = await getSecureToken(pageId);
+    if (!token) {
+      throw new Error('No auth token available');
+    }
+
+    let status = 'PROCESSING';
+    let attempts = 0;
+    const maxAttempts = 30; // 5 minutes with 10-second intervals
+
+    while (status === 'PROCESSING' && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      attempts++;
+
+      const statusResponse = await this.fetchWithAuth<{
+        data: {
+          status: string;
+          share_id?: string;
+          create_time?: number;
+        };
+        error: {
+          code: string;
+          message: string;
+        };
+      }>(`${config.baseUrl}/v2/post/publish/status/fetch/`, {
+        method: 'POST',
+        token: token,
+        body: JSON.stringify({
+          publish_id: publishId
+        })
+      });
+      console.log("[API] TikTok checkPostStatusAndUpdate → statusResponse", statusResponse);
+
+      if (statusResponse.error?.code !== 'ok') {
+        throw new Error(`Status check failed: ${statusResponse.error?.message}`);
+      }
+
+      status = statusResponse.data.status;
+
+      if (status === 'SUCCESS') {
+        // Update the post status to published
+        await postApi.updatePost(pageId, { status: 'published' });
+        return; // Exit early on success
+      } else if (status === 'FAILED') {
+        await postApi.updatePost(pageId, { status: 'failed' });
+        return; // Exit early on failure
+      }
+    }
+
+    // If we reach here, the post is still processing after max attempts
+    // You might want to handle this case (e.g., mark as "Processing" or "Pending")
+    console.warn(`Post ${publishId} is still processing after ${maxAttempts} attempts`);
+  }
+
   async connectAccount(code: string): Promise<SocialAccount> {
     const tokenData = await this.makeTokenRequest({
       client_key: this.env.clientId,
@@ -317,15 +375,21 @@ export class TikTokPlatform extends BasePlatform {
     }
 
     let media ={}
+    // content.media.urls =['https://engrsohaib.com/video.mp4']
+    // content.media.urls =['https://engrsohaib.com/img1.jpeg', 'https://engrsohaib.com/img2.jpeg']
 
    if(mediaType === 'video') {
+    // https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide
     media = {
       video_url: content.media?.urls[0],
     }
    } else if(mediaType === 'image' || mediaType === 'carousel') {
+    // https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide
     if(content.media?.urls?.length && content.media?.urls?.length > 35) {
       throw new Error('TikTok only supports up to 35 images in a carousel');
     }
+
+    // https://developers.tiktok.com/doc/content-posting-api-reference-photo-post#
     media = {
       photo_images: content.media?.urls,
       photo_cover_index: 0
@@ -334,7 +398,7 @@ export class TikTokPlatform extends BasePlatform {
     throw new Error('Unsupported media type');
    }
 
-
+// https://developers.tiktok.com/doc/content-posting-api-reference-direct-post?enter_method=left_navigation
 
     const tiktokBody = {
       post_info: {
@@ -345,7 +409,7 @@ export class TikTokPlatform extends BasePlatform {
         disable_comment: options?.disableComment || false,
         brand_content_toggle: options?.brandContentToggle || false,
         brand_organic_toggle: options?.brandOrganicToggle || false,
-        auto_add_music: options?.autoAddMusic !== undefined ? options.autoAddMusic : true,
+        auto_add_music: options?.autoAddMusic !== undefined ? options.autoAddMusic : false,
         is_aigc: options?.isAigc || false,
         ...(options?.videoCoverTimestampMs && {
           video_cover_timestamp_ms: options.videoCoverTimestampMs
@@ -385,51 +449,7 @@ export class TikTokPlatform extends BasePlatform {
 
     const publishId = initResponseData.data.publish_id;
 
-    // 3. Check post status until complete
-    let status = 'PROCESSING';
-    let attempts = 0;
-    const maxAttempts = 30; // 5 minutes with 10-second intervals
-
-    while (status === 'PROCESSING' && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-      attempts++;
-
-      const statusResponse = await this.fetchWithAuth<{
-        data: {
-          status: string;
-          share_id?: string;
-          create_time?: number;
-        };
-        error: {
-          code: string;
-          message: string;
-        };
-      }>(`${config.baseUrl}/v2/post/publish/status/fetch/`, {
-        method: 'POST',
-        token: token,
-        body: JSON.stringify({
-          publish_id: publishId
-        })
-      });
-
-      if (statusResponse.error?.code !== 'ok') {
-        throw new Error(`Status check failed: ${statusResponse.error?.message}`);
-      }
-
-      status = statusResponse.data.status;
-
-      if (status === 'SUCCESS') {
-      //  just update the post status to published
-      await postApi.updatePost(page.id, { status: 'Published' });
-      
-      } else if (status === 'FAILED') {
-       await postApi.updatePost(page.id, { status: 'Failed Publishing' });
-      }
-    }
-
-    return {
-      id: publishId,
-    }
+    return { publishId }
   }
 
   async getPostHistory(page: SocialPage, limit = 20): Promise<PostHistory[]> {
