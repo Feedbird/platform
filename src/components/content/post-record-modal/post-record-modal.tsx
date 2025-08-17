@@ -309,13 +309,13 @@ function SettingsEditor({ post }: { post: Post }) {
 
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
-    privacyLevel: 'PUBLIC_TO_EVERYONE',
+    privacyLevel: 'SELF_ONLY',
     disableDuet: false,
     disableStitch: false,
     disableComment: false,
     brandContentToggle: false,
     brandOrganicToggle: false,
-    autoAddMusic: true,
+    autoAddMusic: false,
     isAigc: false,
   };
 

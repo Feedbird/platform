@@ -377,6 +377,7 @@ export class TikTokPlatform extends BasePlatform {
     let media ={}
     // content.media.urls =['https://engrsohaib.com/video.mp4']
     // content.media.urls =['https://engrsohaib.com/img1.jpeg', 'https://engrsohaib.com/img2.jpeg']
+    // content.media.urls =['https://engrsohaib.com/img1.jpeg']
 
    if(mediaType === 'video') {
     // https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide
@@ -403,6 +404,7 @@ export class TikTokPlatform extends BasePlatform {
     const tiktokBody = {
       post_info: {
         title: content.text,
+        // description: "hello i am dummy description what should i do",
         privacy_level: options?.privacyLevel || 'SELF_ONLY',
         disable_duet: options?.disableDuet || false,
         disable_stitch: options?.disableStitch || false,

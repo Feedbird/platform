@@ -27,7 +27,7 @@ export function getDefaultTikTokSettings(creatorInfo?: {
   stitchDisabled: boolean;
   privacyLevelOptions: string[];
 }): TikTokSettings {
-  const defaultPrivacy = creatorInfo?.privacyLevelOptions?.[0] || 'PUBLIC_TO_EVERYONE';
+  const defaultPrivacy = 'SELF_ONLY';
   
   return {
     privacyLevel: defaultPrivacy as any,

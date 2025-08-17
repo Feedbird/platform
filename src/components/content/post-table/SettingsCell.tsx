@@ -101,7 +101,7 @@ export function SettingsEditCell({
 
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
-    privacyLevel: 'PUBLIC_TO_EVERYONE',
+    privacyLevel: 'SELF_ONLY',
     disableDuet: false,
     disableStitch: false,
     disableComment: false,
