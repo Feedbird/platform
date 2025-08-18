@@ -14,12 +14,12 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn, formatTimeAgo } from '@/lib/utils'
-import { MoreHorizontal, Send, Smile, AtSign, Image as ImageIcon, Plus, Mic, ArrowUp, Hash, X, Reply, Copy, Pin, Forward, CheckSquare, Flag, Trash2, ArrowLeft } from 'lucide-react'
+import { MoreHorizontal, Send, Smile, AtSign, Image as ImageIcon, Plus, Mic, ArrowUp, Hash, X, Reply, Copy, Pin, Forward, CheckSquare, Flag, Trash2, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import EmojiPicker from 'emoji-picker-react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
-import { workspaceHelperApi } from '@/lib/api/api-service'
+import { workspaceHelperApi, postApi } from '@/lib/api/api-service'
 import { supabase, ChannelMessage as DbChannelMessage } from '@/lib/supabase/client'
 import ChannelSelector from './channel-selector'
 import MessageItem from './message-item'
@@ -93,6 +93,19 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	// Thread view state
 	const [isThreadView, setIsThreadView] = useState(false)
 	const [selectedThreadMessage, setSelectedThreadMessage] = useState<MessageData | null>(null)
+
+	// Board list state
+	const [boardData, setBoardData] = useState<Array<{
+		id: string
+		label: string
+		image?: string
+		color?: string
+		totalPosts: number
+		statusCounts: Record<string, number>
+		postsByStatus: Record<string, any[]>
+		expanded: boolean
+	}>>([])
+	const [loadingBoardData, setLoadingBoardData] = useState(false)
 
 	// Close emoji pickers when clicking outside
 	useEffect(() => {
@@ -199,6 +212,13 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	const boardNav = useFeedbirdStore(s => s.boardNav)
 	const getAllPosts = useFeedbirdStore(s => s.getAllPosts)
 
+	// Fetch board data when workspace changes
+	useEffect(() => {
+		if (activeWorkspaceId && boardNav.length > 0) {
+			fetchBoardData()
+		}
+	}, [activeWorkspaceId, boardNav.length])
+
 	// Function to get board count (similar to sidebar)
 	const getBoardCount = (boardId: string): number => {
 		const posts = getAllPosts();
@@ -227,6 +247,112 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			// This will navigate to the board content page and show the post table
 			router.push(board.href || `/content/${boardId}`);
 		}
+	};
+
+	// Function to fetch board data with post counts and actual posts
+	const fetchBoardData = async () => {
+		if (!activeWorkspaceId || boardNav.length === 0) return
+		
+		setLoadingBoardData(true)
+		try {
+			const boardDataWithCounts = await Promise.all(
+				boardNav.map(async (board) => {
+					try {
+						// Fetch posts for this board
+						const posts = await postApi.getPost({ board_id: board.id })
+						const postsArray = Array.isArray(posts) ? posts : [posts]
+						
+						// Calculate status counts and store actual posts
+						const statusCounts: Record<string, number> = {}
+						const postsByStatus: Record<string, any[]> = {}
+						
+						postsArray.forEach((post: any) => {
+							const status = post.status || 'Draft'
+							statusCounts[status] = (statusCounts[status] || 0) + 1
+							
+							if (!postsByStatus[status]) {
+								postsByStatus[status] = []
+							}
+							postsByStatus[status].push(post)
+						})
+						
+						return {
+							id: board.id,
+							label: board.label,
+							image: board.image,
+							color: board.color,
+							totalPosts: postsArray.length,
+							statusCounts,
+							postsByStatus,
+							expanded: false
+						}
+					} catch (error) {
+						console.error(`Error fetching posts for board ${board.id}:`, error)
+						return {
+							id: board.id,
+							label: board.label,
+							image: board.image,
+							color: board.color,
+							totalPosts: 0,
+							statusCounts: {},
+							postsByStatus: {},
+							expanded: false
+						}
+					}
+				})
+			)
+			
+			setBoardData(boardDataWithCounts)
+		} catch (error) {
+			console.error('Error fetching board data:', error)
+		} finally {
+			setLoadingBoardData(false)
+		}
+	}
+
+	// Function to toggle board card expansion
+	const toggleBoardExpansion = (boardId: string) => {
+		setBoardData(prev => prev.map(board => 
+			board.id === boardId 
+				? { ...board, expanded: !board.expanded }
+				: board
+		))
+	}
+
+	// Function to generate post preview (using same logic as grid-view)
+	const getPostThumbnail = (post: any): string => {
+		// Get the first block with media
+		const mediaBlock = post.blocks?.find((block: any) => {
+			const currentVer = block.versions?.find((v: any) => v.id === block.currentVersionId);
+			return currentVer && (currentVer.file?.kind === "image" || currentVer.file?.kind === "video");
+		});
+		
+		if (mediaBlock) {
+			const currentVer = mediaBlock.versions?.find((v: any) => v.id === mediaBlock.currentVersionId);
+			if (currentVer) {
+				// Append version id for video files to ensure proper cache busting (aligns with calendar view)
+				return currentVer.file.kind === "video"
+					? `${currentVer.file.url}?v=${currentVer.id}`
+					: currentVer.file.url;
+			}
+		}
+		
+		// Fallback to a placeholder
+		return "/images/format/image.svg";
+	};
+
+	// Function to check if post is video
+	const isVideo = (post: any): boolean => {
+		// Match the same "first media block" selection logic as getPostThumbnail
+		const mediaBlock = post.blocks?.find((block: any) => {
+			const currentVer = block.versions?.find((v: any) => v.id === block.currentVersionId);
+			return currentVer && (currentVer.file?.kind === "image" || currentVer.file?.kind === "video");
+		});
+
+		if (!mediaBlock) return false;
+
+		const currentVer = mediaBlock.versions?.find((v: any) => v.id === mediaBlock.currentVersionId);
+		return currentVer?.file?.kind === "video";
 	};
 
 
@@ -1915,7 +2041,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										{/* Board button */}
 										<Button
 											variant="ghost"
-											onClick={() => setEmoji((x) => !x)}
+											onClick={() => setActiveSidebarTab('board')}
 											size="icon"
 											disabled={channelId === 'all' && !selectedChannelForMessage}
 											className="size-[24px] p-0 box-border cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2137,11 +2263,194 @@ export default function MessagesPane({ channelName, channelDescription, members:
 						)}
 
 						{activeSidebarTab === 'board' && (
-							<div className="p-4 text-sm text-[#5C5E63]">Board details coming soon.</div>
+							<div className="px-3 pt-2">
+								{loadingBoardData ? (
+									<div className="flex items-center justify-center py-8">
+										<div className="text-sm text-gray-500">Loading boards...</div>
+									</div>
+								) : boardData.length > 0 ? (
+									<div className="flex flex-col gap-2.5">
+										<div className="text-sm font-medium text-black">Boards</div>
+										<div className="space-y-2">
+											{boardData.map((board) => (
+												<div 
+													key={board.id}
+													className="bg-white border border-strokeElement rounded-[4px] overflow-hidden w-[246px]"
+												>
+													{/* Board Card Header */}
+													<div 
+														className="flex items-center justify-between gap-3 px-2 py-1.5 cursor-pointer hover:bg-gray-50 transition-colors"
+														onClick={() => toggleBoardExpansion(board.id)}
+													>
+														<div className="flex items-center gap-1.5 min-w-0 flex-1">
+															{board.image && (
+																<div 
+																	className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+																	style={board.color ? { backgroundColor: board.color } : undefined}
+																>
+																	<img 
+																		src={board.image} 
+																		alt={board.label} 
+																		className={cn(
+																			"w-3.5 h-3.5",
+																			board.color && "filter brightness-0 invert"
+																		)}
+																		loading="lazy"
+																	/>
+																</div>
+															)}
+															<div className="text-sm font-medium text-black truncate min-w-0">
+																{board.label}
+															</div>
+														</div>
+														<div 
+															className="flex items-center justify-center rounded-sm w-4 h-4 font-normal text-[10px] px-2 py-1"
+															style={{
+																backgroundColor: board.color || '#F4F5F6',
+																color: board.color ? 'white' : 'black'
+															}}
+														>
+															{board.totalPosts}
+														</div>
+													</div>
+													
+													{/* Board Card Body - Status Items */}
+													{board.expanded && (
+														<div className="border-t border-gray-100 p-2">
+															<div className="space-y-2">
+																{Object.entries(board.statusCounts).map(([status, count]) => {
+																	// Get status config for styling
+																	const statusConfig = {
+																		"Draft": { icon: "/images/status/draft.svg", bgColor: "#F4F7FA", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
+																		"Pending Approval": { icon: "/images/status/pending-approval.svg", bgColor: "#FAF2CA", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
+																		"Needs Revisions": { icon: "/images/status/needs-revision.svg", bgColor: "#FCE4E5", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
+																		"Revised": { icon: "/images/status/revised.svg", bgColor: "#FEEEE1", borderColor: "#F3E4D7", textColor: "#1C1D1F" },
+																		"Approved": { icon: "/images/status/approved.svg", bgColor: "#DDF9E4", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
+																		"Scheduled": { icon: "/images/status/scheduled.svg", bgColor: "#F1F4F9", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
+																		"Publishing": { icon: "/images/publish/publish.svg", bgColor: "#F1F4F9", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
+																		"Published": { icon: "/images/status/published.svg", bgColor: "#E5EEFF", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
+																		"Failed Publishing": { icon: "/images/status/failed-publishing.svg", bgColor: "#F5EEFF", borderColor: "#EAE4F4", textColor: "#1C1D1F" }
+																	}[status] || { icon: "/images/status/draft.svg", bgColor: "#F1F4F9", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" };
+																	
+																	return (
+																		<div 
+																			key={status}
+																			className="flex items-center justify-between pl-1 pr-1.5 py-0.5 rounded border cursor-pointer transition-colors"
+																			style={{
+																				backgroundColor: statusConfig.bgColor,
+																				border: `1px solid ${statusConfig.borderColor}`,
+																			}}
+																		>
+																			<div className="flex items-center gap-2">
+																				<img 
+																					src={statusConfig.icon} 
+																					alt={status} 
+																					className="w-4 h-4"
+																				/>
+																				<span className="text-sm font-semibold text-black">
+																					{status}: {count}
+																				</span>
+																			</div>
+																		</div>
+																	);
+																})}
+															</div>
+														</div>
+													)}
+												</div>
+											))}
+										</div>
+									</div>
+								) : (
+									<div className="p-4 text-sm text-gray-500 text-center">
+										No boards available
+									</div>
+								)}
+							</div>
 						)}
 
 						{activeSidebarTab === 'media' && (
-							<div className="p-4 text-sm text-[#5C5E63]">Shared media will appear here.</div>
+							<div>
+								{loadingBoardData ? (
+									<div className="flex items-center justify-center py-8">
+										<div className="text-sm text-gray-500">Loading media...</div>
+									</div>
+								) : boardData.length > 0 ? (
+									<div className="flex flex-col">
+											{(() => {
+												// Get only scheduled, failed publishing, and published posts from all boards and sort by time
+												const allPosts = boardData.flatMap(board => 
+													Object.entries(board.postsByStatus)
+														.filter(([status]) => ['Scheduled', 'Failed Publishing', 'Published'].includes(status))
+														.flatMap(([status, posts]) => 
+															posts.map(post => ({
+																id: post.id,
+																boardId: board.id,
+																boardName: board.label,
+																status: post.status,
+																preview: getPostThumbnail(post),
+																format: post.format,
+																isVideo: isVideo(post),
+																createdAt: post.created_at || post.createdAt || new Date()
+															}))
+														)
+												);
+												
+												// Sort by creation time (newest first)
+												const sortedPosts = allPosts.sort((a, b) => 
+													new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+												);
+												
+												if (sortedPosts.length === 0) return null;
+												
+												return (
+													<div className="grid grid-cols-3">
+														{sortedPosts.map((post) => (
+															<div 
+																key={post.id}
+																className="bg-white border border-strokeElement overflow-hidden cursor-pointer hover:border-gray-300 transition-colors w-[90px] h-[120px]"
+															>
+																<div className="w-[90px] h-[120px] bg-gray-100 flex items-center justify-center overflow-hidden relative">
+																	{post.isVideo ? (
+																		<>
+																			<video
+																				src={post.preview}
+																				className="w-full h-full object-cover"
+																				muted
+																				loop
+																				playsInline
+																			/>
+																			{/* Play icon overlay */}
+																			<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+																				<div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow-md">
+																					<div className="w-0 h-0 border-t-[4px] border-b-[4px] border-l-[6px] border-t-transparent border-b-transparent border-l-white" />
+																				</div>
+																			</div>
+																		</>
+																	) : (
+																		<img 
+																			src={post.preview} 
+																			alt="Post preview" 
+																			className="w-full h-full object-cover"
+																			onError={(e) => {
+																				const target = e.target as HTMLImageElement;
+																				target.src = '/images/format/image.svg';
+																				}}
+																		/>
+																	)}
+																</div>
+															</div>
+														))}
+													</div>
+												);
+											})()}
+									</div>
+								) : (
+									<div className="p-4 text-sm text-gray-500 text-center">
+										No media available
+									</div>
+								)}
+							</div>
 						)}
 					</div>
 				</div>
