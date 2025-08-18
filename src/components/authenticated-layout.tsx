@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/sidebar/app-sidebar';
@@ -21,6 +22,7 @@ interface AuthenticatedLayoutProps {
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const { isLoaded, isSignedIn, user } = useUser();
+  const pathname = usePathname();
   const workspacesLoading = useFeedbirdStore(s => s.workspacesLoading);
   const workspacesInitialized = useFeedbirdStore(s => s.workspacesInitialized);
 
@@ -64,9 +66,17 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
           <DynamicTitle />
           <AppSidebar />
           <SidebarInset>
-            <AppHeader />
+            {!(pathname?.startsWith('/analytics') || pathname?.startsWith('/messages')) && <AppHeader />}
             <Suspense fallback={null}>
-              <main className="flex w-full h-[calc(100vh-48px)] bg-background">{children}</main>
+              <main
+                className={`flex w-full ${
+                  pathname?.startsWith('/analytics') || pathname?.startsWith('/messages')
+                    ? 'h-[100vh]'
+                    : 'h-[calc(100vh-48px)]'
+                } bg-background`}
+              >
+                {children}
+              </main>
             </Suspense>
           </SidebarInset>
         </FeedbirdProvider>

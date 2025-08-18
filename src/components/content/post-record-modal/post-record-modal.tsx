@@ -896,7 +896,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                           return (
                             <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
                               <img
-                                src="/images/boards/message-chat-square-on.svg"
+                                src="/images/boards/message-notification-active.svg"
                                 alt="Unresolved Group Comment"
                                 className="w-4 h-4"
                               />
@@ -920,7 +920,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                           return (
                             <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
                               <img
-                                src="/images/boards/message-chat-square.svg"
+                                src="/images/boards/message-notification.svg"
                                 alt="Group Comments"
                                 className="w-4 h-4"
                               />

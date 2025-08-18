@@ -62,6 +62,33 @@ export interface Board {
   updated_at: string
 }
 
+export interface Channel {
+  id: string
+  workspace_id: string
+  created_by: string
+  name: string
+  description?: string
+  members?: any
+  icon?: string
+  color?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ChannelMessage {
+  id: string
+  workspace_id: string
+  channel_id: string
+  content: string
+  parent_id?: string | null
+  addon?: any
+  readby?: any
+  author_email: string
+  emoticons?: any
+  created_at: string
+  updated_at: string
+}
+
 export interface Post {
   id: string
   workspace_id: string

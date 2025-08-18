@@ -222,6 +222,7 @@ export interface Workspace {
    * User role within this workspace. "admin" for creator, "member" for invitee.
    */
   role?: 'admin' | 'member';
+  channels?: MessageChannel[];
   boards: Board[];
   brand?: Brand; // Single brand per workspace (one-to-one relationship)
 }
@@ -248,6 +249,19 @@ export interface BoardTemplate {
   description?: string;
   color?: string;
   rules?: BoardRules;
+}
+
+export interface MessageChannel {
+  id: string;
+  workspaceId: string;
+  createdBy: string;
+  name: string;
+  description?: string;
+  members?: any;
+  icon?: string;
+  color?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /*─────────────────────────────────────────────────────────────────────*/
@@ -285,6 +299,9 @@ export interface FeedbirdStore {
   /** Loading states for post history sync. Key = pageId. */
   syncingPostHistory: Record<string, boolean>;
 
+  /** Channel messages keyed by channel_id */
+  channelMessagesByChannelId: Record<string, Array<{ id: string; author: string; text: string; createdAt: Date; authorImageUrl?: string; authorEmail?: string; parentId?: string | null; addon?: any; readby?: any; emoticons?: any; channelId?: string }>>;
+
   // User management
   setUser: (user: User | null) => void;
   clearUser: () => void;
@@ -316,6 +333,15 @@ export interface FeedbirdStore {
   addBrand: (name: string, logo?: string, styleGuide?: Brand['styleGuide'], link?: string, voice?: string, prefs?: string) => Promise<string>;
   updateBrand: (id: string, data: Partial<Brand>) => Promise<void>;
   removeBrand: (id: string) => Promise<void>;
+  
+  // Channels
+  addChannel: (name: string, description?: string, icon?: string, members?: any, color?: string) => Promise<string>;
+  updateChannel: (id: string, data: Partial<MessageChannel>) => Promise<void>;
+  removeChannel: (id: string) => Promise<void>;
+  // Channel messages
+  loadChannelMessages: (channelId: string) => Promise<void>;
+  loadAllWorkspaceMessages: () => Promise<void>;
+          sendChannelMessage: (channelId: string, content: string, parentId?: string, addon?: any) => Promise<string>;
   addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => Promise<string>;
   updateBoard: (id: string, data: Partial<Board>) => Promise<void>;
   removeBoard: (id: string) => Promise<void>;
@@ -681,6 +707,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         platformNav: defaultPlatformNav,
         boardNav: [],
         postHistory: {},
+        channelMessagesByChannelId: {},
         syncingPostHistory: {},
         // getters
         getActiveWorkspace: () => {
@@ -1006,6 +1033,84 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             await storeApi.deleteBrandAndUpdateStore(id)
           } catch (error) {
             console.error('Failed to remove brand:', error)
+            throw error
+          }
+        },
+
+        // Channels
+        addChannel: async (name: string, description?: string, icon?: string, members?: any, color?: string) => {
+          try {
+            const activeWorkspaceId = get().activeWorkspaceId
+            const email: string | undefined = (get() as any).user?.email
+            if (!activeWorkspaceId) throw new Error('No active workspace')
+            if (!email) throw new Error('No user email')
+            // Apply defaults similar to addBoard
+            const finalIcon = icon && icon.trim() ? icon.trim() : '/images/boards/icons/icon-2.svg'
+            const finalColor = color === '#FFFFFF' ? '#125AFF' : color
+            const cid = await storeApi.createChannelAndUpdateStore(
+              activeWorkspaceId,
+              email,
+              name,
+              description,
+              members,
+              finalIcon,
+              finalColor
+            )
+            return cid
+          } catch (error) {
+            console.error('Failed to add channel:', error)
+            throw error
+          }
+        },
+        loadChannelMessages: async (channelId: string) => {
+          try {
+            await (storeApi as any).fetchChannelMessagesAndUpdateStore(channelId)
+          } catch (error) {
+            console.error('Failed to load channel messages:', error)
+            throw error
+          }
+        },
+        loadAllWorkspaceMessages: async () => {
+          try {
+            await (storeApi as any).fetchAllWorkspaceMessagesAndUpdateStore()
+          } catch (error) {
+            console.error('Failed to load all workspace messages:', error)
+            throw error
+          }
+        },
+        sendChannelMessage: async (channelId: string, content: string, parentId?: string, addon?: any) => {
+          try {
+            const activeWorkspaceId = get().activeWorkspaceId
+            const userEmail: string | undefined = (get() as any).user?.email
+            if (!activeWorkspaceId) throw new Error('No active workspace')
+            if (!userEmail) throw new Error('No user email')
+            const id = await (storeApi as any).createChannelMessageAndUpdateStore(activeWorkspaceId, channelId, content, userEmail, parentId, addon)
+            return id
+          } catch (error) {
+            console.error('Failed to send channel message:', error)
+            // If it's an API error with validation details, log them
+            if (error && typeof error === 'object' && 'message' in error) {
+              const apiError = error as any;
+              if (apiError.message === 'Validation error' && apiError.details) {
+                console.error('Validation error details:', apiError.details);
+              }
+            }
+            throw error
+          }
+        },
+        updateChannel: async (id: string, data: Partial<MessageChannel>) => {
+          try {
+            await storeApi.updateChannelAndUpdateStore(id, data)
+          } catch (error) {
+            console.error('Failed to update channel:', error)
+            throw error
+          }
+        },
+        removeChannel: async (id: string) => {
+          try {
+            await storeApi.deleteChannelAndUpdateStore(id)
+          } catch (error) {
+            console.error('Failed to remove channel:', error)
             throw error
           }
         },
