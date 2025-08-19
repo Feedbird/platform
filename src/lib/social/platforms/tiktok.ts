@@ -149,20 +149,22 @@ export class TikTokPlatform extends BasePlatform {
   // Helper method to fetch creator info (reusable across methods)
   private async fetchCreatorInfo(token: string) {
     // https://developers.tiktok.com/doc/content-posting-api-reference-query-creator-info
-    const response = await fetch(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
+    const response = await this.fetchWithAuth<{
+      data: any;
+      error: {
+        code: string;
+        message: string;
+      };
+    }>(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Authorization': `Bearer ${token}`
-      }
+      token: token
     });
-    const data = await response.json();
 
-    if(data.error?.code !== 'ok') {
-      throw new Error(`TikTok API Error: ${data.error?.message} (${data.error?.code})`);
+    if(response.error?.code !== 'ok') {
+      throw new Error(`TikTok API Error: ${response.error?.message} (${response.error?.code})`);
     }
 
-    return data.data;
+    return response.data;
   }
 
   /**
@@ -455,22 +457,25 @@ export class TikTokPlatform extends BasePlatform {
     } 
 
 
-    const initResponse = await fetch(`${config.baseUrl}/v2/post/publish/${mediaType == 'video' ? 'video' : 'content'}/init/`, {
+    const initResponse = await this.fetchWithAuth<{
+      data: {
+        publish_id: string;
+      };
+      error: {
+        code: string;
+        message: string;
+      };
+    }>(`${config.baseUrl}/v2/post/publish/${mediaType == 'video' ? 'video' : 'content'}/init/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      token: token,
       body: JSON.stringify(tiktokBody)
     });
 
-    const initResponseData = await initResponse.json();
-
-    if (initResponseData.error?.code !== 'ok') {
-      throw new Error(`TikTok API Error: ${initResponseData.error?.message} (${initResponseData.error?.code})`);
+    if (initResponse.error?.code !== 'ok') {
+      throw new Error(`TikTok API Error: ${initResponse.error?.message} (${initResponse.error?.code})`);
     }
 
-    const publishId = initResponseData.data.publish_id;
+    const publishId = initResponse.data.publish_id;
 
     return { publishId, id: content.id }
   }
@@ -690,26 +695,38 @@ export class TikTokPlatform extends BasePlatform {
 
     const response = await this.fetchWithAuth<{
       data: {
-        stats: {
-          comment_count: number;
+        videos: Array<{
+          id: string;
           like_count: number;
-          play_count: number;
+          comment_count: number;
           share_count: number;
-        };
+          view_count: number;
+        }>;
       };
-    }>(`${config.baseUrl}/video/query/`, {
+    }>(`${config.baseUrl}/v2/video/query/`, {
+      method: 'POST',
       token: token,
       queryParams: {
-        fields: ['stats'].join(','),
-        video_id: postId
-      }
+        fields: 'stats'
+      },
+      body: JSON.stringify({
+        filters: {
+          video_ids: [postId]
+        }
+      })
     });
 
+    // The response structure is different for single video query
+    const video = response.data.videos?.[0];
+    if (!video) {
+      throw new Error('Video not found');
+    }
+
     return {
-      likes: response.data.stats.like_count,
-      comments: response.data.stats.comment_count,
-      shares: response.data.stats.share_count,
-      views: response.data.stats.play_count
+      likes: video.like_count || 0,
+      comments: video.comment_count || 0,
+      shares: video.share_count || 0,
+      views: video.view_count || 0
     };
   }
 
