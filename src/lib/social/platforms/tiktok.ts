@@ -386,8 +386,8 @@ export class TikTokPlatform extends BasePlatform {
     }
 
     // check the media type should be MP4 (recommended), WebM, MOV
-    const mediaType = content.media?.urls[0].split('.').pop();
-    if(mediaType !== 'mp4' && mediaType !== 'webm' && mediaType !== 'mov') {
+    const mediaFormat = content.media?.urls[0].split('.').pop();
+    if(mediaFormat !== 'mp4' && mediaFormat !== 'webm' && mediaFormat !== 'mov') {
       throw new Error('TikTok only supports MP4, WebM, and MOV media types');
     }
 
@@ -399,9 +399,10 @@ export class TikTokPlatform extends BasePlatform {
 
     // check the media type for each should be WebP, JPEG, if not throw error, we can use for loop
     for(const url of content.media?.urls) {
-      const mediaType = url.split('.').pop();
-      if(mediaType !== 'webp' && mediaType !== 'jpeg') {
-        throw new Error('TikTok only supports WebP, JPEG media types');
+      const mediaFormat = url.split('.').pop();
+      if(mediaFormat !== 'webp' && mediaFormat !== 'jpeg') {
+
+        throw new Error(`TikTok only supports WebP, JPEG media types ${mediaType == 'carousel' ? 'for carousel' : 'for image'}`);
       }
     }
 
