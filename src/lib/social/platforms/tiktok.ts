@@ -475,7 +475,7 @@ export class TikTokPlatform extends BasePlatform {
     return { publishId, id: content.id }
   }
 
-  async getPostHistory(page: SocialPage, limit = 20): Promise<PostHistory[]> {
+  async getPostHistory(page: SocialPage, limit = 20, cursor?: number): Promise<PostHistory[]> {
     if (IS_BROWSER) {
       const res = await fetch('/api/social/tiktok/history', {
         method: 'POST',
@@ -491,6 +491,23 @@ export class TikTokPlatform extends BasePlatform {
       throw new Error('No auth token available');
     }
 
+    // Validate limit according to TikTok API specs (max 20)
+    const validatedLimit = Math.min(Math.max(limit, 1), 20);
+
+    // Define required fields for the response (based on actual TikTok API)
+    const fields = [
+      'id',
+      'create_time',
+      'cover_image_url',
+      'share_url',
+      'video_description',
+      'duration',
+      'height',
+      'width',
+      'title'
+    ];
+
+    // https://developers.tiktok.com/doc/tiktok-api-v2-video-list
     const response = await this.fetchWithAuth<{
       data: {
         videos: Array<{
@@ -503,33 +520,111 @@ export class TikTokPlatform extends BasePlatform {
           duration: number;
           height: number;
           width: number;
-          stats: {
-            comment_count: number;
-            like_count: number;
-            play_count: number;
-            share_count: number;
-          };
         }>;
+        cursor?: number;
+        has_more: boolean;
       };
-    }>(`${config.baseUrl}/video/list/`, {
+      error: {
+        code: string;
+        message: string;
+        log_id: string;
+      };
+    }>(`${config.baseUrl}/v2/video/list/`, {
+      method: 'POST',
       token: token,
       queryParams: {
-        fields: [
-          'id',
-          'create_time',
-          'cover_image_url',
-          'share_url',
-          'video_description',
-          'duration',
-          'height',
-          'width',
-          'title',
-          'stats'
-        ].join(','),
-        max_count: limit.toString()
-      }
+        fields: fields.join(',')
+      },
+      body: JSON.stringify({
+        max_count: validatedLimit,
+        ...(cursor && { cursor })
+      })
     });
+    
+    // Check for TikTok API errors
+    if (response.error?.code !== 'ok') {
+      throw new Error(`TikTok API Error: ${response.error?.message} (${response.error?.code})`);
+    }
 
+
+    // If we have videos, fetch detailed analytics for each video
+    if (response.data.videos.length > 0) {
+      try {
+        // Extract video IDs for analytics query
+        const videoIds = response.data.videos.map(video => video.id);
+        
+        // Fetch detailed analytics for all videos in batches (max 20 per request)
+        // https://developers.tiktok.com/doc/tiktok-api-v2-video-query
+        const analyticsResponse = await this.fetchWithAuth<{
+          data: {
+            videos: Array<{
+              id: string;
+              like_count: number;
+              comment_count: number;
+              share_count: number;
+              view_count: number;
+            }>;
+          };
+          error: {
+            code: string;
+            message: string;
+            log_id: string;
+          };
+        }>(`${config.baseUrl}/v2/video/query/`, {
+          method: 'POST',
+          token: token,
+          queryParams: {
+            fields: 'id,like_count,comment_count,share_count,view_count'
+          },
+          body: JSON.stringify({
+            filters: {
+              video_ids: videoIds
+            }
+          })
+        });
+
+
+        // Check for TikTok API errors in analytics request
+        if (analyticsResponse.error?.code !== 'ok') {
+          console.warn(`TikTok Analytics API Error: ${analyticsResponse.error?.message}`);
+        }
+
+        // Create a map of video analytics for quick lookup
+        const analyticsMap = new Map();
+        if (analyticsResponse.data?.videos) {
+          analyticsResponse.data.videos.forEach(video => {
+            analyticsMap.set(video.id, {
+              likes: video.like_count || 0,
+              comments: video.comment_count || 0,
+              shares: video.share_count || 0,
+              views: video.view_count || 0
+            });
+          });
+        }
+
+        // Map videos with analytics data
+        return response.data.videos.map(video => ({
+          id: video.id,
+          pageId: page.id,
+          postId: video.id,
+          content: video.video_description || video.title,
+          mediaUrls: [video.share_url],
+          status: 'published',
+          publishedAt: new Date(video.create_time * 1000),
+          analytics: analyticsMap.get(video.id) || {
+            likes: 0,
+            comments: 0,
+            shares: 0,
+            views: 0
+          }
+        }));
+      } catch (error) {
+        console.warn('Failed to fetch video analytics:', error);
+        // Fallback to videos without analytics
+      }
+    }
+
+    // Return videos without analytics if no videos or analytics fetch failed
     return response.data.videos.map(video => ({
       id: video.id,
       pageId: page.id,
@@ -539,10 +634,10 @@ export class TikTokPlatform extends BasePlatform {
       status: 'published',
       publishedAt: new Date(video.create_time * 1000),
       analytics: {
-        likes: video.stats.like_count,
-        comments: video.stats.comment_count,
-        shares: video.stats.share_count,
-        views: video.stats.play_count
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        views: 0
       }
     }));
   }
@@ -674,31 +769,7 @@ export class TikTokPlatform extends BasePlatform {
     }
   }
 
-  async deletePost(page: SocialPage, postId: string): Promise<void> {
-    if (IS_BROWSER) {
-      const res = await fetch('/api/social/tiktok/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page, postId }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
-    }
-
-    const token = await getSecureToken(page.id);
-    if (!token) {
-      throw new Error('No auth token available');
-    }
-
-    await this.fetchWithAuth(
-      `${config.baseUrl}/video/delete/`,
-      {
-        method: 'POST',
-        token: token,
-        body: JSON.stringify({
-          video_id: postId
-        })
-      }
-    );
+  async deletePost(page: SocialPage, postId: string): Promise<void> { 
+    // Do not support delete post
   }
 } 

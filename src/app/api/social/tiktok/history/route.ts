@@ -8,6 +8,7 @@ const ops = getPlatformOperations("tiktok")!;
 const Body = z.object({
   pageId: z.string(),
   limit: z.number().int().positive().max(100).optional(),
+  cursor: z.number().int().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       authToken: token
     } as any;
 
-    const videos = await ops.getPostHistory(page, body.limit ?? 20);
+    const videos = await ops.getPostHistory(page, body.limit ?? 20, body.cursor);
     console.log(`[API] TikTok history → ${videos.length} videos`);
     return Response.json(videos);
 

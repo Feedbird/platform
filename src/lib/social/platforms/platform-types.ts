@@ -209,7 +209,7 @@ export interface PlatformOperations {
   deletePost(page: SocialPage, postId: string): Promise<void>;
   
   // Analytics & History
-  getPostHistory(page: SocialPage, limit?: number): Promise<PostHistory[]>;
+  getPostHistory(page: SocialPage, limit?: number, cursor?: number): Promise<PostHistory[]>;
   getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']>;
   
   // Platform-specific operations
