@@ -833,6 +833,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
                   // Format content for TikTok API
                   postContent = {
+                    id: postId,
                     text: post.caption.default,
                     media: {
                       type: post.format,

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     if(result.publishId) {
       //Check post status until complete
-      ops.checkPostStatusAndUpdate(result.publishId, body.page.id);
+      ops.checkPostStatusAndUpdate(result.publishId, body.page.id, result.id);
     }
     return  Response.json(result);
 

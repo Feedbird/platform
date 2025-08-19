@@ -10,6 +10,7 @@ import type {
 } from './platform-types';
 import { getSecureToken } from '@/lib/utils/token-manager';
 import { postApi } from '@/lib/api/api-service';
+import { supabase } from '@/lib/supabase/client';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
@@ -166,7 +167,7 @@ export class TikTokPlatform extends BasePlatform {
    * Check post status and update the post accordingly
    * This function can be called separately to monitor post status
    */
-  public async checkPostStatusAndUpdate(publishId: string, pageId: string): Promise<void> {
+  public async checkPostStatusAndUpdate(publishId: string, pageId: string, postId: string): Promise<void> {
     const token = await getSecureToken(pageId);
     if (!token) {
       throw new Error('No auth token available');
@@ -185,6 +186,7 @@ export class TikTokPlatform extends BasePlatform {
           status: string;
           share_id?: string;
           create_time?: number;
+          fail_reason?: string;
         };
         error: {
           code: string;
@@ -204,13 +206,14 @@ export class TikTokPlatform extends BasePlatform {
       }
 
       status = statusResponse.data.status;
-
+11
       if (status === 'SUCCESS') {
-        // Update the post status to published
-        await postApi.updatePost(pageId, { status: 'published' });
+        // Update the post status to published in the supabase
+        await supabase.from('posts').update({ status: 'published' }).eq('id', postId);
+
         return; // Exit early on success
       } else if (status === 'FAILED') {
-        await postApi.updatePost(pageId, { status: 'failed' });
+        await supabase.from('posts').update({ status: 'failed' }).eq('id', postId);
         return; // Exit early on failure
       }
     }
@@ -378,7 +381,7 @@ export class TikTokPlatform extends BasePlatform {
     // content.media.urls =['https://engrsohaib.com/video.mp4']
     // content.media.urls =['https://engrsohaib.com/img1.jpeg', 'https://engrsohaib.com/img2.jpeg']
     // content.media.urls =['https://engrsohaib.com/img1.jpeg']
-
+    // content.media.urls =['https://engrsohaib.com/video.mp4', 'https://engrsohaib.com/img1.jpeg', 'https://engrsohaib.com/img2.jpeg']
    if(mediaType === 'video') {
     // https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide
     media = {
@@ -467,7 +470,7 @@ export class TikTokPlatform extends BasePlatform {
 
     const publishId = initResponseData.data.publish_id;
 
-    return { publishId }
+    return { publishId, id: content.id }
   }
 
   async getPostHistory(page: SocialPage, limit = 20): Promise<PostHistory[]> {

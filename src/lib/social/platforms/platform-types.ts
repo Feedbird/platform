@@ -166,6 +166,7 @@ export interface PostHistory {
 
 // Post Content Types
 export interface PostContent {
+  id?: string;
   text: string;
   title?: string;
   media?: {
@@ -185,7 +186,7 @@ export interface PostContent {
 
 // Platform Operations Interface
 export interface PlatformOperations {
-  checkPostStatusAndUpdate(publishId: string, id: any): Promise<void>;
+  checkPostStatusAndUpdate(publishId: string, pageId: string, postId: string): Promise<void>;
   // Auth operations
   getAuthUrl(): string;
   
