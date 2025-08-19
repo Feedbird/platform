@@ -135,6 +135,7 @@ export class TikTokPlatform extends BasePlatform {
 
   // Helper method to reduce duplicate user info requests
   private async getUserInfo(token: string, fields: string[] = this.USER_INFO_FIELDS) {
+    // https://developers.tiktok.com/doc/tiktok-api-v2-get-user-info
     const response = await this.fetchWithAuth<{ data: TikTokUserInfo }>(
       `${config.baseUrl}/v2/user/info/`,
       {
@@ -147,6 +148,7 @@ export class TikTokPlatform extends BasePlatform {
 
   // Helper method to fetch creator info (reusable across methods)
   private async fetchCreatorInfo(token: string) {
+    // https://developers.tiktok.com/doc/content-posting-api-reference-query-creator-info
     const response = await fetch(`${config.baseUrl}/v2/post/publish/creator_info/query/`, {
       method: 'POST',
       headers: {
