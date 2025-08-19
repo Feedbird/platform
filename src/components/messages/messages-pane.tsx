@@ -19,7 +19,7 @@ import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import EmojiPicker from 'emoji-picker-react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
-import { workspaceHelperApi, postApi } from '@/lib/api/api-service'
+import { workspaceHelperApi, postApi, userApi } from '@/lib/api/api-service'
 import { supabase, ChannelMessage as DbChannelMessage } from '@/lib/supabase/client'
 import ChannelSelector from './channel-selector'
 import MessageItem from './message-item'
@@ -71,7 +71,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	const [input, setInput] = useState('')
 	const [emoji, setEmoji] = useState(false)
 	const [loadingAllMessages, setLoadingAllMessages] = useState(false)
-	const [showChannelSelector, setShowChannelSelector] = useState(false)
 	const [selectedChannelForMessage, setSelectedChannelForMessage] = useState<string | null>(null)
 	const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
 	const [openEmojiId, setOpenEmojiId] = useState<string | null>(null)
@@ -206,8 +205,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		: (channelMessagesMap?.[channelId] ?? []) as MessageData[]
 	const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId)
 	const user = useFeedbirdStore(s => s.user)
-	const loadChannelMessages = useFeedbirdStore(s => s.loadChannelMessages)
-	const loadAllWorkspaceMessages = useFeedbirdStore(s => s.loadAllWorkspaceMessages)
+	// Removed store subscriptions for loadChannelMessages and loadAllWorkspaceMessages to prevent re-renders
 	const sendChannelMessage = useFeedbirdStore(s => s.sendChannelMessage)
 	const boardNav = useFeedbirdStore(s => s.boardNav)
 	const getAllPosts = useFeedbirdStore(s => s.getAllPosts)
@@ -417,11 +415,11 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			supabase.removeChannel(threadMessageChannel)
 		}
 	}, [isThreadView, selectedThreadMessage?.id, channelId, activeWorkspaceId])
-	const loadMessagesRef = useRef(loadChannelMessages)
-	const loadAllMessagesRef = useRef(loadAllWorkspaceMessages)
-	useEffect(() => { loadMessagesRef.current = loadChannelMessages }, [loadChannelMessages])
-	useEffect(() => { loadAllMessagesRef.current = loadAllWorkspaceMessages }, [loadAllWorkspaceMessages])
+	
 	const EMPTY_CHANNELS: any[] = []
+	
+
+	
 	const rawChannels = useFeedbirdStore((s) => {
 		const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 		return (ws as any)?.channels ?? EMPTY_CHANNELS
@@ -918,7 +916,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 	const handleChannelSelect = (channelId: string) => {
 		setSelectedChannelForMessage(channelId)
-		setShowChannelSelector(false)
 		// Focus back to textarea after channel selection
 		setTimeout(() => {
 			textareaRef.current?.focus()
@@ -990,7 +987,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 		// If we're in all messages view, we need a selected channel
 		if (channelId === 'all' && !selectedChannelForMessage) {
-			setShowChannelSelector(true)
 			return
 		}
 
@@ -1077,11 +1073,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			// Load all messages for the new workspace
 			// This ensures we show the current workspace's messages
 			setLoadingAllMessages(true)
-			loadAllWorkspaceMessages()
+			// Get function directly from store to avoid ref issues
+			useFeedbirdStore.getState().loadAllWorkspaceMessages()
 				.catch(() => { })
 				.finally(() => setLoadingAllMessages(false))
 		}
-	}, [activeWorkspaceId, loadAllWorkspaceMessages])
+	}, [activeWorkspaceId]) // Removed loadAllWorkspaceMessages from dependencies
 
 	// Ensure selected thread message belongs to current workspace
 	useEffect(() => {
@@ -1102,13 +1099,13 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	useEffect(() => {
 		if (channelId === 'all') {
 			setLoadingAllMessages(true)
-			loadAllWorkspaceMessages()
+			useFeedbirdStore.getState().loadAllWorkspaceMessages()
 				.catch(() => { })
 				.finally(() => setLoadingAllMessages(false))
 		} else {
-			loadChannelMessages(channelId).catch(() => { })
+			useFeedbirdStore.getState().loadChannelMessages(channelId).catch(() => { })
 		}
-	}, [channelId, loadChannelMessages, loadAllWorkspaceMessages])
+	}, [channelId]) // Removed loadChannelMessages and loadAllWorkspaceMessages from dependencies
 
 	// Realtime subscriptions: DB inserts and typing broadcasts with auto-reconnect
 	useEffect(() => {
@@ -1136,6 +1133,19 @@ export default function MessagesPane({ channelName, channelDescription, members:
 						// Avoid duplicates if already in store
 						const current = (useFeedbirdStore.getState() as any).channelMessagesByChannelId?.[channelId] || []
 						if (current.some((x: any) => x.id === m.id)) return
+						
+						// Handle unread message logic
+						const store = useFeedbirdStore.getState()
+						// const currentUserEmail = store.user?.email
+						// const activeWorkspaceId = store.activeWorkspaceId
+						
+						// if (currentUserEmail && activeWorkspaceId) {
+						// 	// Case 1: User is viewing this specific channel - mark as read immediately
+						// 	console.log('User is viewing this channel, marking message as read:', m.id)
+						// 	userApi.removeUnreadMessage(currentUserEmail, m.id)
+
+						// }
+						
 						const profile = profilesRef.current?.[m.author_email]
 						const authorName = profile?.first_name || m.author_email
 						const authorImg = profile?.image_url || undefined
@@ -1220,8 +1230,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			dbChannel.subscribe((status: string) => {
 				if (status === 'SUBSCRIBED') {
 					reconnectAttemptRef.current = 0
-					// Backfill to catch any missed inserts while disconnected or before subscribing
-					loadMessagesRef.current?.(channelId).catch(() => { })
 				}
 				if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
 					const attempt = Math.min(reconnectAttemptRef.current + 1, 6)
@@ -1361,6 +1369,44 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		const names = others.map(e => profilesByEmail[e]?.first_name)
 		return `${names.join(', ')} typing...`
 	}, [typingUsers, profilesByEmail, user?.email])
+
+	const { setCurrentChannelId } = useFeedbirdStore()
+
+	// Set current channel ID in store for unread message logic
+	useEffect(() => {
+		setCurrentChannelId(channelId)
+		
+		// Clean up: set currentChannelId to undefined when component unmounts
+		// This ensures new messages are marked as unread when user leaves the message panel
+		return () => {
+			setCurrentChannelId(undefined)
+		}
+	}, [channelId, setCurrentChannelId])
+
+	// Additional safety: set currentChannelId to null when navigating away from messages
+	useEffect(() => {
+		const handleRouteChange = () => {
+					// Check if we're still on a messages route
+		const currentPath = window.location.pathname
+		if (!currentPath.startsWith('/messages')) {
+			setCurrentChannelId(undefined)
+		}
+		}
+
+		// Listen for route changes
+		window.addEventListener('popstate', handleRouteChange)
+		
+		// Also check on mount to handle direct navigation
+		handleRouteChange()
+
+		return () => {
+			window.removeEventListener('popstate', handleRouteChange)
+			setCurrentChannelId(undefined)
+		}
+	}, [setCurrentChannelId])
+
+	// Global websocket subscription is now handled at the FeedbirdProvider level
+	// to ensure users receive updates even when not viewing the message panel
 
 	return (
 		<div className="h-full w-full flex overflow-hidden">

@@ -75,8 +75,8 @@ const defaultPlatformNav: NavLink[] = [
   {
     id: "messages",
     label: "Messages",
-    image: "/images/sidebar/messages-on.svg",
-    selectedImage: "/images/sidebar/messages-on-active.svg",
+    image: "/images/sidebar/messages.svg",
+    selectedImage: "/images/sidebar/messages-active.svg",
     href: "/messages",
   },
   // {
@@ -279,6 +279,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const [isClient, setIsClient] = React.useState(false);
   const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
   const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
+  const unreadMsg = useFeedbirdStore(s => s.user?.unreadMsg || []);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -307,7 +308,16 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           /*  ICON SELECTION                                            */
           /*  Use the original image and apply color styling instead    */
           /* ----------------------------------------------------------- */
-          const imageSrc = nav.image;
+          let imageSrc = nav.image;
+          
+          // Special handling for messages icon based on unread status
+          if (nav.id === 'messages') {
+            if (unreadMsg.length > 0) {
+              imageSrc = "/images/sidebar/messages-on.svg";
+            } else {
+              imageSrc = "/images/sidebar/messages.svg";
+            }
+          }
 
           // Create separate content for expanded and collapsed states
           const ExpandedContent = (

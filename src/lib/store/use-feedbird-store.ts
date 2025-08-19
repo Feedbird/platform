@@ -273,6 +273,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   imageUrl?: string;
+  unreadMsg?: string[];
   createdAt: Date;
 }
 
@@ -302,9 +303,13 @@ export interface FeedbirdStore {
   /** Channel messages keyed by channel_id */
   channelMessagesByChannelId: Record<string, Array<{ id: string; author: string; text: string; createdAt: Date; authorImageUrl?: string; authorEmail?: string; parentId?: string | null; addon?: any; readby?: any; emoticons?: any; channelId?: string }>>;
 
+  /** Current channel being viewed */
+  currentChannelId?: string;
+
   // User management
   setUser: (user: User | null) => void;
   clearUser: () => void;
+  setCurrentChannelId: (channelId: string | undefined) => void;
   
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
@@ -341,7 +346,13 @@ export interface FeedbirdStore {
   // Channel messages
   loadChannelMessages: (channelId: string) => Promise<void>;
   loadAllWorkspaceMessages: () => Promise<void>;
-          sendChannelMessage: (channelId: string, content: string, parentId?: string, addon?: any) => Promise<string>;
+  sendChannelMessage: (channelId: string, content: string, parentId?: string, addon?: any) => Promise<string>;
+  
+  // Unread message management
+  addUnreadMessage: (messageId: string) => void;
+  removeUnreadMessage: (messageId: string) => void;
+  hasUnreadMessages: () => boolean;
+  
   addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => Promise<string>;
   updateBoard: (id: string, data: Partial<Board>) => Promise<void>;
   removeBoard: (id: string) => Promise<void>;
@@ -1004,7 +1015,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             if (!activeWorkspaceId) {
               throw new Error('No active workspace')
             }
-            console.log('@@@@@@@@@@@@@activeWorkspaceId: ', activeWorkspaceId);
             const bid = await storeApi.createBrandAndUpdateStore(
               activeWorkspaceId,
               name,
@@ -2523,8 +2533,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // User management methods
-        setUser: (user: User | null) => set({ user }),
+        setUser: (user: User | null) => {
+          set({ user })
+          // User is now set, unread messages will be handled through websocket events
+        },
         clearUser: () => set({ user: null }),
+        setCurrentChannelId: (channelId) => set({ currentChannelId: channelId }),
         
         updatePostStatusesBasedOnTime: () => {
           set((s) => {
@@ -2562,6 +2576,69 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             return s;
           });
         },
+
+        addUnreadMessage: (messageId: string) => {
+          set((s) => {
+            if (!s.user) return s;
+            
+            // Check if message is already in unread list
+            const currentUnread = s.user.unreadMsg || []
+            if (currentUnread.includes(messageId)) return s;
+            
+            return {
+              ...s,
+              user: {
+                ...s.user,
+                unreadMsg: [...currentUnread, messageId]
+              }
+            };
+          });
+        },
+        removeUnreadMessage: (messageId: string) => {
+          set((s) => {
+            if (!s.user) return s;
+            
+            const currentUnread = s.user.unreadMsg || []
+            const newUnread = currentUnread.filter(id => id !== messageId)
+            
+            console.log('Removing unread message:', messageId, 'Current unread:', currentUnread, 'New unread:', newUnread);
+            
+            return {
+              ...s,
+              user: {
+                ...s.user,
+                unreadMsg: newUnread
+              }
+            };
+          });
+        },
+        hasUnreadMessages: () => {
+          const hasUnread = (get().user?.unreadMsg?.length || 0) > 0;
+          console.log('hasUnreadMessages called:', hasUnread, 'Unread count:', get().user?.unreadMsg?.length || 0);
+          return hasUnread;
+        },
+        // Mark all messages in a channel as read
+        markChannelAsRead: async (channelId: string) => {
+          try {
+            const store = get()
+            const currentUserEmail = store.user?.email
+            if (!currentUserEmail) return
+
+            const result = await (storeApi as any).markChannelAsRead(currentUserEmail, channelId)
+            if (result?.unread_msg) {
+              set((s) => ({
+                ...s,
+                user: {
+                  ...s.user!,
+                  unreadMsg: result.unread_msg
+                }
+              }))
+            }
+          } catch (error) {
+            console.error('Error marking channel as read:', error)
+          }
+        },
+
       }),
       {
         name: "feedbird-v5",

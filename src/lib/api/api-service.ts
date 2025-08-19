@@ -66,8 +66,7 @@ export const userApi = {
     const searchParams = new URLSearchParams()
     if (params.id) searchParams.append('id', params.id)
     if (params.email) searchParams.append('email', params.email)
-    
-    return apiRequest<User>(`/user?${searchParams.toString()}`)
+    return apiRequest(`/user?${searchParams.toString()}`)
   },
 
   // Create new user
@@ -90,12 +89,12 @@ export const userApi = {
       first_name?: string
       last_name?: string
       image_url?: string
+      unread_msg?: string[]
     }
   ): Promise<User> => {
     const searchParams = new URLSearchParams()
     if (params.id) searchParams.append('id', params.id)
     if (params.email) searchParams.append('email', params.email)
-    
     return apiRequest<User>(`/user?${searchParams.toString()}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -111,6 +110,40 @@ export const userApi = {
     return apiRequest<{ message: string }>(`/user?${searchParams.toString()}`, {
       method: 'DELETE',
     })
+  },
+
+  addUnreadMessage: async (email: string, messageId: string): Promise<{ unread_msg: string[] }> => {
+    const response = await apiRequest<{ unread_msg: string[] }>('/user/unread-messages', {
+      method: 'POST',
+      body: JSON.stringify({ email, message_id: messageId, action: 'add' }),
+    })
+    
+    // Update the store after successful API request
+    useFeedbirdStore.setState((prev: any) => ({
+      user: prev.user ? {
+        ...prev.user,
+        unreadMsg: response.unread_msg
+      } : null
+    }))
+    
+    return response
+  },
+
+  removeUnreadMessage: async (email: string, messageId: string): Promise<{ unread_msg: string[] }> => {
+    const response = await apiRequest<{ unread_msg: string[] }>('/user/unread-messages', {
+      method: 'POST',
+      body: JSON.stringify({ email, message_id: messageId, action: 'remove' }),
+    })
+    
+    // Update the store after successful API request
+    useFeedbirdStore.setState((prev: any) => ({
+      user: prev.user ? {
+        ...prev.user,
+        unreadMsg: response.unread_msg
+      } : null
+    }))
+    
+    return response
   },
 }
 // Workspace helper endpoints
@@ -774,6 +807,39 @@ export const storeApi = {
           [channelId]: transformed,
         },
       })
+
+      // Mark messages as read for current user
+      try {
+        const store = useFeedbirdStore.getState()
+        const currentUserEmail = store.user?.email
+        if (currentUserEmail && items.length > 0) {
+          // Get message IDs that should be marked as read
+          const messageIds = items.map(m => m.id)
+          
+          // Update unread messages in store
+          const currentUnread = store.user?.unreadMsg || []
+          console.log("currentUnread: ", store.user);
+          const newUnread = currentUnread.filter(id => !messageIds.includes(id))
+          const newRead = currentUnread.filter(id => messageIds.includes(id))
+          if (newUnread.length !== currentUnread.length) {
+            useFeedbirdStore.setState({
+              user: {
+                ...store.user!,
+                unreadMsg: newUnread
+              }
+            })
+          }
+          console.log("channelmessageIds:", newRead);
+          // Update unread messages in database for each message
+          for (const messageId of newRead) {
+            await userApi.removeUnreadMessage(currentUserEmail, messageId)
+          }
+        }
+      } catch (unreadError) {
+        console.error('Error marking messages as read:', unreadError)
+        // Don't fail the message loading if unread update fails
+      }
+
       return transformed
     } catch (error) {
       console.error('Failed to fetch channel messages:', error)
@@ -811,6 +877,38 @@ export const storeApi = {
           all: transformed,
         },
       })
+
+      // Mark messages as read for current user
+      try {
+        const currentUserEmail = store.user?.email
+        if (currentUserEmail && items.length > 0) {
+          // Get message IDs that should be marked as read
+          const messageIds = items.map(m => m.id)
+          
+          // Update unread messages in store
+          const currentUnread = store.user?.unreadMsg || []
+          const newUnread = currentUnread.filter(id => !messageIds.includes(id))
+          const newRead = currentUnread.filter(id => messageIds.includes(id))
+          
+          if (newUnread.length !== currentUnread.length) {
+            useFeedbirdStore.setState({
+              user: {
+                ...store.user!,
+                unreadMsg: newUnread
+              }
+            })
+          }
+          console.log("workspacemessageIds:", newRead);
+          // Update unread messages in database for each message
+          for (const messageId of newRead) {
+            await userApi.removeUnreadMessage(currentUserEmail, messageId)
+          }
+        }
+      } catch (unreadError) {
+        console.error('Error marking messages as read:', unreadError)
+        // Don't fail the message loading if unread update fails
+      }
+
       return transformed
     } catch (error) {
       console.error('Failed to fetch all workspace messages:', error)

@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     // Verify workspace and channel exist
     const [{ data: ws }, { data: ch }] = await Promise.all([
       supabase.from('workspaces').select('id').eq('id', validated.workspace_id).single(),
-      supabase.from('channels').select('id').eq('id', validated.channel_id).single(),
+      supabase.from('channels').select('id, members').eq('id', validated.channel_id).single(),
     ])
 
     if (!ws) return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
@@ -134,6 +134,41 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error('Error creating channel message:', error)
       return NextResponse.json({ error: 'Failed to create message' }, { status: 500 })
+    }
+
+    // Add message to unread list for all channel members and creator
+    try {
+      const usersToUpdate = new Set<string>()
+      // Add channel members
+      if (ch.members && Array.isArray(ch.members)) {
+        ch.members.forEach((member: any) => {
+          if (member !== validated.author_email) {
+            usersToUpdate.add(member)
+          }
+        })
+      }
+      // Update unread messages for each user
+      for (const userEmail of usersToUpdate) {
+        const { data: user } = await supabase
+          .from('users')
+          .select('unread_msg')
+          .eq('email', userEmail)
+          .single()
+
+        if (user) {
+          const currentUnread = user.unread_msg || []
+          if (!currentUnread.includes(data.id)) {
+            const newUnread = [...currentUnread, data.id]
+            await supabase
+              .from('users')
+              .update({ unread_msg: newUnread })
+              .eq('email', userEmail)
+          }
+        }
+      }
+    } catch (unreadError) {
+      console.error('Error updating unread messages:', unreadError)
+      // Don't fail the message creation if unread update fails
     }
 
     return NextResponse.json(data, { status: 201 })

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   first_name TEXT,
   last_name TEXT,
   image_url TEXT,
+  unread_msg JSONB DEFAULT '[]',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -165,6 +166,7 @@ CREATE TABLE IF NOT EXISTS channel_messages (
   readby JSONB DEFAULT '[]'::jsonb,
   author_email TEXT NOT NULL,
   emoticons JSONB DEFAULT '[]'::jsonb,
+  sent_notification BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
