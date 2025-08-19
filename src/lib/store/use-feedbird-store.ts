@@ -836,15 +836,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     text: post.caption.default,
                     media: {
                       type: post.format,
-                      urls: processedBlocks.flatMap(block => 
-                        block.versions.flatMap(version => {
-                          // Handle both version.file and version.media structures
-                          if (version.file?.url) {
-                            return [version.file.url];
-                          }
-                          return version.media?.map(m => m.src) || [];
-                        })
-                      )
+                      urls: processedBlocks.flatMap(block => {
+                        // from the version i want to pick the latest one
+                        const latestVersion = block.versions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                        return [latestVersion.file?.url]
+                      })
                     }
                   };
                 } else {

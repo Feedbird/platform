@@ -384,10 +384,25 @@ export class TikTokPlatform extends BasePlatform {
     media = {
       video_url: content.media?.urls[0],
     }
+
+    // check the media type should be MP4 (recommended), WebM, MOV
+    const mediaType = content.media?.urls[0].split('.').pop();
+    if(mediaType !== 'mp4' && mediaType !== 'webm' && mediaType !== 'mov') {
+      throw new Error('TikTok only supports MP4, WebM, and MOV media types');
+    }
+
    } else if(mediaType === 'image' || mediaType === 'carousel') {
     // https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide
     if(content.media?.urls?.length && content.media?.urls?.length > 35) {
       throw new Error('TikTok only supports up to 35 images in a carousel');
+    }
+
+    // check the media type for each should be WebP, JPEG, if not throw error, we can use for loop
+    for(const url of content.media?.urls) {
+      const mediaType = url.split('.').pop();
+      if(mediaType !== 'webp' && mediaType !== 'jpeg') {
+        throw new Error('TikTok only supports WebP, JPEG media types');
+      }
     }
 
     // https://developers.tiktok.com/doc/content-posting-api-reference-photo-post#
