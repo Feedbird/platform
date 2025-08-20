@@ -506,6 +506,11 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		return format(date, 'EEEE, MMMM do')
 	}
 
+	// Get parent messages for display
+	const parentMessages = useMemo(() => {
+		return filteredMessages.filter(m => !(m as any).parentId)
+	}, [filteredMessages])
+
 	const formatTimeOnly = (date: Date) => format(date, 'p')
 	const formatDateFull = (date: Date) => format(date, 'MMMM d, yyyy')
 
@@ -2004,10 +2009,18 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										<div className="text-sm text-grey">No messages found in this workspace</div>
 									</div>
 								)}
-								{!loadingAllMessages && filteredMessages
-									.filter(m => !(m as any).parentId) // Only show parent messages in channel view
-									.map((m, idx) => {
-										const showDay = idx === 0 || !isSameDay(filteredMessages[idx - 1].createdAt, m.createdAt)
+								{!loadingAllMessages && parentMessages.map((m, idx) => {
+									const showDay = idx === 0 || (idx > 0 && !isSameDay(parentMessages[idx - 1].createdAt, m.createdAt))
+									
+									// Debug logging
+									if (idx > 0) {
+										console.log(`Message ${idx}:`, {
+											currentDate: m.createdAt,
+											previousDate: parentMessages[idx - 1].createdAt,
+											isSameDay: isSameDay(parentMessages[idx - 1].createdAt, m.createdAt),
+											showDay
+										})
+									}
 
 										// Get replies for this message
 										const replies = filteredMessages.filter(reply => (reply as any).parentId === m.id)
