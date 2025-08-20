@@ -308,7 +308,7 @@ export interface FeedbirdStore {
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
   setActiveBoard: (id: string) => void;
-  connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId">) => string;
+  connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => string;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
   confirmSocialPage: (brandId: string, pageId: string) => Promise<void>;
   disconnectSocialPage: (brandId: string, pageId: string) => Promise<void>;
@@ -1394,7 +1394,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 postHistory: {
                   ...state.postHistory,
-                  [pageId]: old.filter(p => p.postId !== postId)
+                  [pageId]: old.filter((p: any) => p.postId !== postId)
                 }
               };
             });

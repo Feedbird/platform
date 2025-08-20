@@ -121,7 +121,7 @@
         accountId: me.id,
         authToken: tok.access_token,
         refreshToken: tok.refresh_token,
-        expiresAt: new Date(Date.now() + tok.expires_in * 1_000),
+        accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
         connected: true,
         status: 'active',
         metadata: {},
@@ -155,7 +155,7 @@
         ...acc, // Spread the existing account properties
         authToken: tok.access_token,
         refreshToken: tok.refresh_token,
-        expiresAt: new Date(Date.now() + tok.expires_in * 1_000),
+        accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
         status: 'active', // Reset status on successful refresh
       };
     }
@@ -166,7 +166,7 @@
       type Boards = { items: { id: string; name: string }[] }
       const data: Boards = await this.fetchJSON(
         `${this.baseUrl}/boards?page_size=100`,
-        { headers: { Authorization: `Bearer ${acc.authToken}` } }
+        { headers: { Authorization: `Bearer ${acc.authToken || ''}` } }
       )
   
       return data.items.map((b) => ({
@@ -175,7 +175,7 @@
         entityType: 'board',
         name      : b.name,
         pageId    : b.id,
-        authToken : acc.authToken,
+        authToken : acc.authToken || '',
         connected : false,
         status    : 'active',
         accountId : acc.id,
@@ -192,7 +192,7 @@
         const res = await fetch('/api/social/pinterest/board', {
           method : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body   : JSON.stringify({ token: acc.authToken, boardId }),
+          body   : JSON.stringify({ token: acc.authToken || '', boardId }),
         })
         if (!res.ok) throw new Error(await res.text())
         return res.json()
@@ -200,7 +200,7 @@
   
       const b = await pinFetch<{ id:string; name:string }>(
         `${this.baseUrl}/boards/${encodeURIComponent(boardId)}`,
-        { headers:{ Authorization:`Bearer ${acc.authToken}` } },
+        { headers:{ Authorization:`Bearer ${acc.authToken || ''}` } },
       )
   
       return {
@@ -209,7 +209,7 @@
         entityType: 'board',
         name      : b.name,
         pageId    : b.id,
-        authToken : acc.authToken,
+        authToken : acc.authToken || '',
         connected : true,
         status    : 'active',
         accountId : acc.id,
@@ -250,7 +250,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${page.authToken}`
+          Authorization: `Bearer ${page.authToken || ''}`
         },
         body: JSON.stringify({
           board_id: page.pageId,
@@ -294,7 +294,7 @@
         }[]
       }>(
         `${this.baseUrl}/boards/${encodeURIComponent(board.pageId)}/pins?page_size=${limit}`,
-        { headers:{ Authorization:`Bearer ${board.authToken}` } },
+        { headers:{ Authorization:`Bearer ${board.authToken || ''}` } },
       )
   
       return pins.items.map(p => {
@@ -334,7 +334,7 @@
       await pinFetch(
         `${this.baseUrl}/pins/${encodeURIComponent(pinId)}`, {
           method:'DELETE',
-          headers:{ Authorization:`Bearer ${board.authToken}` },
+          headers:{ Authorization:`Bearer ${board.authToken || ''}` },
         })
     }
   

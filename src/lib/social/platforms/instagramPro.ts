@@ -107,7 +107,7 @@ import type {
         name: me.username,
         accountId: token.user_id,
         authToken: long.access_token,
-        expiresAt: new Date(Date.now() + long.expires_in * 1000),
+        accessTokenExpiresAt: new Date(Date.now() + long.expires_in * 1000),
         connected: true,
         status: "active",
       };
@@ -116,10 +116,10 @@ import type {
     async refreshToken(a: SocialAccount): Promise<SocialAccount> {
       const r = await jsonGET(`${cfg.baseUrl}/${cfg.apiVersion}/refresh_access_token`, {
         grant_type: "ig_refresh_token",
-        access_token: a.authToken,
+        access_token: a.authToken || '',
       });
       return { ...a, authToken: r.access_token,
-               expiresAt: new Date(Date.now() + r.expires_in * 1000) };
+               accessTokenExpiresAt: new Date(Date.now() + r.expires_in * 1000) };
     }
     async disconnectAccount(a: SocialAccount) { a.connected = false; a.status = "disconnected"; }
   
@@ -131,7 +131,7 @@ import type {
         entityType: "profile",
         name: a.name,
         pageId: a.accountId,
-        authToken: a.authToken,
+        authToken: a.authToken || '',
         connected: true,
         status: "active",
         accountId: a.id,
@@ -210,13 +210,13 @@ import type {
         [isVid ? "video_url" : "image_url"]: url,
         caption: p.content,
         media_type: isVid ? "VIDEO" : undefined,
-        access_token: pg.authToken,
+        access_token: pg.authToken || '',
       });
       const pub = await jsonPOST(`${cfg.baseUrl}/${cfg.apiVersion}/${pg.pageId}/media_publish`, {
         creation_id: cont.id,
         publish_at: p.scheduledTime
           ? Math.floor(p.scheduledTime.getTime() / 1000) : undefined,
-        access_token: pg.authToken,
+        access_token: pg.authToken || '',
       });
       return {
         id: pub.id, pageId: pg.id, postId: pub.id,
@@ -233,19 +233,19 @@ import type {
       const kids: string[] = [];
       for (const img of p.mediaUrls) {
         const c = await jsonPOST(`${cfg.baseUrl}/${cfg.apiVersion}/${pg.pageId}/media`, {
-          image_url: img, is_carousel_item: true, access_token: pg.authToken,
+          image_url: img, is_carousel_item: true, access_token: pg.authToken || '',
         });
         kids.push(c.id);
       }
       const parent = await jsonPOST(`${cfg.baseUrl}/${cfg.apiVersion}/${pg.pageId}/media`, {
         caption: p.content, children: kids.join(","), media_type: "CAROUSEL",
-        access_token: pg.authToken,
+        access_token: pg.authToken || '',
       });
       const pub = await jsonPOST(`${cfg.baseUrl}/${cfg.apiVersion}/${pg.pageId}/media_publish`, {
         creation_id: parent.id,
         publish_at: p.scheduledTime
           ? Math.floor(p.scheduledTime.getTime() / 1000) : undefined,
-        access_token: pg.authToken,
+        access_token: pg.authToken || '',
       });
       return {
         id: pub.id, pageId: pg.id, postId: pub.id,
@@ -260,7 +260,7 @@ import type {
       const r = await jsonGET(`${cfg.baseUrl}/${cfg.apiVersion}/${pg.pageId}/media`, {
         fields: "id,caption,media_url,timestamp",
         limit,
-        access_token: pg.authToken,
+        access_token: pg.authToken || '',
       });
       return r.data.map((m: any): PostHistory => ({
         id: m.id, pageId: pg.id, postId: m.id,
@@ -271,14 +271,14 @@ import type {
     async getPostAnalytics(pg: SocialPage, postId: string) {
       const r = await jsonGET(`${cfg.baseUrl}/${cfg.apiVersion}/${postId}/insights`, {
         metric: "impressions,reach,engagement,likes,comments",
-        access_token: pg.authToken,
+        access_token: pg.authToken || '',
       });
       const o: any = {}; for (const m of r.data) o[m.name] = m.values[0].value;
       return { reach: o.reach, likes: o.likes, comments: o.comments };
     }
     async deletePost(pg: SocialPage, postId: string) {
       const { success } = await jsonDEL(`${cfg.baseUrl}/${cfg.apiVersion}/${postId}`, {
-        access_token: pg.authToken,
+        access_token: pg.authToken || '',
       });
       if (!success) throw new Error("Delete failed");
     }

@@ -136,7 +136,7 @@ export class FacebookPlatform extends BasePlatform {
       name: userInfo.name,
       accountId: userInfo.id,
       authToken: tokenRes.access_token,
-      expiresAt: new Date(Date.now() + tokenRes.expires_in * 1000),
+      accessTokenExpiresAt: new Date(Date.now() + tokenRes.expires_in * 1000),
       connected: true,
       status: 'active'
     };
@@ -152,14 +152,14 @@ export class FacebookPlatform extends BasePlatform {
         grant_type: 'fb_exchange_token',
         client_id: this.env.clientId,
         client_secret: this.env.clientSecret,
-        fb_exchange_token: acc.authToken
+        fb_exchange_token: acc.authToken || ''
       }
     });
 
     return {
       ...acc,
       authToken: response.access_token,
-      expiresAt: new Date(Date.now() + response.expires_in * 1000)
+      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000)
     };
   }
 
@@ -171,7 +171,7 @@ export class FacebookPlatform extends BasePlatform {
         access_token: string;
       }>;
     }>(`${config.baseUrl}/${config.apiVersion}/me/accounts`, {
-      token: acc.authToken,
+      token: acc.authToken || '',
       queryParams: {
         fields: 'id,name,access_token'
       }
@@ -251,7 +251,7 @@ export class FacebookPlatform extends BasePlatform {
         // Text-only post
         const response = await this.fetchWithAuth<{ id: string }>(endpoint, {
           method: 'POST',
-          token: page.authToken,
+          token: page.authToken || '',
           body: JSON.stringify({
             message: content.text,
             scheduled_publish_time: options?.scheduledTime
@@ -286,7 +286,7 @@ export class FacebookPlatform extends BasePlatform {
 
       const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(mediaEndpoint, {
         method: 'POST',
-        token: page.authToken,
+        token: page.authToken || '',
         body: JSON.stringify({
           url: content.media.urls[0],
           message: content.text,
@@ -330,7 +330,7 @@ export class FacebookPlatform extends BasePlatform {
             `${config.baseUrl}/${config.apiVersion}/${page.pageId}/photos`,
             {
               method: 'POST',
-              token: page.authToken,
+              token: page.authToken || '',
               body: JSON.stringify({
                 url,
                 published: false,
@@ -351,7 +351,7 @@ export class FacebookPlatform extends BasePlatform {
         `${config.baseUrl}/${config.apiVersion}/${page.pageId}/feed`,
         {
           method: 'POST',
-          token: page.authToken,
+          token: page.authToken || '',
           body: JSON.stringify({
             message: content.text,
             attached_media: attachedMedia,
@@ -399,7 +399,7 @@ export class FacebookPlatform extends BasePlatform {
           };
         }>;
       }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/posts`, {
-        token: page.authToken,
+        token: page.authToken || '',
         queryParams: {
           fields: 'id,message,created_time,attachments,status',
           limit: limit.toString()
@@ -420,7 +420,7 @@ export class FacebookPlatform extends BasePlatform {
           values: Array<{ value: number }>;
         }>;
       }>(`${config.baseUrl}/${config.apiVersion}/${postId}/insights`, {
-        token: page.authToken,
+        token: page.authToken || '',
         queryParams: {
           metric: [
             'post_impressions',
@@ -477,7 +477,7 @@ export class FacebookPlatform extends BasePlatform {
     try {
       await this.fetchWithAuth(
         `${config.baseUrl}/${config.apiVersion}/${page.pageId}`,
-        { token: page.authToken }
+        { token: page.authToken || '' }
       );
       return { ...page, status: 'active', statusUpdatedAt: new Date() };
     } catch {
@@ -490,7 +490,7 @@ export class FacebookPlatform extends BasePlatform {
       `${config.baseUrl}/${config.apiVersion}/${postId}`,
       {
         method: 'DELETE',
-        token: page.authToken
+        token: page.authToken || ''
       }
     );
   }

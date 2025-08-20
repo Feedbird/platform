@@ -128,7 +128,7 @@ export class InstagramPlatform extends BasePlatform {
       name: me.name,
       accountId: me.id,
       authToken: longLived.access_token,
-      expiresAt: new Date(Date.now() + longLived.expires_in * 1000),
+      accessTokenExpiresAt: new Date(Date.now() + longLived.expires_in * 1000),
       connected: true,
       status: 'active'
     };
@@ -144,14 +144,14 @@ export class InstagramPlatform extends BasePlatform {
         grant_type: 'fb_exchange_token',
         client_id: this.env.clientId,
         client_secret: this.env.clientSecret,
-        fb_exchange_token: acc.authToken
+        fb_exchange_token: acc.authToken || ''
       }
     });
 
     return {
       ...acc,
       authToken: response.access_token,
-      expiresAt: new Date(Date.now() + response.expires_in * 1000)
+      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000)
     };
   }
 
@@ -177,7 +177,7 @@ export class InstagramPlatform extends BasePlatform {
           };
         }>;
       }>(`${config.baseUrl}/${config.apiVersion}/me/accounts`, {
-        token: acc.authToken,
+        token: acc.authToken || '',
         queryParams: {
           fields: [
             'id',
@@ -208,7 +208,7 @@ export class InstagramPlatform extends BasePlatform {
             profile_picture_url: string;
           };
         }>(`${config.baseUrl}/${config.apiVersion}/${fbPage.id}`, {
-          token: fbPage.access_token,
+          token: fbPage.access_token || '',
           queryParams: {
             fields: [
               'instagram_business_account{id,username,profile_picture_url,followers_count,media_count}',
@@ -280,22 +280,22 @@ export class InstagramPlatform extends BasePlatform {
     // 1. Create media container
     const container = await this.fetchWithAuth<{ id: string }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/media`, {
       method: 'POST',
-      token: page.authToken,
+      token: page.authToken || '',
       body: JSON.stringify({
         [isVideo ? 'video_url' : 'image_url']: url,
         caption: content.text,
         media_type: isVideo ? 'VIDEO' : 'IMAGE',
-        access_token: page.authToken
+        access_token: page.authToken || ''
       })
     });
 
     // 2. Publish the container
     const published = await this.fetchWithAuth<{ id: string }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/media_publish`, {
       method: 'POST',
-      token: page.authToken,
+      token: page.authToken || '',
       body: JSON.stringify({
         creation_id: container.id,
-        access_token: page.authToken
+        access_token: page.authToken || ''
       })
     });
 
@@ -324,11 +324,11 @@ export class InstagramPlatform extends BasePlatform {
     for (const url of content.media!.urls) {
       const container = await this.fetchWithAuth<{ id: string }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/media`, {
         method: 'POST',
-        token: page.authToken,
+        token: page.authToken || '',
         body: JSON.stringify({
           image_url: url,
           is_carousel_item: true,
-          access_token: page.authToken
+          access_token: page.authToken || ''
         })
       });
       containerIds.push(container.id);
@@ -337,22 +337,22 @@ export class InstagramPlatform extends BasePlatform {
     // 2. Create carousel container
     const carouselContainer = await this.fetchWithAuth<{ id: string }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/media`, {
       method: 'POST',
-      token: page.authToken,
+      token: page.authToken || '',
       body: JSON.stringify({
         media_type: 'CAROUSEL',
         children: containerIds.join(','),
         caption: content.text,
-        access_token: page.authToken
+        access_token: page.authToken || ''
       })
     });
 
     // 3. Publish the carousel
     const published = await this.fetchWithAuth<{ id: string }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/media_publish`, {
       method: 'POST',
-      token: page.authToken,
+      token: page.authToken || '',
       body: JSON.stringify({
         creation_id: carouselContainer.id,
-        access_token: page.authToken
+        access_token: page.authToken || ''
       })
     });
 
@@ -376,7 +376,7 @@ export class InstagramPlatform extends BasePlatform {
         timestamp: string;
       }>;
     }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/media`, {
-      token: page.authToken,
+      token: page.authToken || '',
       queryParams: {
         fields: 'id,caption,media_url,timestamp',
         limit: limit.toString()
@@ -401,7 +401,7 @@ export class InstagramPlatform extends BasePlatform {
         values: Array<{ value: number }>;
       }>;
     }>(`${config.baseUrl}/${config.apiVersion}/${postId}/insights`, {
-      token: page.authToken,
+      token: page.authToken || '',
       queryParams: {
         metric: 'impressions,reach,engagement,saved,likes,comments'
       }
@@ -448,7 +448,7 @@ export class InstagramPlatform extends BasePlatform {
     try {
       await this.fetchWithAuth(
         `${config.baseUrl}/${config.apiVersion}/${page.pageId}`,
-        { token: page.authToken }
+        { token: page.authToken || '' }
       );
       return { ...page, status: 'active', statusUpdatedAt: new Date() };
     } catch {

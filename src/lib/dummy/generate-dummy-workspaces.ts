@@ -238,8 +238,7 @@ function makePost(
     billingMonth: faker.date.month(),
     month,
     settings: {
-      location: faker.datatype.boolean(),
-      tagAccounts: faker.datatype.boolean(),
+      
       thumbnail: faker.datatype.boolean(),
       locationTags: faker.datatype.boolean() ? [faker.location.city()] : [],
       taggedAccounts: faker.datatype.boolean() ? [faker.internet.userName()] : [],

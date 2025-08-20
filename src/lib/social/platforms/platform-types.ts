@@ -140,6 +140,7 @@ export interface SocialPage {
 // Post History
 export interface PostHistory {
   id: string;
+  postId?: string;
   pageId: string;
   publishId?: string;
   content: string;
@@ -186,7 +187,7 @@ export interface PostContent {
 
 // Platform Operations Interface
 export interface PlatformOperations {
-  checkPostStatusAndUpdate(publishId: string, pageId: string, postId: string): Promise<void>;
+  checkPostStatusAndUpdate?: (publishId: string, pageId: string, postId: string) => Promise<void>;
   // Auth operations
   getAuthUrl(): string;
   

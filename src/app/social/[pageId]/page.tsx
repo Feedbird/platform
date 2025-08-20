@@ -123,7 +123,7 @@ export default function SocialPagePosts() {
 
     await executeWithLoading(async () => {
       try {
-        await deletePagePost(brandId, pageId, ph.postId);
+        await deletePagePost(brandId, pageId, ph.postId || ph.id);
       } catch (e: any) {
         const errorMsg = e.message ?? 'Failed deleting post';
         setErrMsg(errorMsg);
