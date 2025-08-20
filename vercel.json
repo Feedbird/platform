@@ -6,6 +6,6 @@
     }
   },
   "crons": [
-    { "path": "/api/email/send-unread", "schedule": "* * * * *" }
+    { "path": "/api/email/send-unread", "schedule": "0 9 * * *" }
   ]
 } 
