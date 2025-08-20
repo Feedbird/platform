@@ -108,7 +108,6 @@ export class TikTokPlatform extends BasePlatform {
     url.searchParams.set('redirect_uri', this.env.redirectUri);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('scope', this.config.scopes.join(','));
-    url.searchParams.set('state', crypto.randomUUID());
     return url.toString();
   }
 
