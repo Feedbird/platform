@@ -34,6 +34,15 @@ async function processNotifications() {
     }
   }
 
+  // Mark all messages as notification sent to prevent duplicate notifications
+  if (allMessageIds.length > 0) {
+    try {
+      await notificationService.markNotificationsAsSent(allMessageIds);
+    } catch (err) {
+      console.error('Error marking notifications as sent:', err);
+    }
+  }
+
   return NextResponse.json({
     message: "Notifications processed successfully",
     processed: totalProcessed,
