@@ -14,6 +14,7 @@ const UpdateUserSchema = z.object({
   first_name: z.string().optional(),
   last_name: z.string().optional(),
   image_url: z.string().url().optional(),
+  unread_msg: z.array(z.string()).optional(),
 })
 
 // GET - Get user by ID

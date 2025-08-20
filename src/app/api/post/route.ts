@@ -204,7 +204,6 @@ export async function PUT(req: NextRequest) {
       .eq('id', id)
       .select()
       .single()
-
     if (error) {
       console.error('Error updating post:', error)
       return NextResponse.json(

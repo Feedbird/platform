@@ -7,9 +7,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optionally, set a default if you like */
+/* Global default font: Geist Sans */
 html, body {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Default monospace for code blocks */
+code, kbd, samp, pre {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Use Geist Sans specifically for the sidebar like shadcn dashboard */
+[data-sidebar="sidebar"] {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 @keyframes fadeIn {
@@ -73,7 +83,7 @@ html, body {
 
 /* styles/grid.css */
 .gdgrid-root {
-  --font-family: 'Inter', sans-serif;
+  --font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
   --border-radius: 8px;
   --header-bg: #f8fafc;
   position: relative;

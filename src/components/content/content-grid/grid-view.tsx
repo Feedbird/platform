@@ -16,7 +16,6 @@ import {
   DragMoveEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -25,6 +24,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Post, Status } from "@/lib/store/use-feedbird-store";
+import { postApi } from "@/lib/api/api-service";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { ChannelIcons, statusConfig, StatusChip, FormatBadge } from "@/components/content/shared/content-post-ui";
 import { cn, getMonthColor, getBulletColor } from "@/lib/utils";
@@ -38,7 +38,7 @@ interface GridViewProps {
 
 
 // Sortable grid item component
-function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: string) => void }) {
+function SortableGridItem({ post, onOpen, overlayPost, showOverlayAtOrigin, isHidden }: { post: Post; onOpen?: (postId: string) => void; overlayPost?: Post | null; showOverlayAtOrigin?: boolean; isHidden?: boolean }) {
   const {
     attributes,
     listeners,
@@ -49,7 +49,7 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
   } = useSortable({ id: post.id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: isDragging ? CSS.Transform.toString(transform) : undefined,
     transition: isDragging ? 'none' : transition,
   };
 
@@ -83,26 +83,83 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
   };
 
   const isVideo = (post: Post): boolean => {
-    return post.blocks?.some(block => {
+    // Match the same "first media block" selection logic as getPostThumbnail
+    const mediaBlock = post.blocks?.find(block => {
       const currentVer = block.versions.find(v => v.id === block.currentVersionId);
-      return currentVer && currentVer.file.kind === "video";
-    }) || false;
+      return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+    });
+
+    if (!mediaBlock) return false;
+
+    const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+    return currentVer?.file.kind === "video";
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "relative w-54 h-71.5 bg-white border border-gray-200 overflow-hidden cursor-pointer group",
-        isDragging && "opacity-30 scale-95"
+    <div className="relative w-54 h-71.5">
+      {/* Overlay preview at the original position of the dragged item (static, not transformed) */}
+      {isDragging && showOverlayAtOrigin && overlayPost && overlayPost.id !== post.id && (
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute inset-0 bg-white border border-gray-200" />
+          {(() => {
+            const overlayIsVideo = (() => {
+              const mediaBlock = overlayPost.blocks?.find(block => {
+                const currentVer = block.versions.find(v => v.id === block.currentVersionId);
+                return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+              });
+              if (!mediaBlock) return false;
+              const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+              return currentVer?.file.kind === "video";
+            })();
+
+            const overlaySrc = (() => {
+              const mediaBlock = overlayPost.blocks?.find(block => {
+                const currentVer = block.versions.find(v => v.id === block.currentVersionId);
+                return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+              });
+              if (!mediaBlock) return "/images/format/image.svg";
+              const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+              if (!currentVer) return "/images/format/image.svg";
+              return currentVer.file.kind === "video" ? `${currentVer.file.url}?v=${currentVer.id}` : currentVer.file.url;
+            })();
+
+            return overlayIsVideo ? (
+              <video
+                src={overlaySrc}
+                className="absolute inset-0 w-full h-full object-cover opacity-70"
+                muted
+                loop
+                playsInline
+              />
+            ) : (
+              <Image
+                src={overlaySrc}
+                alt={overlayPost.caption?.default || "Overlay content"}
+                width={218}
+                height={288}
+                className="absolute inset-0 w-full h-full object-cover opacity-70"
+              />
+            );
+          })()}
+          <div className="absolute inset-0 border-2 border-dashed border-blue-600 rounded-sm" />
+        </div>
       )}
-      onClick={() => onOpen?.(post.id)}
-      {...attributes}
-      {...listeners}
-    >
-      {/* Main Image/Video Container */}
-      <div className="relative w-full h-full">
+
+      {/* Draggable element (transformed while dragging) */}
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          "relative w-54 h-71.5 bg-white border border-gray-200 overflow-hidden cursor-pointer group z-10",
+          isDragging && "opacity-30 scale-95",
+          isHidden && !isDragging && "opacity-0"
+        )}
+        onClick={() => onOpen?.(post.id)}
+        {...attributes}
+        {...listeners}
+      >
+        {/* Main Image/Video Container */}
+        <div className="relative w-full h-full">
         {isVideo(post) ? (
           <>
             <video
@@ -128,7 +185,7 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
             className="w-full h-full object-cover"
           />
         )}
-      </div>
+        </div>
 
        {/* Always visible post time */}
        <div className="absolute bottom-2 left-2 pointer-events-none opacity-100 group-hover:opacity-0 transition-opacity duration-200">
@@ -141,7 +198,7 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
              style={{ filter: "invert(1) brightness(2)" }}
            />
            <span className="text-xs text-white font-medium">
-             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+             {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
            </span>
          </div>
        </div>
@@ -212,7 +269,7 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
                    style={{ filter: "invert(1) brightness(2)" }}
                  />
                  <span className="text-xs">
-                   {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+                   {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
                  </span>
                </div>
 
@@ -252,7 +309,193 @@ function SortableGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: stri
              </div>
            </div>
          </div>
-       </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Static (non-draggable, non-droppable) grid item for Published / Failed Publishing
+function StaticGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: string) => void }) {
+  const getPostThumbnail = (post: Post): string => {
+    const mediaBlock = post.blocks?.find(block => {
+      const currentVer = block.versions.find(v => v.id === block.currentVersionId);
+      return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+    });
+    if (mediaBlock) {
+      const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+      if (currentVer) {
+        return currentVer.file.kind === "video"
+          ? `${currentVer.file.url}?v=${currentVer.id}`
+          : currentVer.file.url;
+      }
+    }
+    return "/images/format/image.svg";
+  };
+
+  const isVideo = (post: Post): boolean => {
+    const mediaBlock = post.blocks?.find(block => {
+      const currentVer = block.versions.find(v => v.id === block.currentVersionId);
+      return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+    });
+    if (!mediaBlock) return false;
+    const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+    return currentVer?.file.kind === "video";
+  };
+
+  const statusTintClass = "bg-gray-300/60";
+
+  return (
+    <div className={cn("relative w-54 h-71.5 bg-white border border-gray-200 overflow-hidden group", "cursor-pointer")}
+      onClick={() => onOpen?.(post.id)}
+    >
+      <div className="relative w-full h-full">
+        {isVideo(post) ? (
+          <video
+            src={getPostThumbnail(post)}
+            className="absolute inset-0 w-full h-full object-cover"
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <Image
+            src={getPostThumbnail(post)}
+            alt={post.caption?.default || "Post content"}
+            width={218}
+            height={288}
+            className="w-full h-full object-cover"
+          />
+        )}
+
+        {statusTintClass && (
+          <div className={cn("absolute inset-0 pointer-events-none", statusTintClass)} />
+        )}
+
+        {/* Hover Overlay (same as draggable items) */}
+        <div className="absolute inset-0 bg-black/0">
+          {/* Top-right Format badge (hover) */}
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <FormatBadge kind={post.format} widthFull={false} />
+          </div>
+
+          {/* Month pill (hover) */}
+          <div
+            className="absolute top-2 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            style={{ pointerEvents: 'none' }}
+          >
+            <div
+              style={{
+                display: 'inline-flex',
+                padding: '2px 8px',
+                alignItems: 'center',
+                borderRadius: '100px',
+                border: '1px solid rgba(28, 29, 31, 0.05)',
+                background: getMonthColor(post.month),
+              }}
+              className="text-xs font-semibold text-black gap-1"
+            >
+              <span
+                className="w-[6px] h-[6px] rounded-full"
+                style={{ background: getBulletColor(post.month) }}
+              />
+              <span>{`Month ${post.month}`}</span>
+            </div>
+          </div>
+
+          {/* Bottom Section - Blurred area with details */}
+          <div className="absolute bottom-0 left-0 right-0 h-29 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-[4px] flex flex-col">
+            <div className="flex flex-col h-full absolute bottom-0 left-0 right-0 p-3 text-white">
+              {/* Status chip at the top */}
+              <div className="mb-2 flex-shrink-0">
+                <StatusChip status={post.status as Status} widthFull={false} />
+              </div>
+
+              {/* Caption fills the available space */}
+              <div className="flex-1 flex items-center">
+                <p
+                  className="text-xs leading-tight overflow-hidden"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    width: '100%',
+                  }}
+                >
+                  {post.caption?.default || "No caption"}
+                </p>
+              </div>
+
+              {/* Bottom row - Post time and platforms */}
+              <div className="flex justify-between items-center mt-2 flex-shrink-0">
+                {/* Post time */}
+                <div className="flex items-center gap-1">
+                  <Image
+                    src="/images/columns/post-time.svg"
+                    alt="Time"
+                    width={12}
+                    height={12}
+                    style={{ filter: "invert(1) brightness(2)" }}
+                  />
+                  <span className="text-xs">
+                    {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+                  </span>
+                </div>
+
+                {/* Platform icons */}
+                <div className="flex items-center">
+                  {(() => {
+                    const plats = post.platforms || [];
+                    const showAll = plats.length <= 5;
+                    const displayed = showAll ? plats : plats.slice(0,4);
+                    return displayed.map((platform, idx) => (
+                      <div
+                        key={platform}
+                        className={cn(
+                          idx === 0 ? '' : '-ml-1',
+                          'w-4.5 h-4.5'
+                        )}
+                      >
+                        <ChannelIcons
+                          channels={[platform]}
+                          size={18}
+                          whiteBorder={true}
+                        />
+                      </div>
+                    ));
+                  })()}
+                  {post.platforms && post.platforms.length > 5 && (
+                    <span
+                      className={cn(
+                        '-ml-1 w-4.5 h-4.5 flex items-center justify-center rounded-full bg-gray-300 text-[10px] font-semibold text-gray-700 relative z-10'
+                      )}
+                      style={{ lineHeight: '18px' }}
+                    >
+                      {post.platforms.length - 4}+
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Always visible post time */}
+        <div className="absolute bottom-2 left-2 pointer-events-none opacity-100 group-hover:opacity-0 transition-opacity duration-200">
+          <div className="flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md">
+            <Image
+              src="/images/columns/post-time.svg"
+              alt="Time"
+              width={10}
+              height={10}
+              style={{ filter: "invert(1) brightness(2)" }}
+            />
+            <span className="text-xs text-white font-medium">
+              {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -278,10 +521,15 @@ function DragOverlayItem({ post }: { post: Post }) {
   };
 
   const isVideo = (post: Post): boolean => {
-    return post.blocks?.some(block => {
+    const mediaBlock = post.blocks?.find(block => {
       const currentVer = block.versions.find(v => v.id === block.currentVersionId);
-      return currentVer && currentVer.file.kind === "video";
-    }) || false;
+      return currentVer && (currentVer.file.kind === "image" || currentVer.file.kind === "video");
+    });
+
+    if (!mediaBlock) return false;
+
+    const currentVer = mediaBlock.versions.find(v => v.id === mediaBlock.currentVersionId);
+    return currentVer?.file.kind === "video";
   };
 
   return (
@@ -314,7 +562,7 @@ function DragOverlayItem({ post }: { post: Post }) {
              style={{ filter: "invert(1) brightness(2)" }}
            />
            <span className="text-xs text-white font-medium">
-             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
+             {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
            </span>
          </div>
        </div>
@@ -325,13 +573,39 @@ function DragOverlayItem({ post }: { post: Post }) {
 
 export default function GridView({ posts, onOpen }: GridViewProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
-  const [items, setItems] = React.useState<Post[]>(posts);
+  const [overId, setOverId] = React.useState<string | null>(null);
+  const sortByPublishDate = React.useCallback((a: Post, b: Post) => {
+    const aTime = a.publish_date ? new Date(a.publish_date).getTime() : Number.POSITIVE_INFINITY;
+    const bTime = b.publish_date ? new Date(b.publish_date).getTime() : Number.POSITIVE_INFINITY;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.id.localeCompare(b.id);
+  }, []);
+
+  // Compute initial filtered posts and remember if we already performed the initial ordering
+  const initialFiltered = posts
+    .filter((p) => p.status === "Scheduled" || p.status === "Published" || p.status === "Failed Publishing");
+  const hasInitialOrderedRef = React.useRef<boolean>(initialFiltered.length > 0);
+
+  const [items, setItems] = React.useState<Post[]>(() => initialFiltered.sort(sortByPublishDate));
   const setActivePosts = useFeedbirdStore((s) => s.setActivePosts);
 
   // Update local state when posts prop changes
   React.useEffect(() => {
-    setItems(posts);
-  }, [posts]);
+    const nextFiltered = posts
+      .filter((p) => p.status === "Scheduled" || p.status === "Published" || p.status === "Failed Publishing");
+
+    // First non-empty load: order by date once
+    if (!hasInitialOrderedRef.current) {
+      if (nextFiltered.length > 0) {
+        setItems(nextFiltered.sort(sortByPublishDate));
+        hasInitialOrderedRef.current = true;
+      } else {
+        setItems([]);
+      }
+      return;
+    }
+
+  }, [posts, sortByPublishDate]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -350,23 +624,89 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over?.id);
+      const itemsSnapshot = items;
+      const oldIndex = itemsSnapshot.findIndex((item) => item.id === active.id);
+      const newIndex = itemsSnapshot.findIndex((item) => item.id === over?.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const a = itemsSnapshot[oldIndex];
+        const b = itemsSnapshot[newIndex];
+        const aDate = a.publish_date;
+        const bDate = b.publish_date;
 
-        const newItems = arrayMove(items, oldIndex, newIndex);
-        
-        // Use setTimeout to defer the store update to avoid the setState during render error
-        setTimeout(() => {
-          setActivePosts(newItems);
-        }, 0);
-        
-        return newItems;
-      });
+        // Immediately swap positions AND publish times locally for responsiveness
+        setItems((prev) => {
+          const next = [...prev];
+          const idxA = next.findIndex(p => p.id === a.id);
+          const idxB = next.findIndex(p => p.id === b.id);
+          if (idxA === -1 || idxB === -1) return prev;
+          const tmp = next[idxA];
+          next[idxA] = next[idxB];
+          next[idxB] = tmp;
+          // After swapping positions, assign swapped publish times to the corresponding posts
+          next[idxB] = { ...next[idxB], publish_date: bDate } as any; // A now at idxB gets B's time
+          next[idxA] = { ...next[idxA], publish_date: aDate } as any; // B now at idxA gets A's time
+          return next;
+        });
+
+        // Optimistically update store times so other views reflect the change immediately
+        {
+          const store = useFeedbirdStore.getState();
+          store.workspaces = store.workspaces.map(w => ({
+            ...w,
+            boards: w.boards.map(bd => ({
+              ...bd,
+              posts: bd.posts.map(p => {
+                if (p.id === a.id) return { ...p, publish_date: bDate } as any;
+                if (p.id === b.id) return { ...p, publish_date: aDate } as any;
+                return p;
+              })
+            }))
+          }));
+          useFeedbirdStore.setState({ workspaces: store.workspaces });
+        }
+
+        // Persist swapped times to backend, then update store and local state times
+        const toIsoOrNull = (d: any) => {
+          if (!d) return null;
+          const date = d instanceof Date ? d : new Date(d);
+          return isNaN(date.getTime()) ? null : date.toISOString();
+        };
+        (async () => {
+          try {
+            await Promise.all([
+              postApi.updatePost(a.id, { publish_date: toIsoOrNull(bDate) as any }),
+              postApi.updatePost(b.id, { publish_date: toIsoOrNull(aDate) as any }),
+            ]);
+          } catch (err) {
+            console.error('Failed to swap publish dates:', err);
+            // Optional: revert position swap on error
+            setItems(itemsSnapshot);
+            // Revert store times on error
+            const store = useFeedbirdStore.getState();
+            store.workspaces = store.workspaces.map(w => ({
+              ...w,
+              boards: w.boards.map(bd => ({
+                ...bd,
+                posts: bd.posts.map(p => {
+                  if (p.id === a.id) return { ...p, publish_date: aDate } as any;
+                  if (p.id === b.id) return { ...p, publish_date: bDate } as any;
+                  return p;
+                })
+              }))
+            }));
+            useFeedbirdStore.setState({ workspaces: store.workspaces });
+          }
+        })();
+      }
     }
 
     setActiveId(null);
-  }, [setActivePosts]);
+    setOverId(null);
+  }, [items]);
+
+  const handleDragMove = React.useCallback((event: DragMoveEvent) => {
+    setOverId(event.over?.id as string | null);
+  }, []);
 
   const activePost = activeId ? items.find((post) => post.id === activeId) : null;
 
@@ -377,12 +717,35 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragMove={handleDragMove}
       >
-        <SortableContext items={items.map(item => item.id)} strategy={rectSortingStrategy}>
+        <SortableContext items={items.filter(i => i.status === "Scheduled").map(item => item.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-3 gap-0">
-            {items.map((post) => (
-              <SortableGridItem key={post.id} post={post} onOpen={onOpen} />
-            ))}
+            {items.map((post) => {
+              const overlayPost = activeId && overId && overId !== activeId ? items.find((p) => p.id === overId) : null;
+              const showOverlayAtOrigin = !!activeId && post.id === activeId && !!overlayPost;
+              const isHidden = !!activeId && !!overId && post.id === overId && post.id !== activeId;
+              const isDraggable = post.status === "Scheduled";
+              if (!isDraggable) {
+                return (
+                  <StaticGridItem
+                    key={post.id}
+                    post={post}
+                    onOpen={onOpen}
+                  />
+                );
+              }
+              return (
+                <SortableGridItem
+                  key={post.id}
+                  post={post}
+                  onOpen={onOpen}
+                  overlayPost={overlayPost}
+                  showOverlayAtOrigin={showOverlayAtOrigin}
+                  isHidden={isHidden}
+                />
+              );
+            })}
           </div>
         </SortableContext>
         <DragOverlay dropAnimation={null}>

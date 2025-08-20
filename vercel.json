@@ -4,5 +4,8 @@
       "maxDuration": 300,
       "memory": 1024
     }
-  }
+  },
+  "crons": [
+    { "path": "/api/email/send-unread", "schedule": "0 9 * * *" }
+  ]
 } 

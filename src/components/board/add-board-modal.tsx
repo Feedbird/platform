@@ -161,7 +161,7 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
       "w-3.5 h-3.5 m-0.5 transition-all",
       boardColor && boardColor !== "#FFFFFF" && "filter brightness-0 invert" // Makes icon white when there's a colored background
     )} 
-    /> </div> : <Smile className="w-4 h-4" />
+    /> </div> : <Smile className="w-4 h-4 text-black" />
   );
 
   return (

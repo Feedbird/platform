@@ -848,9 +848,9 @@ export function PostRecordModal({ postId, open, onClose }:{
 
   // Display date as: May 18, 2025   11:44
   // with date part in black, time part in grey
-  const dateDisplay = post.publishDate
+  const dateDisplay = post.publish_date
     ? (() => {
-        const dateObj = post.publishDate;
+        const dateObj = post.publish_date;
         const datePart = dateObj.toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",
@@ -961,28 +961,29 @@ export function PostRecordModal({ postId, open, onClose }:{
                       {/* Group Comments/Review Button */}
                       {(() => {
                         const groupComments: GroupComment[] = groupData?.comments || [];
-                        let unresolvedCount = 0;
+                        let unreadedCount = 0;
                         let totalCount = 0;
-                        let latestUnresolved: GroupComment | null = null;
+                        let latestUnreaded: GroupComment | null = null;
 
                         totalCount = groupComments.length;
-                        unresolvedCount = groupComments.filter((c: GroupComment) => !c.resolved).length;
-                        if (unresolvedCount > 0) {
-                          latestUnresolved = groupComments
-                            .filter((c: GroupComment) => !c.resolved)
+                        const email = useFeedbirdStore.getState().user?.email;
+                        const unreaded = groupComments.filter((c: GroupComment) => !c.resolved && (!email || !(c.readBy || []).includes(email)));
+                        unreadedCount = unreaded.length;
+                        if (unreadedCount > 0) {
+                          latestUnreaded = unreaded
                             .sort((a: GroupComment, b: GroupComment) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                         }
 
-                        if (unresolvedCount > 0 && latestUnresolved) {
+                        if (unreadedCount > 0 && latestUnreaded) {
                           return (
                             <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
                               <img
-                                src="/images/boards/message-chat-square-on.svg"
+                                src="/images/boards/message-notification-active.svg"
                                 alt="Unresolved Group Comment"
                                 className="w-4 h-4"
                               />
                               <span className="text-xs font-medium text-main">
-                                {latestUnresolved.author} left group comments {timeAgo(latestUnresolved.createdAt)}
+                                {latestUnreaded.author} left group comments {timeAgo(latestUnreaded.createdAt)}
                               </span>
                               <button
                                 className="px-1 py-[1px] h-4 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
@@ -1001,7 +1002,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                           return (
                             <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
                               <img
-                                src="/images/boards/message-chat-square.svg"
+                                src="/images/boards/message-notification.svg"
                                 alt="Group Comments"
                                 className="w-4 h-4"
                               />

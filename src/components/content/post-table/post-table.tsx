@@ -92,6 +92,8 @@ import { format, parse } from "date-fns";
 import Papa from "papaparse";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { RowHeightType, getRowHeightPixels } from "@/lib/utils";
+import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
+import { Switch } from "@/components/ui/switch";
 
 type FinalGroup = {
   groupValues: Record<string, any>   // e.g. { status: "Pending Approval", channels: "TikTok,LinkedIn" }
@@ -171,6 +173,8 @@ import { CaptionCell } from "./CaptionCell";
 import { SettingsEditCell } from "./SettingsCell";
 import { MonthEditCell } from "./MonthEditCell";
 import { GroupFeedbackSidebar } from "./GroupFeedbackSidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { createPortal } from "react-dom";
 
 const MemoizedRow = React.memo(
   ({
@@ -431,6 +435,7 @@ export function PostTable({
   const addGroupComment = useFeedbirdStore((s) => s.addGroupComment);
   const addGroupMessage = useFeedbirdStore((s) => s.addGroupMessage);
   const resolveGroupComment = useFeedbirdStore((s) => s.resolveGroupComment);
+  const markGroupCommentRead = useFeedbirdStore((s) => s.markGroupCommentRead);
   const deleteGroupCommentAiSummaryItem = useFeedbirdStore((s) => s.deleteGroupCommentAiSummaryItem);
   const requestChanges = useFeedbirdStore((s) => s.requestChanges);
   const approvePost = useFeedbirdStore((s) => s.approvePost);
@@ -501,6 +506,15 @@ export function PostTable({
       month: month,
       comments: groupData?.comments || []
     });
+    // Mark unresolved and unread comments as read for current user
+    if (activeBoardId) {
+      const email = useFeedbirdStore.getState().user?.email;
+      if (email) {
+        (groupData?.comments || [])
+          .filter(c => !c.resolved && !(c.readBy || []).includes(email))
+          .forEach(c => markGroupCommentRead(activeBoardId, month, c.id));
+      }
+    }
     setGroupFeedbackSidebarOpen(true);
   }
 
@@ -512,21 +526,38 @@ export function PostTable({
   function handleAddGroupComment(text: string) {
     if (selectedGroupData && activeBoardId) {
       // Update the store first
-      addGroupComment(activeBoardId, selectedGroupData.month, text, "Current User");
+      addGroupComment(
+        activeBoardId,
+        selectedGroupData.month,
+        text,
+        getCurrentUserDisplayName()
+      );
     }
   }
 
   function handleAddGroupMessage(commentId: string, text: string, parentMessageId?: string) {
     if (selectedGroupData && activeBoardId) {
       // Update the store first
-      addGroupMessage(activeBoardId, selectedGroupData.month, commentId, text, "Current User", parentMessageId);
+      addGroupMessage(
+        activeBoardId,
+        selectedGroupData.month,
+        commentId,
+        text,
+        getCurrentUserDisplayName(),
+        parentMessageId
+      );
     }
   }
 
   function handleResolveGroupComment(commentId: string) {
     if (selectedGroupData && activeBoardId) {
       // Update the store first
-      resolveGroupComment(activeBoardId, selectedGroupData.month, commentId, "Current User");
+      resolveGroupComment(
+        activeBoardId,
+        selectedGroupData.month,
+        commentId,
+        getCurrentUserDisplayName()
+      );
     }
   }
 
@@ -639,6 +670,19 @@ export function PostTable({
   });
 
   const [rowHeight, setRowHeight] = React.useState<RowHeightType>("Medium");
+
+  // Auto-adjust default Preview column width when row height changes
+  React.useEffect(() => {
+    const rh = getRowHeightPixels(rowHeight);
+    const thumbHeight = rh > 10 ? rh - 8 : rh; // matches BlocksPreview thumbnail height logic
+    const paddings = 12 + 4; // pl-3 + pr-1
+    const gap = 2; // small inter-item gap
+    const target = Math.max(90, thumbHeight + paddings + gap);
+
+    setColumnSizing((prev: Record<string, number>) => {
+      return { ...prev, preview: target };
+    });
+  }, [rowHeight]);
 
   // State to track if scrolling is needed
   const [isScrollable, setIsScrollable] = React.useState(false);
@@ -783,7 +827,7 @@ export function PostTable({
     children: [],
   });
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>(
-    {'platforms': 'Socials', 'publishDate': 'Post Time', 'updatedAt': 'Updated'}
+    {'platforms': 'Socials', 'publish_date': 'Post Time', 'updatedAt': 'Updated'}
   );
   
   const [renameColumnId, setRenameColumnId] = React.useState<string | null>(
@@ -880,7 +924,7 @@ export function PostTable({
         caption: { synced: false, default: "" },
         status: "Draft" as Status,
         format: "",
-        publishDate: null,
+        publish_date: null,
         platforms: [],
         pages: [],
         month: 1,
@@ -906,11 +950,11 @@ export function PostTable({
     Object.entries(groupValues).forEach(([key, value]) => {
       if (key === 'status') newPost.status = value as Status;
       if (key === 'format') newPost.format = value as ContentFormat;
-      if (key === 'publishDate') {
+      if (key === 'publish_date') {
         const dt = parse(String(value), "MMM, yyyy", new Date());
         if (!isNaN(dt.getTime())) {
             dt.setDate(15);
-            newPost.publishDate = dt;
+            newPost.publish_date = dt;
         }
       }
       // Add other properties as needed based on your grouping columns
@@ -934,7 +978,7 @@ export function PostTable({
         caption: orig.caption,
         status: orig.status,
         format: orig.format,
-        publishDate: orig.publishDate,
+        publish_date: orig.publish_date,
         platforms: orig.platforms,
         pages: orig.pages,
         billingMonth: orig.billingMonth,
@@ -1719,19 +1763,54 @@ export function PostTable({
         },
       },
       {
-        id: "publishDate",
-        accessorKey: "publishDate",
+        id: "publish_date",
+        accessorKey: "publish_date",
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
-            <Image src={`/images/columns/post-time.svg`} alt="Publish Date" width={14} height={14} />
-            {"Post Time"}
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
+              <Image src={`/images/columns/post-time.svg`} alt="Publish Date" width={14} height={14} />
+              {"Post Time"}
+            </div>
+            <Switch
+              checked={!!boardRules?.autoSchedule}
+              onCheckedChange={(checked) => {
+                if (!activeBoardId) return;
+                const prevRules: BoardRules | undefined = boardRules;
+                const mergedRules: BoardRules = {
+                  autoSchedule: checked,
+                  revisionRules: prevRules?.revisionRules ?? false,
+                  approvalDeadline: prevRules?.approvalDeadline ?? false,
+                  firstMonth: prevRules?.firstMonth,
+                  ongoingMonth: prevRules?.ongoingMonth,
+                  approvalDays: prevRules?.approvalDays,
+                  groupBy: prevRules?.groupBy ?? null,
+                  sortBy: prevRules?.sortBy ?? null,
+                  rowHeight: prevRules?.rowHeight ?? rowHeight,
+                };
+                updateBoard(activeBoardId, { rules: mergedRules });
+              }}
+              className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
+              icon={
+                <span className="flex items-center justify-center w-full h-full">
+                  <img
+                    src="/images/boards/stars-01.svg"
+                    alt="star"
+                    className="w-2.5 h-2.5"
+                    style={{
+                      filter: boardRules?.autoSchedule ? undefined : 'grayscale(2) brightness(0.85)',
+                    }}
+                  />
+                </span>
+              }
+            />
           </div>
         ),
         minSize: 110,
         size: 230,
+        enableSorting : false,
         enableGrouping: true,
         getGroupingValue: (row) => {
-          return formatYearMonth(row.publishDate || undefined);
+          return formatYearMonth(row.publish_date || undefined);
         },
         cell: ({ row }) => {
           const post = row.original;
@@ -1768,7 +1847,7 @@ export function PostTable({
       },
       
     ];
-  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn]);
+  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn, boardRules, activeBoardId, updateBoard]);
 
   /** 2) user-defined columns **/
   const userColumnDefs: ColumnDef<Post>[] = React.useMemo(() => {
@@ -1932,7 +2011,7 @@ export function PostTable({
         "revision",
         "approve",
         "settings",
-        "publishDate",
+        "publish_date",
         "updatedAt",
       ]);
     }
@@ -1992,7 +2071,7 @@ export function PostTable({
         }
         return <FormatBadge kind={fmt as ContentFormat} widthFull={false} />;
       }
-      case "publishDate":
+      case "publish_date":
         if(!val) return <span className="text-base text-muted-foreground font-semibold">No time is set yet</span>;
         return <span className="text-base font-semibold">{String(val)}</span>;
       case "month":
@@ -2119,6 +2198,7 @@ export function PostTable({
     isGroupedByMonth,
     onOpenGroupFeedback,
     month,
+    isExpanded,
   }: {
     children: React.ReactNode;
     rowCount?: number;
@@ -2128,6 +2208,7 @@ export function PostTable({
     isGroupedByMonth?: boolean;
     onOpenGroupFeedback?: (groupData: BoardGroupData, month: number) => void;
     month: number;
+    isExpanded: boolean;
   }) {
     const visibleLeafColumns = table.getVisibleLeafColumns();
     const stickyCols = visibleLeafColumns.filter(c => isSticky(c.id));
@@ -2183,8 +2264,30 @@ export function PostTable({
       return null;
     }, [groupPosts, boardRules]);
     
+    // Cursor-following tooltip state for the entire group divider row
+    const [isHoveringDivider, setIsHoveringDivider] = React.useState(false);
+    const [cursorPos, setCursorPos] = React.useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const recordCountForTooltip = (typeof rowCount === 'number' ? rowCount : (groupPosts?.length ?? 0));
+
     return (
-      <tr>
+      <>
+      <tr          
+        onMouseEnter={(e) => {
+          const target = e.target as HTMLElement;
+          if (!target.closest('.no-divider-tooltip')) {
+            setIsHoveringDivider(true);
+          }
+        }}
+        onMouseMove={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('.no-divider-tooltip')) {
+            if (isHoveringDivider) setIsHoveringDivider(false);
+            return;
+          }
+          setCursorPos({ x: e.clientX, y: e.clientY });
+          if (!isHoveringDivider) setIsHoveringDivider(true);
+        }}
+        onMouseLeave={() => setIsHoveringDivider(false)}>
         {/* ◀ left phantom sticky */}
         <td
           style={{
@@ -2197,192 +2300,196 @@ export function PostTable({
         
         <td
           className="bg-white border-t border-l border-b border-[#E6E4E2]"
-          colSpan={8}
+          colSpan={5}
           style={{
             borderRadius: "4px 0px 0px 0px",
             ...stickyStyles("drag", 0), // Lower than cell zIndex to avoid covering borders
           }}
         >
-          <div className="flex items-center gap-2 px-[12px] py-[10px] font-medium text-sm">
-            {children}
-          {isGroupedByMonth && groupPosts && groupPosts.length > 0 && (
-            <div className="flex items-center gap-2">
-              <StatusChip 
-                status={groupPosts.every(post => post.status === "Approved") ? "Approved" : "Pending Approval"} 
-                widthFull={false} 
-              />
-              {/* Revision Rules Display */}
-              {boardRules?.revisionRules && boardRules.firstMonth && (
-                <>
-                  <span className="text-[#EEEFF2] select-none">|</span>
-                  {boardRules.firstMonth === -1 ? (
-                    <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidde">
-                      <img
-                        src="/images/boards/unlimited.svg"
-                        alt="Unlimited Revisions"
-                        className="w-4 h-4"
-                      />
-                      <span className="text-xs font-medium">Unlimited Revisions</span>
-                    </div>
-                  ) : boardRules.firstMonth > 0 ? (
-                    <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] flex justify-center items-center gap-1 overflow-hidde">
-                      <CircleArrowOutDownRight className="w-4 h-4 text-[#2183FF]" />
-                      <span className="text-xs font-medium">
-                        {boardRules.firstMonth} Revision Round{boardRules.firstMonth > 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  ) : null}
-                </>
-              )}
-
-              {/* Group Comments/Review Button */}
-              {(() => {
-                // Use the groupData prop which has the correct type BoardGroupData
-                const groupComments: GroupComment[] = groupData?.comments || [];
-                let unresolvedCount = 0;
-                let totalCount = 0;
-                let latestUnresolved: GroupComment | null = null;
-
-                totalCount = groupComments.length;
-                unresolvedCount = groupComments.filter((c: GroupComment) => !c.resolved).length;
-                if (unresolvedCount > 0) {
-                  latestUnresolved = groupComments
-                    .filter((c: GroupComment) => !c.resolved)
-                    .sort((a: GroupComment, b: GroupComment) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-                }
-
-                // Helper: format time ago
-                function timeAgo(date: Date | string) {
-                  const now = new Date();
-                  const d = typeof date === "string" ? new Date(date) : date;
-                  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-                  if (diff < 60) return `${diff}s ago`;
-                  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-                  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-                  return `${Math.floor(diff / 86400)}d ago`;
-                }
-
-                if (unresolvedCount > 0 && latestUnresolved) {
-                  return (
-                    <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
-                      <img
-                        src="/images/boards/message-chat-square-on.svg"
-                        alt="Unresolved Group Comment"
-                        className="w-4 h-4"
-                      />
-                      <span className="text-xs font-medium text-main">
-                        {latestUnresolved.author} left group comments {timeAgo(latestUnresolved.createdAt)}
-                      </span>
-                      <button
-                        className="px-1 py-[1px] h-4 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
-                        style={{ border: "1px solid #2183FF" }}
-                        type="button"
-                        onClick={() => onOpenGroupFeedback?.(groupData!, month)}
-                      >
-                        Review
-                      </button>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
-                      <img
-                        src="/images/boards/message-chat-square.svg"
-                        alt="Group Comments"
-                        className="w-4 h-4"
-                      />
-                      <span className="text-xs font-medium">
-                        Group Comments:
-                      </span>
-                      <span className="text-xs font-medium text-grey">
-                        {totalCount}
-                      </span>
-                      <button
-                        className="px-1 py-[1px] h-4 rounded bg-main text-white text-xs font-semibold flex items-center justify-center"
-                        style={{ border: "1px solid #2183FF" }}
-                        type="button"
-                        onClick={() => onOpenGroupFeedback?.(groupData!, month)}
-                      >
-                        Comment
-                      </button>
-                    </div>
-                  );
-                }
-              })()}
-            </div>
-          )}
-          </div>
-          
-          {/* Row count positioned from the left using availableWidth */}
-          {rowCount && (
-            <div 
-              style={{
-                position: 'absolute',
-                left: `${availableWidth - 420}px`, // Position from left using availableWidth, with some padding
-                top: '50%',
-                transform: 'translateY(-50%)',
-                zIndex: 1, // Lower than cell zIndex to avoid covering popups
-              }}
-            className="flex items-center justify-end w-[380px] gap-2"
-            >
-              {/* Approval status or deadline information - only show when grouped by month */}
-              {isGroupedByMonth && approvalInfo && (
-                <div className="flex items-center">
-                  {approvalInfo.type === 'approved' ? (
-                    <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-emerald-100 flex justify-center items-center gap-1 overflow-hidden">
-                      <img 
-                        src="/images/publish/check-circle.svg" 
-                        alt="approved" 
-                        className="w-4 h-4"
-                      />
-                      <span className="text-xs font-semibold leading-none">
-                        {approvalInfo.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                      <span className="text-xs text-emerald-600 font-medium">
-                        APPROVED
-                      </span>
-                    </div>
-                  ) : approvalInfo.type === 'deadline' ? (
-                    <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-orange-100 flex justify-center items-center gap-1 overflow-hidden">
-                      <img 
-                        src="/images/publish/clock-fast-forward.svg" 
-                        alt="deadline" 
-                        className="w-4 h-4"
-                      />
-                      <span className="text-xs font-medium">
-                        {approvalInfo.daysLeft} DAYS LEFT TO REVIEW
-                      </span>
-                    </div>
-                  ) : null}
+              <div className="no-divider-tooltip inline-flex items-center gap-2 px-[12px] py-[10px] font-medium text-sm">
+                {children}
+                {isGroupedByMonth && groupPosts && groupPosts.length > 0 && (
+                  <div className="flex items-center gap-2">
+                {/* {!isExpanded && (
+                  <>
+                    <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#F2F4F7] text-[#475467] text-xs leading-none text-center text-nowrap">
+                      {rowCount}
+                    </span>
+                    <span className="text-[#EEEFF2] select-none">|</span>
+                  </>        
+                  )
+                } */}
+                <div className="no-divider-tooltip">
+                  <StatusChip 
+                    status={groupPosts.every(post => post.status === "Approved") ? "Approved" : "Pending Approval"} 
+                    widthFull={false} 
+                  />
                 </div>
-              )}
-              
-              <span className="inline-flex items-center text-sm leading-none text-center text-nowrap">
-                Count : 
-              </span>
-              <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#F2F4F7] text-[#475467] text-xs leading-none text-center text-nowrap">
-                {rowCount}
-              </span>
-            </div>
-          )}
+                {/* Revision Rules Display */}
+                {boardRules?.revisionRules && boardRules.firstMonth && (
+                  <>
+                    {boardRules.firstMonth === -1 ? (
+                      <div className="px-2 py-[2px] bg-White flex justify-center items-center gap-1 overflow-hidde">
+                        <img
+                          src="/images/boards/unlimited.svg"
+                          alt="Unlimited Revisions"
+                          className="w-4 h-4"
+                        />
+                        <span className="text-xs font-medium">Unlimited Revisions</span>
+                      </div>
+                    ) : boardRules.firstMonth > 0 ? (
+                      <div className="px-2 py-[2px] bg-White flex justify-center items-center gap-1 overflow-hidde">
+                        <CircleArrowOutDownRight className="w-4 h-4 text-[#2183FF]" />
+                        <span className="text-xs font-medium">
+                          {boardRules.firstMonth} Revision Round{boardRules.firstMonth > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+
+
+          {/* Right action area moved to right scrollable cell */}
+                  </div>
+                )}
+              </div>
         </td>
   
         <td
-          colSpan={visibleLeafColumns.length - 8}
-          className="bg-white border-t border-b border-r border-[#E6E4E2]"
+          colSpan={visibleLeafColumns.length - 6}
+          className="bg-white border-t border-b border-[#E6E4E2]"
           style={{
-            borderRadius: "0px 4px 0px 0px",
+            borderRadius: "0px 0px 0px 0px",
           }}
         />
+
+        {/* ▶ right sticky actions cell */}
+        <td
+          className="no-divider-tooltip bg-white border-t border-b border-r border-[#E6E4E2]"
+          style={{
+            position: 'sticky',
+            right: 0,
+            zIndex: 30,
+            background: 'white',
+            borderTopRightRadius: 4,
+          }}
+        >
+          <div className="flex items-center justify-end gap-2 px-2 py-[10px] whitespace-nowrap overflow-visible">
+            {isGroupedByMonth && approvalInfo && (
+              <>
+              <div className="flex items-center">
+                {approvalInfo.type === 'approved' ? (
+                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-emerald-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
+                    <img 
+                      src="/images/publish/check-circle.svg" 
+                      alt="approved" 
+                      className="w-4 h-4 flex-shrink-0"
+                    />
+                    <span className="text-xs font-semibold leading-none">
+                      {approvalInfo.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                    <span className="text-xs text-emerald-600 font-medium truncate">
+                      APPROVED
+                    </span>
+                  </div>
+                ) : approvalInfo.type === 'deadline' ? (
+                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-orange-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
+                    <img 
+                      src="/images/publish/clock-fast-forward.svg" 
+                      alt="deadline" 
+                      className="w-4 h-4 flex-shrink-0"
+                    />
+                    <span className="text-xs font-medium truncate">
+                      {approvalInfo.daysLeft} DAYS LEFT TO REVIEW
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+            {/* Group Comments Button */}
+            {(() => {
+              const groupComments: GroupComment[] = groupData?.comments || [];
+              let unreadedCount = 0;
+              let totalCount = 0;
+              let latestUnreaded: GroupComment | null = null;
+              
+              totalCount = groupComments.length;
+              const email = useFeedbirdStore.getState().user?.email;
+              const unreaded = groupComments.filter((c: GroupComment) => !c.resolved && (!email || !(c.readBy || []).includes(email)));
+              unreadedCount = unreaded.length;
+              if (unreadedCount > 0) {
+                latestUnreaded = unreaded
+                  .sort((a: GroupComment, b: GroupComment) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+              }
+
+              function timeAgo(date: Date | string) {
+                const now = new Date();
+                const d = typeof date === "string" ? new Date(date) : date;
+                const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+                if (diff < 60) return `${diff}s ago`;
+                if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                return `${Math.floor(diff / 86400)}d ago`;
+              }
+
+              if (unreadedCount > 0 && latestUnreaded) {
+                return (
+                  <div 
+                    className="flex items-center gap-1 pl-1 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main flex-shrink-0 cursor-pointer"
+                    onClick={() => onOpenGroupFeedback?.((groupData ?? { month, comments: [] }) as BoardGroupData, month)}
+                    >
+                    <img
+                      src="/images/icons/message-notification-active.svg"
+                      alt="Unresolved Group Comment"
+                      className="w-4 h-4"
+                      />
+                    <span className="text-xs font-medium text-main" title={`${latestUnreaded.author} left group comments ${timeAgo(latestUnreaded.createdAt)}`}>
+                      {latestUnreaded.author} left group comments {timeAgo(latestUnreaded.createdAt)}
+                    </span>
+                  </div>
+                );
+              } else {
+                return (
+                  <div 
+                    className="flex items-center gap-1 pl-1 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main flex-shrink-0 cursor-pointer"
+                    onClick={() => onOpenGroupFeedback?.((groupData ?? { month, comments: [] }) as BoardGroupData, month)}
+                  >
+
+                    <img
+                      src="/images/icons/message-notification.svg"
+                      alt="Group Comments"
+                      className="w-4 h-4"
+                      />
+                    <span className="text-xs font-medium">
+                      Group Comments
+                    </span>
+                  </div>
+                );
+              }
+            })()}
+            </>
+          )}
+          </div>
+        </td>
   
         {/* ▶ right phantom */}
         <th
           style={{
-            width: 16,
+            width: 0,
             background: "#F8F8F8",
           }}
         />
       </tr>
+      {isHoveringDivider && typeof window !== 'undefined' && createPortal(
+        <div
+          className="pointer-events-none bg-white text-black border border-elementStroke rounded-md text-xs font-medium px-3 py-1 shadow-md z-[1000]"
+          style={{ position: 'fixed', left: cursorPos.x, top: cursorPos.y - 10, transform: 'translate(-50%, -100%)' }}
+        >
+          {recordCountForTooltip} {recordCountForTooltip === 1 ? 'record' : 'records'}
+        </div>,
+        document.body
+      )}
+      </>
     );
   }
 
@@ -2472,6 +2579,7 @@ export function PostTable({
                   isGroupedByMonth={grouping.includes("month")}
                   onOpenGroupFeedback={(groupData) => handleOpenGroupFeedback(groupData, group.groupValues.month)}
                   month={group.groupValues.month}
+                  isExpanded={isExpanded}
                 >
                     <Button
                       variant="ghost"

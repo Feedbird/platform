@@ -133,6 +133,8 @@ export default function WorkspaceSwitcher() {
                 className="
                   w-full select-none
                   flex items-center gap-2
+                  group-data-[collapsible=icon]:justify-center
+                  group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:mx-auto
                   bg-transparent hover:bg-transparent
                   cursor-pointer
                   focus:outline-none focus:ring-0
@@ -150,10 +152,10 @@ export default function WorkspaceSwitcher() {
                       </div>
                     )
                 }
-                <span className="truncate font-semibold text-sm text-black flex-1">
+                <span className="truncate font-semibold text-sm text-black flex-1 group-data-[collapsible=icon]:hidden">
                   {active?.name ?? (workspaces.length === 0 ? 'No workspaces' : 'Select workspace')}
                 </span>
-                <ChevronsUpDown className="size-4 opacity-60"/>
+                <ChevronsUpDown className="size-4 text-black group-data-[collapsible=icon]:hidden"/>
               </SidebarMenuButton>
             </DropdownMenuTrigger>
 
@@ -170,17 +172,17 @@ export default function WorkspaceSwitcher() {
               {/* top actions */}
               <DropdownMenuItem
                 onSelect={e => { e.preventDefault(); setMenuOpen(false); setTimeout(() => setInviteOpen(true), 0); }}
-                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
+                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
               >
-                <UserPlus className="size-4"/>
+                <UserPlus className="size-4 text-black"/>
                 Invite members
               </DropdownMenuItem>
 
               <DropdownMenuItem
                 onSelect={e => { e.preventDefault(); toast.info('Workspace settings (coming soon)') }}
-                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
+                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
               >
-                <Settings className="size-4"/>
+                <Settings className="size-4 text-black"/>
                 Workspace settings
               </DropdownMenuItem>
 
@@ -207,7 +209,7 @@ export default function WorkspaceSwitcher() {
                 </div>
 
                 {/* label */}
-                <DropdownMenuLabel className="px-[12px] py-[8px] text-xs font-semibold text-[#75777C]">
+                <DropdownMenuLabel className="px-[12px] py-[8px] text-xs font-medium text-[#75777C]">
                   {filtered.length === 0 ? 'Your Workspaces' : `Workspaces (${filtered.length})`}
                 </DropdownMenuLabel>
 
@@ -245,7 +247,7 @@ export default function WorkspaceSwitcher() {
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
-                        {ws.id === activeId && <Check className="size-4 text-primary"/>}
+                        {ws.id === activeId && <Check className="size-4 text-black"/>}
 
                         {workspaces.length > 1 && (
                           <button
@@ -264,7 +266,7 @@ export default function WorkspaceSwitcher() {
                               }
                             }}
                           >
-                            <Trash2 className="size-4"/>
+                            <Trash2 className="size-4 text-black"/>
                           </button>
                         )}
                       </div>
@@ -284,7 +286,7 @@ export default function WorkspaceSwitcher() {
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-[24px] h-[24px] flex items-center justify-center p-[5px] rounded border border-[1px] border-[#1C1D1F1D]">
-                      <Plus className="size-3.5 text-[#5C5E63]"/>
+                      <Plus className="size-3.5 text-black"/>
                     </div>
                     Create new workspace
                   </div>
@@ -306,7 +308,7 @@ export default function WorkspaceSwitcher() {
                 }}
                 className="flex items-center gap-[6px] px-[12px] py-[12px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
               >
-                <LogOut className="size-3.5"/>
+                <LogOut className="size-3.5 text-black"/>
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

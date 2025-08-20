@@ -49,7 +49,7 @@ export const columnMeta: Record<ColumnID, ColumnMeta> = {
     label: "Format",
     icon: <Film className="mr-1 h-3 w-3" />,
   },
-  publishDate: {
+  publish_date: {
     label: "Post Time",
     icon: <CalendarIcon className="mr-1 h-3 w-3" />,
   },
@@ -82,7 +82,7 @@ export type ColumnID =
 | 'platforms'
 | 'format'
 | 'settings'
-| 'publishDate'
+| 'publish_date'
 | 'revision'
 | 'approve'
 | 'month'

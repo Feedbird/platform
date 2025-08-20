@@ -1,19 +1,13 @@
 'use client';
 
 import { Activity } from '@/lib/store/use-feedbird-store';
-import { cn } from '@/lib/utils';
+import { cn, formatTimeAgo } from '@/lib/utils';
 import {
   ChevronLeft, X, MessageCircle, Clock,
   Send, Smile,
 } from 'lucide-react';
 
-const ago = (d: Date) => {
-  const s = ~~((Date.now() - +d) / 1000);
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${~~(s / 60)}m ago`;
-  if (s < 86400) return `${~~(s / 3600)}h ago`;
-  return d.toLocaleDateString();
-};
+// using shared formatTimeAgo
 
 export default function ActivityFeed({ activities }: { activities: Activity[] }) {
   return (
@@ -50,7 +44,7 @@ export default function ActivityFeed({ activities }: { activities: Activity[] })
               <span className="font-medium">{a.actor}</span> {a.action}
             </p>
 
-            <time className="text-xs text-muted-foreground">{ago(new Date(a.at))}</time>
+            <time className="text-xs text-muted-foreground">{formatTimeAgo(a.at)}</time>
           </li>
         ))}
 

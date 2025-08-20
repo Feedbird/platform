@@ -30,8 +30,8 @@ export default function BrandSocialIcons() {
   // If no connected pages, optionally show a simpler UI:
   if (!pages.length) {
     return (
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setDialogOpen(true)} className="text-sm font-semibold text-black cursor-pointer">
+      <div className="flex items-center gap-2 h-7.5">
+        <Button variant="ghost" onClick={() => setDialogOpen(true)} className="text-sm font-semibold text-black cursor-pointer">
           Connect Social Page
         </Button>
         <ManageSocialsDialog
@@ -46,7 +46,7 @@ export default function BrandSocialIcons() {
   // If brand has pages, show overlapped icons + a "Manage" button
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 h-7.5">
         <HoverCard openDelay={120}>
           <HoverCardTrigger asChild className='cursor-pointer p-0'>
             <div className="relative" onClick={() => setDialogOpen(true)}>

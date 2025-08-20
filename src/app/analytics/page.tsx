@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
     <>
       <DynamicTitle />
       <Suspense fallback={null}>
-        <div className="w-full h-screen overflow-y-auto p-4 bg-gray-50">
+        <div className="w-full h-full overflow-y-auto p-4 bg-gray-50">
         <div className="container mx-auto px-4 max-w-[960px] space-y-4">
           {showAlert && <InfoAlert />}
 

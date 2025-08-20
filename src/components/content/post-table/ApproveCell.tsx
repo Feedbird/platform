@@ -170,7 +170,7 @@ export function ApproveCell({
               }}
               className="border border-border-button"
             >
-              <Image src="/images/sidebar/approvals.svg" alt="approve" width={18} height={18} />
+              <Image src="/images/icons/approvals.svg" alt="approve" width={18} height={18} />
             </div>
           )}
         </div>

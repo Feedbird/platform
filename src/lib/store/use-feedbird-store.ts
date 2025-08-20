@@ -19,7 +19,7 @@ import { handleError } from "../utils/error-handler";
 import { BaseError } from "../utils/exceptions/base-error";
 import { withLoading } from "../utils/loading/loading-store";
 import { RowHeightType } from "../utils";
-import { storeApi, commentApi, socialAccountApi } from '@/lib/api/api-service'
+import { storeApi, commentApi, activityApi, socialAccountApi } from '@/lib/api/api-service'
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
 import { mapTikTokSettingsToPublishOptions } from "@/lib/utils/tiktok-settings-mapper";
 
@@ -40,6 +40,8 @@ export interface BoardRules {
 export interface GroupMessage {
   id: string;
   author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
   text: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -49,6 +51,8 @@ export interface GroupMessage {
 export interface GroupComment {
   id: string;
   author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
   text: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -56,6 +60,8 @@ export interface GroupComment {
   resolvedAt?: Date;
   resolvedBy?: string;
   aiSummary?: string[];
+  /** Emails of users who have read this comment */
+  readBy?: string[];
   messages: GroupMessage[]; // Direct replies to this comment
 }
 
@@ -103,6 +109,8 @@ export interface BaseComment {
   parentId?: string;
   createdAt: Date;
   author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
   text: string;
   revisionRequested?: boolean;
 }
@@ -165,7 +173,7 @@ export interface Post {
   caption: CaptionData;
   status: Status;
   format: string;
-  publishDate: Date | null;
+  publish_date: Date | null;
   updatedAt: Date | null;
   platforms: Platform[];  // Array of platforms this post is for
   pages: string[];  // Array of social page IDs
@@ -208,6 +216,7 @@ export interface Workspace {
    * User role within this workspace. "admin" for creator, "member" for invitee.
    */
   role?: 'admin' | 'member';
+  channels?: MessageChannel[];
   boards: Board[];
   brand?: Brand; // Single brand per workspace (one-to-one relationship)
 }
@@ -236,6 +245,19 @@ export interface BoardTemplate {
   rules?: BoardRules;
 }
 
+export interface MessageChannel {
+  id: string;
+  workspaceId: string;
+  createdBy: string;
+  name: string;
+  description?: string;
+  members?: any;
+  icon?: string;
+  color?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /*─────────────────────────────────────────────────────────────────────*/
 /*  Store Interface                                                  */
 /*─────────────────────────────────────────────────────────────────────*/
@@ -245,6 +267,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   imageUrl?: string;
+  unreadMsg?: string[];
   createdAt: Date;
 }
 
@@ -271,9 +294,16 @@ export interface FeedbirdStore {
   /** Loading states for post history sync. Key = pageId. */
   syncingPostHistory: Record<string, boolean>;
 
+  /** Channel messages keyed by channel_id */
+  channelMessagesByChannelId: Record<string, Array<{ id: string; author: string; text: string; createdAt: Date; authorImageUrl?: string; authorEmail?: string; parentId?: string | null; addon?: any; readby?: any; emoticons?: any; channelId?: string }>>;
+
+  /** Current channel being viewed */
+  currentChannelId?: string;
+
   // User management
   setUser: (user: User | null) => void;
   clearUser: () => void;
+  setCurrentChannelId: (channelId: string | undefined) => void;
   
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
@@ -305,6 +335,21 @@ export interface FeedbirdStore {
   addBrand: (name: string, logo?: string, styleGuide?: Brand['styleGuide'], link?: string, voice?: string, prefs?: string) => Promise<string>;
   updateBrand: (id: string, data: Partial<Brand>) => Promise<void>;
   removeBrand: (id: string) => Promise<void>;
+  
+  // Channels
+  addChannel: (name: string, description?: string, icon?: string, members?: any, color?: string) => Promise<string>;
+  updateChannel: (id: string, data: Partial<MessageChannel>) => Promise<void>;
+  removeChannel: (id: string) => Promise<void>;
+  // Channel messages
+  loadChannelMessages: (channelId: string) => Promise<void>;
+  loadAllWorkspaceMessages: () => Promise<void>;
+  sendChannelMessage: (channelId: string, content: string, parentId?: string, addon?: any) => Promise<string>;
+  
+  // Unread message management
+  addUnreadMessage: (messageId: string) => void;
+  removeUnreadMessage: (messageId: string) => void;
+  hasUnreadMessages: () => boolean;
+  
   addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => Promise<string>;
   updateBoard: (id: string, data: Partial<Board>) => Promise<void>;
   removeBoard: (id: string) => Promise<void>;
@@ -322,6 +367,7 @@ export interface FeedbirdStore {
   deleteGroupMessage: (boardId: string, month: number, commentId: string, messageId: string) => void;
   updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string[]) => void;
   deleteGroupCommentAiSummaryItem: (boardId: string, month: number, commentId: string, summaryIndex: number) => void;
+  markGroupCommentRead: (boardId: string, month: number, commentId: string) => void;
   
   deletePost: (postId: string) => Promise<void>;
   bulkDeletePosts: (postIds: string[]) => Promise<void>;
@@ -537,7 +583,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: false,
               approvalDeadline: false,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "Small",
             }
           },
@@ -552,7 +598,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "X-Large",
               firstMonth: 5,
               ongoingMonth: 3,
@@ -570,7 +616,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: false,
               approvalDeadline: false,
               groupBy: "status",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "Large",
             }
           },
@@ -603,7 +649,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "X-Large",
               firstMonth: 6,
               ongoingMonth: 3,
@@ -621,7 +667,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "XX-Large",
               firstMonth: 5,
               ongoingMonth: 2,
@@ -657,7 +703,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "month",
-              sortBy: "publishDate",
+              sortBy: "status",
               rowHeight: "X-Large",
               firstMonth: 4,
               ongoingMonth: 2,
@@ -669,6 +715,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         platformNav: defaultPlatformNav,
         boardNav: [],
         postHistory: {},
+        channelMessagesByChannelId: {},
         syncingPostHistory: {},
         // getters
         getActiveWorkspace: () => {
@@ -996,7 +1043,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             if (!activeWorkspaceId) {
               throw new Error('No active workspace')
             }
-            console.log('@@@@@@@@@@@@@activeWorkspaceId: ', activeWorkspaceId);
             const bid = await storeApi.createBrandAndUpdateStore(
               activeWorkspaceId,
               name,
@@ -1025,6 +1071,84 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             await storeApi.deleteBrandAndUpdateStore(id)
           } catch (error) {
             console.error('Failed to remove brand:', error)
+            throw error
+          }
+        },
+
+        // Channels
+        addChannel: async (name: string, description?: string, icon?: string, members?: any, color?: string) => {
+          try {
+            const activeWorkspaceId = get().activeWorkspaceId
+            const email: string | undefined = (get() as any).user?.email
+            if (!activeWorkspaceId) throw new Error('No active workspace')
+            if (!email) throw new Error('No user email')
+            // Apply defaults similar to addBoard
+            const finalIcon = icon && icon.trim() ? icon.trim() : '/images/boards/icons/icon-2.svg'
+            const finalColor = color === '#FFFFFF' ? '#125AFF' : color
+            const cid = await storeApi.createChannelAndUpdateStore(
+              activeWorkspaceId,
+              email,
+              name,
+              description,
+              members,
+              finalIcon,
+              finalColor
+            )
+            return cid
+          } catch (error) {
+            console.error('Failed to add channel:', error)
+            throw error
+          }
+        },
+        loadChannelMessages: async (channelId: string) => {
+          try {
+            await (storeApi as any).fetchChannelMessagesAndUpdateStore(channelId)
+          } catch (error) {
+            console.error('Failed to load channel messages:', error)
+            throw error
+          }
+        },
+        loadAllWorkspaceMessages: async () => {
+          try {
+            await (storeApi as any).fetchAllWorkspaceMessagesAndUpdateStore()
+          } catch (error) {
+            console.error('Failed to load all workspace messages:', error)
+            throw error
+          }
+        },
+        sendChannelMessage: async (channelId: string, content: string, parentId?: string, addon?: any) => {
+          try {
+            const activeWorkspaceId = get().activeWorkspaceId
+            const userEmail: string | undefined = (get() as any).user?.email
+            if (!activeWorkspaceId) throw new Error('No active workspace')
+            if (!userEmail) throw new Error('No user email')
+            const id = await (storeApi as any).createChannelMessageAndUpdateStore(activeWorkspaceId, channelId, content, userEmail, parentId, addon)
+            return id
+          } catch (error) {
+            console.error('Failed to send channel message:', error)
+            // If it's an API error with validation details, log them
+            if (error && typeof error === 'object' && 'message' in error) {
+              const apiError = error as any;
+              if (apiError.message === 'Validation error' && apiError.details) {
+                console.error('Validation error details:', apiError.details);
+              }
+            }
+            throw error
+          }
+        },
+        updateChannel: async (id: string, data: Partial<MessageChannel>) => {
+          try {
+            await storeApi.updateChannelAndUpdateStore(id, data)
+          } catch (error) {
+            console.error('Failed to update channel:', error)
+            throw error
+          }
+        },
+        removeChannel: async (id: string) => {
+          try {
+            await storeApi.deleteChannelAndUpdateStore(id)
+          } catch (error) {
+            console.error('Failed to remove channel:', error)
             throw error
           }
         },
@@ -1373,7 +1497,18 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         // posts
         updatePost: async (pid, data) => {
-          await storeApi.updatePostAndUpdateStore(pid, data);
+          const st = get();
+          const prev = st.getPost(pid);
+          const isApproving = data?.status === 'Approved';
+          const wasNotScheduled = prev?.status !== 'Scheduled';
+          const ws = st.getActiveWorkspace();
+          const board = ws?.boards.find(b => b.id === prev?.boardId);
+          const shouldAuto = board?.rules?.autoSchedule === true;
+          if (isApproving && wasNotScheduled && shouldAuto) {
+              await storeApi.autoScheduleAndUpdateStore(pid, "Scheduled");
+            } else {
+            await storeApi.updatePostAndUpdateStore(pid, data);
+          }
         }, 
         deletePost: async (postId) => {
           await storeApi.deletePostAndUpdateStore(postId);
@@ -1496,8 +1631,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             };
 
             // Only include optional fields if they have values
-            if (post.publishDate) {
-              postData.publish_date = post.publishDate.toISOString();
+            if (post.publish_date) {
+              postData.publish_date = post.publish_date.toISOString();
             }
             if (post.billingMonth) {
               postData.billing_month = post.billingMonth;
@@ -1541,8 +1676,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             };
 
             // Only include publish_date if it exists
-            if (orig.publishDate) {
-              postData.publish_date = orig.publishDate.toISOString();
+            if (orig.publish_date) {
+              postData.publish_date = orig.publish_date.toISOString();
             }
 
             // Only include optional fields if they have values
@@ -1611,7 +1746,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             };
             
             // Apply business rule to shared post
-            const correctStatus = determineCorrectStatus(cloned.status, cloned.publishDate);
+            const correctStatus = determineCorrectStatus(cloned.status, cloned.publish_date);
             cloned.status = correctStatus;
             
             newArr.push(cloned);
@@ -1774,219 +1909,123 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         // Comments
         addPostComment: async (postId, text, parentId, revisionRequested) => {
-          const cid = uuidv4();
-          const now = new Date();
-          
-          try {
-            // Call API to add comment to database
-            const { commentApi } = await import('@/lib/api/api-service');
-            const comment = await commentApi.addPostComment({
-              post_id: postId,
-              text,
-              parent_id: parentId,
-              revision_requested: revisionRequested,
-              author: getCurrentUserDisplayNameFromStore(get()),
-            });
+          const { commentApi } = await import('@/lib/api/api-service');
+          const comment = await commentApi.addPostComment({
+            post_id: postId,
+            text,
+            parent_id: parentId,
+            revision_requested: revisionRequested,
+            author: getCurrentUserDisplayNameFromStore(get()),
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
+          });
 
-            // If this is a revision comment, update the post status in the store
-            if (revisionRequested) {
-              const currentPost = get().getPost(postId);
-              if (currentPost) {
-                const allowedStatusesForRevision = [
-                  "Pending Approval",
-                  "Revised", 
-                  "Approved"
-                ];
-                
-                // If current status is in the allowed list, update to "Needs Revisions"
-                if (allowedStatusesForRevision.includes(currentPost.status)) {
-                  // Update the post status in the store
-                  set((s) => ({
-                    workspaces: s.workspaces.map((ws) => ({
-                      ...ws,
-                      boards: ws.boards.map((b) => ({
-                        ...b,
-                        posts: b.posts.map((p) => {
-                          if (p.id !== postId) return p;
-                          return {
-                            ...p,
-                            status: "Needs Revisions" as Status,
-                          };
-                        }),
-                      })),
+          if (revisionRequested) {
+            const currentPost = get().getPost(postId);
+            if (currentPost) {
+              const allowedStatusesForRevision = ["Pending Approval", "Revised", "Approved"];
+              if (allowedStatusesForRevision.includes(currentPost.status)) {
+                set((s) => ({
+                  workspaces: s.workspaces.map((ws) => ({
+                    ...ws,
+                    boards: ws.boards.map((b) => ({
+                      ...b,
+                      posts: b.posts.map((p) => (
+                        p.id !== postId ? p : { ...p, status: "Needs Revisions" as Status }
+                      )),
                     })),
-                  }));
-                }
+                  })),
+                }));
               }
             }
-
-            // Update store with the comment from database
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    const c: BaseComment = {
-                      id: comment.id,
-                      parentId: comment.parent_id,
-                      createdAt: new Date(comment.created_at),
-                      author: comment.author,
-                      text: comment.text,
-                      revisionRequested: comment.revision_requested
-                    };
-                    return {
-                      ...p,
-                      comments: [...p.comments, c],
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return comment.id;
-          } catch (error) {
-            console.error('Failed to add post comment:', error);
-            // Fallback to local-only update if API fails
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    const c: BaseComment = {
-                      id: cid,
-                      parentId,
-                      createdAt: now,
-                      author: getCurrentUserDisplayNameFromStore(get()),
-                      text,
-                      revisionRequested
-                    };
-                    return {
-                      ...p,
-                      comments: [...p.comments, c],
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return cid;
           }
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
+                  if (p.id !== postId) return p;
+                  const c: BaseComment = {
+                    id: comment.id,
+                    parentId: comment.parent_id,
+                    createdAt: new Date(comment.created_at),
+                    author: comment.author,
+                    authorEmail: (get() as any).user?.email,
+                    authorImageUrl: (get() as any).user?.imageUrl,
+                    text: comment.text,
+                    revisionRequested: comment.revision_requested,
+                  };
+                  return { ...p, comments: [...p.comments, c] };
+                }),
+              })),
+            })),
+          }));
+          return comment.id;
         },
         addBlockComment: async (postId, blockId, text, parentId, revisionRequested) => {
-          const cid = uuidv4();
-          const now = new Date();
-          
-          try {
-            // Call API to add comment to database
-            const { commentApi } = await import('@/lib/api/api-service');
-            const comment = await commentApi.addBlockComment({
-              post_id: postId,
-              block_id: blockId,
-              text,
-              parent_id: parentId,
-              revision_requested: revisionRequested,
-              author: getCurrentUserDisplayNameFromStore(get()),
-            });
+          const { commentApi } = await import('@/lib/api/api-service');
+          const comment = await commentApi.addBlockComment({
+            post_id: postId,
+            block_id: blockId,
+            text,
+            parent_id: parentId,
+            revision_requested: revisionRequested,
+            author: getCurrentUserDisplayNameFromStore(get()),
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
+          });
 
-            // If this is a revision comment, update the post status in the store
-            if (revisionRequested) {
-              const currentPost = get().getPost(postId);
-              if (currentPost) {
-                const allowedStatusesForRevision = [
-                  "Pending Approval",
-                  "Revised", 
-                  "Approved"
-                ];
-                
-                // If current status is in the allowed list, update to "Needs Revisions"
-                if (allowedStatusesForRevision.includes(currentPost.status)) {
-                  // Update the post status in the store
-                  set((s) => ({
-                    workspaces: s.workspaces.map((ws) => ({
-                      ...ws,
-                      boards: ws.boards.map((b) => ({
-                        ...b,
-                        posts: b.posts.map((p) => {
-                          if (p.id !== postId) return p;
-                          return {
-                            ...p,
-                            status: "Needs Revisions" as Status,
-                          };
-                        }),
-                      })),
+          if (revisionRequested) {
+            const currentPost = get().getPost(postId);
+            if (currentPost) {
+              const allowedStatusesForRevision = ["Pending Approval", "Revised", "Approved"];
+              if (allowedStatusesForRevision.includes(currentPost.status)) {
+                set((s) => ({
+                  workspaces: s.workspaces.map((ws) => ({
+                    ...ws,
+                    boards: ws.boards.map((b) => ({
+                      ...b,
+                      posts: b.posts.map((p) => (
+                        p.id !== postId ? p : { ...p, status: "Needs Revisions" as Status }
+                      )),
                     })),
-                  }));
-                }
+                  })),
+                }));
               }
             }
-
-            // Update store with the comment from database
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        const c: BaseComment = {
-                          id: comment.id,
-                          parentId: comment.parent_id,
-                          createdAt: new Date(comment.created_at),
-                          author: comment.author,
-                          text: comment.text,
-                          revisionRequested: comment.revision_requested
-                        };
-                        return {
-                          ...b,
-                          comments: [...b.comments, c],
-                        };
-                      }),
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return comment.id;
-          } catch (error) {
-            console.error('Failed to add block comment:', error);
-            // Fallback to local-only update if API fails
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        const c: BaseComment = {
-                          id: cid,
-                          parentId,
-                          createdAt: now,
-                          author: getCurrentUserDisplayNameFromStore(get()),
-                          text,
-                          revisionRequested
-                        };
-                        return {
-                          ...b,
-                          comments: [...b.comments, c],
-                        };
-                      }),
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return cid;
           }
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
+                  if (p.id !== postId) return p;
+                  return {
+                    ...p,
+                    blocks: p.blocks.map((b) => {
+                      if (b.id !== blockId) return b;
+                      const c: BaseComment = {
+                        id: comment.id,
+                        parentId: comment.parent_id,
+                        createdAt: new Date(comment.created_at),
+                        author: comment.author,
+                        authorEmail: (get() as any).user?.email,
+                        authorImageUrl: (get() as any).user?.imageUrl,
+                        text: comment.text,
+                        revisionRequested: comment.revision_requested,
+                      };
+                      return { ...b, comments: [...b.comments, c] };
+                    }),
+                  };
+                }),
+              })),
+            })),
+          }));
+          return comment.id;
         },
         addVersionComment: async (
           postId: string,
@@ -1997,139 +2036,84 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           parentId?: string,
           revisionRequested?: boolean
         ) => {
-          const cid = uuidv4();
-          const now = new Date();
-          
-          try {
-            // Call API to add comment to database
-            const { commentApi } = await import('@/lib/api/api-service');
-            const comment = await commentApi.addVersionComment({
-              post_id: postId,
-              block_id: blockId,
-              version_id: verId,
-              text,
-              parent_id: parentId,
-              revision_requested: revisionRequested,
-              author: getCurrentUserDisplayNameFromStore(get()),
-              rect,
-            });
+          const { commentApi } = await import('@/lib/api/api-service');
+          const comment = await commentApi.addVersionComment({
+            post_id: postId,
+            block_id: blockId,
+            version_id: verId,
+            text,
+            parent_id: parentId,
+            revision_requested: revisionRequested,
+            author: getCurrentUserDisplayNameFromStore(get()),
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
+            rect,
+          });
 
-            // If this is a revision comment, check if we need to update the post status
-            if (revisionRequested) {
-              const currentPost = get().getPost(postId);
-              if (currentPost) {
-                const allowedStatusesForRevision = [
-                  "Pending Approval",
-                  "Revised", 
-                  "Approved"
-                ];
-                
-                // If current status is in the allowed list, update to "Needs Revisions"
-                if (allowedStatusesForRevision.includes(currentPost.status)) {
-                  // Update the post status in the store
-                  set((s) => ({
-                    workspaces: s.workspaces.map((ws) => ({
-                      ...ws,
-                      boards: ws.boards.map((b) => ({
-                        ...b,
-                        posts: b.posts.map((p) => {
-                          if (p.id !== postId) return p;
-                          return {
-                            ...p,
-                            status: "Needs Revisions" as Status,
-                          };
-                        }),
-                      })),
+          if (revisionRequested) {
+            const currentPost = get().getPost(postId);
+            if (currentPost) {
+              const allowedStatusesForRevision = ["Pending Approval", "Revised", "Approved"];
+              if (allowedStatusesForRevision.includes(currentPost.status)) {
+                set((s) => ({
+                  workspaces: s.workspaces.map((ws) => ({
+                    ...ws,
+                    boards: ws.boards.map((b) => ({
+                      ...b,
+                      posts: b.posts.map((p) => (
+                        p.id !== postId ? p : { ...p, status: "Needs Revisions" as Status }
+                      )),
                     })),
-                  }));
-                }
+                  })),
+                }));
               }
             }
-
-            // Update store with the comment from database
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        return {
-                          ...b,
-                          versions: b.versions.map((v) => {
-                            if (v.id !== verId) return v;
-                            const c: VersionComment = {
-                              id: comment.id,
-                              parentId: comment.parent_id,
-                              createdAt: new Date(comment.created_at),
-                              author: comment.author,
-                              text: comment.text,
-                              revisionRequested: comment.revision_requested
-                            };
-                            if (comment.rect) c.rect = comment.rect;
-                            return {
-                              ...v,
-                              comments: [...v.comments, c],
-                            };
-                          }),
-                        };
-                      })
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return comment.id;
-          } catch (error) {
-            console.error('Failed to add version comment:', error);
-            // Fallback to local-only update if API fails
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== postId) return p;
-                    return {
-                      ...p,
-                      blocks: p.blocks.map((b) => {
-                        if (b.id !== blockId) return b;
-                        return {
-                          ...b,
-                          versions: b.versions.map((v) => {
-                            if (v.id !== verId) return v;
-                            const c: VersionComment = {
-                              id: cid,
-                              parentId,
-                              createdAt: now,
-                              author: getCurrentUserDisplayNameFromStore(get()),
-                              text,
-                              revisionRequested
-                            };
-                            if (rect) c.rect = rect;
-                            return {
-                              ...v,
-                              comments: [...v.comments, c],
-                            };
-                          }),
-                        };
-                      })
-                    };
-                  }),
-                })),
-              })),
-            }));
-            return cid;
           }
+
+          set((s) => ({
+            workspaces: s.workspaces.map((ws) => ({
+              ...ws,
+              boards: ws.boards.map((b) => ({
+                ...b,
+                posts: b.posts.map((p) => {
+                  if (p.id !== postId) return p;
+                  return {
+                    ...p,
+                    blocks: p.blocks.map((b) => {
+                      if (b.id !== blockId) return b;
+                      return {
+                        ...b,
+                        versions: b.versions.map((v) => {
+                          if (v.id !== verId) return v;
+                          const c: VersionComment = {
+                            id: comment.id,
+                            parentId: comment.parent_id,
+                            createdAt: new Date(comment.created_at),
+                            author: comment.author,
+                            authorEmail: (get() as any).user?.email,
+                            authorImageUrl: (get() as any).user?.imageUrl,
+                            text: comment.text,
+                            revisionRequested: comment.revision_requested,
+                          };
+                          if (comment.rect) c.rect = comment.rect;
+                          return { ...v, comments: [...v.comments, c] };
+                        }),
+                      };
+                    })
+                  };
+                }),
+              })),
+            })),
+          }));
+          return comment.id;
         },
 
         // Activities
         addActivity: (act) => {
-          const id = uuidv4();
+          const optimisticId = uuidv4();
+          const optimisticAt = new Date();
+
+          // Optimistic update
           set((s) => ({
             workspaces: s.workspaces.map((ws) => ({
               ...ws,
@@ -2142,8 +2126,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     activities: [
                       {
                         ...act,
-                        id,
-                        at: new Date(),
+                        id: optimisticId,
+                        at: optimisticAt,
                       },
                       ...p.activities
                     ],
@@ -2152,6 +2136,57 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               })),
             })),
           }));
+
+          // Persist to DB
+          activityApi.addActivity({
+            post_id: act.postId,
+            actor: act.actor,
+            action: act.action,
+            type: act.type,
+            metadata: act.metadata,
+          }).then((saved) => {
+            // Replace optimistic entry with saved one (using returned id/created_at)
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
+                    if (p.id !== act.postId) return p;
+                    return {
+                      ...p,
+                      activities: p.activities.map((a) =>
+                        a.id === optimisticId
+                          ? {
+                              ...a,
+                              id: saved.id,
+                              at: new Date(saved.created_at),
+                            }
+                          : a
+                      ),
+                    };
+                  }),
+                })),
+              })),
+            }));
+          }).catch(() => {
+            // On failure, remove the optimistic activity
+            set((s) => ({
+              workspaces: s.workspaces.map((ws) => ({
+                ...ws,
+                boards: ws.boards.map((b) => ({
+                  ...b,
+                  posts: b.posts.map((p) => {
+                    if (p.id !== act.postId) return p;
+                    return {
+                      ...p,
+                      activities: p.activities.filter((a) => a.id !== optimisticId),
+                    };
+                  }),
+                })),
+              })),
+            }));
+          });
         },
 
         // Boards
@@ -2212,16 +2247,21 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
-        // Group data methods implementation
+        // Group data methods implementation (DB first)
         addGroupComment: (boardId, month, text, author) => {
           const commentId = uuidv4();
-          const newComment: GroupComment = {
+          const userEmail: string | null = (get() as any).user?.email ?? null;
+          // Optimistic local object to use in case of failure
+          const optimisticComment: GroupComment = {
             id: commentId,
             author,
+            authorEmail: userEmail || undefined,
+            authorImageUrl: (get() as any).user?.imageUrl,
             text,
             createdAt: new Date(),
             resolved: false,
             messages: [],
+            readBy: userEmail ? [userEmail] : [],
             aiSummary: [
               "Love the overall vibe, but the first 3 seconds felt a bit slow to grab attention.",
               "Typography is nice but hard to read on mobile due to size.",
@@ -2229,42 +2269,49 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             ]
           };
 
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => {
-              // Only update the active workspace
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              
-              return {
-                ...ws,
-                boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
-                  
-                  const existingGroupData = board.groupData || [];
-                  const monthGroupData = existingGroupData.find(gd => gd.month === month);
-                  
-                  if (monthGroupData) {
-                    // Update existing month group data
-                    const updatedGroupData = existingGroupData.map(gd => 
-                      gd.month === month 
-                        ? { ...gd, comments: [...gd.comments, newComment] }
-                        : gd
-                    );
-                    return { ...board, groupData: updatedGroupData };
-                  } else {
-                    // Create new month group data
-                    const newGroupData: BoardGroupData = {
-                      month,
-                      comments: [newComment],
-                      revisionCount: 0
-                    };
-                    return { ...board, groupData: [...existingGroupData, newGroupData] };
-                  }
-                })
-              };
-            })
-          }));
-          
+          // Persist to DB by updating board.group_data, then sync store from server response
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return commentId;
+
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const nextGroupData: BoardGroupData[] = (() => {
+            const monthGroup = currentGroupData.find(gd => gd.month === month);
+            if (monthGroup) {
+              return currentGroupData.map(gd => gd.month === month ? {
+                ...gd,
+                comments: [...gd.comments, optimisticComment]
+              } : gd);
+            }
+            return [...currentGroupData, { month, comments: [optimisticComment], revisionCount: 0 }];
+          })();
+
+          // DB first: update board.group_data, which will then update the store via storeApi
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
           return commentId;
+        },
+
+        /** Mark a specific group comment as read by current user (adds email to readBy). DB-first */
+        markGroupCommentRead: (boardId: string, month: number, commentId: string) => {
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return;
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const userEmail: string | null = (get() as any).user?.email ?? null;
+          if (!userEmail) return;
+
+          const nextGroupData = currentGroupData.map(gd => {
+            if (gd.month !== month) return gd;
+            return {
+              ...gd,
+              comments: gd.comments.map(c => c.id === commentId
+                ? { ...c, readBy: Array.from(new Set([...(c.readBy || []), userEmail])) }
+                : c)
+            };
+          });
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
         },
 
         updateGroupComment: (boardId, month, commentId, data) => {
@@ -2326,40 +2373,25 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         resolveGroupComment: (boardId, month, commentId, resolvedBy) => {
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => {
-              // Only update the active workspace
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              
-              return {
-                ...ws,
-                boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
-                  
-                  const updatedGroupData = (board.groupData || []).map(gd => {
-                    if (gd.month !== month) return gd;
-                    
-                    return {
-                      ...gd,
-                      comments: gd.comments.map(comment => 
-                        comment.id === commentId 
-                          ? { 
-                              ...comment, 
-                              resolved: true, 
-                              resolvedAt: new Date(), 
-                              resolvedBy,
-                              updatedAt: new Date()
-                            }
-                          : comment
-                      )
-                    };
-                  });
-                  
-                  return { ...board, groupData: updatedGroupData };
-                })
-              };
-            })
-          }));
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return;
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const nextGroupData = currentGroupData.map(gd => {
+            if (gd.month !== month) return gd;
+            return {
+              ...gd,
+              comments: gd.comments.map(c => c.id === commentId ? {
+                ...c,
+                resolved: true,
+                resolvedAt: new Date(),
+                resolvedBy,
+                updatedAt: new Date(),
+              } : c)
+            };
+          });
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
         },
 
         addGroupMessage: (boardId, month, commentId, text, author, parentMessageId) => {
@@ -2367,62 +2399,39 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const newMessage: GroupMessage = {
             id: messageId,
             author,
+            authorEmail: (get() as any).user?.email,
+            authorImageUrl: (get() as any).user?.imageUrl,
             text,
             createdAt: new Date(),
             replies: []
           };
 
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => {
-              // Only update the active workspace
-              if (ws.id !== s.activeWorkspaceId) return ws;
-              
-              return {
-                ...ws,
-                boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
-                  
-                  const updatedGroupData = (board.groupData || []).map(gd => {
-                    if (gd.month !== month) return gd;
-                    
-                    return {
-                      ...gd,
-                      comments: gd.comments.map(comment => {
-                        if (comment.id !== commentId) return comment;
-                        
-                        if (!parentMessageId) {
-                          // Add as direct reply to comment
-                          return {
-                            ...comment,
-                            messages: [...comment.messages, newMessage]
-                          };
-                        } else {
-                          // Add as reply to a specific message
-                          const addMessageToReplies = (messages: GroupMessage[]): GroupMessage[] => {
-                            return messages.map(msg => {
-                              if (msg.id === parentMessageId) {
-                                return { ...msg, replies: [...msg.replies, newMessage] };
-                              } else {
-                                return { ...msg, replies: addMessageToReplies(msg.replies) };
-                              }
-                            });
-                          };
-                          
-                          return {
-                            ...comment,
-                            messages: addMessageToReplies(comment.messages)
-                          };
-                        }
-                      })
-                    };
-                  });
-                  
-                  return { ...board, groupData: updatedGroupData };
-                })
-              };
-            })
-          }));
-          
+          const st = get();
+          const ws = st.getActiveWorkspace();
+          if (!ws) return messageId;
+
+          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentGroupData = currentBoard?.groupData || [];
+          const nextGroupData = currentGroupData.map(gd => {
+            if (gd.month !== month) return gd;
+            return {
+              ...gd,
+              comments: gd.comments.map(comment => {
+                if (comment.id !== commentId) return comment;
+                if (!parentMessageId) {
+                  return { ...comment, messages: [...comment.messages, newMessage] };
+                }
+                const addToReplies = (messages: GroupMessage[]): GroupMessage[] => {
+                  return messages.map(msg => msg.id === parentMessageId
+                    ? { ...msg, replies: [...msg.replies, newMessage] }
+                    : { ...msg, replies: addToReplies(msg.replies) }
+                  );
+                };
+                return { ...comment, messages: addToReplies(comment.messages) };
+              })
+            };
+          });
+          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
           return messageId;
         },
 
@@ -2578,8 +2587,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // User management methods
-        setUser: (user: User | null) => set({ user }),
+        setUser: (user: User | null) => {
+          set({ user })
+          // User is now set, unread messages will be handled through websocket events
+        },
         clearUser: () => set({ user: null }),
+        setCurrentChannelId: (channelId) => set({ currentChannelId: channelId }),
         
         updatePostStatusesBasedOnTime: () => {
           set((s) => {
@@ -2590,9 +2603,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               ...ws,
               boards: ws.boards.map((board) => {
                 const updatedPosts = board.posts.map((p) => {
-                  const correctStatus = determineCorrectStatus(p.status, p.publishDate);
+                  const correctStatus = determineCorrectStatus(p.status, p.publish_date);
                   if (correctStatus !== p.status) {
-                    console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publishDate: ${p.publishDate})`);
+                    console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publish_date: ${p.publish_date})`);
                     updatedCount++;
                     hasChanges = true;
                     return { ...p, status: correctStatus };
@@ -2617,6 +2630,69 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             return s;
           });
         },
+
+        addUnreadMessage: (messageId: string) => {
+          set((s) => {
+            if (!s.user) return s;
+            
+            // Check if message is already in unread list
+            const currentUnread = s.user.unreadMsg || []
+            if (currentUnread.includes(messageId)) return s;
+            
+            return {
+              ...s,
+              user: {
+                ...s.user,
+                unreadMsg: [...currentUnread, messageId]
+              }
+            };
+          });
+        },
+        removeUnreadMessage: (messageId: string) => {
+          set((s) => {
+            if (!s.user) return s;
+            
+            const currentUnread = s.user.unreadMsg || []
+            const newUnread = currentUnread.filter(id => id !== messageId)
+            
+            console.log('Removing unread message:', messageId, 'Current unread:', currentUnread, 'New unread:', newUnread);
+            
+            return {
+              ...s,
+              user: {
+                ...s.user,
+                unreadMsg: newUnread
+              }
+            };
+          });
+        },
+        hasUnreadMessages: () => {
+          const hasUnread = (get().user?.unreadMsg?.length || 0) > 0;
+          console.log('hasUnreadMessages called:', hasUnread, 'Unread count:', get().user?.unreadMsg?.length || 0);
+          return hasUnread;
+        },
+        // Mark all messages in a channel as read
+        markChannelAsRead: async (channelId: string) => {
+          try {
+            const store = get()
+            const currentUserEmail = store.user?.email
+            if (!currentUserEmail) return
+
+            const result = await (storeApi as any).markChannelAsRead(currentUserEmail, channelId)
+            if (result?.unread_msg) {
+              set((s) => ({
+                ...s,
+                user: {
+                  ...s.user!,
+                  unreadMsg: result.unread_msg
+                }
+              }))
+            }
+          } catch (error) {
+            console.error('Error marking channel as read:', error)
+          }
+        },
+
       }),
       {
         name: "feedbird-v5",
@@ -2675,10 +2751,10 @@ export const usePostStatusTimeUpdater = () => {
     for (const ws of workspaces) {
       for (const board of ws.boards) {
         for (const post of board.posts) {
-          if (post.publishDate) {
-            const publishDate = post.publishDate instanceof Date ? post.publishDate : new Date(post.publishDate);
-            if (!isNaN(publishDate.getTime())) {
-              const isPast = publishDate < now;
+          if (post.publish_date) {
+            const publish_date = post.publish_date instanceof Date ? post.publish_date : new Date(post.publish_date);
+            if (!isNaN(publish_date.getTime())) {
+              const isPast = publish_date < now;
               const needsUpdate = (isPast && post.status !== "Published" && post.status !== "Failed Publishing") ||
                                 (!isPast && (post.status === "Published" || post.status === "Failed Publishing"));
               if (needsUpdate) {
@@ -2751,14 +2827,14 @@ const findAccount = (brand: Brand | undefined, accountId: string) =>
  * If publish date is in the past, status should be 'Published' or 'Failed Publishing'
  * If publish date is in the future or null, status should be one of the other statuses
  */
-function determineCorrectStatus(currentStatus: Status, publishDate: Date | null): Status {
+function determineCorrectStatus(currentStatus: Status, publish_date: Date | null): Status {
   // If no publish date, keep current status
-  if (!publishDate) {
+  if (!publish_date) {
     return currentStatus;
   }
 
   // Convert to Date object if it's a string (due to JSON serialization)
-  const publishDateObj = publishDate instanceof Date ? publishDate : new Date(publishDate);
+  const publishDateObj = publish_date instanceof Date ? publish_date : new Date(publish_date);
   
   // Check if the date is valid
   if (isNaN(publishDateObj.getTime())) {
