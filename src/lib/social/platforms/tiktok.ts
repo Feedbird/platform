@@ -181,7 +181,7 @@ export class TikTokPlatform extends BasePlatform {
     let attempts = 0;
     const maxAttempts = 30; // 5 minutes with 10-second intervals
 
-    while (status === 'PROCESSING' && attempts < maxAttempts) {
+    while (status !== 'PUBLISH_COMPLETE' && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
       attempts++;
 
@@ -210,8 +210,8 @@ export class TikTokPlatform extends BasePlatform {
       }
 
       status = statusResponse.data.status;
-11
-      if (status === 'SUCCESS') {
+
+      if (status === 'PUBLISH_COMPLETE') {
         // Update the post status to published in the supabase
         await supabase.from('posts').update({ status: 'published' }).eq('id', postId);
 
@@ -222,9 +222,11 @@ export class TikTokPlatform extends BasePlatform {
       }
     }
 
+    if(status != 'PUBLISH_COMPLETE') {
     // If we reach here, the post is still processing after max attempts
     // You might want to handle this case (e.g., mark as "Processing" or "Pending")
     console.warn(`Post ${publishId} is still processing after ${maxAttempts} attempts`);
+    }
   }
 
   async connectAccount(code: string): Promise<SocialAccount> {
@@ -382,10 +384,6 @@ export class TikTokPlatform extends BasePlatform {
     }
 
     let media ={}
-    // content.media.urls =['https://engrsohaib.com/video.mp4']
-    // content.media.urls =['https://engrsohaib.com/img1.jpeg', 'https://engrsohaib.com/img2.jpeg']
-    // content.media.urls =['https://engrsohaib.com/img1.jpeg']
-    // content.media.urls =['https://engrsohaib.com/video.mp4', 'https://engrsohaib.com/img1.jpeg', 'https://engrsohaib.com/img2.jpeg']
    if(mediaType === 'video') {
     // https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide
     media = {
@@ -426,8 +424,7 @@ export class TikTokPlatform extends BasePlatform {
 
     const tiktokBody = {
       post_info: {
-        title: content.text,
-        // description: "hello i am dummy description what should i do",
+        description: content.text,
         privacy_level: options?.privacyLevel || 'SELF_ONLY',
         disable_duet: options?.disableDuet || false,
         disable_stitch: options?.disableStitch || false,
