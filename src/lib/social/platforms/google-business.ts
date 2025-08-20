@@ -117,7 +117,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
       accountId: accountInfo.name.split('/').pop()!,
       authToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,
-      expiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
+      accessTokenExpiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
       connected: true,
       status: accountInfo.state.toLowerCase() === 'verified' ? 'active' : 'pending',
       metadata: {
@@ -158,7 +158,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
         };
       }>;
     }>(`${cfg.baseUrl}/v1/accounts/${acc.accountId}/locations`, {
-      token: acc.authToken
+      token: acc.authToken || ''
     });
 
     return response.locations.map(location => ({
@@ -167,7 +167,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
       entityType: 'page',
       name: location.locationName,
       pageId: location.name.split('/').pop()!,
-      authToken: acc.authToken,
+      authToken: acc.authToken || '',
       connected: true,
       status: location.state.isVerified ? 'active' : 'pending',
       accountId: acc.id,
@@ -223,7 +223,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
           isPublished: boolean;
         };
       }>(`${cfg.baseUrl}/v1/${page.pageId}`, {
-        token: page.authToken
+        token: page.authToken || ''
       });
 
       return {
@@ -260,7 +260,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
       ...acc,
       authToken: response.access_token,
       refreshToken: response.refresh_token,
-      expiresAt: new Date(Date.now() + response.expires_in * 1000)
+      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000)
     };
   }
 
@@ -285,7 +285,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
     const response = await this.fetchWithAuth<{ name: string }>(`${POST_URL}/${page.pageId}/localPosts`, {
       method: "POST",
-      token: page.authToken,
+      token: page.authToken || '',
       body: JSON.stringify(postData)
     });
 
@@ -305,7 +305,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
   async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
     const list = await gbFetch<{ localPosts?: any[] }>(
       `${POST_URL}/${pg.pageId}/localPosts?pageSize=${limit}`,
-      { headers: { Authorization: `Bearer ${pg.authToken}` } }
+      { headers: { Authorization: `Bearer ${pg.authToken || ''}` } }
     );
 
     return (list.localPosts ?? []).map(lp => ({

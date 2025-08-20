@@ -39,6 +39,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev'
       },
+      // TikTok
+      {
+        protocol: 'https',
+        hostname: 'www.tiktok.com'
+      },
+      {
+        protocol: 'https',
+        hostname: '*.tiktokcdn.com'
+      },
     ],
   },
 };

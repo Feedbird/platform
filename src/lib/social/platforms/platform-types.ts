@@ -8,6 +8,13 @@ export type Platform =
   | "tiktok"
   | "google";
 
+// TikTok Privacy Levels (from TikTok API)
+export type TikTokPrivacyLevel = 
+  | "PUBLIC_TO_EVERYONE"
+  | "MUTUAL_FOLLOW_FRIENDS" 
+  | "FOLLOWER_OF_CREATOR"
+  | "SELF_ONLY";
+
 // Status Types
 export type PageStatus = "active" | "expired" | "pending" | "disconnected" | "error";
 export type PostStatus = "draft" | "scheduled" | "published" | "failed" | "deleted";
@@ -101,9 +108,11 @@ export interface SocialAccount {
   platform    : Platform;
   name        : string;              // "John Smith", "ACME Inc"
   accountId   : string;              // provider's native id
-  authToken   : string;
+  authToken?  : string;
   refreshToken?: string;
-  expiresAt?  : Date;                // short-lived tokens
+  accessTokenExpiresAt?: Date;
+  refreshTokenExpiresAt?: Date;
+  tokenIssuedAt?: Date;
   connected   : boolean;
   status      : PageStatus;
   metadata?: Record<string, any>;
@@ -116,7 +125,8 @@ export interface SocialPage {
   entityType    : "page" | "board" | "channel" | "profile" | "organization";
   name          : string;            // "My FB Page", "Board: Recipes"
   pageId        : string;            // provider id
-  authToken     : string;            // *page* access token (if any)
+  authToken?    : string;            // optional for frontend security
+  authTokenExpiresAt?: Date;
   connected     : boolean;
   status        : PageStatus;          // "active" | "expired" | "pending" | ...
   accountId     : string;            // FK -> SocialAccount.id
@@ -130,8 +140,9 @@ export interface SocialPage {
 // Post History
 export interface PostHistory {
   id: string;
+  postId?: string;
   pageId: string;
-  postId: string;
+  publishId?: string;
   content: string;
   mediaUrls: string[];
   status: PostStatus;
@@ -156,6 +167,7 @@ export interface PostHistory {
 
 // Post Content Types
 export interface PostContent {
+  id?: string;
   text: string;
   title?: string;
   media?: {
@@ -175,6 +187,7 @@ export interface PostContent {
 
 // Platform Operations Interface
 export interface PlatformOperations {
+  checkPostStatusAndUpdate?: (publishId: string, pageId: string, postId: string) => Promise<void>;
   // Auth operations
   getAuthUrl(): string;
   
@@ -197,12 +210,15 @@ export interface PlatformOperations {
   deletePost(page: SocialPage, postId: string): Promise<void>;
   
   // Analytics & History
-  getPostHistory(page: SocialPage, limit?: number): Promise<PostHistory[]>;
+  getPostHistory(page: SocialPage, limit?: number, cursor?: number): Promise<PostHistory[]>;
   getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']>;
   
   // Platform-specific operations
   getPlatformFeatures(): SocialPlatformConfig['features'];
   validateContent(content: PostContent): { isValid: boolean; errors?: string[] };
+  
+  // TikTok-specific operations
+  getCreatorInfo?(page: SocialPage): Promise<TikTokCreatorInfo>;
 }
 
 export interface PlatformPage {
@@ -226,4 +242,76 @@ export interface PublishOptions {
     enabled: boolean;
     platforms?: Platform[];
   };
+  // TikTok-specific options (expanded)
+  disableDuet?: boolean;
+  disableStitch?: boolean;
+  disableComment?: boolean;
+  
+  // Commercial Content Disclosure (Required by TikTok)
+  commercialContentToggle?: boolean;
+  brandContentToggle?: boolean;      // For third-party brands (Paid Partnership)
+  brandOrganicToggle?: boolean;      // For your own business (Brand Organic)
+  
+  // Content Settings
+  autoAddMusic?: boolean;
+  allowDownload?: boolean;
+  allowStitch?: boolean;
+  allowDuet?: boolean;
+  videoCoverTimestampMs?: number;
+  isAigc?: boolean;
+  videoCovers?: {
+    coverImageId?: string;
+    coverTapTime?: number;
+  };
+  contentDisclosure?: {
+    contentDisclosure: boolean;
+    contentDisclosureIcon?: string;
+  };
+  privacyLevel?: TikTokPrivacyLevel;
+}
+
+// TikTok-specific interfaces
+export interface TikTokCreatorInfo {
+  creatorAvatarUrl: string;
+  creatorUsername: string;
+  creatorNickname: string;
+  privacyLevelOptions: TikTokPrivacyLevel[];
+  
+  // Interaction settings from creator's app
+  commentDisabled: boolean;
+  duetDisabled: boolean;
+  stitchDisabled: boolean;
+  
+  // Content constraints
+  maxVideoPostDurationSec: number;
+
+}
+
+export interface TikTokSettings {
+  privacyLevel: TikTokPrivacyLevel;
+  disableDuet: boolean;
+  disableStitch: boolean;
+  disableComment: boolean;
+  videoCoverTimestampMs?: number;
+  
+  // Commercial Content Disclosure (Required by TikTok)
+  commercialContentToggle: boolean; // Must be OFF by default
+  brandContentToggle: boolean;      // For third-party brands (Paid Partnership)
+  brandOrganicToggle: boolean;      // For your own business (Brand Organic)
+  
+  // Content Settings
+  autoAddMusic: boolean;
+  isAigc: boolean;
+  
+  // Validation fields from creator info
+  maxVideoDurationSec?: number;
+  canPostMore?: boolean;
+}
+
+// Post Settings Structure (includes platform-specific settings)
+export interface PostSettings {
+  locationTags: string[];
+  taggedAccounts: string[];
+  thumbnail: boolean;
+  tiktok?: TikTokSettings;
 }

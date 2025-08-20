@@ -11,15 +11,18 @@ import type {
   ContentFormat,
   SocialAccount, 
   SocialPage,
-  PostHistory
+  PostHistory,
+  PostSettings
 } from "@/lib/social/platforms/platform-types";
 import { getPlatformOperations } from "../social/platforms";
 import { handleError } from "../utils/error-handler";
 import { BaseError } from "../utils/exceptions/base-error";
 import { withLoading } from "../utils/loading/loading-store";
 import { RowHeightType } from "../utils";
-import { storeApi, commentApi, activityApi } from '@/lib/api/api-service'
+import { storeApi, commentApi, activityApi, socialAccountApi } from '@/lib/api/api-service'
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
+import { mapTikTokSettingsToPublishOptions } from "@/lib/utils/tiktok-settings-mapper";
+
 
 export interface BoardRules {
   autoSchedule: boolean;
@@ -177,17 +180,8 @@ export interface Post {
   billingMonth?: string;
   month: number;  // Month number (1-50)
 
-  /** Per-post settings such as location tag, tagged accounts, custom thumbnail, etc. */
-  settings?: {
-    /* flags */
-    location?: boolean;
-    tagAccounts?: boolean;
-    thumbnail?: boolean;
-
-    /* actual data */
-    locationTags?: string[];
-    taggedAccounts?: string[];
-  };
+  /** Per-post settings such as location tag, tagged accounts, custom thumbnail, and platform-specific options */
+  settings?: PostSettings;
 
   /** Hashtags data with sync/unsync functionality */
   hashtags?: CaptionData;
@@ -315,7 +309,6 @@ export interface FeedbirdStore {
   setActiveBrand: (id: string) => void;
   setActiveBoard: (id: string) => void;
   connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => string;
-  disconnectSocialAccount: (brandId: string, accountId: string) => void;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
   confirmSocialPage: (brandId: string, pageId: string) => Promise<void>;
   disconnectSocialPage: (brandId: string, pageId: string) => Promise<void>;
@@ -323,6 +316,10 @@ export interface FeedbirdStore {
   checkPageStatus: (brandId: string, pageId: string) => Promise<void>;
   deletePagePost: (brandId: string, pageId: string, postId: string) => Promise<void>;
   getPageCounts: () => Record<Platform, number>;
+  
+  // Database-first social account methods
+  loadSocialAccounts: (brandId: string) => Promise<void>;
+  handleOAuthSuccess: (brandId: string) => Promise<void>;
   getActiveWorkspace: () => Workspace | undefined;
   getActiveBrand: () => Brand | undefined;
   getActivePosts: () => Post[];
@@ -863,20 +860,51 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               }
 
               const publishPromises = connectedPages.map(async (page) => {
-                const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+                const ops = getPlatformOperations(page.platform);
                 if (!ops) {
                   throw new Error(`Platform operations not found for ${page.platform}`);
                 }
 
-                const publishResult = await ops.publishPost(page, {
-                   text: post.caption.default,
-                   media: {
-                     type: "image" as const,
-                     urls: processedBlocks.flatMap(block => 
-                       block.versions.flatMap(version => version.media?.map(m => m.src) || [])
-                     )
-                   }
-                 }, { scheduledTime });
+                // Prepare base publish options
+                let publishOptions: any = { scheduledTime };
+                let postContent: any;
+
+                // For TikTok pages, format content according to TikTok API requirements
+                if (page.platform === 'tiktok') {
+                  
+                  // Use TikTok settings if available, otherwise use defaults
+                  if (post.settings?.tiktok) {
+                    const tiktokOptions = mapTikTokSettingsToPublishOptions(post.settings.tiktok);
+                    publishOptions = { ...publishOptions, ...tiktokOptions };
+                  }
+
+                  // Format content for TikTok API
+                  postContent = {
+                    id: postId,
+                    text: post.caption.default,
+                    media: {
+                      type: post.format,
+                      urls: processedBlocks.flatMap(block => {
+                        // from the version i want to pick the latest one
+                        const latestVersion = block.versions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                        return [latestVersion.file?.url]
+                      })
+                    }
+                  };
+                } else {
+                  // Standard content format for other platforms
+                  postContent = {
+                    text: post.caption.default,
+                    media: {
+                      type: "image" as const,
+                      urls: processedBlocks.flatMap(block => 
+                        block.versions.flatMap(version => version.media?.map(m => m.src) || [])
+                      )
+                    }
+                  };
+                }
+
+                const publishResult = await ops.publishPost(page, postContent , publishOptions);
 
                 return {
                   pageId: page.id,
@@ -926,7 +954,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               const page = brand.socialPages.find(p => p.id === pageId);
               if (!page) throw new Error("Page not found");
 
-              const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+              const ops = getPlatformOperations(page.platform);
               if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
 
               const fetched = await ops.getPostHistory(page, 20);
@@ -1131,7 +1159,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             return { activeBrandId: id };
           }),
 
-        connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => {
+        connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId">) => {
           let localReturnId = crypto.randomUUID();
           set((state) => ({
             workspaces: state.workspaces.map((w) => ({
@@ -1152,7 +1180,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                             ...a,
                             connected: true,
                             status: "active",
-                            authToken: account.authToken,
                           }
                         : a
                     ),
@@ -1165,7 +1192,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   name: account.name,
                   accountId: account.accountId,
                   platform,
-                  authToken: account.authToken,
                   connected: true,
                   status: "active",
                 };
@@ -1177,30 +1203,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             })),
           }));
           return localReturnId;
-        },
-
-        disconnectSocialAccount: (brandId: string, accountId: string) => {
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              brand: ws.brand && ws.brand.id === brandId ? (() => {
-                // Remove the given account & all its pages
-                const account = ws.brand!.socialAccounts.find((a) => a.id === accountId);
-                if (!account) return ws.brand;
-
-                return {
-                  ...ws.brand!,
-                  socialAccounts: ws.brand!.socialAccounts.filter(
-                    (a) => a.id !== accountId
-                  ),
-                  // remove pages of that account's platform
-                  socialPages: ws.brand!.socialPages.filter(
-                    (p) => p.platform !== account.platform
-                  ),
-                };
-              })() : ws.brand,
-            })),
-          }));
         },
 
         stageSocialPages: (brandId, platform, pages, localAccountId) => {
@@ -1269,7 +1271,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const acct = brand.socialAccounts.find((a) => a.id === page.accountId);
           if (!acct) throw new Error(`Account for page ${pageId} not found.`);
 
-          const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+          const ops = getPlatformOperations(page.platform);
           if (!ops) throw new Error(`No platform operations for ${page.platform}`);
 
           try {
@@ -1306,29 +1308,17 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         disconnectSocialPage: async (brandId: string, pageId: string) => {
-          const brand = get().getActiveBrand();
-          const page = brand?.socialPages.find(p => p.id === pageId);
-          if (!page) throw new Error(`Page with ID ${pageId} not found.`);
-
-          const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
-          if (!ops) throw new Error(`No platform operations for ${page.platform}.`);
-
           try {
-            // You might want a disconnect method in your platform operations
-            // For now, we just remove it from the store.
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                brand: ws.brand && ws.brand.id === brandId ? {
-                  ...ws.brand,
-                  socialPages: (ws.brand.socialPages ?? []).filter(
-                    (p) => p.id !== pageId
-                  ),
-                } : ws.brand,
-              })),
-            }));
+            // Use proper API service instead of raw fetch
+            await socialAccountApi.disconnectSocial({
+              brandId,
+              pageId
+            });
+
+            // Reload social accounts to get updated data
+            await get().loadSocialAccounts(brandId);
           } catch (error) {
-            console.error(`Failed to disconnect page ${page.name}:`, error);
+            console.error('Failed to disconnect page:', error);
             throw error;
           }
         },
@@ -1389,7 +1379,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             console.error("deletePagePost: page not found");
             return;
           }
-          const ops = getPlatformOperations(page.platform as Exclude<Platform, 'tiktok'>);
+          const ops = getPlatformOperations(page.platform);
           if (!ops?.deletePost) {
             console.error("deletePagePost: ops.deletePost not implemented");
             return;
@@ -1404,7 +1394,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 postHistory: {
                   ...state.postHistory,
-                  [pageId]: old.filter(p => p.postId !== postId)
+                  [pageId]: old.filter((p: any) => p.postId !== postId)
                 }
               };
             });
@@ -1413,6 +1403,70 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             throw err;
           }
         },
+
+        // Database-first social account methods
+        loadSocialAccounts: async (brandId: string) => {
+          try {
+            // Use proper API service instead of raw fetch
+            const accounts = await socialAccountApi.getSocialAccounts(brandId);
+            
+            // Extract all pages from all accounts into a flat array (exclude sensitive tokens)
+            const allPages = accounts.flatMap((acc: any) => 
+              (acc.social_pages || []).map((page: any) => ({
+                id: page.id,
+                platform: page.platform,
+                entityType: page.entity_type || 'page',
+                name: page.name,
+                pageId: page.page_id,
+                connected: page.connected,
+                status: page.status,
+                accountId: acc.id, // Link to the account
+                statusUpdatedAt: page.status_updated_at ? new Date(page.status_updated_at) : undefined,
+                lastSyncAt: page.last_sync_at ? new Date(page.last_sync_at) : undefined,
+                followerCount: page.follower_count,
+                postCount: page.post_count,
+                metadata: page.metadata
+              }))
+            );
+            
+            set((state) => ({
+              workspaces: state.workspaces.map(ws => ({
+                ...ws,
+                brand: ws.brand && ws.brand.id == brandId ? {
+                  ...ws.brand,
+                  socialAccounts: accounts.map((acc: any) => ({
+                    id: acc.id,
+                    platform: acc.platform,
+                    name: acc.name,
+                    accountId: acc.account_id,
+                    connected: acc.connected,
+                    status: acc.status,
+                    metadata: acc.metadata,
+                    socialPages: acc.social_pages || []
+                  })),
+                  socialPages: allPages
+                } : ws.brand
+              }))
+            }));
+
+            console.log('state.workspaces', get().workspaces.find(ws => ws.brand?.id == brandId));
+
+          } catch (error) {
+            console.error('Failed to load social accounts:', error);
+            // You can add toast notification here if needed
+          }
+        },
+
+        handleOAuthSuccess: async (brandId: string) => {
+          try {
+            await get().loadSocialAccounts(brandId);
+            // You can add success toast here if needed
+          } catch (error) {
+            console.error('Failed to handle OAuth success:', error);
+            // You can add error toast here if needed
+          }
+        },
+
 
         getPageCounts: () => {
           const brand = get().getActiveBrand();

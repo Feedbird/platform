@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "notifications:call": "node scripts/call-notifications.js"
+    "migration": "node scripts/create-migration.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.837.0",

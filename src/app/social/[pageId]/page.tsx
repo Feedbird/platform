@@ -123,7 +123,7 @@ export default function SocialPagePosts() {
 
     await executeWithLoading(async () => {
       try {
-        await deletePagePost(brandId, pageId, ph.postId);
+        await deletePagePost(brandId, pageId, ph.postId || ph.id);
       } catch (e: any) {
         const errorMsg = e.message ?? 'Failed deleting post';
         setErrMsg(errorMsg);
@@ -215,7 +215,7 @@ function PostCard({
   /** crude helper – look at the URL to decide how to render             */
   const isVideoUrl = useCallback((u: string) =>
     /\.(mp4|m4v|mov|webm|ogg)$/i.test(u) ||
-    /youtube\.com|youtu\.be|vimeo\.com/.test(u), []);
+    /youtube\.com|youtu\.be|vimeo\.com|tiktok\.com/.test(u), []);
 
   // Memoize the media rendering to avoid unnecessary re-renders
   const renderMedia = useMemo(() => {
@@ -244,6 +244,29 @@ function PostCard({
                 className="w-full aspect-video rounded-md"
                 allowFullScreen
                 loading="lazy"
+              />
+            );
+          }
+
+          /* ——— TIKTOK ——— */
+          if (/tiktok\.com/.test(url)) {
+            // Extract video ID from TikTok URL
+            const videoId = url.match(/\/video\/(\d+)/)?.[1];
+            
+            if (!videoId) {
+              return <div key={idx} className="text-red-500 text-sm">Invalid TikTok URL</div>;
+            }
+
+            // Use TikTok embed URL
+            const embed = `https://www.tiktok.com/embed/${videoId}`;
+            return (
+              <iframe
+                key={idx}
+                src={embed}
+                className="w-full aspect-video rounded-md"
+                allowFullScreen
+                loading="lazy"
+                style={{ minHeight: '400px' }}
               />
             );
           }

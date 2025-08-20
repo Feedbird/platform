@@ -59,6 +59,7 @@ export function ManageSocialsDialog(props: {
   const confirmPage       = useFeedbirdStore(s => s.confirmSocialPage);
   const disconnectPage    = useFeedbirdStore(s => s.disconnectSocialPage);
   const checkPageStatus   = useFeedbirdStore(s => s.checkPageStatus);
+  const handleOAuthSuccess = useFeedbirdStore(s => s.handleOAuthSuccess);
 
   const [activePlatform, setActivePlatform] = useState<Platform>("facebook");
   const [connectingPlatform, setConnectingPlatform] = useState<Platform | null>(null);
@@ -67,50 +68,33 @@ export function ManageSocialsDialog(props: {
   useEffect(() => {
     function handler(e: MessageEvent) {
       if (e.origin !== window.location.origin) return;
+      
       if (e.data?.error) {
-       toast.error("Authentication failed", { description: e.data.error });
-       setConnectingPlatform(null);
-       return;
+        toast.error("Authentication failed", { description: e.data.error });
+        setConnectingPlatform(null);
+        return;
       }
       
-      const { platform, account, pages } = e.data;
-      
-      executeWithLoading(async () => {
-        if (!account) {
-          throw new Error("No account found. Please ensure you have the correct permissions.");
-        }
-        const localAccountId = connectAccount(brandId, platform, {
-          name: account.name, accountId: account.accountId, authToken: account.authToken,
-        });
-        stagePages(brandId, platform, pages, localAccountId);
-        if (platform === "instagram" && pages.length === 1) {
-         await confirmPage(brandId, pages[0].id);
-        }
+      if (e.data?.success) {
+        const { brandId } = e.data;
+        console.log('brandId', brandId);
         
-        // Custom success/warning notifications
-        if (pages && pages.length > 0) {
-         toast.success("Account connected successfully!", {
-           description: `Found and staged ${pages.length} new page(s).`
-         });
-        } else {
-         let message = "Your account is connected, but no pages/boards were found.";
-         if (platform === 'pinterest') {
-           message = "Your Pinterest account is connected, but has no boards. Please create a board on Pinterest first."
-         }
-         toast.warning("Account connected", {
-           description: message,
-         });
-        }
-      }, `Connecting ${platform}...`).finally(() => {
-        if (connectingPlatform) {
-          setActivePlatform(connectingPlatform);
-          setConnectingPlatform(null);
-        }
-      });
+        executeWithLoading(async () => {
+          // Load fresh data from database
+          await handleOAuthSuccess(brandId);
+          toast.success("Account connected successfully!");
+        }, "Connecting account...").finally(() => {
+          if (connectingPlatform) {
+            setActivePlatform(connectingPlatform);
+            setConnectingPlatform(null);
+          }
+        });
+      }
     }
+    
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [brandId, connectAccount, stagePages, confirmPage, executeWithLoading, connectingPlatform]);
+  }, [brandId, handleOAuthSuccess, executeWithLoading, connectingPlatform]);
 
   /* ————————— Handle popup closure ————————— */
   useEffect(() => {
@@ -121,7 +105,13 @@ export function ManageSocialsDialog(props: {
       const w = 600, h = 700;
       const left = window.screenX + (window.outerWidth  - w) / 2;
       const top  = window.screenY + (window.outerHeight - h) / 2;
-      popup = window.open(`/api/oauth/${connectingPlatform}`, "_blank", `width=${w},height=${h},left=${left},top=${top}`);
+      
+      // Include brandId in the URL
+      popup = window.open(
+        `/api/oauth/${connectingPlatform}?brandId=${brandId}`, 
+        "_blank", 
+        `width=${w},height=${h},left=${left},top=${top}`
+      );
 
       interval = setInterval(() => {
         if (popup?.closed) {

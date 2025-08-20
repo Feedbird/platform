@@ -1747,6 +1747,7 @@ export function PostTable({
           return (
             <SettingsEditCell
               value={post.settings as any}
+              platforms={post.platforms}
               isFocused={isFocused}
               isEditing={isEditing}
               enterEdit={enterEdit}

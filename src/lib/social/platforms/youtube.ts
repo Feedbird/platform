@@ -106,7 +106,7 @@
         accountId  : ch.items[0].id,
         authToken  : tok.access_token,
         refreshToken: tok.refresh_token,
-        expiresAt  : new Date(Date.now() + tok.expires_in * 1_000),
+        accessTokenExpiresAt  : new Date(Date.now() + tok.expires_in * 1_000),
         connected  : true,
         status     : "active",
       };
@@ -128,7 +128,7 @@
         });
       return { ...acc,
         authToken: tok.access_token,
-        expiresAt: new Date(Date.now() + tok.expires_in * 1_000),
+        accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
       };
     }
     async disconnectAccount(a: SocialAccount){ a.connected = false; }
@@ -141,7 +141,7 @@
         entityType: "channel",
         name      : acc.name,
         pageId    : acc.accountId,
-        authToken : acc.authToken,
+        authToken : acc.authToken || '',
         connected : true,
         status    : "active",
         accountId : acc.id,
@@ -199,7 +199,7 @@
         "?part=snippet,status&uploadType=multipart",
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${page.authToken}` },
+          headers: { Authorization: `Bearer ${page.authToken || ''}` },
           body: form,
         });
   
@@ -223,7 +223,7 @@
             items: { contentDetails: { relatedPlaylists: { uploads: string } } }[];
           }>(
             `${cfg.baseUrl}/channels?part=contentDetails&id=${pg.pageId}`,
-            { headers: { Authorization: `Bearer ${pg.authToken}` } },
+            { headers: { Authorization: `Bearer ${pg.authToken || ''}` } },
           );
           (globalThis as any)._yt_uploads =
             ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
@@ -245,7 +245,7 @@
         }>(
           `${cfg.baseUrl}/playlistItems` +
           `?part=snippet&playlistId=${uploads}&maxResults=${limit}`,
-          { headers: { Authorization: `Bearer ${pg.authToken}` } },
+          { headers: { Authorization: `Bearer ${pg.authToken || ''}` } },
         );
       
         return vids.items.map(v => ({

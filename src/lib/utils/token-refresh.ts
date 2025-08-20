@@ -21,7 +21,7 @@ export async function refreshToken(
 
     // Check if token needs refresh (5 minutes buffer)
     const now = new Date();
-    const expiresAt = account.expiresAt;
+    const expiresAt = account.accessTokenExpiresAt;
     if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
       return {
         success: true,

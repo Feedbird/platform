@@ -153,7 +153,7 @@
         name: userInfo.name,
         accountId: userInfo.sub, // 'sub' is the unique member ID from OIDC
         authToken: tokenResponse.access_token,
-        expiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
+        accessTokenExpiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
         connected: true,
         status: "active",
       };
@@ -173,7 +173,7 @@
         entityType : "profile",
         name       : acc.name,
         pageId     : `urn:li:person:${acc.accountId}`, // Construct the URN from the ID
-        authToken  : acc.authToken,
+        authToken  : acc.authToken || '',
         connected  : true,
         status     : "active",
         accountId  : acc.id,
@@ -191,7 +191,7 @@
             state: string;
           }>;
         }>(`${config.baseUrl}/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR`, {
-          token: acc.authToken
+          token: acc.authToken || ''
         });
   
         // Get details for each organization
@@ -205,7 +205,7 @@
               description?: string;
               followersCount?: number;
             }>(`${config.baseUrl}/v2/organizations/${orgId}`, {
-              token: acc.authToken
+              token: acc.authToken || ''
             });
   
             pages.push({
@@ -214,7 +214,7 @@
               entityType : "organization",
               name       : orgDetails.localizedName,
               pageId     : org.organization,
-              authToken  : acc.authToken,
+              authToken  : acc.authToken || '',
               connected  : true,
               status     : "active",
               accountId  : acc.id,
@@ -350,7 +350,7 @@
       if (content.media?.urls?.length) {
         const mediaAssets = await Promise.all(
           content.media.urls.map(url =>
-            this.uploadImage(url, page.pageId, page.authToken)
+            this.uploadImage(url, page.pageId, page.authToken || '')
           )
         );
   
@@ -365,7 +365,7 @@
         `${config.baseUrl}/v2/ugcPosts`,
         {
           method: "POST",
-          token: page.authToken,
+          token: page.authToken || '',
           body: JSON.stringify(postData)
         }
       );
@@ -404,7 +404,7 @@
           elements: { id: string; lastModified: { time: number }; specificContent: any; }[];
       }>(
           `${config.baseUrl}/v2/ugcPosts?q=authors&authors=List(${pg.pageId})&sortBy=LAST_MODIFIED&count=${limit}`,
-          { headers: { Authorization: `Bearer ${pg.authToken}` } },
+          { headers: { Authorization: `Bearer ${pg.authToken || ''}` } },
       );
   
       return raw.elements.map(e => ({
