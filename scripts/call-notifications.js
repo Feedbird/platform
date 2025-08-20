@@ -15,7 +15,7 @@ const http = require('http');
 // Configuration - you can modify these values
 const config = {
   apiUrl: process.env.NOTIFICATION_API_URL || 'http://localhost:3000',
-  apiToken: process.env.NOTIFICATION_API_TOKEN || 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456',
+  apiToken: process.env.CRON_SECRET || 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456',
   endpoint: '/api/email/send-unread'
 };
 
@@ -68,13 +68,13 @@ async function callNotificationAPI() {
   try {
     // Check if token is configured
     if (!config.apiToken || config.apiToken === 'your_token_here') {
-      console.error('❌ Error: NOTIFICATION_API_TOKEN not configured');
+      console.error('❌ Error: CRON_SECRET not configured');
       console.error('Please set the environment variable or update the script');
       console.error('');
       console.error('Set it in your .env.local file:');
-      console.error('NOTIFICATION_API_TOKEN=your_actual_token_here');
+      console.error('CRON_SECRET=your_actual_token_here');
       console.error('');
-      console.error('Or run: export NOTIFICATION_API_TOKEN=your_token_here');
+      console.error('Or run: export CRON_SECRET=your_token_here');
       process.exit(1);
     }
 
@@ -105,7 +105,7 @@ async function callNotificationAPI() {
       console.log('✅ Success! Notifications sent:');
       console.log(JSON.stringify(response.data, null, 2));
     } else if (response.statusCode === 401) {
-      console.error('❌ Unauthorized: Check your NOTIFICATION_API_TOKEN');
+      console.error('❌ Unauthorized: Check your CRON_SECRET');
       console.error('Response:', response.data);
     } else if (response.statusCode === 404) {
       console.error('❌ Not Found: Check if the API endpoint exists');
