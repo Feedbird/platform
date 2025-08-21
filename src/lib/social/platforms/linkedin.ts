@@ -445,11 +445,6 @@ export class LinkedInPlatform extends BasePlatform {
       }
     };
 
-    // Handle scheduling
-    if (options?.scheduledTime) {
-      postData.scheduledTime = options.scheduledTime.getTime();
-    }
-
     // Add media if present
     if (mediaAssets.length > 0) {
       postData.specificContent["com.linkedin.ugc.ShareContent"].media = mediaAssets.map(asset => ({
@@ -475,8 +470,8 @@ export class LinkedInPlatform extends BasePlatform {
       publishId: response.id,
       content: content.text,
       mediaUrls: mediaUrls,
-      status: options?.scheduledTime ? "scheduled" : "published",
-      publishedAt: options?.scheduledTime ?? new Date(),
+      status: "published",
+      publishedAt: new Date(),
       analytics: {}
     };
   }
