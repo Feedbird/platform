@@ -478,44 +478,8 @@ export class LinkedInPlatform extends BasePlatform {
 
   /* 5 — optional history using fetchWithAuth */
   async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
-    if (IS_BROWSER) {
-      const res = await fetch(`/api/social/linkedin/history`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page: pg, limit }),
-      });
-      if (!res.ok) {
-         const errorText = await res.text();
-         // Re-throwing the raw error from the backend as requested by the user.
-         throw new Error(errorText);
-      }
-      return res.json();
-    }
-
-    // Get token from Supabase
-    const token = await this.getTokenFromSupabase(pg.id);
-    if (!token) {
-      throw new Error("Token not found");
-    }
-
-    // Use fetchWithAuth for post history
-    const raw = await this.fetchWithAuth<{
-        elements: { id: string; lastModified: { time: number }; specificContent: any; }[];
-    }>(
-        `${config.baseUrl}/v2/ugcPosts?q=authors&authors=List(${pg.pageId})&sortBy=LAST_MODIFIED&count=${limit}`,
-        { token: token }
-    );
-
-    return raw.elements.map(e => ({
-        id         : e.id,
-        postId     : e.id,
-        pageId     : pg.id,
-        content    : e.specificContent?.["com.linkedin.ugc.ShareContent"]
-                       ?.shareCommentary?.text ?? "",
-        mediaUrls  : [],
-        status     : "published",
-        publishedAt: new Date(e.lastModified.time),
-    }));
+    // Not supported eed the 'r_member_social' permission (https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2024-04&tabs=http#permissions) to read posts and this permission is closed permission (https://learn.microsoft.com/en-us/linkedin/marketing/lms-faq?view=li-lms-2024-04#how-do-i-get-access-to-r_member_social) as of March 15, 2024.
+    return [];
   }
 
   async getPostAnalytics() { return {}; }
