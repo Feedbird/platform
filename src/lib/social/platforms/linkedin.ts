@@ -166,6 +166,17 @@ export class LinkedInPlatform extends BasePlatform {
       localizedHeadline: string;
     };
 
+
+    let metadata = userInfo as any
+    // Fetch connection size if we have a valid token
+      try {
+        const connectionSize = await this.getConnectionSize(userInfo.id, tokenData.access_token);
+        metadata.connectionSize = connectionSize;
+      } catch (error) {
+        console.warn('[LinkedIn] Could not fetch connection size:', error);
+        // Continue without connection size
+      }
+    
     return {
       id: crypto.randomUUID(),
       platform: "linkedin",
@@ -175,7 +186,7 @@ export class LinkedInPlatform extends BasePlatform {
       accessTokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       refreshToken: tokenData.refresh_token,
       refreshTokenExpiresAt: new Date(Date.now() + tokenData.refresh_expires_in * 1000),
-      metadata: userInfo,
+      metadata,
       connected: true,
       status: "active",
     };
@@ -209,6 +220,30 @@ export class LinkedInPlatform extends BasePlatform {
   async connectPage(a: SocialAccount) { return (await this.listPages(a))[0]; }
   async disconnectPage(p: SocialPage) { p.connected = false; p.status = "expired"; }
   async checkPageStatus(p: SocialPage){ return { ...p }; }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch person's connection size
+     @url https://learn.microsoft.com/en-us/linkedin/shared/integrations/people/connections-size
+     ────────────────────────────────────────────────────────── */
+  async getConnectionSize(personId: string, token: string): Promise<number> {
+    try {
+      const response = await this.fetchWithAuth<{
+        firstDegreeSize: number;
+      }>(
+        `${config.baseUrl}/v2/connections/urn:li:person:${personId}`,
+        {
+          method: "GET",
+          token: token
+        }
+      );
+
+      return response.firstDegreeSize;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch connection size:', error);
+      // Return 0 if we can't fetch the connection size
+      return 0;
+    }
+  }
 
   /* ──────────────────────────────────────────────────────────
      helper – register upload for image or video using fetchWithAuth
