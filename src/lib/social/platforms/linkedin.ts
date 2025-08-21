@@ -175,6 +175,7 @@ export class LinkedInPlatform extends BasePlatform {
       accessTokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       refreshToken: tokenData.refresh_token,
       refreshTokenExpiresAt: new Date(Date.now() + tokenData.refresh_expires_in * 1000),
+      metadata: userInfo,
       connected: true,
       status: "active",
     };
@@ -199,6 +200,7 @@ export class LinkedInPlatform extends BasePlatform {
       status     : "active",
       accountId  : acc.id,
       statusUpdatedAt: new Date(),
+      metadata: acc.metadata || {},
     });
 
     return pages;
