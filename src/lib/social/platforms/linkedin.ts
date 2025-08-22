@@ -216,19 +216,48 @@ export class LinkedInPlatform extends BasePlatform {
       try {
 
         // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-access-control-by-role?view=li-lms-2025-08&tabs=http#sample-request
-        const orgs = await this.fetchWithAuth<{
-          elements: Array<{
-            roleAssignee: string;
-            state: string;
-            organizationalTarget: string;
-            role: string;
-          }>;
-        }>(`${config.baseUrl}/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR`, {
-          token: acc.authToken || ''
-        });
-  
+        let allOrgs: Array<{
+          roleAssignee: string;
+          state: string;
+          organizationalTarget: string;
+          role: string;
+        }> = [];
+        
+        let start = 0;
+        const count = 20;
+        let hasMore = true;
+
+        // Fetch all organizations with pagination
+        while (hasMore) {
+          const orgsResponse = await this.fetchWithAuth<{
+            elements: Array<{
+              roleAssignee: string;
+              state: string;
+              organizationalTarget: string;
+              role: string;
+            }>;
+            paging: {
+              count: number;
+              start: number;
+              links?: Array<{
+                type: string;
+                rel: string;
+                href: string;
+              }>;
+            };
+          }>(`${config.baseUrl}/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED&count=${count}&start=${start}`, {
+            token: acc.authToken || ''
+          });
+
+          allOrgs = allOrgs.concat(orgsResponse.elements);
+
+          // Check if there are more pages
+          hasMore = orgsResponse.paging.links?.some(link => link.rel === 'next') || false;
+          start += count;
+        }
+
         // Get details for each organization
-        for (const org of orgs.elements) {
+        for (const org of allOrgs) {
           if (org.state === 'APPROVED' && org.role === 'ADMINISTRATOR') {
             const orgId = org.organizationalTarget.split(':').pop();
             const orgDetails = await this.fetchWithAuth<{
@@ -259,7 +288,7 @@ export class LinkedInPlatform extends BasePlatform {
             }>(`${config.baseUrl}/v2/organizations/${orgId}`, {
               token: acc.authToken || ''
             });
-  
+
             pages.push({
               id         : crypto.randomUUID(),
               platform   : "linkedin",
