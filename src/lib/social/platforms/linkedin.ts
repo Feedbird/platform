@@ -726,6 +726,93 @@ export class LinkedInPlatform extends BasePlatform {
       throw new Error("Token not found");
     }
 
+    // Determine if this is a personal profile or organization
+    const isOrganization = page.entityType === "organization";
+    
+    if (isOrganization) {
+      return this.publishToOrganization(page, content, token, options);
+    } else {
+      return this.publishToProfile(page, content, token, options);
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – publish to organization (new Posts API)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2025-07&tabs=curl#text-only-post-creation-sample-request
+     ────────────────────────────────────────────────────────── */
+  private async publishToOrganization(
+    page: SocialPage,
+    content: PostContent,
+    token: string,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
+    log('Publishing to LinkedIn organization:', {
+      organizationUrn: page.pageId,
+      textLength: content.text.length,
+      scheduled: !!options?.scheduledTime
+    });
+    
+    // For now, only support text posts for organizations
+    // TODO: Add media support when needed
+    
+    const postData = {
+      author: page.pageId, // organization URN
+      commentary: content.text,
+      visibility: "PUBLIC",
+      distribution: {
+        feedDistribution: "MAIN_FEED",
+        targetEntities: [],
+        thirdPartyDistributionChannels: []
+      },
+      lifecycleState: "PUBLISHED",
+      isReshareDisabledByAuthor: false
+    };
+
+    const response = await fetch(`${config.baseUrl}/rest/posts`, {
+      method: "POST",
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(postData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`LinkedIn Organization API Error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    // Get post ID from response header
+    const postId = response.headers.get('x-restli-id');
+    if (!postId) {
+      throw new Error("No post ID returned from LinkedIn API");
+    }
+
+    return {
+      id: postId,
+      pageId: page.id,
+      postId: postId,
+      publishId: postId,
+      content: content.text,
+      mediaUrls: content.media?.urls || [],
+      status: "published",
+      publishedAt: new Date(),
+      analytics: {}
+    };
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – publish to personal profile (legacy UGC API)
+     @url https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin
+     ────────────────────────────────────────────────────────── */
+  private async publishToProfile(
+    page: SocialPage,
+    content: PostContent,
+    token: string,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
     // Determine media type and category
     const mediaUrls = content.media?.urls || [];
     const mediaType = content.media?.type || 'image';
@@ -754,11 +841,11 @@ export class LinkedInPlatform extends BasePlatform {
       }
     }
 
-    // Prepare the post data
+    // Prepare the share post data
     // https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin?context=linkedin%2Fconsumer%2Fcontext#creating-a-share-on-linkedin
     const postData: any = {
       author: page.pageId,
-      lifecycleState: options?.scheduledTime ? "SCHEDULED" : "PUBLISHED",
+      lifecycleState: "PUBLISHED",
       specificContent: {
         "com.linkedin.ugc.ShareContent": {
           shareCommentary: {
