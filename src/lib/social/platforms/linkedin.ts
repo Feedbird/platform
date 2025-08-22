@@ -289,6 +289,14 @@ export class LinkedInPlatform extends BasePlatform {
               token: acc.authToken || ''
             });
 
+                        // Fetch follower count for the organization
+            let followerCount = 0;
+            try {
+              followerCount = await this.getOrganizationFollowerCount(org.organizationalTarget, acc.authToken || '');
+            } catch (error) {
+              console.warn('[LinkedIn] Could not fetch follower count for organization:', orgDetails.localizedName, error);
+            }
+
             pages.push({
               id         : crypto.randomUUID(),
               platform   : "linkedin",
@@ -300,7 +308,10 @@ export class LinkedInPlatform extends BasePlatform {
               status     : "active",
               accountId  : org.roleAssignee,
               statusUpdatedAt: new Date(),
-              metadata: orgDetails
+              metadata: {
+                ...orgDetails,
+                followerCount
+              }
             });
           }
         }
@@ -335,6 +346,191 @@ export class LinkedInPlatform extends BasePlatform {
     } catch (error) {
       console.error('[LinkedIn] Failed to fetch connection size:', error);
       // Return 0 if we can't fetch the connection size
+      return 0;
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch detailed organization follower statistics (for analytics)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/follower-statistics?view=li-lms-2025-07&tabs=curl
+     ────────────────────────────────────────────────────────── */
+  async getOrganizationFollowerStats(
+    organizationUrn: string, 
+    token: string, 
+    options?: {
+      timeRange?: {
+        start: number; // milliseconds since epoch
+        end?: number;  // milliseconds since epoch (optional)
+      };
+      timeGranularityType?: 'DAY' | 'WEEK' | 'MONTH';
+    }
+  ): Promise<{
+    followerGains?: Array<{
+      timeRange: { start: number; end: number };
+      organicFollowerGain: number;
+      paidFollowerGain: number;
+    }>;
+    demographics?: {
+      byCountry?: Array<{ geo: string; count: number }>;
+      byIndustry?: Array<{ industry: string; count: number }>;
+      byFunction?: Array<{ function: string; count: number }>;
+      bySeniority?: Array<{ seniority: string; count: number }>;
+      byStaffCount?: Array<{ staffCountRange: string; count: number }>;
+    };
+  }> {
+    try {
+      let url = `${config.baseUrl}/rest/organizationalEntityFollowerStatistics?q=organizationalEntity&organizationalEntity=${encodeURIComponent(organizationUrn)}`;
+      
+      // Add time intervals if provided
+      if (options?.timeRange) {
+        const timeIntervals = {
+          timeRange: {
+            start: options.timeRange.start,
+            ...(options.timeRange.end && { end: options.timeRange.end })
+          },
+          ...(options.timeGranularityType && { timeGranularityType: options.timeGranularityType })
+        };
+        
+        // Use Restli 2.0 format for time intervals
+        const timeIntervalsParam = encodeURIComponent(JSON.stringify(timeIntervals).replace(/"/g, ''));
+        url += `&timeIntervals=${timeIntervalsParam}`;
+      }
+
+      // LinkedIn API requires LinkedIn-Version header, so we use direct fetch
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'LinkedIn-Version': '202507',
+          'X-Restli-Protocol-Version': '2.0.0'
+        }
+              });
+
+        if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`LinkedIn API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const responseData = await response.json() as {
+        elements: Array<{
+          timeRange?: { start: number; end: number };
+          followerGains?: {
+            organicFollowerGain: number;
+            paidFollowerGain: number;
+          };
+          followerCountsByGeoCountry?: Array<{
+            geo: string;
+            followerCounts: { organicFollowerCount: number; paidFollowerCount: number };
+          }>;
+          followerCountsByIndustry?: Array<{
+            industry: string;
+            followerCounts: { organicFollowerCount: number; paidFollowerCount: number };
+          }>;
+          followerCountsByFunction?: Array<{
+            function: string;
+            followerCounts: { organicFollowerCount: number; paidFollowerCount: number };
+          }>;
+          followerCountsBySeniority?: Array<{
+            seniority: string;
+            followerCounts: { organicFollowerCount: number; paidFollowerCount: number };
+          }>;
+          followerCountsByStaffCountRange?: Array<{
+            staffCountRange: string;
+            followerCounts: { organicFollowerCount: number; paidFollowerCount: number };
+          }>;
+        }>;
+      };
+
+      const result: any = {};
+      
+      if (responseData.elements && responseData.elements.length > 0) {
+        const element = responseData.elements[0];
+        
+        // Handle time-bound statistics (with timeRange)
+        if (element.timeRange && element.followerGains) {
+          result.followerGains = responseData.elements.map((el: any) => ({
+            timeRange: el.timeRange!,
+            organicFollowerGain: el.followerGains!.organicFollowerGain,
+            paidFollowerGain: el.followerGains!.paidFollowerGain
+          }));
+        }
+        
+        // Handle lifetime statistics (demographics)
+        if (element.followerCountsByGeoCountry || element.followerCountsByIndustry) {
+          result.demographics = {};
+          
+          if (element.followerCountsByGeoCountry) {
+            result.demographics.byCountry = element.followerCountsByGeoCountry.map((item: any) => ({
+              geo: item.geo,
+              count: item.followerCounts.organicFollowerCount + item.followerCounts.paidFollowerCount
+            }));
+          }
+          
+          if (element.followerCountsByIndustry) {
+            result.demographics.byIndustry = element.followerCountsByIndustry.map((item: any) => ({
+              industry: item.industry,
+              count: item.followerCounts.organicFollowerCount + item.followerCounts.paidFollowerCount
+            }));
+          }
+          
+          if (element.followerCountsByFunction) {
+            result.demographics.byFunction = element.followerCountsByFunction.map((item: any) => ({
+              function: item.function,
+              count: item.followerCounts.organicFollowerCount + item.followerCounts.paidFollowerCount
+            }));
+          }
+          
+          if (element.followerCountsBySeniority) {
+            result.demographics.bySeniority = element.followerCountsBySeniority.map((item: any) => ({
+              seniority: item.seniority,
+              count: item.followerCounts.organicFollowerCount + item.followerCounts.paidFollowerCount
+            }));
+          }
+          
+          if (element.followerCountsByStaffCountRange) {
+            result.demographics.byStaffCount = element.followerCountsByStaffCountRange.map((item: any) => ({
+              staffCountRange: item.staffCountRange,
+              count: item.followerCounts.organicFollowerCount + item.followerCounts.paidFollowerCount
+            }));
+          }
+        }
+      }
+      return result;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch organization follower stats:', error);
+      return {};
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch organization follower count (simple)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-lookup-api?view=li-lms-2025-07&tabs=curl#retrieve-organization-follower-count
+     ────────────────────────────────────────────────────────── */
+  async getOrganizationFollowerCount(
+    organizationUrn: string,
+    token: string
+  ): Promise<number> {
+    try {
+      const url = `${config.baseUrl}/rest/networkSizes/${encodeURIComponent(organizationUrn)}?edgeType=COMPANY_FOLLOWED_BY_MEMBER`;
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'LinkedIn-Version': '202507',
+          'X-Restli-Protocol-Version': '2.0.0'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`LinkedIn API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json() as { firstDegreeSize: number };
+      return data.firstDegreeSize;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch organization follower count:', error);
       return 0;
     }
   }
