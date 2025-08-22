@@ -923,15 +923,15 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               }
 
               // Add success activity
-              addActivity({
-                postId,
-                actor: getCurrentUserDisplayNameFromStore(get()),
-                action: scheduledTime ? "scheduled this post" : "published this post",
-                type: scheduledTime ? "scheduled" : "published",
-                metadata: {
-                  publishTime: scheduledTime
-                }
-              });
+              // addActivity({
+              //   postId,
+              //   actor: getCurrentUserDisplayNameFromStore(get()),
+              //   action: scheduledTime ? "scheduled this post" : "published this post",
+              //   type: scheduledTime ? "scheduled" : "published",
+              //   metadata: {
+              //     publishTime: scheduledTime
+              //   }
+              // });
             },
             {
               loading: scheduledTime ? "Scheduling post..." : "Publishing post...",
