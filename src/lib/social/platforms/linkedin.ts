@@ -38,7 +38,7 @@ const config: SocialPlatformConfig = {
     analytics: true,
     deletion: true,
     mediaTypes: ["image", "video"],
-    maxMediaCount: 9, // 1 for video, 9 for images
+    maxMediaCount: 20, // 1 for video, 20 for images (organizations), 9 for profiles
     characterLimits: {
       content: 3000,
     },
@@ -695,6 +695,294 @@ export class LinkedInPlatform extends BasePlatform {
     return assets;
   }
 
+  /* ──────────────────────────────────────────────────────────
+     helper – upload image for organization
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/images-api?view=li-lms-2025-07&tabs=http
+     ────────────────────────────────────────────────────────── */
+  private async uploadImageForOrganization(
+    imageUrl: string,
+    organizationUrn: string,
+    token: string
+  ): Promise<string> {
+    try {
+      // Step 1: Initialize upload
+      const initResponse = await fetch(`${config.baseUrl}/rest/images?action=initializeUpload`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202507',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          initializeUploadRequest: {
+            owner: organizationUrn
+          }
+        })
+      });
+
+      if (!initResponse.ok) {
+        const errorText = await initResponse.text();
+        throw new Error(`LinkedIn Images API Init Error: ${initResponse.status} ${initResponse.statusText} - ${errorText}`);
+      }
+
+      const initData = await initResponse.json() as {
+        value: {
+          uploadUrlExpiresAt: number;
+          uploadUrl: string;
+          image: string; // urn:li:image:...
+        }
+      };
+
+      const { uploadUrl, image: imageUrn } = initData.value;
+
+      // Step 2: Download the image from URL
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to download image from ${imageUrl}: ${imageResponse.status} ${imageResponse.statusText}`);
+      }
+
+      const imageBuffer = await imageResponse.arrayBuffer();
+      
+      // Validate image size (LinkedIn limit: 36,152,320 pixels)
+      const contentType = imageResponse.headers.get('content-type');
+      if (!contentType || !contentType.startsWith('image/')) {
+        throw new Error(`Invalid content type: ${contentType}. Expected image/*`);
+      }
+
+      // Step 3: Upload the image binary
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          'Content-Type': contentType,
+        },
+        body: imageBuffer
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        throw new Error(`LinkedIn Images API Upload Error: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+      }
+
+      return imageUrn;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to upload image for organization:', error);
+      throw error;
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – upload video for organization (new Videos API)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api?view=li-lms-2025-07&tabs=http
+     ────────────────────────────────────────────────────────── */
+  private async uploadVideoForOrganization(
+    videoUrl: string,
+    organizationUrn: string,
+    token: string
+  ): Promise<string> {
+    try {
+      // Step 1: Download video to get file size
+      const videoResponse = await fetch(videoUrl);
+      if (!videoResponse.ok) {
+        throw new Error(`Failed to download video from ${videoUrl}: ${videoResponse.status} ${videoResponse.statusText}`);
+      }
+
+      const videoBuffer = await videoResponse.arrayBuffer();
+      const fileSizeBytes = videoBuffer.byteLength;
+
+      // Validate video size (LinkedIn limit: 500MB)
+      if (fileSizeBytes > 500 * 1024 * 1024) {
+        throw new Error(`Video file size ${fileSizeBytes} bytes exceeds LinkedIn limit of 500MB`);
+      }
+
+      // Validate video format (LinkedIn supports MP4)
+      const contentType = videoResponse.headers.get('content-type');
+      if (contentType && !contentType.includes('video/mp4') && !contentType.includes('video/')) {
+        log('Warning: Video content type is not MP4:', contentType);
+      }
+
+      // Step 2: Initialize video upload
+      const initResponse = await fetch(`${config.baseUrl}/rest/videos?action=initializeUpload`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202507',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          initializeUploadRequest: {
+            owner: organizationUrn,
+            fileSizeBytes: fileSizeBytes,
+            uploadCaptions: false,
+            uploadThumbnail: false
+          }
+        })
+      });
+
+      if (!initResponse.ok) {
+        const errorText = await initResponse.text();
+        throw new Error(`LinkedIn Videos API Init Error: ${initResponse.status} ${initResponse.statusText} - ${errorText}`);
+      }
+
+      const initData = await initResponse.json() as {
+        value: {
+          uploadUrlsExpireAt: number;
+          video: string; // urn:li:video:...
+          uploadInstructions: Array<{
+            uploadUrl: string;
+            lastByte: number;
+            firstByte: number;
+          }>;
+          uploadToken: string;
+        }
+      };
+
+      const { video: videoUrn, uploadInstructions, uploadToken } = initData.value;
+
+      // Step 3: Upload video parts
+      const uploadedPartIds: string[] = [];
+      
+      for (let i = 0; i < uploadInstructions.length; i++) {
+        const instruction = uploadInstructions[i];
+        const startByte = instruction.firstByte;
+        const endByte = instruction.lastByte;
+        
+        // Extract the part of the video buffer for this upload
+        const partBuffer = videoBuffer.slice(startByte, endByte + 1);
+        
+        const uploadResponse = await fetch(instruction.uploadUrl, {
+          method: "PUT",
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          body: partBuffer
+        });
+
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          throw new Error(`LinkedIn Videos API Upload Error (part ${i + 1}): ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+        }
+
+        // Get ETag from response headers
+        const etag = uploadResponse.headers.get('etag');
+        if (!etag) {
+          throw new Error(`No ETag received for video part ${i + 1}`);
+        }
+
+        // Extract the ETag value (remove quotes if present)
+        const etagValue = etag.replace(/^"|"$/g, '');
+        uploadedPartIds.push(etagValue);
+      }
+
+      // Step 4: Finalize video upload
+      const finalizeResponse = await fetch(`${config.baseUrl}/rest/videos?action=finalizeUpload`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202507',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          finalizeUploadRequest: {
+            video: videoUrn,
+            uploadToken: uploadToken,
+            uploadedPartIds: uploadedPartIds
+          }
+        })
+      });
+
+      if (!finalizeResponse.ok) {
+        const errorText = await finalizeResponse.text();
+        throw new Error(`LinkedIn Videos API Finalize Error: ${finalizeResponse.status} ${finalizeResponse.statusText} - ${errorText}`);
+      }
+
+      // Verify the video was uploaded successfully by checking its status
+      const verifyResponse = await fetch(`${config.baseUrl}/rest/videos/${encodeURIComponent(videoUrn)}`, {
+        method: "GET",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202507'
+        }
+      });
+
+      if (verifyResponse.ok) {
+        const videoData = await verifyResponse.json() as { status: string };
+        log('Video upload verification - status:', videoData.status);
+        
+        if (videoData.status === 'PROCESSING_FAILED') {
+          throw new Error(`Video upload failed: ${videoUrn}`);
+        }
+      }
+
+      log('Successfully uploaded video for organization:', {
+        organizationUrn,
+        videoUrn,
+        videoSize: fileSizeBytes,
+        parts: uploadedPartIds.length
+      });
+
+      // Note: Video may still be processing. For production, you might want to poll the video status
+      // until it becomes "AVAILABLE" before using it in a post.
+      // For now, we'll proceed and let LinkedIn handle the processing.
+
+      return videoUrn;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to upload video for organization:', error);
+      throw error;
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – check video status and wait for availability
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/videos-api
+     ────────────────────────────────────────────────────────── */
+  private async waitForVideoAvailability(
+    videoUrn: string,
+    token: string,
+    maxWaitTimeMs: number = 60000 // 60 seconds
+  ): Promise<void> {
+    const startTime = Date.now();
+    const checkInterval = 2000; // Check every 2 seconds
+
+    while (Date.now() - startTime < maxWaitTimeMs) {
+      try {
+        const response = await fetch(`${config.baseUrl}/rest/videos/${encodeURIComponent(videoUrn)}`, {
+          method: "GET",
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202507'
+          }
+        });
+
+        if (response.ok) {
+          const videoData = await response.json() as { status: string };
+          
+          if (videoData.status === 'AVAILABLE') {
+            log('Video is now available:', videoUrn);
+            return;
+          } else if (videoData.status === 'PROCESSING_FAILED') {
+            throw new Error(`Video processing failed: ${videoUrn}`);
+          }
+          
+          log(`Video status: ${videoData.status}, waiting...`);
+        } else {
+          log(`Failed to check video status: ${response.status}`);
+        }
+      } catch (error) {
+        log('Error checking video status:', error);
+      }
+
+      // Wait before next check
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+    }
+
+    throw new Error(`Video did not become available within ${maxWaitTimeMs}ms: ${videoUrn}`);
+  }
+
   // function in which pass the page id and get the token from the supabase
   async getTokenFromSupabase(pageId: string) {
     const { data } = await supabase.from('social_pages').select('auth_token').eq('id', pageId).single();
@@ -737,8 +1025,8 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* ──────────────────────────────────────────────────────────
-     helper – publish to organization (new Posts API)
-     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2025-07&tabs=curl#text-only-post-creation-sample-request
+     helper – publish to organization
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2025-07&tabs=http
      ────────────────────────────────────────────────────────── */
   private async publishToOrganization(
     page: SocialPage,
@@ -746,16 +1034,8 @@ export class LinkedInPlatform extends BasePlatform {
     token: string,
     options?: PublishOptions
   ): Promise<PostHistory> {
-    log('Publishing to LinkedIn organization:', {
-      organizationUrn: page.pageId,
-      textLength: content.text.length,
-      scheduled: !!options?.scheduledTime
-    });
     
-    // For now, only support text posts for organizations
-    // TODO: Add media support when needed
-    
-    const postData = {
+    const postData: any = {
       author: page.pageId, // organization URN
       commentary: content.text,
       visibility: "PUBLIC",
@@ -768,21 +1048,84 @@ export class LinkedInPlatform extends BasePlatform {
       isReshareDisabledByAuthor: false
     };
 
-    const response = await fetch(`${config.baseUrl}/rest/posts`, {
-      method: "POST",
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202507',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(postData)
-    });
+          // Handle media if present
+      if (content.media && content.media.urls && content.media.urls.length > 0) {
+        if (content.media.type === 'image' || content.media.type === 'carousel') {
+          if (content.media.urls.length === 1) {
+            // Single image post
+            const imageUrn = await this.uploadImageForOrganization(
+              content.media.urls[0],
+              page.pageId,
+              token
+            );
+            
+            postData.content = {
+              media: {
+                id: imageUrn,
+                altText: content.media.altText || "LinkedIn post image"
+              }
+            };
+          } else if (content.media.urls.length >= 2 && content.media.urls.length <= 20) {
+            // Multi-image post (2-20 images)
+            const imageUrns = await Promise.all(
+              content.media.urls.map(async (url, index) => {
+                const imageUrn = await this.uploadImageForOrganization(url, page.pageId, token);
+                return {
+                  id: imageUrn,
+                  altText: content.media?.altText || `LinkedIn post image ${index + 1}`
+                };
+              })
+            );
+            
+            postData.content = {
+              multiImage: {
+                images: imageUrns
+              }
+            };
+          } else {
+            throw new Error("LinkedIn organizations support 1-20 images per post");
+          }
+        } else if (content.media.type === 'video') {
+          // Single video post
+          if (content.media.urls.length > 1) {
+            throw new Error("LinkedIn organizations only support single video posts");
+          }
+          
+          const videoUrn = await this.uploadVideoForOrganization(
+            content.media.urls[0],
+            page.pageId,
+            token
+          );
+          
+          // Wait for video to be available before posting
+          await this.waitForVideoAvailability(videoUrn, token);
+          
+          // For videos, use the media field directly without altText
+          postData.content = {
+            media: {
+              id: videoUrn
+            }
+          };
+        } else {
+          throw new Error(`Media type '${content.media.type}' is not supported for LinkedIn organizations`);
+        }
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`LinkedIn Organization API Error: ${response.status} ${response.statusText} - ${errorText}`);
-    }
+      const response = await fetch(`${config.baseUrl}/rest/posts`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202507',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(postData)
+      });
+
+          if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`LinkedIn Organization API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
 
     // Get post ID from response header
     const postId = response.headers.get('x-restli-id');

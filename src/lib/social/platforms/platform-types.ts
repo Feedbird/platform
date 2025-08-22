@@ -175,6 +175,7 @@ export interface PostContent {
     urls: string[];
     thumbnailUrl?: string;
     duration?: number;
+    altText?: string;
   };
   link?: {
     url: string;
