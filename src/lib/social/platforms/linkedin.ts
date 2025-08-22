@@ -213,6 +213,71 @@ export class LinkedInPlatform extends BasePlatform {
       statusUpdatedAt: new Date(),
       metadata: acc.metadata || {},
     });
+      try {
+
+        // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-access-control-by-role?view=li-lms-2025-08&tabs=http#sample-request
+        const orgs = await this.fetchWithAuth<{
+          elements: Array<{
+            roleAssignee: string;
+            state: string;
+            organizationalTarget: string;
+            role: string;
+          }>;
+        }>(`${config.baseUrl}/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR`, {
+          token: acc.authToken || ''
+        });
+  
+        // Get details for each organization
+        for (const org of orgs.elements) {
+          if (org.state === 'APPROVED' && org.role === 'ADMINISTRATOR') {
+            const orgId = org.organizationalTarget.split(':').pop();
+            const orgDetails = await this.fetchWithAuth<{
+              vanityName: string;
+              localizedName: string;
+              groups: any[];
+              versionTag: string;
+              organizationType: string;
+              defaultLocale: { country: string; language: string };
+              alternativeNames: any[];
+              specialties: any[];
+              staffCountRange: string;
+              localizedSpecialties: any[];
+              industries: string[];
+              name: {
+                localized: { [key: string]: string };
+                preferredLocale: { country: string; language: string };
+              };
+              primaryOrganizationType: string;
+              locations: any[];
+              id: number;
+              '$URN': string;
+              logoV2: {
+                cropped: string;
+                original: string;
+                cropInfo: { x: number; width: number; y: number; height: number };
+              };
+            }>(`${config.baseUrl}/v2/organizations/${orgId}`, {
+              token: acc.authToken || ''
+            });
+  
+            pages.push({
+              id         : crypto.randomUUID(),
+              platform   : "linkedin",
+              entityType : "organization",
+              name       : orgDetails.localizedName,
+              pageId     : org.organizationalTarget,
+              authToken  : acc.authToken || '',
+              connected  : true,
+              status     : "active",
+              accountId  : org.roleAssignee,
+              statusUpdatedAt: new Date(),
+              metadata: orgDetails
+            });
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
 
     return pages;
   }
