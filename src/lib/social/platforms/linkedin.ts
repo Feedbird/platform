@@ -200,6 +200,13 @@ export class LinkedInPlatform extends BasePlatform {
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
     const pages: SocialPage[] = [];
 
+    const authToken = acc.authToken;
+    const authTokenExpiresAt = acc.accessTokenExpiresAt;
+
+    if(!authToken || !authTokenExpiresAt) {
+      throw new Error('No auth token found or auth token expires at found. Please reconnect your LinkedIn account.');
+    }
+
     // Add personal profile directly from the SocialAccount object.
     pages.push({
       id         : crypto.randomUUID(),
@@ -207,8 +214,8 @@ export class LinkedInPlatform extends BasePlatform {
       entityType : "profile",
       name       : acc.name,
       pageId     : `urn:li:person:${acc.accountId}`, // Construct the URN from the ID
-      authToken  : acc.authToken || '',
-      authTokenExpiresAt: acc.accessTokenExpiresAt,
+      authToken,
+      authTokenExpiresAt,
       connected  : true,
       status     : "active",
       accountId  : acc.id,
@@ -248,7 +255,7 @@ export class LinkedInPlatform extends BasePlatform {
               }>;
             };
           }>(`${config.baseUrl}/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED&count=${count}&start=${start}`, {
-            token: acc.authToken || ''
+            token: authToken
           });
 
           allOrgs = allOrgs.concat(orgsResponse.elements);
@@ -288,13 +295,13 @@ export class LinkedInPlatform extends BasePlatform {
                 cropInfo: { x: number; width: number; y: number; height: number };
               };
             }>(`${config.baseUrl}/v2/organizations/${orgId}`, {
-              token: acc.authToken || ''
+              token: authToken
             });
 
                         // Fetch follower count for the organization
             let followerCount = 0;
             try {
-              followerCount = await this.getOrganizationFollowerCount(org.organizationalTarget, acc.authToken || '');
+              followerCount = await this.getOrganizationFollowerCount(org.organizationalTarget, authToken);
             } catch (error) {
               console.warn('[LinkedIn] Could not fetch follower count for organization:', orgDetails.localizedName, error);
             }
@@ -305,8 +312,8 @@ export class LinkedInPlatform extends BasePlatform {
               entityType : "organization",
               name       : orgDetails.localizedName,
               pageId     : org.organizationalTarget,
-              authToken  : acc.authToken || '',
-              authTokenExpiresAt: acc.accessTokenExpiresAt,
+              authToken,
+              authTokenExpiresAt,
               connected  : true,
               status     : "active",
               accountId  : org.roleAssignee,
