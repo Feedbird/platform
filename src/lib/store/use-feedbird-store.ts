@@ -324,7 +324,8 @@ export interface FeedbirdStore {
   getActiveBrand: () => Brand | undefined;
   getActivePosts: () => Post[];
   getAllPosts: () => Post[];
-  syncPostHistory: (brandId: string, pageId: string) => Promise<void>;
+  syncPostHistory: (brandId: string, pageId: string, cursor?: number) => Promise<void>;
+  loadMorePostHistory: (brandId: string, pageId: string) => Promise<void>;
   publishPostToAllPages: (postId: string, scheduledTime?: Date) => Promise<void>;
   getPost: (id: string) => Post | undefined;
   updatePost: (pid: string, data: Partial<Post>) => Promise<void>;
@@ -941,7 +942,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           );
         },
 
-        syncPostHistory: (brandId, pageId) => {
+        syncPostHistory: (brandId, pageId, cursor?: number) => {
           return withLoading(
             async () => {
               const workspace = get().getActiveWorkspace();
@@ -956,25 +957,73 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               const ops = getPlatformOperations(page.platform);
               if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
 
-              const fetched = await ops.getPostHistory(page, 20);
+              const fetched = await ops.getPostHistory(page, 20, cursor);
               
-              set((state) => ({
-                postHistory: { ...state.postHistory, [pageId]: fetched },
-                workspaces: state.workspaces.map((w) => ({
-                  ...w,
-                  brand: w.brand && w.brand.id === brandId ? {
-                    ...w.brand,
-                    socialPages: w.brand.socialPages.map((sp) =>
-                      sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
-                    ),
-                  } : w.brand,
-                })),
-              }));
+              set((state) => {
+                const existingHistory = state.postHistory[pageId] || [];
+                const newHistory = cursor ? [...existingHistory, ...fetched] : fetched;
+                
+                return {
+                  postHistory: { ...state.postHistory, [pageId]: newHistory },
+                  workspaces: state.workspaces.map((w) => ({
+                    ...w,
+                    brand: w.brand && w.brand.id === brandId ? {
+                      ...w.brand,
+                      socialPages: w.brand.socialPages.map((sp) =>
+                        sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
+                      ),
+                    } : w.brand,
+                  })),
+                };
+              });
             },
             {
               loading: "Syncing post history...",
               success: "Post history synced successfully!",
               error: "Failed to sync post history."
+            }
+          );
+        },
+
+        loadMorePostHistory: (brandId, pageId) => {
+          return withLoading(
+            async () => {
+              const workspace = get().getActiveWorkspace();
+              if (!workspace?.brand || workspace.brand.id !== brandId) {
+                throw new Error("Brand not found");
+              }
+
+              const brand = workspace.brand;
+              const page = brand.socialPages.find(p => p.id === pageId);
+              if (!page) throw new Error("Page not found");
+
+              const ops = getPlatformOperations(page.platform);
+              if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
+
+              // Get current history to determine next cursor
+              const currentHistory = get().postHistory[pageId] || [];
+              const lastPost = currentHistory[currentHistory.length - 1];
+              const nextCursor = lastPost?.analytics?.metadata?.pagination?.nextCursor;
+
+              if (!nextCursor) {
+                throw new Error("No more posts to load");
+              }
+
+              const fetched = await ops.getPostHistory(page, 20, nextCursor);
+              
+              set((state) => {
+                const existingHistory = state.postHistory[pageId] || [];
+                const newHistory = [...existingHistory, ...fetched];
+                
+                return {
+                  postHistory: { ...state.postHistory, [pageId]: newHistory },
+                };
+              });
+            },
+            {
+              loading: "Loading more posts...",
+              success: "More posts loaded successfully!",
+              error: "Failed to load more posts."
             }
           );
         },

@@ -1378,7 +1378,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 5 — optional history using fetchWithAuth */
-  async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
+  async getPostHistory(pg: SocialPage, limit = 20, cursor?: number): Promise<PostHistory[]> {
     if (IS_BROWSER) {
       const res = await fetch("/api/social/linkedin/history", {
         method: "POST",
@@ -1386,6 +1386,7 @@ export class LinkedInPlatform extends BasePlatform {
         body: JSON.stringify({
           page: pg,
           limit,
+          cursor,
         })
       });
       if (!res.ok) throw new Error(await res.text());
@@ -1396,15 +1397,15 @@ export class LinkedInPlatform extends BasePlatform {
       // Only support organization pages for now since we need r_organization_social permission
       if (pg.entityType !== 'organization') {
         console.warn('[LinkedIn] Post history only supported for organization pages');
-    return [];
-  }
+        return [];
+      }
 
       const token = await this.getToken(pg.id);
       if (!token) {
         throw new Error("Token not found");
       }
 
-      const posts = await this.getOrganizationPosts(pg.pageId, token, limit);
+      const posts = await this.getOrganizationPosts(pg.pageId, token, limit, cursor);
       return posts;
     } catch (error) {
       console.error('[LinkedIn] Failed to get post history:', error);
@@ -1419,10 +1420,16 @@ export class LinkedInPlatform extends BasePlatform {
   private async getOrganizationPosts(
     organizationUrn: string,
     token: string,
-    limit: number = 20
+    limit: number = 20,
+    cursor?: number
   ): Promise<PostHistory[]> {
     try {
-      const url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
+      let url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
+      
+      // Add pagination cursor if provided
+      if (cursor !== undefined) {
+        url += `&start=${cursor}`;
+      }
       
       const response = await fetch(url, {
         method: "GET",
@@ -1479,8 +1486,8 @@ export class LinkedInPlatform extends BasePlatform {
 
       const resolvedPosts: PostHistory[] = [];
 
-        for (const post of data.elements || []) {
-          // Extract media URNs if present
+      for (const post of data.elements || []) {
+        // Extract media URNs if present
         let mediaUrns: string[] = [];
         if (post.content?.media?.id) {
           mediaUrns.push(post.content.media.id);
@@ -1512,7 +1519,14 @@ export class LinkedInPlatform extends BasePlatform {
                        post.content?.article ? 'article' : 'text',
               isReshare: !!post.reshareContext,
               visibility: post.visibility,
-              mediaTypes: mediaTypes // Store media types for frontend use
+              mediaTypes: mediaTypes, // Store media types for frontend use
+              // Add pagination metadata
+              pagination: {
+                start: data.paging.start,
+                count: data.paging.count,
+                hasMore: data.paging.links.some(link => link.rel === 'next'),
+                nextCursor: data.paging.start + data.paging.count
+              }
             }
           }
         });

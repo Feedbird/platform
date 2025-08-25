@@ -19,6 +19,7 @@ export default function SocialPagePosts() {
   const brandId          = useFeedbirdStore(s => s.activeBrandId);
   const postHistory      = useFeedbirdStore(s => s.postHistory);
   const syncPostHistory  = useFeedbirdStore(s => s.syncPostHistory);
+  const loadMorePostHistory = useFeedbirdStore(s => s.loadMorePostHistory);
   const deletePagePost   = useFeedbirdStore(s => s.deletePagePost);
   const brand            = useFeedbirdStore(s => s.getActiveBrand());
   
@@ -143,6 +144,14 @@ export default function SocialPagePosts() {
     );
   }, [executeWithLoading, syncHistory]);
 
+  const handleLoadMore = useCallback(async () => {
+    if (!brandId || !pageId) return;
+    
+    await executeWithLoading(async () => {
+      await loadMorePostHistory(brandId, pageId);
+    }, "Loading more posts...");
+  }, [brandId, pageId, loadMorePostHistory, executeWithLoading]);
+
   // Determine if we're really loading (either local state or store state)
   const isReallyLoading = isInitialLoading || isStoreSyncing;
 
@@ -194,6 +203,19 @@ export default function SocialPagePosts() {
         ) : (
           <div className="text-gray-500 text-center py-8">
             No posts found for this page
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {history.length > 0 && (
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="outline"
+              onClick={handleLoadMore}
+              disabled={isStoreSyncing}
+            >
+              {isStoreSyncing ? 'Loading...' : 'Load More Posts'}
+            </Button>
           </div>
         )}
       </div>
