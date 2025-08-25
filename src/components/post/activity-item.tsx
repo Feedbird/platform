@@ -13,6 +13,21 @@ interface ActivityItemProps {
 }
 
 export function ActivityItem({ activity, onViewVersionHistory, onRevertApproval }: ActivityItemProps) {
+  const getActorDisplayName = (actorId: string, actor?: any) => {
+    // If we have actor data from the database, use it
+    if (actor) {
+      if (actor.first_name) {
+        return actor.first_name;
+      }
+      if (actor.email) {
+        // Fallback to email if no first name
+        return actor.email.split('@')[0];
+      }
+    }
+    // Final fallback to a shortened version of the ID
+    return actorId.substring(0, 8) + '...';
+  };
+
   const getActivityIcon = () => {
     switch (activity.type) {
       case 'revision_request':
@@ -27,6 +42,10 @@ export function ActivityItem({ activity, onViewVersionHistory, onRevertApproval 
         return '/images/status/published.svg';
       case 'failed_publishing':
         return '/images/status/failed-publishing.svg';
+      case 'workspace_invited_sent':
+        return '/images/status/draft.svg'; // You can change this to a more appropriate icon
+      case 'board_invited_sent':
+        return '/images/status/draft.svg'; // You can change this to a more appropriate icon
       default:
         return '/images/status/draft.svg';
     }
@@ -41,7 +60,7 @@ export function ActivityItem({ activity, onViewVersionHistory, onRevertApproval 
               Revision requested by 
             </span>
             <span className="text-sm font-medium text-black">
-              {' ' + activity.actor}
+              {' ' + getActorDisplayName(activity.actorId, (activity as any).actor)}
             </span>
           </div>
         );
@@ -66,7 +85,7 @@ export function ActivityItem({ activity, onViewVersionHistory, onRevertApproval 
             Approved by
             </span>
             <span className="text-sm font-medium text-black">
-              {' ' + activity.actor}
+              {' ' + getActorDisplayName(activity.actorId, (activity as any).actor)}
             </span>
           </div>
         );
@@ -100,10 +119,40 @@ export function ActivityItem({ activity, onViewVersionHistory, onRevertApproval 
             Failed Publishing
           </span>
         );
+      case 'workspace_invited_sent':
+        const workspaceMetadata = activity.metadata as { invitedEmail?: string; workspaceId?: string } | undefined;
+        return (
+          <div>
+            <span className="text-sm font-medium text-darkGrey">
+              Invited
+            </span>
+            <span className="text-sm font-medium text-black">
+              {' ' + (workspaceMetadata?.invitedEmail || 'someone')}
+            </span>
+            <span className="text-sm font-medium text-darkGrey">
+              {' to workspace'}
+            </span>
+          </div>
+        );
+      case 'board_invited_sent':
+        const boardMetadata = activity.metadata as { invitedEmail?: string; boardId?: string; workspaceId?: string } | undefined;
+        return (
+          <div>
+            <span className="text-sm font-medium text-darkGrey">
+              Invited
+            </span>
+            <span className="text-sm font-medium text-black">
+              {' ' + (boardMetadata?.invitedEmail || 'someone')}
+            </span>
+            <span className="text-sm font-medium text-darkGrey">
+              {' to board'}
+            </span>
+          </div>
+        );
       default:
         return (
           <span className="text-sm font-medium text-darkGrey">
-            {activity.action}
+            {activity.type}
           </span>
         );
     }
@@ -155,7 +204,7 @@ export function ActivityItem({ activity, onViewVersionHistory, onRevertApproval 
         </div>
          <span className="text-xs text-grey">
            {(() => {
-             const at = activity.at instanceof Date ? activity.at : new Date(activity.at as any);
+             const at = activity.createdAt instanceof Date ? activity.createdAt : new Date(activity.createdAt as any);
              return isNaN(at.getTime()) ? '' : format(at, "MMM d, p");
            })()}
          </span>

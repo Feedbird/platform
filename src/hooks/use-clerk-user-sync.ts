@@ -35,7 +35,9 @@ export function useClerkUserSync() {
                 firstName: dbUser.first_name || undefined,
                 lastName: dbUser.last_name || undefined,
                 imageUrl: dbUser.image_url || undefined,
-                unreadMsg: dbUser.unread_msg || [],
+                unread_msg: dbUser.unread_msg || [],
+                unread_notification: dbUser.unread_notification || [],
+                notification_settings: dbUser.notification_settings || [],
                 createdAt: new Date(dbUser.created_at),
               });
             }

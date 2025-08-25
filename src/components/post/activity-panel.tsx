@@ -37,7 +37,6 @@ import { StatusChip } from "@/components/content/shared/content-post-ui";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ActivityItem } from "./activity-item";
-import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 import { formatTimeAgo } from "@/lib/utils";
 
 // using shared formatTimeAgo from utils
@@ -212,7 +211,6 @@ export function RevisionComment({
   const commentContentRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const [lineStyle, setLineStyle] = useState<React.CSSProperties>({});
-  console.log("comment: ", c);
   useLayoutEffect(() => {
     const calculateLineStyle = () => {
       if (showCommentReplies && replies.length > 0 && commentContentRef.current && lastMessageRef.current) {
@@ -358,13 +356,29 @@ export function ActivityPanel({
   const addBlockComment = useFeedbirdStore((s) => s.addBlockComment);
   const addVersionComment = useFeedbirdStore((s) => s.addVersionComment);
 
+  // Get user information from the store
+  const getActorDisplayName = (actorId: string, actor?: any) => {
+    // If we have actor data from the database, use it
+    if (actor) {
+      if (actor.first_name) {
+        return actor.first_name;
+      }
+      if (actor.email) {
+        // Fallback to email if no first name
+        return actor.email.split('@')[0];
+      }
+    }
+    // Final fallback to a shortened version of the ID
+    return actorId.substring(0, 8) + '...';
+  };
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   
   // comments data
   let comments: BaseComment[] = post.comments;
   // activities data
   const activities: Activity[] = post.activities;
-
+  console.log('#################activities', post);
   // Local state for composer
   const [input, setInput] = useState("");
   const [emoji, setEmoji] = useState(false);
@@ -433,18 +447,34 @@ export function ActivityPanel({
       const commentId = await addPostComment(post.id, input.trim(), reply?.id, markAsRevision);
       
       // Add revision request activity if marked as revision
+      const addActivity = useFeedbirdStore.getState().addActivity;
+      const workspace = useFeedbirdStore.getState().getActiveWorkspace();
       if (markAsRevision) {
-        const addActivity = useFeedbirdStore.getState().addActivity;
-        addActivity({
-          postId: post.id,
-          actor: getCurrentUserDisplayName(),
-          action: "requested changes",
-          type: "revision_request",
-          metadata: {
-            revisionComment: input.trim(),
-            commentId: commentId // Store the actual comment ID
-          }
-        });
+        if (workspace) {
+          addActivity({
+            postId: post.id,
+            workspaceId: workspace.id,
+            actorId: useFeedbirdStore.getState().user?.id || '',
+            type: "revision_request",
+            metadata: {
+              revisionComment: input.trim(),
+              commentId: commentId // Store the actual comment ID
+            }
+          });
+        }
+      } else {
+        if (workspace) {
+          addActivity({
+            postId: post.id,
+            workspaceId: workspace.id,
+            actorId: useFeedbirdStore.getState().user?.id || '',
+            type: "comment",
+            metadata: {
+              revisionComment: input.trim(),
+              commentId: commentId // Store the actual comment ID
+            }
+          });
+        }
       }
 
       setInput("");
@@ -477,9 +507,8 @@ export function ActivityPanel({
     });
     return count;
   };
-
   // Create refs and state for all activities at once
-  const sortedActivities = activities.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  const sortedActivities = activities.filter((a) => a.type !== 'comment').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const activityRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [lineHeights, setLineHeights] = useState<number[]>([]);
 
@@ -571,7 +600,7 @@ export function ActivityPanel({
           // For posts, show activities and comments in unified timeline
           (activities.length > 0 ) ? (
             <ScrollArea className="flex-1 min-h-0 p-4 pb-[130px]">
-                             <div className="relative">
+              <div className="relative">
                  {sortedActivities.map((activity, index) => {
                    const matchingComment = comments.find(
                      (c) => c.id === activity.metadata?.commentId
@@ -612,10 +641,10 @@ export function ActivityPanel({
                              c={{
                                id: activity.metadata.commentId,
                                text: activity.metadata.revisionComment,
-                               author: activity.actor,
+                               author: getActorDisplayName(activity.actorId, activity.actor),
                                authorEmail: matchingComment?.authorEmail,
                                authorImageUrl: matchingComment?.authorImageUrl,
-                               createdAt: activity.at,
+                               createdAt: activity.createdAt,
                                parentId: undefined,
                              } as BaseComment}
                              all={comments}

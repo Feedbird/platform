@@ -187,19 +187,19 @@
     }
   
     /* connectPage = instant client-side move */
-    async connectPage(acc: SocialAccount, boardId: string): Promise<SocialPage> {
+    async connectPage(acc: SocialAccount, board_id: string): Promise<SocialPage> {
       if (IS_BROWSER) {
         const res = await fetch('/api/social/pinterest/board', {
           method : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body   : JSON.stringify({ token: acc.authToken || '', boardId }),
+          body   : JSON.stringify({ token: acc.authToken || '', board_id }),
         })
         if (!res.ok) throw new Error(await res.text())
         return res.json()
       }
   
       const b = await pinFetch<{ id:string; name:string }>(
-        `${this.baseUrl}/boards/${encodeURIComponent(boardId)}`,
+        `${this.baseUrl}/boards/${encodeURIComponent(board_id)}`,
         { headers:{ Authorization:`Bearer ${acc.authToken || ''}` } },
       )
   

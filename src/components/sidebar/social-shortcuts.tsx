@@ -26,6 +26,7 @@ import {
 export default function SocialShortcuts() {
   const pathname = usePathname();
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const { state } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
 
@@ -56,7 +57,7 @@ export default function SocialShortcuts() {
             )}
           >
             <Link
-              href={`/social/${page.id}`}
+              href={activeWorkspace ? `/${activeWorkspace.id}/social/${page.id}` : `/social/${page.id}`}
               className="flex items-center gap-2"
             >
               <Image
@@ -82,7 +83,7 @@ export default function SocialShortcuts() {
             )}
           >
             <Link
-              href={`/social/${page.id}`}
+              href={activeWorkspace ? `/${activeWorkspace.id}/social/${page.id}` : `/social/${page.id}`}
               className="flex items-center justify-center w-full"
             >
               <Image

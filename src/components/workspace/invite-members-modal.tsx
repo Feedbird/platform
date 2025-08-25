@@ -19,6 +19,7 @@ interface InviteMembersModalProps {
 }
 
 export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
+  const user = useFeedbirdStore((s) => s.user);
   const workspaces = useFeedbirdStore((s) => s.workspaces);
 
   const [email, setEmail] = React.useState("");
@@ -62,17 +63,17 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
     return undefined;
   };
 
-  const toggleBoard = (boardId: string) => {
+  const toggleBoard = (board_id: string) => {
     // board disabled if its workspace selected
-    const board = workspaces.flatMap((w) => w.boards).find((b) => b.id === boardId);
+    const board = workspaces.flatMap((w) => w.boards).find((b) => b.id === board_id);
     if (!board) return;
-    const wsId = findWsIdForBoard(boardId);
+    const wsId = findWsIdForBoard(board_id);
     if (wsId && selectedWorkspaces.has(wsId)) {
       return; // ignore when parent workspace selected
     }
     const newSet = new Set(selectedBoards);
-    if (newSet.has(boardId)) newSet.delete(boardId);
-    else newSet.add(boardId);
+    if (newSet.has(board_id)) newSet.delete(board_id);
+    else newSet.add(board_id);
     setSelectedBoards(newSet);
   };
 
@@ -102,6 +103,7 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
           const wsId = findWsIdForBoard(bid);
           return !selectedWorkspaces.has(wsId ?? '');
         }),
+        actorId: user?.id, // Pass current user ID for activity logging
       });
       
       // Handle different response types
@@ -192,7 +194,7 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleSend} disabled={submitting}>
+          <Button onClick={handleSend} disabled={submitting} className="text-white bg-main hover:bg-main/90">
             {submitting ? "Sending..." : "Send invite"}
           </Button>
         </DialogFooter>

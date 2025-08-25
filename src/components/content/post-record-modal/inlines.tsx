@@ -14,7 +14,6 @@ import { Platform } from "@/lib/social/platforms/platform-types";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { StatusChip, ChannelIcons, FormatBadge } from "@/components/content/shared/content-post-ui";
 import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
-import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 import { format } from "date-fns";
 import {
   ChevronDown as ChevronDownIcon,
@@ -233,8 +232,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      actor: getCurrentUserDisplayName(),
-      action: "auto-scheduled this post",
+      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useFeedbirdStore.getState().user?.id || '',
       type: "scheduled",
       metadata: {
         publishTime: scheduledDate
@@ -250,8 +249,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      actor: getCurrentUserDisplayName(),
-      action: "scheduled this post",
+      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useFeedbirdStore.getState().user?.id || '',
       type: "scheduled",
       metadata: {
         publishTime: dt
@@ -266,8 +265,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      actor: getCurrentUserDisplayName(),
-      action: "scheduled this post",
+      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useFeedbirdStore.getState().user?.id || '',
       type: "scheduled",
       metadata: {
         publishTime: post.publish_date || new Date()
@@ -284,8 +283,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add publishing activity
     addActivity({
       postId: post.id,
-      actor: getCurrentUserDisplayName(),
-      action: "published this post",
+      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useFeedbirdStore.getState().user?.id || '',
       type: "published",
       metadata: {
         publishTime

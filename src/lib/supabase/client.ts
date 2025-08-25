@@ -6,6 +6,29 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Database types based on the schema
+export interface NotificationSettings {
+  workspace_id: string
+  settings: {
+    communication: {
+      enabled: boolean
+      commentsAndMentions: boolean
+    }
+    boards: {
+      enabled: boolean
+      pendingApproval: boolean
+      scheduled: boolean
+      published: boolean
+      boardInviteSent: boolean
+      boardInviteAccepted: boolean
+    }
+    workspaces: {
+      enabled: boolean
+      workspaceInviteSent: boolean
+      workspaceInviteAccepted: boolean
+    }
+  }
+}
+
 export interface User {
   id: string
   email: string
@@ -13,6 +36,8 @@ export interface User {
   last_name?: string
   image_url?: string
   unread_msg?: string[]
+  unread_notification: string[]
+  notification_settings?: NotificationSettings[]
   created_at: string
   updated_at: string
 }

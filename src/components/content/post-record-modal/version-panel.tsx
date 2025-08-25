@@ -144,7 +144,7 @@ export function VersionPanel({ post, onPreviewVersion }: VersionPanelProps) {
   const handleRestoreVersion = (block: Block, version: Version) => {
     // Create a new version that duplicates the selected version
     const newVersionId = addVersion(post.id, block.id, {
-      by: getCurrentUserDisplayName(),
+      by: useFeedbirdStore.getState().user?.firstName || useFeedbirdStore.getState().user?.email?.split('@')[0] || 'User',
       caption: version.caption,
       file: version.file
     });
@@ -155,8 +155,8 @@ export function VersionPanel({ post, onPreviewVersion }: VersionPanelProps) {
     // Add activity to track this action
     addActivity({
       postId: post.id,
-      actor: getCurrentUserDisplayName(),
-      action: "restored a previous version",
+      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useFeedbirdStore.getState().user?.id || '',
       type: "revised",
       metadata: {
         versionNumber: block.versions.length + 1

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase/client'
 import { clerkClient } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 
 // -----------------------------
 // Request validation
@@ -9,37 +10,38 @@ import { clerkClient } from '@clerk/nextjs/server'
 const InviteSchema = z.object({
   email: z.string().email('Valid email is required'),
   workspaceIds: z.array(z.string().uuid()).default([]),
-  boardIds: z.array(z.string().uuid()).default([])
+  boardIds: z.array(z.string().uuid()).default([]),
+  actorId: z.string().optional() // Optional user ID for activity logging
 })
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { email, workspaceIds, boardIds } = InviteSchema.parse(body)
+    const { email, workspaceIds, boardIds, actorId } = InviteSchema.parse(body)
 
     // ------------------------------------------------------------
     // 1️⃣  Send invitation via Clerk
     // ------------------------------------------------------------
     let clerkInvitationSent = false
-    try {
-        const clerk = await clerkClient()      
-        await clerk.invitations.createInvitation({
-          emailAddress: email,
-          redirectUrl: process.env.CLERK_INVITE_REDIRECT_URL,
-        })
-        clerkInvitationSent = true
-    } catch (err: any) {
-      // Check if it's an existing invitation error
-      if (err?.message?.includes('already exists') || 
-          err?.message?.includes('already invited') ||
-          err?.message?.includes('duplicate')) {
-        console.log('Clerk invitation already exists for:', email)
-      } else {
-        console.error('Clerk invitation error:', err)
-        // For other errors, we'll still proceed with database operations
-        // but note that Clerk invitation failed
-      }
-    }
+    // try {
+    //     const clerk = await clerkClient()      
+    //     await clerk.invitations.createInvitation({
+    //       emailAddress: email,
+    //       redirectUrl: process.env.CLERK_INVITE_REDIRECT_URL,
+    //     })
+    //     clerkInvitationSent = true
+    // } catch (err: any) {
+    //   // Check if it's an existing invitation error
+    //   if (err?.message?.includes('already exists') || 
+    //       err?.message?.includes('already invited') ||
+    //       err?.message?.includes('duplicate')) {
+    //     console.log('Clerk invitation already exists for:', email)
+    //   } else {
+    //     console.error('Clerk invitation error:', err)
+    //     // For other errors, we'll still proceed with database operations
+    //     // but note that Clerk invitation failed
+    //   }
+    // }
 
     // ------------------------------------------------------------
     // 2️⃣  Prepare rows for `members` table
@@ -152,6 +154,66 @@ export async function POST(req: NextRequest) {
     if (insertErr) {
       console.error('Supabase insert error:', insertErr)
       return NextResponse.json({ error: 'Failed to save members' }, { status: 500 })
+    }
+
+    // ------------------------------------------------------------
+    // 5️⃣  Create activities for workspace and board invitations
+    // ------------------------------------------------------------
+    try {
+      // TODO: Fix authentication - Clerk auth() returns null because frontend doesn't send auth headers
+      // For now, we'll try to get user ID from Clerk auth, but fall back to actorId from request body
+      console.log("actorId: ", actorId);
+      
+      if (actorId) {
+        const activityPromises: any[] = []
+
+        // Create individual activity for each invitation
+        newRows.forEach(row => {
+          if (row.is_workspace) {
+            // Create workspace invitation activity
+            const workspaceMetadata = {
+              invitedEmail: email,
+              workspaceId: row.workspace_id
+            }
+
+            const workspaceActivity = supabase
+              .from('activities')
+              .insert({
+                workspace_id: row.workspace_id,
+                post_id: null,
+                type: 'workspace_invited_sent',
+                actor_id: actorId,
+                metadata: workspaceMetadata
+              })
+            activityPromises.push(workspaceActivity)
+          } else {
+            // Create board invitation activity
+            const boardMetadata = {
+              invitedEmail: email,
+              boardId: row.board_id,
+              workspaceId: row.workspace_id
+            }
+
+            const boardActivity = supabase
+              .from('activities')
+              .insert({
+                workspace_id: row.workspace_id,
+                post_id: null,
+                type: 'board_invited_sent',
+                actor_id: actorId,
+                metadata: boardMetadata
+              })
+            activityPromises.push(boardActivity)
+          }
+        })
+
+        console.log(`Creating ${activityPromises.length} individual invitation activities`);
+        // Execute all activity insertions
+        await Promise.all(activityPromises)
+      }
+    } catch (activityError) {
+      // Log the error but don't fail the request since the main invitation was successful
+      console.error('Error creating invitation activities:', activityError)
     }
 
     // Return appropriate message based on whether Clerk invitation was sent

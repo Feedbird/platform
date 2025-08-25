@@ -59,7 +59,7 @@ export function ApprovalsInner() {
 
       {openPostId && (
         <PostRecordModal
-          postId={openPostId}
+          selectedPost={posts.find(p => p.id === openPostId)!}
           open
           onClose={() => setOpenPostId(null)}
         />
