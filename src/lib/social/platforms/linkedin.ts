@@ -1727,7 +1727,54 @@ export class LinkedInPlatform extends BasePlatform {
     const totalEngagement = (analytics.reactions || 0) + (analytics.comments || 0) + (analytics.reshares || 0);
     return Math.round((totalEngagement / reach) * 10000) / 100; // Return as percentage with 2 decimal places
   }
-  async deletePost()       { /* not supported for member UGC */ }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – delete a post
+     ────────────────────────────────────────────────────────── */
+  async deletePost(page: SocialPage, postId: string): Promise<void> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/linkedin/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, postId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return;
+    }
+
+    // Check if this is an organization page (required for deletion)
+    if (page.entityType !== 'organization') {
+      throw new Error('LinkedIn post deletion is only supported for organization pages, not personal profiles');
+    }
+
+  
+    const token = await this.getToken(page.id);
+    if(!token) {
+      throw new Error('No token found for page');
+    }
+
+    // LinkedIn API requires the post URN to be URL-encoded
+    const encodedPostUrn = encodeURIComponent(postId);
+    
+    // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2025-08&tabs=curl#delete-posts
+    const response = await fetch(`${config.baseUrl}/rest/posts/${encodedPostUrn}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'LinkedIn-Version': '202507',
+        'X-Restli-Protocol-Version': '2.0.0',
+        'X-RestLi-Method': 'DELETE'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[LinkedIn] Delete post failed: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to delete LinkedIn post: ${response.status} - ${errorText}`);
+    }
+
+    log(`Successfully deleted post ${postId}`);
+  }
 
   async createPost(
     page: SocialPage,
