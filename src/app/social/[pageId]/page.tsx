@@ -225,6 +225,43 @@ function PostCard({
       <div className="flex flex-col gap-3 mb-3 mt-2">
         {post.mediaUrls.map((url, idx) => {
           const isVideo = isVideoUrl(url);
+          
+          /* ——— LINKEDIN MEDIA (using metadata) ——— */
+          if (post.analytics?.metadata?.platform === 'linkedin') {
+            const mediaType = post.analytics?.metadata?.mediaTypes?.[idx];
+
+            if (mediaType === 'image') {
+              return (
+                <div key={idx} className="relative w-full h-auto">
+                  <img
+                    src={url}
+                    alt={`LinkedIn post image ${idx + 1}`}
+                    width={600}
+                    height={400}
+                    className="object-cover rounded-md"
+                    style={{ maxHeight: 400, width: "100%", height: "auto" }}
+                    loading="lazy"
+                    onError={(e) => {
+                      console.error('Failed to load LinkedIn image:', url);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              );
+            } else if (mediaType === 'video') {
+              return (
+                <video
+                  key={idx}
+                  src={url}
+                  controls
+                  className="w-full rounded-md"
+                  style={{ maxHeight: 400 }}
+                  preload="metadata"
+                  crossOrigin="anonymous"
+                />
+              );
+            }
+          }
 
           /* ——— YOUTUBE / VIMEO ——— */
           if (/youtube\.com|youtu\.be/.test(url)) {
