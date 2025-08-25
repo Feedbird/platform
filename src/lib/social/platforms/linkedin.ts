@@ -1862,12 +1862,6 @@ export class LinkedInPlatform extends BasePlatform {
         }
       }
 
-      console.log(`[LinkedIn] Asset ${assetId} resolved:`, {
-        imageUrl: bestImageUrl,
-        videoUrl: bestVideoUrl,
-        documentUrl: bestDocumentUrl
-      });
-
       return {
         imageUrl: bestImageUrl,
         videoUrl: bestVideoUrl,
@@ -1889,7 +1883,6 @@ export class LinkedInPlatform extends BasePlatform {
       return resolvedMedia;
     }
 
-    console.log(`[LinkedIn] Resolving ${mediaUrns.length} media URNs to URLs...`);
     
     for (const urn of mediaUrns) {
       const assetId = this.extractAssetIdFromUrn(urn);
@@ -1898,7 +1891,6 @@ export class LinkedInPlatform extends BasePlatform {
         continue;
       }
 
-      console.log(`[LinkedIn] Resolving asset ID: ${assetId} from URN: ${urn}`);
       
       // Determine media type from URN first
       let mediaType: 'image' | 'video' | 'document' = 'document';
@@ -1915,13 +1907,10 @@ export class LinkedInPlatform extends BasePlatform {
       
       if (mediaType === 'image' && artifacts.imageUrl) {
         resolvedUrl = artifacts.imageUrl;
-        console.log(`[LinkedIn] Resolved to image URL: ${resolvedUrl}`);
       } else if (mediaType === 'video' && artifacts.videoUrl) {
         resolvedUrl = artifacts.videoUrl;
-        console.log(`[LinkedIn] Resolved to video URL: ${resolvedUrl}`);
       } else if (mediaType === 'document' && artifacts.documentUrl) {
         resolvedUrl = artifacts.documentUrl;
-        console.log(`[LinkedIn] Resolved to document URL: ${resolvedUrl}`);
       } else {
         console.warn(`[LinkedIn] No ${mediaType} URL found for asset: ${assetId}`);
       }
@@ -1931,7 +1920,6 @@ export class LinkedInPlatform extends BasePlatform {
       }
     }
     
-    console.log(`[LinkedIn] Successfully resolved ${resolvedMedia.length}/${mediaUrns.length} media URLs`);
     return resolvedMedia;
   }
 }
