@@ -66,11 +66,11 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
           <DynamicTitle />
           <AppSidebar />
           <SidebarInset>
-            {!(pathname?.startsWith('/analytics') || pathname?.startsWith('/messages')) && <AppHeader />}
+            {!(pathname?.startsWith('/analytics') || pathname?.startsWith('/messages') || pathname?.includes('/analytics') || pathname?.includes('/messages')) && <AppHeader />}
             <Suspense fallback={null}>
               <main
                 className={`flex w-full ${
-                  pathname?.startsWith('/analytics') || pathname?.startsWith('/messages')
+                  pathname?.startsWith('/analytics') || pathname?.startsWith('/messages') || pathname?.includes('/analytics') || pathname?.includes('/messages')
                     ? 'h-[100vh]'
                     : 'h-[calc(100vh-48px)]'
                 } bg-background`}
