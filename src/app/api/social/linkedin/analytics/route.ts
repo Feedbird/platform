@@ -6,20 +6,18 @@ const ops = getPlatformOperations("linkedin")!;
 
 const Body = z.object({
   page: z.any(), // full SocialPage
-  limit: z.number().optional().default(20),
+  postId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
+    const { page, postId } = Body.parse(await req.json());
     
-    const { page, limit } = Body.parse(await req.json());
-    
-    const result = await ops.getPostHistory(page, limit);
+    const result = await ops.getPostAnalytics(page, postId || '');
     
     return Response.json(result);
   } catch (e: any) {
-    console.error("[LinkedIn history]", e);
+    console.error("[LinkedIn analytics]", e);
     return new Response(e.message ?? "LinkedIn error", { status: 500 });
   }
-} 
-
+}

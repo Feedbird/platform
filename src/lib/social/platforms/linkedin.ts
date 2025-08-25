@@ -356,7 +356,7 @@ export class LinkedInPlatform extends BasePlatform {
               token: authToken
             });
 
-            // Fetch follower count for the organization
+                        // Fetch follower count for the organization
             let organizationFollowerCount = 0;
             try {
               organizationFollowerCount = await this.getOrganizationFollowerCount(org.organizationalTarget, authToken);
@@ -1379,35 +1379,207 @@ export class LinkedInPlatform extends BasePlatform {
 
   /* 5 — optional history using fetchWithAuth */
   async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
-    // Not supported eed the 'r_member_social' permission (https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2024-04&tabs=http#permissions) to read posts and this permission is closed permission (https://learn.microsoft.com/en-us/linkedin/marketing/lms-faq?view=li-lms-2024-04#how-do-i-get-access-to-r_member_social) as of March 15, 2024.
+    if (IS_BROWSER) {
+      const res = await fetch("/api/social/linkedin/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: pg,
+          limit,
+        })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      // Only support organization pages for now since we need r_organization_social permission
+      if (pg.entityType !== 'organization') {
+        console.warn('[LinkedIn] Post history only supported for organization pages');
     return [];
   }
 
+      const token = await this.getToken(pg.id);
+      if (!token) {
+        throw new Error("Token not found");
+      }
+
+      const posts = await this.getOrganizationPosts(pg.pageId, token, limit);
+      return posts;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to get post history:', error);
+      return [];
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch organization posts
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2025-07&tabs=http#find-posts-by-account
+     ────────────────────────────────────────────────────────── */
+  private async getOrganizationPosts(
+    organizationUrn: string,
+    token: string,
+    limit: number = 20
+  ): Promise<PostHistory[]> {
+    try {
+      const url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'LinkedIn-Version': '202507',
+          'X-Restli-Protocol-Version': '2.0.0'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`LinkedIn Posts API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json() as {
+        paging: {
+          start: number;
+          count: number;
+          links: any[];
+        };
+        elements: Array<{
+          id: string;
+          commentary: string;
+          lifecycleState: string;
+          publishedAt: number;
+          createdAt: number;
+          lastModifiedAt: number;
+          author: string;
+          visibility: string;
+          content?: {
+            media?: {
+              id: string;
+              title?: string;
+            };
+            multiImage?: {
+              images: Array<{
+                id: string;
+                altText?: string;
+              }>;
+            };
+            article?: {
+              source: string;
+              title: string;
+              description: string;
+            };
+          };
+          reshareContext?: {
+            parent: string;
+            root: string;
+          };
+        }>;
+      };
+
+      const resolvedPosts: PostHistory[] = [];
+
+        for (const post of data.elements || []) {
+          // Extract media URNs if present
+        let mediaUrns: string[] = [];
+        if (post.content?.media?.id) {
+          mediaUrns.push(post.content.media.id);
+        } else if (post.content?.multiImage?.images) {
+          mediaUrns = post.content.multiImage.images.map(img => img.id);
+        }
+
+        // Resolve media URNs to actual URLs
+        const resolvedMedia = await this.resolveMediaUrls(mediaUrns, token);
+        const resolvedMediaUrls = resolvedMedia.map(m => m.url);
+        
+        // Store media type information in metadata
+        const mediaTypes = resolvedMedia.map(m => m.type);
+
+        resolvedPosts.push({
+          id: post.id,
+          pageId: organizationUrn,
+          postId: post.id,
+          content: post.commentary || '',
+          mediaUrls: resolvedMediaUrls, // Now these are actual URLs
+          status: post.lifecycleState.toLowerCase() as any,
+          publishedAt: new Date(post.publishedAt || post.createdAt),
+          analytics: {
+            // We could fetch analytics for each post here if needed
+            metadata: {
+              platform: 'linkedin',
+              postType: post.content?.media ? 'media' : 
+                       post.content?.multiImage ? 'multiImage' : 
+                       post.content?.article ? 'article' : 'text',
+              isReshare: !!post.reshareContext,
+              visibility: post.visibility,
+              mediaTypes: mediaTypes // Store media types for frontend use
+            }
+          }
+        });
+      }
+
+      return resolvedPosts;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch organization posts:', error);
+      return [];
+    }
+  }
+
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> { 
+    if (IS_BROWSER) {
+      const res = await fetch("/api/social/linkedin/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page,
+          postId,
+        })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     try {
       const token = await this.getToken(page.id);
       if (!token) {
         throw new Error("Token not found");
       }
 
-      // For now, we'll fetch aggregated analytics for the member (overall stats)
-      // In the future, we can enhance this to fetch specific post analytics if we have the social post ID
-      const analytics = await this.getMemberPostAnalytics(token);
-      
-      return {
-        reach: analytics.membersReached || 0,
-        likes: analytics.reactions || 0,
-        comments: analytics.comments || 0,
-        shares: analytics.reshares || 0,
-        clicks: 0, // LinkedIn doesn't provide click metrics in this API
-        views: analytics.impressions || 0,
-        engagement: this.calculateEngagement(analytics),
-        metadata: {
-          platform: 'linkedin',
-          analyticsType: 'member_aggregated',
-          lastUpdated: new Date().toISOString()
-        }
-      };
+      // For organization pages, we can fetch organization-specific analytics
+      if (page.entityType === 'organization') {
+        const analytics = await this.getOrganizationPostAnalytics(token);
+        return {
+          reach: analytics.membersReached || 0,
+          likes: analytics.reactions || 0,
+          comments: analytics.comments || 0,
+          shares: analytics.reshares || 0,
+          clicks: 0, // LinkedIn doesn't provide click metrics in this API
+          views: analytics.impressions || 0,
+          engagement: this.calculateEngagement(analytics),
+          metadata: {
+            platform: 'linkedin',
+            analyticsType: 'organization_aggregated',
+            lastUpdated: new Date().toISOString()
+          }
+        };
+      } else {
+        // For personal profiles, use member analytics
+        const analytics = await this.getMemberPostAnalytics(token);
+        return {
+          reach: analytics.membersReached || 0,
+          likes: analytics.reactions || 0,
+          comments: analytics.comments || 0,
+          shares: analytics.reshares || 0,
+          clicks: 0, // LinkedIn doesn't provide click metrics in this API
+          views: analytics.impressions || 0,
+          engagement: this.calculateEngagement(analytics),
+          metadata: {
+            platform: 'linkedin',
+            analyticsType: 'member_aggregated',
+            lastUpdated: new Date().toISOString()
+          }
+        };
+      }
     } catch (error) {
       console.error('[LinkedIn] Failed to get post analytics:', error);
       return {
@@ -1423,6 +1595,27 @@ export class LinkedInPlatform extends BasePlatform {
           error: error instanceof Error ? error.message : 'Unknown error'
         }
       };
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch organization post analytics (aggregated)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-post-statistics?view=li-lms-2025-07&tabs=curl
+     ────────────────────────────────────────────────────────── */
+  private async getOrganizationPostAnalytics(token: string): Promise<{
+    impressions?: number;
+    membersReached?: number;
+    reactions?: number;
+    comments?: number;
+    reshares?: number;
+  }> {
+    try {
+      // For now, we'll use the same member analytics endpoint
+      // In the future, we can implement organization-specific analytics if available
+      return await this.getMemberPostAnalytics(token);
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch organization post analytics:', error);
+      return {};
     }
   }
 
@@ -1568,6 +1761,164 @@ export class LinkedInPlatform extends BasePlatform {
       isValid: errors.length === 0,
       errors: errors.length > 0 ? errors : undefined,
     };
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – extract asset ID from LinkedIn URN
+     ────────────────────────────────────────────────────────── */
+  private extractAssetIdFromUrn(urn: string): string | null {
+    // Handle different URN formats:
+    // urn:li:video:D4D10AQEW1V2BEKc4hA
+    // urn:li:image:C5622AQHdBDflPp0pEg
+    // urn:li:digitalmediaAsset:C5622AQHdBDflPp0pEg
+    
+    const match = urn.match(/urn:li:(?:video|image|digitalmediaAsset):([A-Za-z0-9]+)/);
+    return match ? match[1] : null;
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch media artifacts to get actual URLs
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/vector-asset-api?view=li-lms-2025-07&tabs=curl
+     ────────────────────────────────────────────────────────── */
+  private async getMediaArtifacts(assetId: string, token: string): Promise<{
+    imageUrl?: string;
+    videoUrl?: string;
+    documentUrl?: string;
+  }> {
+    try {
+      const url = `${config.baseUrl}/rest/assets/${assetId}?fields=mediaArtifacts,recipes,id`;
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'LinkedIn-Version': '202507',
+          'X-Restli-Protocol-Version': '2.0.0'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`[LinkedIn] Failed to get media artifacts for ${assetId}:`, response.status);
+        return {};
+      }
+
+      const data = await response.json();
+      const mediaArtifacts = data.mediaArtifacts;
+      
+      if (!mediaArtifacts?.length) {
+        console.warn(`[LinkedIn] No media artifacts found for asset ${assetId}`);
+        return {};
+      }
+
+      let bestImageUrl: string | undefined;
+      let bestVideoUrl: string | undefined;
+      let bestDocumentUrl: string | undefined;
+
+      // Iterate through all media artifacts to find the best URLs
+      for (const artifact of mediaArtifacts) {
+        if (!artifact.identifiers?.length) continue;
+
+        for (const identifier of artifact.identifiers) {
+          const url = identifier.identifier;
+          const mediaType = identifier.mediaType;
+
+          // For images, prioritize higher resolution versions
+          if (mediaType?.startsWith('image/')) {
+            if (!bestImageUrl || url.includes('image-shrink_1280')) {
+              bestImageUrl = url;
+            }
+          }
+          
+          // For videos, prioritize MP4 files over HLS playlists
+          if (mediaType === 'video/mp4') {
+            if (!bestVideoUrl || url.includes('720p')) {
+              bestVideoUrl = url;
+            }
+          } else if (mediaType === 'application/vnd.apple.mpegURL' && !bestVideoUrl) {
+            // Fallback to HLS if no MP4 found
+            bestVideoUrl = url;
+          }
+          
+          // For documents
+          if (mediaType?.startsWith('text/') || mediaType?.startsWith('application/')) {
+            if (!bestDocumentUrl) {
+              bestDocumentUrl = url;
+            }
+          }
+        }
+      }
+
+      console.log(`[LinkedIn] Asset ${assetId} resolved:`, {
+        imageUrl: bestImageUrl,
+        videoUrl: bestVideoUrl,
+        documentUrl: bestDocumentUrl
+      });
+
+      return {
+        imageUrl: bestImageUrl,
+        videoUrl: bestVideoUrl,
+        documentUrl: bestDocumentUrl,
+      };
+    } catch (error) {
+      console.error(`[LinkedIn] Error fetching media artifacts for ${assetId}:`, error);
+      return {};
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – resolve media URNs to actual URLs with type information
+     ────────────────────────────────────────────────────────── */
+  private async resolveMediaUrls(mediaUrns: string[], token: string): Promise<Array<{url: string; type: 'image' | 'video' | 'document'}>> {
+    const resolvedMedia: Array<{url: string; type: 'image' | 'video' | 'document'}> = [];
+    
+    if (!mediaUrns.length) {
+      return resolvedMedia;
+    }
+
+    console.log(`[LinkedIn] Resolving ${mediaUrns.length} media URNs to URLs...`);
+    
+    for (const urn of mediaUrns) {
+      const assetId = this.extractAssetIdFromUrn(urn);
+      if (!assetId) {
+        console.warn(`[LinkedIn] Could not extract asset ID from URN: ${urn}`);
+        continue;
+      }
+
+      console.log(`[LinkedIn] Resolving asset ID: ${assetId} from URN: ${urn}`);
+      
+      // Determine media type from URN first
+      let mediaType: 'image' | 'video' | 'document' = 'document';
+      
+      if (urn.includes('urn:li:image:')) {
+        mediaType = 'image';
+      } else if (urn.includes('urn:li:video:')) {
+        mediaType = 'video';
+      }
+      
+      // Only get the relevant URL based on the URN type
+      const artifacts = await this.getMediaArtifacts(assetId, token);
+      let resolvedUrl: string | undefined;
+      
+      if (mediaType === 'image' && artifacts.imageUrl) {
+        resolvedUrl = artifacts.imageUrl;
+        console.log(`[LinkedIn] Resolved to image URL: ${resolvedUrl}`);
+      } else if (mediaType === 'video' && artifacts.videoUrl) {
+        resolvedUrl = artifacts.videoUrl;
+        console.log(`[LinkedIn] Resolved to video URL: ${resolvedUrl}`);
+      } else if (mediaType === 'document' && artifacts.documentUrl) {
+        resolvedUrl = artifacts.documentUrl;
+        console.log(`[LinkedIn] Resolved to document URL: ${resolvedUrl}`);
+      } else {
+        console.warn(`[LinkedIn] No ${mediaType} URL found for asset: ${assetId}`);
+      }
+      
+      if (resolvedUrl) {
+        resolvedMedia.push({ url: resolvedUrl, type: mediaType });
+      }
+    }
+    
+    console.log(`[LinkedIn] Successfully resolved ${resolvedMedia.length}/${mediaUrns.length} media URLs`);
+    return resolvedMedia;
   }
 }
   
