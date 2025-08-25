@@ -1378,7 +1378,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 5 — optional history using fetchWithAuth */
-  async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
+  async getPostHistory(pg: SocialPage, limit = 20, cursor?: number): Promise<PostHistory[]> {
     if (IS_BROWSER) {
       const res = await fetch("/api/social/linkedin/history", {
         method: "POST",
@@ -1386,6 +1386,7 @@ export class LinkedInPlatform extends BasePlatform {
         body: JSON.stringify({
           page: pg,
           limit,
+          cursor,
         })
       });
       if (!res.ok) throw new Error(await res.text());
@@ -1396,15 +1397,15 @@ export class LinkedInPlatform extends BasePlatform {
       // Only support organization pages for now since we need r_organization_social permission
       if (pg.entityType !== 'organization') {
         console.warn('[LinkedIn] Post history only supported for organization pages');
-    return [];
-  }
+        return [];
+      }
 
       const token = await this.getToken(pg.id);
       if (!token) {
         throw new Error("Token not found");
       }
 
-      const posts = await this.getOrganizationPosts(pg.pageId, token, limit);
+      const posts = await this.getOrganizationPosts(pg.pageId, token, limit, cursor);
       return posts;
     } catch (error) {
       console.error('[LinkedIn] Failed to get post history:', error);
@@ -1419,10 +1420,16 @@ export class LinkedInPlatform extends BasePlatform {
   private async getOrganizationPosts(
     organizationUrn: string,
     token: string,
-    limit: number = 20
+    limit: number = 20,
+    cursor?: number
   ): Promise<PostHistory[]> {
     try {
-      const url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
+      let url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
+      
+      // Add pagination cursor if provided
+      if (cursor !== undefined) {
+        url += `&start=${cursor}`;
+      }
       
       const response = await fetch(url, {
         method: "GET",
@@ -1479,8 +1486,8 @@ export class LinkedInPlatform extends BasePlatform {
 
       const resolvedPosts: PostHistory[] = [];
 
-        for (const post of data.elements || []) {
-          // Extract media URNs if present
+      for (const post of data.elements || []) {
+        // Extract media URNs if present
         let mediaUrns: string[] = [];
         if (post.content?.media?.id) {
           mediaUrns.push(post.content.media.id);
@@ -1512,7 +1519,14 @@ export class LinkedInPlatform extends BasePlatform {
                        post.content?.article ? 'article' : 'text',
               isReshare: !!post.reshareContext,
               visibility: post.visibility,
-              mediaTypes: mediaTypes // Store media types for frontend use
+              mediaTypes: mediaTypes, // Store media types for frontend use
+              // Add pagination metadata
+              pagination: {
+                start: data.paging.start,
+                count: data.paging.count,
+                hasMore: data.paging.links.some(link => link.rel === 'next'),
+                nextCursor: data.paging.start + data.paging.count
+              }
             }
           }
         });
@@ -1713,7 +1727,54 @@ export class LinkedInPlatform extends BasePlatform {
     const totalEngagement = (analytics.reactions || 0) + (analytics.comments || 0) + (analytics.reshares || 0);
     return Math.round((totalEngagement / reach) * 10000) / 100; // Return as percentage with 2 decimal places
   }
-  async deletePost()       { /* not supported for member UGC */ }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – delete a post
+     ────────────────────────────────────────────────────────── */
+  async deletePost(page: SocialPage, postId: string): Promise<void> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/linkedin/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, postId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return;
+    }
+
+    // Check if this is an organization page (required for deletion)
+    if (page.entityType !== 'organization') {
+      throw new Error('LinkedIn post deletion is only supported for organization pages, not personal profiles');
+    }
+
+  
+    const token = await this.getToken(page.id);
+    if(!token) {
+      throw new Error('No token found for page');
+    }
+
+    // LinkedIn API requires the post URN to be URL-encoded
+    const encodedPostUrn = encodeURIComponent(postId);
+    
+    // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2025-08&tabs=curl#delete-posts
+    const response = await fetch(`${config.baseUrl}/rest/posts/${encodedPostUrn}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'LinkedIn-Version': '202507',
+        'X-Restli-Protocol-Version': '2.0.0',
+        'X-RestLi-Method': 'DELETE'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[LinkedIn] Delete post failed: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to delete LinkedIn post: ${response.status} - ${errorText}`);
+    }
+
+    log(`Successfully deleted post ${postId}`);
+  }
 
   async createPost(
     page: SocialPage,
@@ -1848,12 +1909,6 @@ export class LinkedInPlatform extends BasePlatform {
         }
       }
 
-      console.log(`[LinkedIn] Asset ${assetId} resolved:`, {
-        imageUrl: bestImageUrl,
-        videoUrl: bestVideoUrl,
-        documentUrl: bestDocumentUrl
-      });
-
       return {
         imageUrl: bestImageUrl,
         videoUrl: bestVideoUrl,
@@ -1875,7 +1930,6 @@ export class LinkedInPlatform extends BasePlatform {
       return resolvedMedia;
     }
 
-    console.log(`[LinkedIn] Resolving ${mediaUrns.length} media URNs to URLs...`);
     
     for (const urn of mediaUrns) {
       const assetId = this.extractAssetIdFromUrn(urn);
@@ -1884,7 +1938,6 @@ export class LinkedInPlatform extends BasePlatform {
         continue;
       }
 
-      console.log(`[LinkedIn] Resolving asset ID: ${assetId} from URN: ${urn}`);
       
       // Determine media type from URN first
       let mediaType: 'image' | 'video' | 'document' = 'document';
@@ -1901,13 +1954,10 @@ export class LinkedInPlatform extends BasePlatform {
       
       if (mediaType === 'image' && artifacts.imageUrl) {
         resolvedUrl = artifacts.imageUrl;
-        console.log(`[LinkedIn] Resolved to image URL: ${resolvedUrl}`);
       } else if (mediaType === 'video' && artifacts.videoUrl) {
         resolvedUrl = artifacts.videoUrl;
-        console.log(`[LinkedIn] Resolved to video URL: ${resolvedUrl}`);
       } else if (mediaType === 'document' && artifacts.documentUrl) {
         resolvedUrl = artifacts.documentUrl;
-        console.log(`[LinkedIn] Resolved to document URL: ${resolvedUrl}`);
       } else {
         console.warn(`[LinkedIn] No ${mediaType} URL found for asset: ${assetId}`);
       }
@@ -1917,7 +1967,6 @@ export class LinkedInPlatform extends BasePlatform {
       }
     }
     
-    console.log(`[LinkedIn] Successfully resolved ${resolvedMedia.length}/${mediaUrns.length} media URLs`);
     return resolvedMedia;
   }
 }

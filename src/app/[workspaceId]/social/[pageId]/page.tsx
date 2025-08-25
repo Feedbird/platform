@@ -19,6 +19,7 @@ export default function SocialPagePosts() {
   const brandId          = useFeedbirdStore(s => s.activeBrandId);
   const postHistory      = useFeedbirdStore(s => s.postHistory);
   const syncPostHistory  = useFeedbirdStore(s => s.syncPostHistory);
+  const loadMorePostHistory = useFeedbirdStore(s => s.loadMorePostHistory);
   const deletePagePost   = useFeedbirdStore(s => s.deletePagePost);
   const brand            = useFeedbirdStore(s => s.getActiveBrand());
   
@@ -143,6 +144,14 @@ export default function SocialPagePosts() {
     );
   }, [executeWithLoading, syncHistory]);
 
+  const handleLoadMore = useCallback(async () => {
+    if (!brandId || !pageId) return;
+    
+    await executeWithLoading(async () => {
+      await loadMorePostHistory(brandId, pageId);
+    }, "Loading more posts...");
+  }, [brandId, pageId, loadMorePostHistory, executeWithLoading]);
+
   // Determine if we're really loading (either local state or store state)
   const isReallyLoading = isInitialLoading || isStoreSyncing;
 
@@ -196,6 +205,19 @@ export default function SocialPagePosts() {
             No posts found for this page
           </div>
         )}
+
+        {/* Load More Button */}
+        {history.length > 0 && (
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="outline"
+              onClick={handleLoadMore}
+              disabled={isStoreSyncing}
+            >
+              {isStoreSyncing ? 'Loading...' : 'Load More Posts'}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
     </>
@@ -225,6 +247,43 @@ function PostCard({
       <div className="flex flex-col gap-3 mb-3 mt-2">
         {post.mediaUrls.map((url, idx) => {
           const isVideo = isVideoUrl(url);
+          
+          /* ——— LINKEDIN MEDIA (using metadata) ——— */
+          if (post.analytics?.metadata?.platform === 'linkedin') {
+            const mediaType = post.analytics?.metadata?.mediaTypes?.[idx];
+
+            if (mediaType === 'image') {
+              return (
+                <div key={idx} className="relative w-full h-auto">
+                  <img
+                    src={url}
+                    alt={`LinkedIn post image ${idx + 1}`}
+                    width={600}
+                    height={400}
+                    className="object-cover rounded-md"
+                    style={{ maxHeight: 400, width: "100%", height: "auto" }}
+                    loading="lazy"
+                    onError={(e) => {
+                      console.error('Failed to load LinkedIn image:', url);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              );
+            } else if (mediaType === 'video') {
+              return (
+                <video
+                  key={idx}
+                  src={url}
+                  controls
+                  className="w-full rounded-md"
+                  style={{ maxHeight: 400 }}
+                  preload="metadata"
+                  crossOrigin="anonymous"
+                />
+              );
+            }
+          }
 
           /* ——— YOUTUBE / VIMEO ——— */
           if (/youtube\.com|youtu\.be/.test(url)) {
