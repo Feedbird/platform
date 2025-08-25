@@ -46,7 +46,7 @@ export abstract class BasePlatform implements PlatformOperations {
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: { message: response.statusText } }));
         throw new SocialAPIError(
-          error.error?.message || 'API request failed',
+          error.error?.message || error?.message || 'API request failed',
           'API_ERROR',
           error
         );
