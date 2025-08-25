@@ -219,18 +219,18 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	}, [activeWorkspaceId, boardNav.length])
 
 	// Function to get board count (similar to sidebar)
-	const getBoardCount = (boardId: string): number => {
+	const getBoardCount = (board_id: string): number => {
 		const posts = getAllPosts();
-		return posts.filter((p: any) => p.boardId === boardId).length;
+		return posts.filter((p: any) => p.board_id === board_id).length;
 	};
 
 	// Function to handle board selection
-	const handleBoardSelection = (boardId: string) => {
+	const handleBoardSelection = (board_id: string) => {
 		setSelectedBoards(prev => {
-			if (prev.includes(boardId)) {
-				return prev.filter(id => id !== boardId);
+			if (prev.includes(board_id)) {
+				return prev.filter(id => id !== board_id);
 			} else {
-				return [...prev, boardId];
+				return [...prev, board_id];
 			}
 		});
 	};
@@ -238,13 +238,13 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 
 	// Function to handle board quick view navigation
-	const handleBoardQuickView = (boardId: string) => {
+	const handleBoardQuickView = (board_id: string) => {
 		// Find the board in boardNav
-		const board = boardNav.find(b => b.id === boardId);
+		const board = boardNav.find(b => b.id === board_id);
 		if (board) {
 			// Use the same navigation method as app-sidebar
 			// This will navigate to the board content page and show the post table
-			router.push(board.href || `/content/${boardId}`);
+			router.push(board.href || `/${activeWorkspaceId}/content/${board_id}`);
 		}
 	};
 
@@ -310,9 +310,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	}
 
 	// Function to toggle board card expansion
-	const toggleBoardExpansion = (boardId: string) => {
+	const toggleBoardExpansion = (board_id: string) => {
 		setBoardData(prev => prev.map(board =>
-			board.id === boardId
+			board.id === board_id
 				? { ...board, expanded: !board.expanded }
 				: board
 		))
@@ -1564,7 +1564,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			{/* Main panel */}
 			<div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 				{/* Top bar */}
-				<div className="h-10.5 px-4 border-b bg-white shrink-0 flex items-center justify-between">
+				<div className="h-10.5 px-3 border-b bg-white shrink-0 flex items-center justify-between">
 					<div className="flex items-center">
 						{isThreadView && (
 							<Button
@@ -1693,15 +1693,15 @@ export default function MessagesPane({ channelName, channelDescription, members:
 								{selectedBoards.length > 0 && (
 									<div className="px-2.5 pb-2">
 										<div className="flex flex-wrap gap-2">
-											{selectedBoards.map((boardId) => {
-												const board = boardNav.find(b => b.id === boardId);
+											{selectedBoards.map((board_id) => {
+												const board = boardNav.find(b => b.id === board_id);
 												if (!board) return null;
 
 												const boardColor = (board as any).color;
 
 												return (
 													<div
-														key={boardId}
+														key={board_id}
 														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-strokeElement"
 													>
 														{/* Board Icon with Color Background */}
@@ -1724,7 +1724,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 														{/* Remove Button (X icon) */}
 														<button
-															onClick={() => handleBoardSelection(boardId)}
+															onClick={() => handleBoardSelection(board_id)}
 															className="w-4 h-4 hover:bg-gray-200 rounded flex items-center justify-center transition-colors"
 														>
 															<X className="w-3 h-3 text-gray-500 hover:text-gray-700" />
@@ -2012,16 +2012,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 								{!loadingAllMessages && parentMessages.map((m, idx) => {
 									const showDay = idx === 0 || (idx > 0 && !isSameDay(parentMessages[idx - 1].createdAt, m.createdAt))
 									
-									// Debug logging
-									if (idx > 0) {
-										console.log(`Message ${idx}:`, {
-											currentDate: m.createdAt,
-											previousDate: parentMessages[idx - 1].createdAt,
-											isSameDay: isSameDay(parentMessages[idx - 1].createdAt, m.createdAt),
-											showDay
-										})
-									}
-
 										// Get replies for this message
 										const replies = filteredMessages.filter(reply => (reply as any).parentId === m.id)
 
@@ -2160,15 +2150,15 @@ export default function MessagesPane({ channelName, channelDescription, members:
 								{selectedBoards.length > 0 && (
 									<div className="px-2.5 pb-2">
 										<div className="flex flex-wrap gap-2">
-											{selectedBoards.map((boardId) => {
-												const board = boardNav.find(b => b.id === boardId);
+											{selectedBoards.map((board_id) => {
+												const board = boardNav.find(b => b.id === board_id);
 												if (!board) return null;
 
 												const boardColor = (board as any).color;
 
 												return (
 													<div
-														key={boardId}
+														key={board_id}
 														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-strokeElement"
 													>
 														{/* Board Icon with Color Background */}
@@ -2191,7 +2181,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 														{/* Remove Button (X icon) */}
 														<button
-															onClick={() => handleBoardSelection(boardId)}
+															onClick={() => handleBoardSelection(board_id)}
 															className="w-4 h-4 hover:bg-gray-200 rounded flex items-center justify-center transition-colors"
 														>
 															<X className="w-3 h-3 text-gray-500 hover:text-gray-700" />
@@ -2631,7 +2621,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 													.flatMap(([status, posts]) =>
 														posts.map(post => ({
 															id: post.id,
-															boardId: board.id,
+															board_id: board.id,
 															boardName: board.label,
 															status: post.status,
 															preview: getPostThumbnail(post),

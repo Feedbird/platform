@@ -33,11 +33,11 @@ const r2Client = new S3Client({
 /*──────────────────  POST /api/upload/sign  ──────────────────*/
 export async function POST(req: NextRequest) {
   try {
-    const { fileName, fileType, wid, boardId, pid } = (await req.json()) as {
+    const { fileName, fileType, wid, board_id, pid } = (await req.json()) as {
       fileName: string;
       fileType: string;
       wid?: string | null;
-      boardId?: string | null;
+      board_id?: string | null;
       pid?: string | null;
     };
 
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const ext = extMatch ? extMatch[0] : "";
     const unique = crypto.randomUUID();
 
-    const parts = [wid && `workspace-${wid}`, boardId && `board-${boardId}`, pid && `post-${pid}`].filter(Boolean);
+    const parts = [wid && `workspace-${wid}`, board_id && `board-${board_id}`, pid && `post-${pid}`].filter(Boolean);
     const prefix = parts.length ? parts.join("/") + "/" : "";
     const objectKey = `${prefix}${unique}${ext}`;
 

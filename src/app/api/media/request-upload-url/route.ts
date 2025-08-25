@@ -13,14 +13,14 @@ export async function POST(req: NextRequest) {
 
     // Extract query params for namespacing the R2 key
     const wid = req.nextUrl.searchParams.get('wid');
-    const boardId = req.nextUrl.searchParams.get('bid');
+    const board_id = req.nextUrl.searchParams.get('bid');
     const pid = req.nextUrl.searchParams.get('pid');
 
     const { uploadUrl, publicUrl } = await getSignedUploadUrl({
         fileName,
         fileType,
         wid,
-        boardId,
+        board_id,
         pid,
     });
 

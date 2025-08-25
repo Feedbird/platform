@@ -209,7 +209,7 @@ function makeBlock(kind: FileKind): Block {
  */
 function makePost(
   workspaceId: string, 
-  boardId: string, 
+  board_id: string, 
   brandPlatforms: Platform[],
   brandPages: SocialPageType[],
   month: number
@@ -224,7 +224,7 @@ function makePost(
   const post: Post = {
     id: uuidv4(),
     workspaceId,
-    boardId,
+    board_id,
     caption: {
       synced: true,
       default: faker.lorem.sentence(),
@@ -294,7 +294,7 @@ function makeBrand(): Brand {
     return arr;
   }
   const pages = brandPlatforms.flatMap((c)=> makePagesFor(c));
-  // posts – boardId will be filled later when workspace boards are known
+  // posts – board_id will be filled later when workspace boards are known
   const posts: Post[] = [];
   return {
     id: uuidv4(),

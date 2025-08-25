@@ -77,7 +77,14 @@ export default function BrandSheet() {
     setPrefs(brand?.prefs ?? '')
   }, [open, id]) // eslint-disable-line
 
-  const close = () => router.push('/brands')
+  const close = () => {
+    const activeWorkspace = store.getActiveWorkspace()
+    if (activeWorkspace) {
+      router.push(`/${activeWorkspace.id}/brands`)
+    } else {
+      router.push('/brands')
+    }
+  }
 
   /* diff flag – to show the footer on edit ----------------------- */
   const dirty = React.useMemo(() => (

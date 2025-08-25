@@ -71,13 +71,13 @@ import { BorderAll, BorderColor } from "@mui/icons-material";
 /*  NAV CONFIGS (static for now – you can pull these from the store)     */
 /* --------------------------------------------------------------------- */
 
-const defaultPlatformNav: NavLink[] = [
+const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
   {
     id: "messages",
     label: "Messages",
     image: "/images/sidebar/messages.svg",
     selectedImage: "/images/sidebar/messages-active.svg",
-    href: "/messages",
+    href: workspaceId ? `/${workspaceId}/messages` : "/messages",
   },
   // {
   //   id: "notifications",
@@ -91,7 +91,7 @@ const defaultPlatformNav: NavLink[] = [
     label: "Approvals",
     image: "/images/sidebar/approvals.svg",
     selectedImage: "/images/sidebar/approvals-active.svg",
-    href: "/approvals",
+    href: workspaceId ? `/${workspaceId}/approvals` : "/approvals",
   },
   // {
   //   id: "brands",
@@ -104,7 +104,7 @@ const defaultPlatformNav: NavLink[] = [
     label: "Analytics",
     image: "/images/sidebar/analytics.svg",
     selectedImage: "/images/sidebar/analytics-active.svg",
-    href: "/analytics",
+    href: workspaceId ? `/${workspaceId}/analytics` : "/analytics",
   },
   // {
   //   id: "settings",
@@ -114,24 +114,24 @@ const defaultPlatformNav: NavLink[] = [
   // },
 ];
 
-const defaultBoardNav: NavLink[] = [
+const getDefaultBoardNav = (workspaceId?: string): NavLink[] => [
   {
     id: "static-posts",
     label: "Static Posts",
     image: "/images/boards/static-posts.svg",
-    href: "/content/static-posts",
+    href: workspaceId ? `/${workspaceId}/content/static-posts` : "/content/static-posts",
   },
   {
     id: "short-form-videos",
     label: "Short-Form Videos",
     image: "/images/boards/short-form-videos.svg",
-    href: "/content/short-form-videos",
+    href: workspaceId ? `/${workspaceId}/content/short-form-videos` : "/content/short-form-videos",
   },
   {
     id: "email-design",
     label: "Email Design",
     image: "/images/boards/email-design.svg",
-    href: "/content/email-design",
+    href: workspaceId ? `/${workspaceId}/content/email-design` : "/content/email-design",
   },
 ];
 
@@ -139,10 +139,10 @@ const defaultBoardNav: NavLink[] = [
 /*  BOARD-HELPERS                                                        */
 /* --------------------------------------------------------------------- */
 
-function useBoardCount(boardId: string): number | null {
+function useBoardCount(board_id: string): number | null {
   const count = useFeedbirdStore((s) => {
     const posts = s.getAllPosts();
-    return posts.filter((p) => p.boardId === boardId).length;
+    return posts.filter((p) => p.board_id === board_id).length;
   });
 
   const [isClient, setIsClient] = React.useState(false);
@@ -235,17 +235,17 @@ function BoardDropdownMenu({
 }
 
 const BoardCount = ({ 
-  boardId, 
+  board_id, 
   variant = 'expanded',
   isActive = false,
   boardColor
 }: { 
-  boardId: string; 
+  board_id: string; 
   variant?: 'expanded' | 'collapsed';
   isActive?: boolean;
   boardColor?: string | null;
 }) => {
-  const count = useBoardCount(boardId);
+  const count = useBoardCount(board_id);
 
   const styles = cn(
     "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none",
@@ -279,7 +279,8 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const [isClient, setIsClient] = React.useState(false);
   const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
   const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
-  const unreadMsg = useFeedbirdStore(s => s.user?.unreadMsg || []);
+  const unread_msg = useFeedbirdStore(s => s.user?.unread_msg || []);
+  const unread_notification = useFeedbirdStore(s => s.user?.unread_notification || []);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -297,7 +298,12 @@ export const RenderNavItems = React.memo(function RenderNavItems({
     <TooltipProvider delayDuration={0}>
       <SidebarMenu>
         {items.map((nav) => {
-          const active = nav.href && pathname.startsWith(nav.href);
+          const active = nav.href && (
+            // For workspace-scoped routes, check if the pathname contains the route
+            nav.href.includes('/content/') ? pathname.includes(nav.href.split('/').pop() || '') :
+            // For other routes, check if pathname starts with the href
+            pathname.startsWith(nav.href)
+          );
 
           /* ----------------------------------------------------------- */
           /*  GET BOARD DATA FOR COLOR STYLING                           */
@@ -312,7 +318,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           
           // Special handling for messages icon based on unread status
           if (nav.id === 'messages') {
-            if (unreadMsg.length > 0) {
+            if (unread_msg.length > 0 || unread_notification.length > 0) {
               imageSrc = "/images/sidebar/messages-on.svg";
             } else {
               imageSrc = "/images/sidebar/messages.svg";
@@ -373,7 +379,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                             : undefined
                         }
                       >
-                        <BoardCount boardId={nav.id} isActive={!!active} boardColor={boardColor} />
+                        <BoardCount board_id={nav.id} isActive={!!active} boardColor={boardColor} />
                       </div>
                     </div>
                   )}
@@ -512,7 +518,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                             : undefined
                         }
                       >
-                        <BoardCount boardId={nav.id} isActive={!!active} boardColor={boardColor} />
+                        <BoardCount board_id={nav.id} isActive={!!active} boardColor={boardColor} />
                       </div>}
                   </TooltipContent>
                 </Tooltip>
@@ -555,7 +561,9 @@ export function AppSidebar() {
     setIsClient(true);
   }, []);
 
-  const platformNav = React.useMemo(() => defaultPlatformNav, []);
+  const platformNav = React.useMemo(() => {
+    return getDefaultPlatformNav(activeWorkspace?.id);
+  }, [activeWorkspace]);
   const boardNav    = useFeedbirdStore(s => s.boardNav);
 
   /* open / collapse state for the two accordion groups */
@@ -564,14 +572,14 @@ export function AppSidebar() {
 
   /* auto-expand boards if a board route is active */
   React.useEffect(() => {
-    if (boardNav.some((b) => b.href && pathname.startsWith(b.href))) {
+    if (boardNav.some((b) => b.href && pathname.includes(b.href.split('/').pop() || ''))) {
       setBoardsOpen(true);
     }
   }, [pathname, boardNav]);
 
   /* auto-expand socials when in social routes */
   React.useEffect(() => {
-    if (pathname.startsWith("/social/") || pathname.startsWith("/images/social/")) {
+    if (pathname.includes("/social/") || pathname.includes("/images/social/")) {
       setSocialOpen(true);
     }
   }, [pathname]);

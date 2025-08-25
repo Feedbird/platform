@@ -20,7 +20,12 @@ function BrandSocialCallbackInner() {
     if (error) {
       // If user canceled or something, just redirect or show error
       alert("Error connecting Facebook: " + error);
-      router.replace("/"); 
+      const activeWorkspace = useFeedbirdStore.getState().getActiveWorkspace();
+      if (activeWorkspace) {
+        router.replace(`/${activeWorkspace.id}`);
+      } else {
+        router.replace("/");
+      }
       return;
     }
     if (platform === "facebook" && accessToken && brandId) {
@@ -49,7 +54,12 @@ function BrandSocialCallbackInner() {
         }
       ], localAccountId);
       // Then redirect to brand or somewhere
-      router.replace("/brands"); 
+      const activeWorkspace = useFeedbirdStore.getState().getActiveWorkspace();
+      if (activeWorkspace) {
+        router.replace(`/${activeWorkspace.id}/brands`);
+      } else {
+        router.replace("/brands");
+      } 
     }
   }, [platform, accessToken, brandId, connectAccount, stagePages, router, error]);
 

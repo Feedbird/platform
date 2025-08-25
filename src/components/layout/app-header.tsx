@@ -41,7 +41,12 @@ function HeaderInner() {
 
   /* boards from centralized store */
   const boardNav      = useFeedbirdStore(s => s.boardNav)
-  const activeBoard   = boardNav.find(b => b.href && pathname.startsWith(b.href))
+  const activeBoard   = boardNav.find(b => b.href && (
+    // For workspace-scoped routes, check if the pathname contains the route
+    b.href.includes('/content/') ? pathname.includes(b.href.split('/').pop() || '') :
+    // For other routes, check if pathname starts with the href
+    pathname.startsWith(b.href)
+  ))
   const brand         = useFeedbirdStore(s => s.getActiveBrand())
   const activeWorkspace = useFeedbirdStore(s => s.getActiveWorkspace())
   
@@ -74,8 +79,8 @@ function HeaderInner() {
   const updateBoard = useFeedbirdStore(s => s.updateBoard)
 
   /* view switcher (table | calendar | grid) --------------------------- */
-  const inContent = pathname.startsWith('/content/')
-                 || pathname.startsWith('/approvals')
+  const inContent = pathname.includes('/content/')
+                 || pathname.includes('/approvals')
   const view      = searchParams.get('view') === 'calendar' ? 'calendar' : 
                    searchParams.get('view') === 'grid' ? 'grid' : 'table'
   const setView   = (v:'table'|'calendar'|'grid') => {

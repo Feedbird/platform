@@ -86,11 +86,9 @@ export async function GET(req: NextRequest) {
 
 // POST - Create new board
 export async function POST(req: NextRequest) {
-  console.log("@@@@@@@POST /api/board");
   try {
     const body = await req.json()
     const validatedData = CreateBoardSchema.parse(body)
-    console.log("validatedData:", validatedData);
     // Verify workspace exists
     const { data: workspace } = await supabase
       .from('workspaces')

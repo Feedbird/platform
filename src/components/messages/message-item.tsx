@@ -60,7 +60,7 @@ type MessageItemProps = {
 	onReplySummaryClick?: () => void
 	formatTimeAgo?: (date: Date) => string
 	// New prop for board navigation
-	onBoardQuickView?: (boardId: string) => void
+	onBoardQuickView?: (board_id: string) => void
 }
 
 export default function MessageItem({
@@ -135,11 +135,11 @@ export default function MessageItem({
 						const boardNav = useFeedbirdStore(s => s.boardNav);
 						const getAllPosts = useFeedbirdStore(s => s.getAllPosts);
 						
-						const boardData = boards.map((boardId: string) => {
-							const board = boardNav.find(b => b.id === boardId);
+						const boardData = boards.map((board_id: string) => {
+							const board = boardNav.find(b => b.id === board_id);
 							
 							// Get posts for this board
-							const posts = getAllPosts().filter((post: any) => post.boardId === boardId);
+							const posts = getAllPosts().filter((post: any) => post.board_id === board_id);
 							const postCount = posts.length;
 							
 							// Get last update time from posts
@@ -156,7 +156,7 @@ export default function MessageItem({
 							}
 							
 							return {
-								id: boardId,
+								id: board_id,
 								name: board?.label || 'Unknown Board',
 								color: (board as any)?.color || null,
 								image: board?.image || null,

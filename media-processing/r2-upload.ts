@@ -88,7 +88,7 @@ export async function uploadToR2(filePath: string, fileNameOptional?: string): P
  * @param fileName The name of the file.
  * @param fileType The MIME type of the file.
  * @param wid Workspace ID for namespacing.
- * @param boardId Board ID for namespacing.
+ * @param board_id Board ID for namespacing.
  * @param pid Post ID for namespacing.
  * @returns An object containing the upload URL and the final public URL of the object.
  */
@@ -96,13 +96,13 @@ export async function getSignedUploadUrl({
     fileName,
     fileType,
     wid,
-    boardId,
+    board_id,
     pid,
 }: {
     fileName: string;
     fileType: string;
     wid: string | null;
-    boardId: string | null;
+    board_id: string | null;
     pid: string | null;
 }) {
     console.log(`[R2 UPLOAD] Requesting signed URL for: ${fileName} (${fileType})`);
@@ -110,8 +110,8 @@ export async function getSignedUploadUrl({
     const unique = crypto.randomUUID();
     const baseName = path.basename(fileName);
 
-    // Build structured key prefix: workspace/<wid>/board/<boardId>/post/<pid>
-    const parts = [wid && `workspace-${wid}`, boardId && `board-${boardId}`, pid && `post-${pid}`].filter(Boolean);
+    // Build structured key prefix: workspace/<wid>/board/<board_id>/post/<pid>
+    const parts = [wid && `workspace-${wid}`, board_id && `board-${board_id}`, pid && `post-${pid}`].filter(Boolean);
     const prefix = parts.length ? parts.join('/') + '/' : '';
     const key = `${prefix}${unique}-${baseName}`;
 

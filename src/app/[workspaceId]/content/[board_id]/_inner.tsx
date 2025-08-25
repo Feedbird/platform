@@ -26,19 +26,19 @@ import { PostRecordModal } from "@/components/content/post-record-modal/post-rec
 
 /**
  * Generic, data-driven board inner component. Works for any board whose slug is
- * provided via the `[boardId]` route segment under `/content`.
+ * provided via the `[board_id]` route segment under `/content`.
  */
 export function BoardInner() {
   // 1. Grab the slug from the URL.
   const params = useParams();
-  const boardId = (params?.boardId as string) ?? "";
-
+  const board_id = (params?.board_id as string) ?? "";
+  console.log("@@@@@@@board_id", board_id)
   // 2. Ensure the correct board is active in the global store so that nav etc. update.
   const setActiveBoard = useFeedbirdStore((s) => s.setActiveBoard);
   useEffect(() => {
-    console.log('BoardInner: Setting active board to', boardId);
-    if (boardId) setActiveBoard(boardId);
-  }, [setActiveBoard, boardId]);
+    console.log('BoardInner: Setting active board to', board_id);
+    if (board_id) setActiveBoard(board_id);
+  }, [setActiveBoard, board_id]);
 
   // 3. Decide which view: `table` (default), `calendar`, or `grid` based on query param.
   const search = useSearchParams();
@@ -57,7 +57,7 @@ export function BoardInner() {
 
   // Memo-filter by board so the `posts` array keeps a stable reference unless
   // its members actually change.
-  const posts = React.useMemo(() => allPosts.filter((p) => p.boardId === boardId), [allPosts, boardId]);
+  const posts = React.useMemo(() => allPosts.filter((p) => p.board_id === board_id), [allPosts, board_id]);
 
   // 5. For opening the record modal.
   const [openPostId, setOpenPostId] = useState<string | null>(null);
@@ -75,7 +75,7 @@ export function BoardInner() {
 
       {openPostId && (
         <PostRecordModal
-          postId={openPostId}
+          selectedPost={posts.find(p => p.id === openPostId)!}
           open
           onClose={() => setOpenPostId(null)}
         />

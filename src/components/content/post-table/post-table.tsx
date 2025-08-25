@@ -477,6 +477,7 @@ export function PostTable({
   React.useEffect(() => {
     // Only update if the posts array reference has actually changed
     if (posts !== prevPostsRef.current) {
+      console.log("@@@@@@@posts", posts)
       setTableData(posts);
       prevPostsRef.current = posts;
     }
@@ -933,9 +934,9 @@ export function PostTable({
         activities: [],
       }));
 
-      const boardId = tableData[0]?.boardId || store.activeBoardId;
-      if (boardId) {
-        await store.bulkAddPosts(boardId, postsData);
+      const board_id = tableData[0]?.board_id || store.activeBoardId;
+      if (board_id) {
+        await store.bulkAddPosts(board_id, postsData);
       }
     } else {
       const newPost = await store.addPost();
@@ -990,8 +991,8 @@ export function PostTable({
         activities: orig.activities,
       }));
 
-      const boardId = posts[0].boardId;
-      duplicatedPosts.push(...(await store.bulkAddPosts(boardId, postsData)));
+      const board_id = posts[0].board_id;
+      duplicatedPosts.push(...(await store.bulkAddPosts(board_id, postsData)));
     } else {
       // For single post, use the existing duplicatePost method
       for (const orig of posts) {
@@ -1449,6 +1450,7 @@ export function PostTable({
                 if ((e.target as HTMLElement).closest('[data-preview-exempt]')) return;
                 if (post.blocks.length > 0) {
                   console.log("Parent clicked");
+                  console.log('post.id', post.id);
                   onOpen?.(post.id);
                 }
               }}
@@ -1699,7 +1701,7 @@ export function PostTable({
                           )
                         );
                         // Use the store's requestChanges method to add activity
-                        requestChanges(post.id);
+                        // requestChanges(post.id);
                         handleEditPost(post);
                       }
                     }}

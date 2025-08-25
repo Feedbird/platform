@@ -6,12 +6,12 @@ const ops = getPlatformOperations("pinterest")!;
 
 const Body = z.object({
   token  : z.string().min(10),          // page / account token
-  boardId: z.string().min(1),
+  board_id: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, boardId } = Body.parse(await req.json());
+    const { token, board_id } = Body.parse(await req.json());
 
     /* fabricate a minimal SocialAccount just for the call */
     const fakeAcc = {
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       status     : "active",
     } as any;
 
-    const page = await ops.connectPage(fakeAcc, boardId);
+    const page = await ops.connectPage(fakeAcc, board_id);
     return Response.json(page);                     // 200
 
   } catch (e: any) {

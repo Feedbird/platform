@@ -30,7 +30,6 @@ import { BlocksViewer } from "@/components/post/blocks-viewer";
 import { CaptionEditor } from "@/components/post/caption-editor";
 import { CommentsPanel } from "@/components/post/comments-panel";
 import { ActivityPanel } from "@/components/post/activity-panel";
-import ActivityFeed from "@/components/post/activity-feed";
 import { ContentModal } from "@/components/content/content-modal/content-modal";
 import ScheduleDialog from "@/components/post/schedule-dialog";
 import { VersionPanel } from "./version-panel";
@@ -756,25 +755,23 @@ function HashtagsEditor({ post }: { post: Post }) {
   );
 }
 
-export function PostRecordModal({ postId, open, onClose }:{
-  postId: string;
+export function PostRecordModal({ selectedPost, open, onClose }:{
+  selectedPost: Post;
   open: boolean;
   onClose(): void;
 }) {
-  const { posts, updatePost, brand, activeWorkspace, activeBoardId } = useStoreWithEqualityFn(
+  const { updatePost, brand, activeWorkspace } = useStoreWithEqualityFn(
     useFeedbirdStore,
     (s) => ({
-      posts: s.getActivePosts(),
       updatePost: s.updatePost,
       brand: s.getActiveBrand(),
       activeWorkspace: s.getActiveWorkspace(),
-      activeBoardId: s.activeBoardId,
     }),
     shallow
   );
-  const activeBoard = activeWorkspace?.boards.find(b => b.id === activeBoardId);
-  const post = posts.find((p) => p.id === postId);
-
+  const activeBoard = activeWorkspace?.boards.find(b => b.id === selectedPost.board_id);
+  const posts = activeBoard?.posts;
+  const post = posts?.find(p => p.id === selectedPost.id);
   /* local states */
   const [pane, setPane] = useState<"version"|"activity"|"analytics">("activity");
   const [expanded, setExpanded] = useState(true);
@@ -789,11 +786,9 @@ export function PostRecordModal({ postId, open, onClose }:{
     return null;
   }
 
-  const idx    = posts.findIndex(p => p.id === postId);
-
   // Get group data for the current post's month
   const groupData = activeBoard?.groupData?.find((gd: BoardGroupData) => gd.month === post.month) as BoardGroupData | undefined;
-  const groupPosts = posts.filter(p => p.month === post.month);
+  const groupPosts = posts?.filter(p => p.month === post.month);
   const boardRules = activeBoard?.rules;
 
   // Helper function to format time ago
@@ -820,7 +815,7 @@ export function PostRecordModal({ postId, open, onClose }:{
     // Only approve if the status allows it
     if (allowedStatusesForApproval.includes(post.status)) {
       updatePost(post.id, { status: "Approved" });
-      setSlots(getSuggestedSlots(post, posts));
+      setSlots(getSuggestedSlots(post, posts || []));
     }
   };
   const requestChange = () => {
@@ -1002,7 +997,7 @@ export function PostRecordModal({ postId, open, onClose }:{
                           return (
                             <div className="flex items-center gap-1 pl-2 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main">
                               <img
-                                src="/images/boards/message-notification.svg"
+                                src="/images/icons/message-notification.svg"
                                 alt="Group Comments"
                                 className="w-4 h-4"
                               />

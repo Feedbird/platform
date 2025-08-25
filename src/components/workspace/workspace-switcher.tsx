@@ -4,6 +4,7 @@
 import * as React from 'react'
 import Image from 'next/image'
 import { startTransition, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -50,6 +51,7 @@ import { currentUser } from '@clerk/nextjs/server'
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
   const { signOut } = useClerk()
+  const router = useRouter()
   
   /* -------- store -------- */
   const workspaces     = useFeedbirdStore(s => s.workspaces)
@@ -91,7 +93,29 @@ export default function WorkspaceSwitcher() {
 
   const select = (id: string) => {
     show()
-    startTransition(() => setActive(id))
+    startTransition(() => {
+      setActive(id)
+      // Navigate to the new workspace URL
+      const currentPath = window.location.pathname
+      let newPath = `/${id}`
+      
+      // If we're on a content route, preserve the board ID
+      if (currentPath.includes('/content/')) {
+        const pathParts = currentPath.split('/')
+        const contentIndex = pathParts.findIndex(part => part === 'content')
+        if (contentIndex !== -1 && pathParts[contentIndex + 1]) {
+          const board_id = pathParts[contentIndex + 1]
+          // Check if this board exists in the new workspace
+          const newWorkspace = workspaces.find(w => w.id === id)
+          if (newWorkspace?.boards.some(b => b.id === board_id)) {
+            newPath = `/${id}/content/${board_id}`
+          }
+        }
+      }
+      
+      // Use router to navigate
+      router.push(newPath)
+    })
     setTimeout(hide, 600)
   }
 
@@ -100,7 +124,6 @@ export default function WorkspaceSwitcher() {
     const userEmail = user?.email || 'demo@example.com'
     
     const wsId = await addWorkspace(name, userEmail, logo ?? '')
-    console.log('@@@@@@@@@@@@@wsId: ', wsId);
     // ensure workspace selected
     select(wsId)
 

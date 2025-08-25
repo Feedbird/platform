@@ -159,7 +159,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const validatedData = CreateBrandSchema.parse(body)
-    console.log('@@@@@@@@@@@@@validatedData: ', validatedData);
     // Verify workspace exists
     const { data: workspace } = await supabase
       .from('workspaces')
@@ -167,7 +166,6 @@ export async function POST(req: NextRequest) {
       .eq('id', validatedData.workspace_id)
       .single()
 
-    console.log('@@@@@@@@@@@@@workspace: ', workspace); 
     if (!workspace) {
       return NextResponse.json(
         { error: 'Workspace not found' },
