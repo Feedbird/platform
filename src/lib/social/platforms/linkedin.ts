@@ -196,6 +196,53 @@ export class LinkedInPlatform extends BasePlatform {
   async refreshToken(a: SocialAccount) { return a; }
   async disconnectAccount(a: SocialAccount) { a.connected = false; }
 
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch total follower count for member
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/follower-statistics?view=li-lms-2025-08&source=recommendations&tabs=http
+     ────────────────────────────────────────────────────────── */
+  async getMemberFollowerCount(token: string): Promise<number> {
+    try {
+
+      // Additionslly we can pass daterange then The API returns the daily followers count within the specified dateRange.
+      const url = `${config.baseUrl}/rest/memberFollowersCount?q=me`;
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'LinkedIn-Version': '202507',
+          'X-Restli-Protocol-Version': '2.0.0'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`LinkedIn Member Follower Count API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json() as {
+        elements: Array<{
+          memberFollowersCount: number;
+        }>;
+        paging: {
+          count: number;
+          start: number;
+          total: number;
+          links: any[];
+        };
+      };
+
+      if (data.elements && data.elements.length > 0) {
+        return data.elements[0].memberFollowersCount;
+      }
+
+      return 0;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch member follower count:', error);
+      return 0;
+    }
+  }
+
   /* one synthetic "Page" == the member profile */
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
     const pages: SocialPage[] = [];
@@ -205,6 +252,14 @@ export class LinkedInPlatform extends BasePlatform {
 
     if(!authToken || !authTokenExpiresAt) {
       throw new Error('No auth token found or auth token expires at found. Please reconnect your LinkedIn account.');
+    }
+
+    // Get total follower count for the member
+    let memberFollowerCount = 0;
+    try {
+      memberFollowerCount = await this.getMemberFollowerCount(authToken);
+    } catch (error) {
+      console.warn('[LinkedIn] Could not fetch follower count for member:', error);
     }
 
     // Add personal profile directly from the SocialAccount object.
@@ -220,7 +275,10 @@ export class LinkedInPlatform extends BasePlatform {
       status     : "active",
       accountId  : acc.id,
       statusUpdatedAt: new Date(),
-      metadata: acc.metadata || {},
+      metadata: {
+        ...acc.metadata,
+        followerCount: memberFollowerCount
+      },
     });
       try {
 
@@ -298,10 +356,10 @@ export class LinkedInPlatform extends BasePlatform {
               token: authToken
             });
 
-                        // Fetch follower count for the organization
-            let followerCount = 0;
+            // Fetch follower count for the organization
+            let organizationFollowerCount = 0;
             try {
-              followerCount = await this.getOrganizationFollowerCount(org.organizationalTarget, authToken);
+              organizationFollowerCount = await this.getOrganizationFollowerCount(org.organizationalTarget, authToken);
             } catch (error) {
               console.warn('[LinkedIn] Could not fetch follower count for organization:', orgDetails.localizedName, error);
             }
@@ -320,7 +378,7 @@ export class LinkedInPlatform extends BasePlatform {
               statusUpdatedAt: new Date(),
               metadata: {
                 ...orgDetails,
-                followerCount
+                followerCount: organizationFollowerCount
               }
             });
           }
