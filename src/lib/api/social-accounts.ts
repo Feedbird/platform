@@ -102,7 +102,8 @@ export const socialAccountApi = {
       status: page.status,
       auth_token: page.authToken,
       auth_token_expires_at: page.authTokenExpiresAt,
-      metadata: page.metadata || {}
+      metadata: page.metadata || {},
+      entity_type: page.entityType
     }));
 
     const { data: savedPages, error: pagesError } = await supabase

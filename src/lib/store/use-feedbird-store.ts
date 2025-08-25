@@ -905,8 +905,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 let publishOptions: any = { scheduledTime };
                 let postContent: any;
 
-                // For TikTok pages, format content according to TikTok API requirements
-                if (page.platform === 'tiktok') {
+                if (['tiktok', 'linkedin'].includes(page.platform)) {
                   
                   // Use TikTok settings if available, otherwise use defaults
                   if (post.settings?.tiktok) {
