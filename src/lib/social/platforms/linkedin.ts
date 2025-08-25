@@ -130,7 +130,7 @@ export class LinkedInPlatform extends BasePlatform {
       expires_in: number;
       refresh_token: string;
       scope: string;
-      refresh_expires_in: number;
+      refresh_token_expires_in: number;
     };
 
     // 2. Get user info from the OIDC userinfo endpoint.
@@ -185,7 +185,8 @@ export class LinkedInPlatform extends BasePlatform {
       authToken: tokenData.access_token,
       accessTokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       refreshToken: tokenData.refresh_token,
-      refreshTokenExpiresAt: new Date(Date.now() + tokenData.refresh_expires_in * 1000),
+      refreshTokenExpiresAt: new Date(Date.now() + tokenData.refresh_token_expires_in * 1000),
+      tokenIssuedAt: new Date(),
       metadata,
       connected: true,
       status: "active",
@@ -207,6 +208,7 @@ export class LinkedInPlatform extends BasePlatform {
       name       : acc.name,
       pageId     : `urn:li:person:${acc.accountId}`, // Construct the URN from the ID
       authToken  : acc.authToken || '',
+      authTokenExpiresAt: acc.accessTokenExpiresAt,
       connected  : true,
       status     : "active",
       accountId  : acc.id,
@@ -304,6 +306,7 @@ export class LinkedInPlatform extends BasePlatform {
               name       : orgDetails.localizedName,
               pageId     : org.organizationalTarget,
               authToken  : acc.authToken || '',
+              authTokenExpiresAt: acc.accessTokenExpiresAt,
               connected  : true,
               status     : "active",
               accountId  : org.roleAssignee,
@@ -984,9 +987,85 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   // function in which pass the page id and get the token from the supabase
-  async getTokenFromSupabase(pageId: string) {
-    const { data } = await supabase.from('social_pages').select('auth_token').eq('id', pageId).single();
-    return data?.auth_token;
+  async getToken(pageId: string) {
+    const { data, error } = await supabase.from('social_pages').select('account_id, auth_token, auth_token_expires_at').eq('id', pageId).single();
+
+    if (error) {
+      throw new Error('Failed to get LinkedIn token. Please reconnect your LinkedIn account.');
+    }
+
+    const accessToken = data?.auth_token;
+    // LinkedIn tokens may have an expiration, but our DB row may not have this field.
+    // If it exists, check if expired.
+    const authTokenExpiresAt = (data as any)?.auth_token_expires_at;
+
+
+    //  we need to convert the authTokenExpiresAt to milliseconds
+    const authTokenExpiresAtMs = new Date(authTokenExpiresAt).getTime();
+    if (authTokenExpiresAt && authTokenExpiresAtMs < new Date().getTime()) {
+      const accessToken = await this.refreshTokenFromLinkedIn(data?.account_id);
+      return accessToken;
+    }
+
+    return accessToken; 
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – refresh token from LinkedIn
+     @url https://learn.microsoft.com/en-us/linkedin/shared/authentication/programmatic-refresh-tokens
+     ────────────────────────────────────────────────────────── */
+  async refreshTokenFromLinkedIn(accountId: string) {
+    
+    const { data, error } = await supabase.from('social_accounts').select('auth_token, access_token_expires_at, refresh_token, refresh_token_expires_at').eq('id', accountId).single();
+
+    //  if the account is not found, throw an error
+    if (error || !data) {
+      throw new Error('Failed to refresh LinkedIn token. Please reconnect your LinkedIn account.');
+    }
+
+    // check if the refresh token is expired (in milliseconds)
+    const refreshTokenExpiresAt = data?.refresh_token_expires_at;
+    const refreshTokenExpiresAtMs = new Date(refreshTokenExpiresAt).getTime();
+    if (refreshTokenExpiresAt && refreshTokenExpiresAtMs < new Date().getTime()) {
+      throw new Error('Refresh token expired. Please reconnect your LinkedIn account.');
+    }
+
+    //  call the LinkedIn API to refresh the token
+    //  https://learn.microsoft.com/en-us/linkedin/shared/authentication/programmatic-refresh-tokens
+    const response = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `grant_type=refresh_token&refresh_token=${data?.refresh_token}&client_id=${this.env.clientId}&client_secret=${this.env.clientSecret}`
+    });
+
+    //  if the response is not ok, throw an error
+    if (!response.ok) {
+      throw new Error('Failed to refresh LinkedIn token. Please reconnect your LinkedIn account.');
+    }
+
+    //  get the token data
+    const tokenData: any = await response.json();
+
+    //  get the current date
+    const now = new Date();
+
+    // update the supabase table with the new token
+    await supabase.from('social_accounts').update({
+      auth_token: tokenData?.access_token,
+      access_token_expires_at: new Date(now.getTime() + tokenData?.expires_in * 1000),
+      refresh_token: tokenData?.refresh_token,
+      refresh_token_expires_at: new Date(now.getTime() + tokenData?.refresh_token_expires_in * 1000)
+    }).eq('id', accountId);
+
+    // also update the social_pages table with the new token, social pages are linked to social accounts
+    await supabase.from('social_pages').update({
+      auth_token: tokenData?.access_token,
+      auth_token_expires_at: new Date(now.getTime() + tokenData?.expires_in * 1000)
+    }).eq('account_id', accountId);
+
+    return tokenData?.access_token;
   }
 
   /* 4 — publish post (text, single image, multiple images, or video) */
@@ -1009,7 +1088,7 @@ export class LinkedInPlatform extends BasePlatform {
       return res.json();
     }
     
-    const token = await this.getTokenFromSupabase(page.id);
+    const token = await this.getToken(page.id);
     if (!token) {
       throw new Error("Token not found");
     }
