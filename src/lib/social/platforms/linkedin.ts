@@ -1383,7 +1383,143 @@ export class LinkedInPlatform extends BasePlatform {
     return [];
   }
 
-  async getPostAnalytics() { return {}; }
+  async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> { 
+    try {
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error("Token not found");
+      }
+
+      // For now, we'll fetch aggregated analytics for the member (overall stats)
+      // In the future, we can enhance this to fetch specific post analytics if we have the social post ID
+      const analytics = await this.getMemberPostAnalytics(token);
+      
+      return {
+        reach: analytics.membersReached || 0,
+        likes: analytics.reactions || 0,
+        comments: analytics.comments || 0,
+        shares: analytics.reshares || 0,
+        clicks: 0, // LinkedIn doesn't provide click metrics in this API
+        views: analytics.impressions || 0,
+        engagement: this.calculateEngagement(analytics),
+        metadata: {
+          platform: 'linkedin',
+          analyticsType: 'member_aggregated',
+          lastUpdated: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      console.error('[LinkedIn] Failed to get post analytics:', error);
+      return {
+        reach: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        clicks: 0,
+        views: 0,
+        engagement: 0,
+        metadata: {
+          platform: 'linkedin',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      };
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch member post analytics (aggregated)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics?view=li-lms-2025-07&tabs=http
+     ────────────────────────────────────────────────────────── */
+  private async getMemberPostAnalytics(token: string): Promise<{
+    impressions?: number;
+    membersReached?: number;
+    reactions?: number;
+    comments?: number;
+    reshares?: number;
+  }> {
+    try {
+      const metrics = ['IMPRESSION', 'MEMBERS_REACHED', 'REACTION', 'COMMENT', 'RESHARE'];
+      const results: any = {};
+
+      // Fetch each metric type
+      for (const metric of metrics) {
+        try {
+          const url = `${config.baseUrl}/rest/memberCreatorPostAnalytics?q=me&queryType=${metric}&aggregation=TOTAL`;
+          
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'LinkedIn-Version': '202507',
+              'X-Restli-Protocol-Version': '2.0.0'
+            }
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.warn(`[LinkedIn] Failed to fetch ${metric} analytics:`, response.status, errorText);
+            continue;
+          }
+
+          const data = await response.json() as {
+            elements: Array<{
+              count: number;
+              metricType: {
+                'com.linkedin.adsexternalapi.memberanalytics.v1.CreatorPostAnalyticsMetricTypeV1': string;
+              };
+            }>;
+          };
+
+          if (data.elements && data.elements.length > 0) {
+            const count = data.elements[0].count;
+            
+            // Map LinkedIn metrics to our analytics structure
+            switch (metric) {
+              case 'IMPRESSION':
+                results.impressions = count;
+                break;
+              case 'MEMBERS_REACHED':
+                results.membersReached = count;
+                break;
+              case 'REACTION':
+                results.reactions = count;
+                break;
+              case 'COMMENT':
+                results.comments = count;
+                break;
+              case 'RESHARE':
+                results.reshares = count;
+                break;
+            }
+          }
+        } catch (metricError) {
+          console.warn(`[LinkedIn] Error fetching ${metric} analytics:`, metricError);
+        }
+      }
+
+      return results;
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch member post analytics:', error);
+      return {};
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – calculate engagement rate
+     ────────────────────────────────────────────────────────── */
+  private calculateEngagement(analytics: {
+    impressions?: number;
+    membersReached?: number;
+    reactions?: number;
+    comments?: number;
+    reshares?: number;
+  }): number {
+    const reach = analytics.membersReached || analytics.impressions || 0;
+    if (reach === 0) return 0;
+
+    const totalEngagement = (analytics.reactions || 0) + (analytics.comments || 0) + (analytics.reshares || 0);
+    return Math.round((totalEngagement / reach) * 10000) / 100; // Return as percentage with 2 decimal places
+  }
   async deletePost()       { /* not supported for member UGC */ }
 
   async createPost(
