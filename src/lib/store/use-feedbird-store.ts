@@ -22,6 +22,7 @@ import { RowHeightType } from "../utils";
 import { storeApi, commentApi, activityApi, socialAccountApi } from '@/lib/api/api-service'
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
 import { mapTikTokSettingsToPublishOptions } from "@/lib/utils/tiktok-settings-mapper";
+import { ConsoleEmailService } from "../services/email-service";
 
 
 export interface BoardRules {
@@ -152,11 +153,16 @@ export interface CaptionData {
 
 export interface Activity {
   id: string;
-  postId: string;
-  actor: string;
-  action: string;
-  type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing';
-  at: Date;
+  workspaceId: string;
+  postId?: string;
+  type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing' | 'comment' | 'workspace_invited_sent' | 'board_invited_sent';
+  actorId: string; // User ID of the person who performed the action
+  actor?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
   metadata?: {
     versionNumber?: number;
     comment?: string;
@@ -164,12 +170,14 @@ export interface Activity {
     revisionComment?: string;
     commentId?: string;
   };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Post {
   id: string;
   workspaceId: string;
-  boardId: string; // <- NEW: permanently associates post with a board
+  board_id: string; // <- NEW: permanently associates post with a board
   caption: CaptionData;
   status: Status;
   format: string;
@@ -261,13 +269,38 @@ export interface MessageChannel {
 /*─────────────────────────────────────────────────────────────────────*/
 /*  Store Interface                                                  */
 /*─────────────────────────────────────────────────────────────────────*/
+export interface NotificationSettings {
+  workspace_id: string;
+  settings: {
+    communication: {
+      enabled: boolean;
+      commentsAndMentions: boolean;
+    };
+    boards: {
+      enabled: boolean;
+      pendingApproval: boolean;
+      scheduled: boolean;
+      published: boolean;
+      boardInviteSent: boolean;
+      boardInviteAccepted: boolean;
+    };
+    workspaces: {
+      enabled: boolean;
+      workspaceInviteSent: boolean;
+      workspaceInviteAccepted: boolean;
+    };
+  };
+}
+
 export interface User {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
   imageUrl?: string;
-  unreadMsg?: string[];
+  unread_msg?: string[];
+  unread_notification?: string[];
+  notification_settings?: NotificationSettings[];
   createdAt: Date;
 }
 
@@ -302,6 +335,7 @@ export interface FeedbirdStore {
 
   // User management
   setUser: (user: User | null) => void;
+  updateUserNotificationSettings: (notificationSettings: NotificationSettings[]) => void;
   clearUser: () => void;
   setCurrentChannelId: (channelId: string | undefined) => void;
   
@@ -349,6 +383,7 @@ export interface FeedbirdStore {
   addUnreadMessage: (messageId: string) => void;
   removeUnreadMessage: (messageId: string) => void;
   hasUnreadMessages: () => boolean;
+  markChannelAsRead: (channelId: string) => Promise<void>;
   
   addBoard: (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => Promise<string>;
   updateBoard: (id: string, data: Partial<Board>) => Promise<void>;
@@ -358,24 +393,24 @@ export interface FeedbirdStore {
   removeBoardTemplate: (id: string) => void;
   
   // Group data methods
-  addGroupComment: (boardId: string, month: number, text: string, author: string) => string;
-  updateGroupComment: (boardId: string, month: number, commentId: string, data: Partial<GroupComment>) => void;
-  deleteGroupComment: (boardId: string, month: number, commentId: string) => void;
-  resolveGroupComment: (boardId: string, month: number, commentId: string, resolvedBy: string) => void;
-  addGroupMessage: (boardId: string, month: number, commentId: string, text: string, author: string, parentMessageId?: string) => string;
-  updateGroupMessage: (boardId: string, month: number, commentId: string, messageId: string, data: Partial<GroupMessage>) => void;
-  deleteGroupMessage: (boardId: string, month: number, commentId: string, messageId: string) => void;
-  updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string[]) => void;
-  deleteGroupCommentAiSummaryItem: (boardId: string, month: number, commentId: string, summaryIndex: number) => void;
-  markGroupCommentRead: (boardId: string, month: number, commentId: string) => void;
+  addGroupComment: (board_id: string, month: number, text: string, author: string) => string;
+  updateGroupComment: (board_id: string, month: number, commentId: string, data: Partial<GroupComment>) => void;
+  deleteGroupComment: (board_id: string, month: number, commentId: string) => void;
+  resolveGroupComment: (board_id: string, month: number, commentId: string, resolvedBy: string) => void;
+  addGroupMessage: (board_id: string, month: number, commentId: string, text: string, author: string, parentMessageId?: string) => string;
+  updateGroupMessage: (board_id: string, month: number, commentId: string, messageId: string, data: Partial<GroupMessage>) => void;
+  deleteGroupMessage: (board_id: string, month: number, commentId: string, messageId: string) => void;
+  updateGroupCommentAiSummary: (board_id: string, month: number, commentId: string, aiSummary: string[]) => void;
+  deleteGroupCommentAiSummaryItem: (board_id: string, month: number, commentId: string, summaryIndex: number) => void;
+  markGroupCommentRead: (board_id: string, month: number, commentId: string) => void;
   
   deletePost: (postId: string) => Promise<void>;
   bulkDeletePosts: (postIds: string[]) => Promise<void>;
   approvePost: (id: string) => Promise<void>;
   requestChanges: (id: string, comment?: string) => Promise<void>;
   setPostRevised: (id: string) => Promise<void>;
-  addPost: (boardId?: string) => Promise<Post | null>;
-  bulkAddPosts: (boardId: string, posts: Omit<Post, 'id' | 'workspaceId' | 'boardId' | 'updatedAt'>[]) => Promise<Post[]>;
+  addPost: (board_id?: string) => Promise<Post | null>;
+  bulkAddPosts: (board_id: string, posts: Omit<Post, 'id' | 'workspaceId' | 'board_id' | 'updatedAt'>[]) => Promise<Post[]>;
   duplicatePost: (orig: Post) => Promise<Post | null>;
   setActivePosts: (posts: Post[]) => void;
   sharePostsToBrand: (postIds: string[], targetBrandId: string) => void;
@@ -394,7 +429,7 @@ export interface FeedbirdStore {
     parentId?: string,
     revisionRequested?: boolean
   ) => Promise<string>;
-  addActivity: (act: Omit<Activity, 'id' | 'at'>) => void;
+  addActivity: (act: Omit<Activity, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
 }
 
 const defaultPlatformNav: NavLink[] = [
@@ -524,13 +559,13 @@ const defaultColors = [
   "#EC5690", "#B45FC1", "#FB8AEE", "#AC8E81", "#1C1C1C", "#97A7A6", "#5374E0", "#E6E4E2"
 ];
 
-function boardsToNav(boards: Board[]): NavLink[] {
+function boardsToNav(boards: Board[], workspaceId?: string): NavLink[] {
   return boards.map((b) => ({ 
     id: b.id, 
     label: b.name, 
     image: b.image, 
     selectedImage: b.selectedImage, 
-    href: `/content/${b.id}`, 
+    href: workspaceId ? `/${workspaceId}/content/${b.id}` : `/content/${b.id}`, 
     rules: b.rules,
     color: b.color // Add color to NavLink
   }));
@@ -732,10 +767,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         getActivePosts: () => {
           const workspace = get().getActiveWorkspace();
-          const boardId = get().activeBoardId;
-          if (!workspace || !boardId) return [];
+          const board_id = get().activeBoardId;
+          if (!workspace || !board_id) return [];
           
-          const board = workspace.boards.find(b => b.id === boardId);
+          const board = workspace.boards.find(b => b.id === board_id);
+          console.log('board', board);
           return board?.posts ?? [];
         },
         getAllPosts: () => {
@@ -760,10 +796,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               
               // Add scheduling activity if scheduled
               if (scheduledTime) {
-                addActivity({
+                await addActivity({
                   postId,
-                  actor: getCurrentUserDisplayNameFromStore(get()),
-                  action: "scheduled this post",
+                  workspaceId: workspace.id,
+                  actorId: get().user?.id || '',
                   type: "scheduled",
                   metadata: {
                     publishTime: scheduledTime
@@ -923,15 +959,17 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               }
 
               // Add success activity
-              // addActivity({
-              //   postId,
-              //   actor: getCurrentUserDisplayNameFromStore(get()),
-              //   action: scheduledTime ? "scheduled this post" : "published this post",
-              //   type: scheduledTime ? "scheduled" : "published",
-              //   metadata: {
-              //     publishTime: scheduledTime
-              //   }
-              // });
+              if (workspace) {
+                await addActivity({
+                  postId,
+                  workspaceId: workspace.id,
+                  actorId: get().user?.id || '',
+                  type: scheduledTime ? "scheduled" : "published",
+                  metadata: {
+                    publishTime: scheduledTime
+                  }
+                });
+              }
             },
             {
               loading: scheduledTime ? "Scheduling post..." : "Publishing post...",
@@ -1020,11 +1058,48 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => {
             const ws = s.workspaces.find((w) => w.id === id);
             console.log("activeworkspace:", ws);
+            
+            // Check if current pathname is a board route and if that board exists in the new workspace
+            let newActiveBoardId: string | null = null;
+            
+            // Try to get the current pathname from window.location if available
+            if (typeof window !== 'undefined') {
+              const pathname = window.location.pathname;
+              
+              // Handle new workspace-scoped routes: /[workspaceId]/content/[board_id]
+              if (pathname.includes('/content/')) {
+                const pathParts = pathname.split('/');
+                const contentIndex = pathParts.findIndex(part => part === 'content');
+                if (contentIndex !== -1 && pathParts[contentIndex + 1]) {
+                  const currentBoardId = pathParts[contentIndex + 1];
+                  
+                  // Check if this board exists in the new workspace
+                  if (currentBoardId && ws?.boards.some(b => b.id === currentBoardId)) {
+                    newActiveBoardId = currentBoardId;
+                  }
+                }
+              }
+              // Handle old routes for backward compatibility: /content/[board_id]
+              else if (pathname.startsWith('/content/')) {
+                const currentBoardId = pathname.split('/')[2]; // Extract board_id from /content/[board_id]
+                
+                // Check if this board exists in the new workspace
+                if (currentBoardId && ws?.boards.some(b => b.id === currentBoardId)) {
+                  newActiveBoardId = currentBoardId;
+                }
+              }
+            }
+            
+            // If no board from pathname or board doesn't exist in new workspace, set to null
+            if (!newActiveBoardId) {
+              newActiveBoardId = null;
+            }
+            
             return {
               activeWorkspaceId: id,
               activeBrandId: ws?.brand?.id ?? null,
-              activeBoardId: ws?.boards[0]?.id ?? null,
-              boardNav: boardsToNav(ws?.boards ?? []),
+              activeBoardId: newActiveBoardId,
+              boardNav: boardsToNav(ws?.boards ?? [], id),
             };
           }),
 
@@ -1501,7 +1576,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const isApproving = data?.status === 'Approved';
           const wasNotScheduled = prev?.status !== 'Scheduled';
           const ws = st.getActiveWorkspace();
-          const board = ws?.boards.find(b => b.id === prev?.boardId);
+          const board = ws?.boards.find(b => b.id === prev?.board_id);
           const shouldAuto = board?.rules?.autoSchedule === true;
           if (isApproving && wasNotScheduled && shouldAuto) {
               await storeApi.autoScheduleAndUpdateStore(pid, "Scheduled");
@@ -1531,12 +1606,15 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           if (allowedStatusesForApproval.includes(post.status)) {
             await get().updatePost(id, { status: "Approved" });
             // Add activity
-            get().addActivity({
-              postId: id,
-              actor: getCurrentUserDisplayNameFromStore(get()),
-              action: "approved this post",
-              type: "approved"
-            });
+            const workspace = get().getActiveWorkspace();
+            if (workspace) {
+              await get().addActivity({
+                postId: id,
+                workspaceId: workspace.id,
+                actorId: get().user?.id || '',
+                type: "approved"
+              });
+            }
           }
         },
         requestChanges: async (id, comment?: string) => {
@@ -1557,15 +1635,18 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             await get().updatePost(id, { status: "Needs Revisions" });
             console.log("requestChanges", id, comment);
             // Add activity
-            get().addActivity({
-              postId: id,
-              actor: getCurrentUserDisplayNameFromStore(get()),
-              action: "requested changes",
-              type: "revision_request",
-              metadata: {
-                revisionComment: comment
-              }
-            });
+            const workspace = get().getActiveWorkspace();
+            if (workspace) {
+              await get().addActivity({
+                postId: id,
+                workspaceId: workspace.id,
+                actorId: get().user?.id || '',
+                type: "revision_request",
+                metadata: {
+                  revisionComment: comment
+                }
+              });
+            }
           }
         },
         setPostRevised: async (id) => {
@@ -1581,20 +1662,23 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           if (allowedStatusesForRevised.includes(post.status)) {
             await get().updatePost(id, { status: "Revised" });
             // Add activity
-            get().addActivity({
-              postId: id,
-              actor: getCurrentUserDisplayNameFromStore(get()),
-              action: "marked as revised",
-              type: "revised"
-            });
+            const workspace = get().getActiveWorkspace();
+            if (workspace) {
+              await get().addActivity({
+                postId: id,
+                workspaceId: workspace.id,
+                actorId: get().user?.id || '',
+                type: "revised"
+              });
+            }
           }
         },
 
-        addPost: async (boardId?: string) => {
+        addPost: async (board_id?: string) => {
           const st = get();
           const ws = st.getActiveWorkspace();
           if (!ws) return null;
-          const bId = boardId ?? st.activeBoardId ?? (ws?.boards[0]?.id ?? "default");
+          const bId = board_id ?? st.activeBoardId ?? (ws?.boards[0]?.id ?? "default");
 
           const postId = await storeApi.createPostAndUpdateStore(ws.id, bId, {
             caption: { synced: true, default: "" },
@@ -1608,7 +1692,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
           return get().getPost(postId) ?? null;
         },
-        bulkAddPosts: async (boardId, posts) => {
+        bulkAddPosts: async (board_id, posts) => {
           const st = get();
           const ws = st.getActiveWorkspace();
           if (!ws) return [];
@@ -1617,7 +1701,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const postsData = posts.map(post => {
             const postData: any = {
               workspace_id: ws.id,
-              board_id: boardId,
+              board_id: board_id,
               caption: post.caption,
               status: post.status,
               format: post.format,
@@ -1646,7 +1730,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             return postData;
           });
 
-          const postIds = await storeApi.bulkCreatePostsAndUpdateStore(ws.id, boardId, postsData);
+          const postIds = await storeApi.bulkCreatePostsAndUpdateStore(ws.id, board_id, postsData);
           
           // Get the created posts from store
           const createdPosts = postIds.map(id => st.getPost(id)).filter(Boolean) as Post[];
@@ -1657,7 +1741,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const workspace = st.getActiveWorkspace();
           if (!workspace) return null;
           
-          const board = workspace.boards.find(b => b.id === orig.boardId);
+          const board = workspace.boards.find(b => b.id === orig.board_id);
           if (!board) return null;
           
           try {
@@ -1690,7 +1774,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               postData.hashtags = orig.hashtags;
             }
 
-            const postId = await storeApi.createPostAndUpdateStore(workspace.id, orig.boardId, postData);
+            const postId = await storeApi.createPostAndUpdateStore(workspace.id, orig.board_id, postData);
             
             // Get the created post from updated store
             const updatedStore = get();
@@ -1740,7 +1824,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               ...ex,
               id: "share-" + uuidv4(),
               workspaceId: targetWorkspace.id,
-              boardId: targetBoard.id,
+              board_id: targetBoard.id,
               updatedAt: new Date(),
             };
             
@@ -1863,41 +1947,43 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               if (block) {
                 const versionIndex = block.versions.findIndex(v => v.id === versionId);
                 if (versionIndex > 0) { // Only add activity if it's not the first version
-                  const activity = {
-                    postId,
-                    actor: getCurrentUserDisplayNameFromStore(get()),
-                    action: "created a new revision",
-                    type: "revised" as const,
-                    metadata: {
-                      versionNumber: versionIndex + 1
-                    }
-                  };
-                  
-                  // Add the activity to the post
-                  const updatedState = {
-                    workspaces: newState.workspaces.map((ws) => ({
-                      ...ws,
-                      boards: ws.boards.map((b) => ({
-                        ...b,
-                        posts: b.posts.map((p) => {
-                          if (p.id !== postId) return p;
-                          return {
-                            ...p,
-                            activities: [
-                              {
-                                ...activity,
-                                id: uuidv4(),
-                                at: new Date(),
-                              },
-                              ...p.activities
-                            ],
-                          };
-                        }),
+                  const workspace = s.getActiveWorkspace();
+                  if (workspace) {
+                    const activity: Activity = {
+                      id: uuidv4(),
+                      workspaceId: workspace.id,
+                      postId,
+                      type: "revised",
+                      actorId: get().user?.id || '',
+                      metadata: {
+                        versionNumber: versionIndex + 1
+                      },
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                    };
+                    
+                    // Add the activity to the post
+                    const updatedState = {
+                      workspaces: newState.workspaces.map((ws) => ({
+                        ...ws,
+                        boards: ws.boards.map((b) => ({
+                          ...b,
+                          posts: b.posts.map((p) => {
+                            if (p.id !== postId) return p;
+                            return {
+                              ...p,
+                              activities: [
+                                activity,
+                                ...p.activities
+                              ],
+                            };
+                          }),
+                        })),
                       })),
-                    })),
-                  };
-                  
-                  return updatedState;
+                    };
+                    
+                    return updatedState;
+                  }
                 }
               }
             }
@@ -2108,84 +2194,56 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // Activities
-        addActivity: (act) => {
-          const optimisticId = uuidv4();
-          const optimisticAt = new Date();
+        addActivity: async (act) => {
+          const workspace = get().getActiveWorkspace();
+          
+          if (!workspace || !act.postId) return;
 
-          // Optimistic update
-          set((s) => ({
-            workspaces: s.workspaces.map((ws) => ({
-              ...ws,
-              boards: ws.boards.map((b) => ({
-                ...b,
-                posts: b.posts.map((p) => {
-                  if (p.id !== act.postId) return p;
-                  return {
-                    ...p,
-                    activities: [
-                      {
-                        ...act,
-                        id: optimisticId,
-                        at: optimisticAt,
-                      },
-                      ...p.activities
-                    ],
-                  };
-                }),
-              })),
-            })),
-          }));
+          try {
+            // First, persist to database
+            const saved = await activityApi.addActivity({
+              workspace_id: workspace.id,
+              post_id: act.postId,
+              actor_id: act.actorId,
+              type: act.type,
+              metadata: act.metadata,
+            });
 
-          // Persist to DB
-          activityApi.addActivity({
-            post_id: act.postId,
-            actor: act.actor,
-            action: act.action,
-            type: act.type,
-            metadata: act.metadata,
-          }).then((saved) => {
-            // Replace optimistic entry with saved one (using returned id/created_at)
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== act.postId) return p;
-                    return {
-                      ...p,
-                      activities: p.activities.map((a) =>
-                        a.id === optimisticId
-                          ? {
-                              ...a,
-                              id: saved.id,
-                              at: new Date(saved.created_at),
-                            }
-                          : a
-                      ),
-                    };
-                  }),
+            console.log('saved', saved);
+
+            // Then, update the store with the saved activity
+            if (saved && saved.id) {
+              const activityId = saved.id as string;
+              set((s) => ({
+                workspaces: s.workspaces.map((ws) => ({
+                  ...ws,
+                  boards: ws.boards.map((b) => ({
+                    ...b,
+                    posts: b.posts.map((p) => {
+                      if (p.id !== act.postId) return p;
+                      return {
+                        ...p,
+                        activities: [
+                          {
+                            ...act,
+                            id: activityId,
+                            actor: saved.actor,
+                            createdAt: new Date(saved.created_at),
+                            updatedAt: new Date(saved.updated_at),
+                          },
+                          ...p.activities
+                        ],
+                      };
+                    }),
+                  })),
                 })),
-              })),
-            }));
-          }).catch(() => {
-            // On failure, remove the optimistic activity
-            set((s) => ({
-              workspaces: s.workspaces.map((ws) => ({
-                ...ws,
-                boards: ws.boards.map((b) => ({
-                  ...b,
-                  posts: b.posts.map((p) => {
-                    if (p.id !== act.postId) return p;
-                    return {
-                      ...p,
-                      activities: p.activities.filter((a) => a.id !== optimisticId),
-                    };
-                  }),
-                })),
-              })),
-            }));
-          });
+              }));
+            }
+          } catch (error) {
+            // Handle error - you might want to show a notification or handle it differently
+            console.error('Failed to add activity:', error);
+            throw error; // Re-throw to let caller handle the error
+          }
         },
 
         // Boards
@@ -2247,7 +2305,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // Group data methods implementation (DB first)
-        addGroupComment: (boardId, month, text, author) => {
+        addGroupComment: (board_id, month, text, author) => {
           const commentId = uuidv4();
           const userEmail: string | null = (get() as any).user?.email ?? null;
           // Optimistic local object to use in case of failure
@@ -2273,7 +2331,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const ws = st.getActiveWorkspace();
           if (!ws) return commentId;
 
-          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentBoard = ws.boards.find(b => b.id === board_id);
           const currentGroupData = currentBoard?.groupData || [];
           const nextGroupData: BoardGroupData[] = (() => {
             const monthGroup = currentGroupData.find(gd => gd.month === month);
@@ -2287,16 +2345,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           })();
 
           // DB first: update board.group_data, which will then update the store via storeApi
-          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
+          storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
           return commentId;
         },
 
         /** Mark a specific group comment as read by current user (adds email to readBy). DB-first */
-        markGroupCommentRead: (boardId: string, month: number, commentId: string) => {
+        markGroupCommentRead: (board_id: string, month: number, commentId: string) => {
           const st = get();
           const ws = st.getActiveWorkspace();
           if (!ws) return;
-          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentBoard = ws.boards.find(b => b.id === board_id);
           const currentGroupData = currentBoard?.groupData || [];
           const userEmail: string | null = (get() as any).user?.email ?? null;
           if (!userEmail) return;
@@ -2310,10 +2368,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 : c)
             };
           });
-          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
+          storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
         },
 
-        updateGroupComment: (boardId, month, commentId, data) => {
+        updateGroupComment: (board_id, month, commentId, data) => {
           set((s) => ({
             workspaces: s.workspaces.map((ws) => {
               // Only update the active workspace
@@ -2322,7 +2380,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 ...ws,
                 boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
+                  if (board.id !== board_id) return board;
                   
                   const updatedGroupData = (board.groupData || []).map(gd => {
                     if (gd.month !== month) return gd;
@@ -2344,7 +2402,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
-        deleteGroupComment: (boardId, month, commentId) => {
+        deleteGroupComment: (board_id, month, commentId) => {
           set((s) => ({
             workspaces: s.workspaces.map((ws) => {
               // Only update the active workspace
@@ -2353,7 +2411,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 ...ws,
                 boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
+                  if (board.id !== board_id) return board;
                   
                   const updatedGroupData = (board.groupData || []).map(gd => {
                     if (gd.month !== month) return gd;
@@ -2371,11 +2429,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
-        resolveGroupComment: (boardId, month, commentId, resolvedBy) => {
+        resolveGroupComment: (board_id, month, commentId, resolvedBy) => {
           const st = get();
           const ws = st.getActiveWorkspace();
           if (!ws) return;
-          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentBoard = ws.boards.find(b => b.id === board_id);
           const currentGroupData = currentBoard?.groupData || [];
           const nextGroupData = currentGroupData.map(gd => {
             if (gd.month !== month) return gd;
@@ -2390,10 +2448,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               } : c)
             };
           });
-          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
+          storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
         },
 
-        addGroupMessage: (boardId, month, commentId, text, author, parentMessageId) => {
+        addGroupMessage: (board_id, month, commentId, text, author, parentMessageId) => {
           const messageId = uuidv4();
           const newMessage: GroupMessage = {
             id: messageId,
@@ -2409,7 +2467,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const ws = st.getActiveWorkspace();
           if (!ws) return messageId;
 
-          const currentBoard = ws.boards.find(b => b.id === boardId);
+          const currentBoard = ws.boards.find(b => b.id === board_id);
           const currentGroupData = currentBoard?.groupData || [];
           const nextGroupData = currentGroupData.map(gd => {
             if (gd.month !== month) return gd;
@@ -2430,11 +2488,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               })
             };
           });
-          storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
+          storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
           return messageId;
         },
 
-        updateGroupMessage: (boardId, month, commentId, messageId, data) => {
+        updateGroupMessage: (board_id, month, commentId, messageId, data) => {
           set((s) => ({
             workspaces: s.workspaces.map((ws) => {
               // Only update the active workspace
@@ -2443,7 +2501,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 ...ws,
                 boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
+                  if (board.id !== board_id) return board;
                   
                   const updatedGroupData = (board.groupData || []).map(gd => {
                     if (gd.month !== month) return gd;
@@ -2478,7 +2536,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
-        deleteGroupMessage: (boardId, month, commentId, messageId) => {
+        deleteGroupMessage: (board_id, month, commentId, messageId) => {
           set((s) => ({
             workspaces: s.workspaces.map((ws) => {
               // Only update the active workspace
@@ -2487,7 +2545,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 ...ws,
                 boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
+                  if (board.id !== board_id) return board;
                   
                   const updatedGroupData = (board.groupData || []).map(gd => {
                     if (gd.month !== month) return gd;
@@ -2521,7 +2579,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
-        updateGroupCommentAiSummary: (boardId, month, commentId, aiSummary) => {
+        updateGroupCommentAiSummary: (board_id, month, commentId, aiSummary) => {
           set((s) => ({
             workspaces: s.workspaces.map((ws) => {
               // Only update the active workspace
@@ -2530,7 +2588,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 ...ws,
                 boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
+                  if (board.id !== board_id) return board;
                   
                   const updatedGroupData = (board.groupData || []).map(gd => {
                     if (gd.month !== month) return gd;
@@ -2552,7 +2610,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }));
         },
 
-        deleteGroupCommentAiSummaryItem: (boardId, month, commentId, summaryIndex) => {
+        deleteGroupCommentAiSummaryItem: (board_id, month, commentId, summaryIndex) => {
           set((s) => ({
             workspaces: s.workspaces.map((ws) => {
               if (ws.id !== s.activeWorkspaceId) return ws;
@@ -2560,7 +2618,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               return {
                 ...ws,
                 boards: ws.boards.map((board) => {
-                  if (board.id !== boardId) return board;
+                  if (board.id !== board_id) return board;
         
                   const updatedGroupData = (board.groupData || []).map((gd) => {
                     if (gd.month !== month) return gd;
@@ -2589,6 +2647,14 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         setUser: (user: User | null) => {
           set({ user })
           // User is now set, unread messages will be handled through websocket events
+        },
+        updateUserNotificationSettings: (notificationSettings: NotificationSettings[]) => {
+          set((state) => ({
+            user: state.user ? {
+              ...state.user,
+              notification_settings: notificationSettings
+            } : null
+          }))
         },
         clearUser: () => set({ user: null }),
         setCurrentChannelId: (channelId) => set({ currentChannelId: channelId }),
@@ -2635,14 +2701,14 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             if (!s.user) return s;
             
             // Check if message is already in unread list
-            const currentUnread = s.user.unreadMsg || []
+            const currentUnread = s.user.unread_msg || []
             if (currentUnread.includes(messageId)) return s;
             
             return {
               ...s,
               user: {
                 ...s.user,
-                unreadMsg: [...currentUnread, messageId]
+                unread_msg: [...currentUnread, messageId]
               }
             };
           });
@@ -2651,7 +2717,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((s) => {
             if (!s.user) return s;
             
-            const currentUnread = s.user.unreadMsg || []
+            const currentUnread = s.user.unread_msg || []
             const newUnread = currentUnread.filter(id => id !== messageId)
             
             console.log('Removing unread message:', messageId, 'Current unread:', currentUnread, 'New unread:', newUnread);
@@ -2660,14 +2726,14 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               ...s,
               user: {
                 ...s.user,
-                unreadMsg: newUnread
+                unread_msg: newUnread
               }
             };
           });
         },
         hasUnreadMessages: () => {
-          const hasUnread = (get().user?.unreadMsg?.length || 0) > 0;
-          console.log('hasUnreadMessages called:', hasUnread, 'Unread count:', get().user?.unreadMsg?.length || 0);
+          const hasUnread = (get().user?.unread_msg?.length || 0) > 0;
+          console.log('hasUnreadMessages called:', hasUnread, 'Unread count:', get().user?.unread_msg?.length || 0);
           return hasUnread;
         },
         // Mark all messages in a channel as read
@@ -2683,7 +2749,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 ...s,
                 user: {
                   ...s.user!,
-                  unreadMsg: result.unread_msg
+                  unread_msg: result.unread_msg
                 }
               }))
             }

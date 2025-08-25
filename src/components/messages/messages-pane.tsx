@@ -70,6 +70,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	const textareaRef = useRef<HTMLDivElement | HTMLTextAreaElement>(null)
 	const [input, setInput] = useState('')
 	const [emoji, setEmoji] = useState(false)
+	const [storedCaretPosition, setStoredCaretPosition] = useState(0)
 	const [loadingAllMessages, setLoadingAllMessages] = useState(false)
 	const [selectedChannelForMessage, setSelectedChannelForMessage] = useState<string | null>(null)
 	const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
@@ -218,18 +219,18 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	}, [activeWorkspaceId, boardNav.length])
 
 	// Function to get board count (similar to sidebar)
-	const getBoardCount = (boardId: string): number => {
+	const getBoardCount = (board_id: string): number => {
 		const posts = getAllPosts();
-		return posts.filter((p: any) => p.boardId === boardId).length;
+		return posts.filter((p: any) => p.board_id === board_id).length;
 	};
 
 	// Function to handle board selection
-	const handleBoardSelection = (boardId: string) => {
+	const handleBoardSelection = (board_id: string) => {
 		setSelectedBoards(prev => {
-			if (prev.includes(boardId)) {
-				return prev.filter(id => id !== boardId);
+			if (prev.includes(board_id)) {
+				return prev.filter(id => id !== board_id);
 			} else {
-				return [...prev, boardId];
+				return [...prev, board_id];
 			}
 		});
 	};
@@ -237,20 +238,20 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 
 	// Function to handle board quick view navigation
-	const handleBoardQuickView = (boardId: string) => {
+	const handleBoardQuickView = (board_id: string) => {
 		// Find the board in boardNav
-		const board = boardNav.find(b => b.id === boardId);
+		const board = boardNav.find(b => b.id === board_id);
 		if (board) {
 			// Use the same navigation method as app-sidebar
 			// This will navigate to the board content page and show the post table
-			router.push(board.href || `/content/${boardId}`);
+			router.push(board.href || `/${activeWorkspaceId}/content/${board_id}`);
 		}
 	};
 
 	// Function to fetch board data with post counts and actual posts
 	const fetchBoardData = async () => {
 		if (!activeWorkspaceId || boardNav.length === 0) return
-		
+
 		setLoadingBoardData(true)
 		try {
 			const boardDataWithCounts = await Promise.all(
@@ -259,21 +260,21 @@ export default function MessagesPane({ channelName, channelDescription, members:
 						// Fetch posts for this board
 						const posts = await postApi.getPost({ board_id: board.id })
 						const postsArray = Array.isArray(posts) ? posts : [posts]
-						
+
 						// Calculate status counts and store actual posts
 						const statusCounts: Record<string, number> = {}
 						const postsByStatus: Record<string, any[]> = {}
-						
+
 						postsArray.forEach((post: any) => {
 							const status = post.status || 'Draft'
 							statusCounts[status] = (statusCounts[status] || 0) + 1
-							
+
 							if (!postsByStatus[status]) {
 								postsByStatus[status] = []
 							}
 							postsByStatus[status].push(post)
 						})
-						
+
 						return {
 							id: board.id,
 							label: board.label,
@@ -299,7 +300,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					}
 				})
 			)
-			
+
 			setBoardData(boardDataWithCounts)
 		} catch (error) {
 			console.error('Error fetching board data:', error)
@@ -309,9 +310,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	}
 
 	// Function to toggle board card expansion
-	const toggleBoardExpansion = (boardId: string) => {
-		setBoardData(prev => prev.map(board => 
-			board.id === boardId 
+	const toggleBoardExpansion = (board_id: string) => {
+		setBoardData(prev => prev.map(board =>
+			board.id === board_id
 				? { ...board, expanded: !board.expanded }
 				: board
 		))
@@ -324,7 +325,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			const currentVer = block.versions?.find((v: any) => v.id === block.currentVersionId);
 			return currentVer && (currentVer.file?.kind === "image" || currentVer.file?.kind === "video");
 		});
-		
+
 		if (mediaBlock) {
 			const currentVer = mediaBlock.versions?.find((v: any) => v.id === mediaBlock.currentVersionId);
 			if (currentVer) {
@@ -334,7 +335,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					: currentVer.file.url;
 			}
 		}
-		
+
 		// Fallback to a placeholder
 		return "/images/format/image.svg";
 	};
@@ -415,11 +416,11 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			supabase.removeChannel(threadMessageChannel)
 		}
 	}, [isThreadView, selectedThreadMessage?.id, channelId, activeWorkspaceId])
-	
-	const EMPTY_CHANNELS: any[] = []
-	
 
-	
+	const EMPTY_CHANNELS: any[] = []
+
+
+
 	const rawChannels = useFeedbirdStore((s) => {
 		const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 		return (ws as any)?.channels ?? EMPTY_CHANNELS
@@ -473,27 +474,27 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		if (channelId === 'all') {
 			// Get channels that belong to the current workspace
 			const currentWorkspaceChannels = channelsFromStore.map((c: any) => c.id)
-			
+
 			// Filter messages to only include those from channels in the current workspace
 			const filtered = sortedMessages.filter((message: any) => {
 				const messageChannelId = message.channelId
 				const isValid = messageChannelId && currentWorkspaceChannels.includes(messageChannelId)
-				
+
 				// Debug logging to see what's being filtered
 				if (!isValid && messageChannelId) {
 					console.log('Filtering out message from channel:', messageChannelId, 'Current workspace channels:', currentWorkspaceChannels)
 				}
-				
+
 				return isValid
 			})
-			
+
 			console.log('Filtered messages:', {
 				total: sortedMessages.length,
 				filtered: filtered.length,
 				currentWorkspaceChannels,
 				sampleFiltered: filtered.slice(0, 3).map(m => ({ id: m.id, channelId: (m as any).channelId }))
 			})
-			
+
 			return filtered
 		}
 		return sortedMessages
@@ -504,6 +505,11 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		if (isYesterday(date)) return 'Yesterday'
 		return format(date, 'EEEE, MMMM do')
 	}
+
+	// Get parent messages for display
+	const parentMessages = useMemo(() => {
+		return filteredMessages.filter(m => !(m as any).parentId)
+	}, [filteredMessages])
 
 	const formatTimeOnly = (date: Date) => format(date, 'p')
 	const formatDateFull = (date: Date) => format(date, 'MMMM d, yyyy')
@@ -552,13 +558,13 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		const sel = window.getSelection()
 		if (!sel || sel.rangeCount === 0) return 0
 		const range = sel.getRangeAt(0)
-	  
+
 		let preCaretRange = range.cloneRange()
 		preCaretRange.selectNodeContents(element)
 		preCaretRange.setEnd(range.endContainer, range.endOffset)
-	  
+
 		return preCaretRange.toString().length
-	  }
+	}
 
 	// @mention handling functions
 	const handleContentEditableInput = (e: React.FormEvent<HTMLDivElement>) => {
@@ -569,41 +575,41 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		console.log('handleContentEditableInput:', e.currentTarget.textContent);
 		const editor = e.currentTarget
 		const value = editor.textContent || ''
-		
+
 		// Update previous HTML before changing the input
 		const currentHTML = editor.innerHTML
 		setPreviousHTML(currentHTML)
-		
+
 		setInput(value)
-	  
+
 		const sel = window.getSelection()
 		if (!sel || sel.rangeCount === 0) return
 		const range = sel.getRangeAt(0)
-	  
+
 		// --- 1. Insert invisible marker to measure caret position ---
 		const marker = document.createElement('span')
 		marker.textContent = '\u200b' // zero-width space
 		range.insertNode(marker)
 		range.setStartAfter(marker)
 		range.collapse(true)
-	  
+
 		const rect = marker.getBoundingClientRect()
 		const caretPos = getCaretCharacterOffsetWithin(editor) // absolute index
 		marker.remove()
-	  
+
 		// --- 2. Detect last '@' before caret ---
 		const beforeCaret = value.slice(0, caretPos)
 		const atIdx = beforeCaret.lastIndexOf('@')
 		if (atIdx === -1) { setShowMentions(false); return }
-	  
+
 		// must be start or after whitespace
 		const prevChar = atIdx > 0 ? beforeCaret[atIdx - 1] : ' '
 		if (!/\s/.test(prevChar)) { setShowMentions(false); return }
-		
+
 		// Check if this @ symbol is inside a mention span
 		// We need to count how many @ symbols are before the caret and check if the nth @ is in a span
 		const htmlContent = editor.innerHTML
-		
+
 		// Count @ symbols before the caret position
 		let atCount = 0
 		for (let i = 0; i < atIdx + 1; i++) {
@@ -627,7 +633,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 							break
 						}
 					}
-					
+
 					// If we found a tag start, check if it's a span
 					if (tagStart !== -1) {
 						const tagContent = htmlContent.slice(tagStart, i + 10) // Get some content after @
@@ -639,34 +645,34 @@ export default function MessagesPane({ channelName, channelDescription, members:
 				}
 			}
 		}
-		
+
 		// If the nth @ is inside a span, don't show mentions
 		if (isInsideSpan) {
 			setShowMentions(false)
 			return
 		}
-	  
+
 		// extract query and trim whitespace
 		const query = beforeCaret.slice(atIdx + 1).trim();
 		if (query.includes(' ')) { setShowMentions(false); return }
-	  
+
 		// --- 3. Filter members ---
 		const filtered = workspaceMembers.filter(m =>
-		  (m.first_name || m.email).toLowerCase().startsWith(query.toLowerCase())
+			(m.first_name || m.email).toLowerCase().startsWith(query.toLowerCase())
 		)
 		setFilteredMembers(filtered)
 		setMentionQuery(query)
 		setShowMentions(true)
 		setSelectedMentionIndex(0)
-	  
+
 		// --- 4. Position dropdown: bottom 8px above caret ---
 		setMentionDropdownPosition({ x: rect.left, y: rect.top - 8 })
-	  }
-	  
+	}
+
 
 	const handleContentEditableKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
 		console.log('handleContentEditableKeyDown:', e.key);
-		
+
 		// Handle backspace deletion of mention spans
 		if (e.key === 'Backspace') {
 			const sel = window.getSelection()
@@ -677,58 +683,58 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					// Check if cursor is at the beginning of a mention span
 					const startContainer = range.startContainer
 					const startOffset = range.startOffset
-					
+
 					// If cursor is at the very beginning of a text node, check if previous sibling is a mention span
 					if (startContainer.nodeType === Node.TEXT_NODE && startOffset === 0) {
 						const textNode = startContainer as Text
 						const previousSibling = textNode.previousSibling
-						
+
 						// Check if the previous sibling is a mention span
-						if (previousSibling && 
-							previousSibling.nodeType === Node.ELEMENT_NODE && 
+						if (previousSibling &&
+							previousSibling.nodeType === Node.ELEMENT_NODE &&
 							(previousSibling as Element).getAttribute('data-mention-type') === 'mention') {
-							
+
 							e.preventDefault();
-							
+
 							// Delete the entire mention span
 							(previousSibling as Element).remove()
-							
+
 							// Update input state
 							setInput(container.textContent || '')
-							
+
 							// Trigger input event
 							container.dispatchEvent(new Event('input', { bubbles: true }))
 							return
 						}
 					}
-					
+
 					// If cursor is inside a mention span, delete the entire span
 					let currentNode: Node | null = startContainer
 					while (currentNode && currentNode !== container) {
-						if (currentNode.nodeType === Node.ELEMENT_NODE && 
+						if (currentNode.nodeType === Node.ELEMENT_NODE &&
 							(currentNode as Element).getAttribute('data-mention-type') === 'mention') {
-							
+
 							e.preventDefault();
-							
+
 							// Delete the entire mention span
 							(currentNode as Element).remove()
-							
+
 							// Update input state
 							setInput(container.textContent || '')
-							
+
 							// Trigger input event
 							container.dispatchEvent(new Event('input', { bubbles: true }))
 							return
 						}
 						currentNode = currentNode.parentNode
 					}
-					
+
 					// Allow normal backspace for spaces and other text
 					// Don't prevent default here - let the browser handle normal text deletion
 				}
 			}
 		}
-		
+
 		if (showMentions && filteredMembers.length > 0) {
 			if (e.key === 'ArrowDown') {
 				e.preventDefault()
@@ -779,38 +785,183 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		}
 	}
 
+	// Get character offset of the current selection within a contentEditable element
+	function getCaretOffset(el: HTMLElement): number {
+		const sel = window.getSelection();
+		if (!sel || sel.rangeCount === 0) return 0;
+		const range = sel.getRangeAt(0);
+		if (!el.contains(range.startContainer)) return 0;
+
+		const pre = range.cloneRange();
+		pre.selectNodeContents(el);
+		pre.setEnd(range.startContainer, range.startOffset);
+		return pre.toString().length; // counts code units, works fine with emoji if used consistently
+	}
+
+	// Is this node (or its ancestors) inside a non-editable element (eg. a mention span)?
+	function closestNonEditable(node: Node, root: HTMLElement): HTMLElement | null {
+		let el: HTMLElement | null =
+			node.nodeType === Node.TEXT_NODE ? (node.parentElement as HTMLElement | null) : (node as HTMLElement | null);
+		while (el && el !== root) {
+			if (
+				el.getAttribute?.("contenteditable") === "false" ||
+				(el as any).dataset?.mentionType === "mention"
+			) {
+				return el;
+			}
+			el = el.parentElement;
+		}
+		return null;
+	}
+
+	// TreeWalker that ignores text inside non-editable nodes (mention spans)
+	function createEditableTextWalker(root: HTMLElement) {
+		const filter = {
+			acceptNode(node: Node) {
+				return closestNonEditable(node, root) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+			},
+		} as unknown as NodeFilter;
+		return document.createTreeWalker(root, NodeFilter.SHOW_TEXT, filter);
+	}
+
+	// Updated: place caret by character index, skipping non-editable text
+	function setCaretOffset(el: HTMLElement, index: number) {
+		const walker = createEditableTextWalker(el);
+		let remaining = index;
+		let node: Node | null = walker.nextNode();
+		while (node) {
+			const text = node.textContent || "";
+			if (remaining <= text.length) {
+				const range = document.createRange();
+				const sel = window.getSelection();
+				range.setStart(node, remaining);
+				range.collapse(true);
+				sel?.removeAllRanges();
+				sel?.addRange(range);
+				return;
+			}
+			remaining -= text.length;
+			node = walker.nextNode();
+		}
+		const range = document.createRange();
+		const sel = window.getSelection();
+		range.selectNodeContents(el);
+		range.collapse(false);
+		sel?.removeAllRanges();
+		sel?.addRange(range);
+	}
+
+	// Insert plain text at the caret without destroying HTML
+	function insertTextAtCaret(el: HTMLElement, text: string, fallbackVisualIndex?: number) {
+		const sel = window.getSelection();
+		let range: Range | null = null;
+
+		if (sel && sel.rangeCount && el.contains(sel.anchorNode)) {
+			range = sel.getRangeAt(0);
+			const ne = closestNonEditable(range.startContainer, el);
+			if (ne) {
+				range = document.createRange();
+				range.setStartAfter(ne);
+				range.collapse(true);
+			}
+		} else {
+			// Convert the VISUAL fallback to an EDITABLE offset exactly once
+			const mapped = visualToEditableOffset(el, Math.max(0, fallbackVisualIndex ?? 0));
+			setCaretOffset(el, mapped);
+			const sel2 = window.getSelection();
+			range = sel2 && sel2.rangeCount ? sel2.getRangeAt(0) : null;
+		}
+
+		if (!range) return;
+
+		range.deleteContents();
+		const node = document.createTextNode(text);
+		range.insertNode(node);
+		el.normalize();
+
+		const newRange = document.createRange();
+		newRange.setStart(node, node.nodeValue!.length);
+		newRange.collapse(true);
+		const sel3 = window.getSelection();
+		sel3?.removeAllRanges();
+		sel3?.addRange(newRange);
+	}
+
+	// Map a visual offset (includes mention text) to an editable offset (skips contenteditable="false")
+	function visualToEditableOffset(el: HTMLElement, visualIndex: number): number {
+		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+
+		let visualSoFar = 0;
+		let editableSoFar = 0;
+		let node: Node | null = walker.nextNode();
+
+		// Finds nearest ancestor that's non-editable (mention chip)
+		const isInNonEditable = (n: Node) => {
+			let cur: HTMLElement | null =
+				n.nodeType === Node.TEXT_NODE ? (n.parentElement as HTMLElement | null) : (n as HTMLElement | null);
+			while (cur && cur !== el) {
+				if (cur.getAttribute?.('contenteditable') === 'false' || (cur as any).dataset?.mentionType === 'mention') {
+					return true;
+				}
+				cur = cur.parentElement;
+			}
+			return false;
+		};
+
+		while (node) {
+			const len = node.textContent?.length ?? 0;
+			const insideNE = isInNonEditable(node);
+
+			// Does this chunk contain the visualIndex?
+			if (visualSoFar + len >= visualIndex) {
+				if (insideNE) {
+					// Can't place inside the chip - position right after all previous editable text
+					return editableSoFar;
+				}
+				return editableSoFar + (visualIndex - visualSoFar);
+			}
+
+			visualSoFar += len;
+			if (!insideNE) editableSoFar += len;
+			node = walker.nextNode();
+		}
+
+		// If index is beyond end, snap to end of editable text
+		return editableSoFar;
+	}
+
 	const handleMentionSelect = (member: WorkspaceMember) => {
 		// console.log('handleMentionSelect called with member:', member)
 		// console.log('Current mentionQuery:', mentionQuery)
-		
+
 		const sel = window.getSelection()
 		if (!sel || sel.rangeCount === 0) return
-		
+
 		const container = textareaRef.current as HTMLDivElement
 		if (!container) return
-	  
+
 		// Get the current HTML content
 		const currentHTML = container.innerHTML
-		
+
 		// We need to find where the @mentionQuery is being typed
 		// We can compare the previous HTML with current HTML to find the difference
 		// This will tell us exactly where the new @mentionQuery was added
-		
+
 		// First, let's add a state to track the previous HTML
 		// For now, we'll use a simple approach: find the most recent @mentionQuery
 		// This assumes the user is typing at the end or near the end
 		const searchPattern = '@' + mentionQuery
-		
+
 		// If we have previous HTML, compare it with current HTML to find the difference
 		let atIdx = -1
 		if (previousHTML && previousHTML !== currentHTML) {
 			// Find where the new content was added by comparing the two HTMLs
 			atIdx = currentHTML.indexOf(searchPattern)
-			
+
 			// If found, check if this pattern exists in the previous HTML
 			if (atIdx !== -1) {
 				const patternInPrevious = previousHTML.indexOf(searchPattern)
-				
+
 				// If the pattern doesn't exist in previous HTML, this is the new one
 				if (patternInPrevious === -1) {
 					// This is the new @mentionQuery that was just added
@@ -819,14 +970,14 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					// Look for the pattern after the last common point
 					const commonLength = Math.min(previousHTML.length, currentHTML.length)
 					let lastCommonIndex = 0
-					
+
 					for (let i = 0; i < commonLength; i++) {
 						if (previousHTML[i] !== currentHTML[i]) {
 							lastCommonIndex = i
 							break
 						}
 					}
-					
+
 					// Find the search pattern after the last common point
 					atIdx = currentHTML.indexOf(searchPattern, lastCommonIndex)
 				}
@@ -835,31 +986,31 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			// No previous HTML or same HTML, use simple search
 			atIdx = currentHTML.lastIndexOf(searchPattern)
 		}
-		
+
 		if (atIdx === -1) return
-		
+
 		// Split the HTML around the search pattern
 		const before = currentHTML.slice(0, atIdx)
 		const after = currentHTML.slice(atIdx + searchPattern.length)
-		
+
 		// Create the new HTML content with the mention span
 		// Add a unique timestamp to ensure we can identify this specific span
 		const timestamp = Date.now()
 		const mentionSpanHTML = `<span style="background: #FE4C281A; border-radius: 4px; padding-left: 3px; padding-right: 3px; color: #FE4C28; display: inline-block;" data-mention-type="mention" data-timestamp="${timestamp}" contenteditable="false">@${member.first_name || member.email}</span>`
-		
+
 		// Check if caret is at the end of the text (after the search pattern)
 		const isCaretAtEnd = after.trim() === ''
-		
+
 		// Build the new HTML by replacing the search pattern
 		// Only add space if caret is at the end
 		const newHTML = before + mentionSpanHTML + after + (isCaretAtEnd ? '&nbsp;' : '')
-		
+
 		// Update the container with the new HTML
 		container.innerHTML = newHTML
-		
+
 		// Update the previous HTML state for future comparisons
 		setPreviousHTML(newHTML)
-	  
+
 		// Update the input state and clear all mention-related state
 		const newText = container.textContent || ''
 		console.log('New text after replacement:', newText)
@@ -869,13 +1020,13 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		setFilteredMembers([])
 		setSelectedMentionIndex(0)
 		setMentionDropdownPosition(null)
-		
+
 		// Position cursor after the mention span
 		const newRange = document.createRange()
-		
+
 		// Find the mention span that was just created using the unique timestamp
 		const mentionSpanElement = container.querySelector(`[data-timestamp="${timestamp}"]`) as HTMLElement
-		
+
 		if (mentionSpanElement) {
 			if (isCaretAtEnd) {
 				// If space was added, position cursor after the space
@@ -893,11 +1044,11 @@ export default function MessagesPane({ channelName, channelDescription, members:
 				newRange.setStartAfter(mentionSpanElement)
 				newRange.collapse(true)
 			}
-			
+
 			sel.removeAllRanges()
 			sel.addRange(newRange)
 		}
-		
+
 		// Focus the container and trigger input event
 		container.focus()
 		container.dispatchEvent(new Event('input', { bubbles: true }))
@@ -926,7 +1077,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		// Get the HTML content with mention spans, or fall back to plain text
 		let messageContent = ''
 		const container = textareaRef.current as HTMLDivElement
-		
+
 		if (container && 'innerHTML' in container) {
 			// Get HTML content to preserve mention spans
 			// Note: This will send HTML to the database. The MessageItem component
@@ -936,12 +1087,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			// Fallback to plain text
 			messageContent = input.trim()
 		}
-		
+
 		if (!messageContent) return
 
 		// Prepare addon data for selected boards
 		let addonData = undefined;
-		
+
 		if (selectedBoards.length > 0) {
 			addonData = {
 				boards: selectedBoards,
@@ -1045,7 +1196,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			if (textareaRef.current && 'contentEditable' in textareaRef.current) {
 				textareaRef.current.innerHTML = ''
 			}
-			
+
 			// Navigate to all messages view for the new workspace
 			// This ensures the URL reflects the current state
 			const currentUrl = new URL(window.location.href)
@@ -1053,7 +1204,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 				currentUrl.searchParams.set('channel', 'all')
 				window.history.replaceState({}, '', currentUrl.toString())
 			}
-			
+
 			// Clear any existing messages from the previous workspace
 			// This ensures we don't show stale data
 			useFeedbirdStore.setState((prev: any) => ({
@@ -1069,7 +1220,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					}, {})
 				}
 			}))
-			
+
 			// Load all messages for the new workspace
 			// This ensures we show the current workspace's messages
 			setLoadingAllMessages(true)
@@ -1086,7 +1237,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			// Check if the selected thread message belongs to a channel in the current workspace
 			const currentWorkspaceChannels = channelsFromStore.map((c: any) => c.id)
 			const messageChannelId = (selectedThreadMessage as any).channelId
-			
+
 			if (messageChannelId && !currentWorkspaceChannels.includes(messageChannelId)) {
 				// If the message doesn't belong to current workspace, reset thread view
 				setIsThreadView(false)
@@ -1133,19 +1284,19 @@ export default function MessagesPane({ channelName, channelDescription, members:
 						// Avoid duplicates if already in store
 						const current = (useFeedbirdStore.getState() as any).channelMessagesByChannelId?.[channelId] || []
 						if (current.some((x: any) => x.id === m.id)) return
-						
+
 						// Handle unread message logic
 						const store = useFeedbirdStore.getState()
 						// const currentUserEmail = store.user?.email
 						// const activeWorkspaceId = store.activeWorkspaceId
-						
+
 						// if (currentUserEmail && activeWorkspaceId) {
 						// 	// Case 1: User is viewing this specific channel - mark as read immediately
 						// 	console.log('User is viewing this channel, marking message as read:', m.id)
 						// 	userApi.removeUnreadMessage(currentUserEmail, m.id)
 
 						// }
-						
+
 						const profile = profilesRef.current?.[m.author_email]
 						const authorName = profile?.first_name || m.author_email
 						const authorImg = profile?.image_url || undefined
@@ -1375,7 +1526,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	// Set current channel ID in store for unread message logic
 	useEffect(() => {
 		setCurrentChannelId(channelId)
-		
+
 		// Clean up: set currentChannelId to undefined when component unmounts
 		// This ensures new messages are marked as unread when user leaves the message panel
 		return () => {
@@ -1386,16 +1537,16 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	// Additional safety: set currentChannelId to null when navigating away from messages
 	useEffect(() => {
 		const handleRouteChange = () => {
-					// Check if we're still on a messages route
-		const currentPath = window.location.pathname
-		if (!currentPath.startsWith('/messages')) {
-			setCurrentChannelId(undefined)
-		}
+			// Check if we're still on a messages route
+			const currentPath = window.location.pathname
+			if (!currentPath.startsWith('/messages')) {
+				setCurrentChannelId(undefined)
+			}
 		}
 
 		// Listen for route changes
 		window.addEventListener('popstate', handleRouteChange)
-		
+
 		// Also check on mount to handle direct navigation
 		handleRouteChange()
 
@@ -1413,7 +1564,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			{/* Main panel */}
 			<div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 				{/* Top bar */}
-				<div className="h-10.5 px-4 border-b bg-white shrink-0 flex items-center justify-between">
+				<div className="h-10.5 px-3 border-b bg-white shrink-0 flex items-center justify-between">
 					<div className="flex items-center">
 						{isThreadView && (
 							<Button
@@ -1542,38 +1693,38 @@ export default function MessagesPane({ channelName, channelDescription, members:
 								{selectedBoards.length > 0 && (
 									<div className="px-2.5 pb-2">
 										<div className="flex flex-wrap gap-2">
-											{selectedBoards.map((boardId) => {
-												const board = boardNav.find(b => b.id === boardId);
+											{selectedBoards.map((board_id) => {
+												const board = boardNav.find(b => b.id === board_id);
 												if (!board) return null;
-												
+
 												const boardColor = (board as any).color;
-												
+
 												return (
 													<div
-														key={boardId}
+														key={board_id}
 														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-strokeElement"
 													>
 														{/* Board Icon with Color Background */}
-														<div 
+														<div
 															className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
 															style={boardColor ? { backgroundColor: boardColor } : { backgroundColor: '#6B7280' }}
 														>
-															<img 
-																src={board.image || `/images/boards/static-posts.svg`} 
-																alt={board.label} 
-																className="w-3.5 h-3.5 filter brightness-0 invert" 
+															<img
+																src={board.image || `/images/boards/static-posts.svg`}
+																alt={board.label}
+																className="w-3.5 h-3.5 filter brightness-0 invert"
 																loading="lazy"
 															/>
 														</div>
-														
+
 														{/* Board Name */}
 														<span className="text-sm font-medium text-gray-700">
 															{board.label}
 														</span>
-														
+
 														{/* Remove Button (X icon) */}
 														<button
-															onClick={() => handleBoardSelection(boardId)}
+															onClick={() => handleBoardSelection(board_id)}
 															className="w-4 h-4 hover:bg-gray-200 rounded flex items-center justify-center transition-colors"
 														>
 															<X className="w-3 h-3 text-gray-500 hover:text-gray-700" />
@@ -1595,8 +1746,8 @@ export default function MessagesPane({ channelName, channelDescription, members:
 									<div className="flex items-center pl-1 gap-2">
 										{/* Plus button dropdown */}
 										<div className="relative plus-dropdown-container">
-											<DropdownMenu 
-												open={showPlusDropdown} 
+											<DropdownMenu
+												open={showPlusDropdown}
 												onOpenChange={(open) => {
 													setShowPlusDropdown(open)
 													if (open) {
@@ -1618,13 +1769,13 @@ export default function MessagesPane({ channelName, channelDescription, members:
 														<Plus className="size-[14px]" />
 													</Button>
 												</DropdownMenuTrigger>
-												<DropdownMenuContent 
-													className="w-32" 
-													side="top" 
+												<DropdownMenuContent
+													className="w-32"
+													side="top"
 													align="start"
 													sideOffset={8}
 												>
-													<DropdownMenuItem 
+													<DropdownMenuItem
 														onClick={() => {
 															setShowPlusDropdown(false)
 															setShowBoardList(true)
@@ -1633,7 +1784,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 													>
 														Board
 													</DropdownMenuItem>
-													<DropdownMenuItem 
+													<DropdownMenuItem
 														onClick={() => {
 															setShowPlusDropdown(false)
 															// TODO: Handle Analytics action
@@ -1657,7 +1808,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										{/* Emoji button */}
 										<Button
 											variant="ghost"
-											onClick={() => setEmoji((x) => !x)}
+											onClick={() => {
+												if (textareaRef.current) {
+													setStoredCaretPosition(getCaretOffset(textareaRef.current as HTMLElement));
+												}
+												setEmoji(x => !x);
+											}}
 											size="icon"
 											className="size-[24px] p-0 box-border cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"
 										>
@@ -1666,7 +1822,23 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										{/* Emoji picker */}
 										{emoji && (
 											<div className="absolute bottom-12 left-0 z-50 composer-emoji-picker-container">
-												<EmojiPicker onEmojiClick={(e) => setInput((p) => p + e.emoji)} />
+												<EmojiPicker
+													onEmojiClick={(e) => {
+														const el = textareaRef.current as HTMLElement | null;
+														if (!el) return;
+
+														// If selection is alive, insert at live range.
+														// If not, fall back to the STORED VISUAL index; mapping happens inside insertTextAtCaret.
+														insertTextAtCaret(el, e.emoji, storedCaretPosition ?? 0);
+
+														setInput(el.textContent || "");
+														requestAnimationFrame(() => {
+															adjustTextareaHeight?.();
+															el.focus();
+														});
+														setEmoji(false);
+													}}
+												/>
 											</div>
 										)}
 										{/* @ mention dropdown */}
@@ -1739,9 +1911,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 						{/* Board List for Thread View */}
 						{showBoardList && (
-							<div 
+							<div
 								className="board-list-container absolute bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden"
-								style={{ 
+								style={{
 									width: '190px',
 									bottom: '60px',
 									left: '16px',
@@ -1754,25 +1926,25 @@ export default function MessagesPane({ channelName, channelDescription, members:
 											// Get board color if available
 											const boardColor = (board as any).color;
 											const isSelected = selectedBoards.includes(board.id);
-											
+
 											return (
-												<div 
+												<div
 													key={board.id}
 													className={cn(
 														"group/row flex items-center gap-[6px] p-[6px]",
 														"cursor-pointer focus:outline-none hover:bg-[#F4F5F6]",
 														isSelected ? "bg-[#F4F5F6]" : "",
-													  )}
+													)}
 													onClick={() => handleBoardSelection(board.id)}
 												>
 													{board.image && (
-														<div 
+														<div
 															className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
 															style={isSelected && boardColor ? { backgroundColor: boardColor } : undefined}
 														>
-															<img 
-																src={board.image} 
-																alt={board.label} 
+															<img
+																src={board.image}
+																alt={board.label}
 																className={cn(
 																	"w-3.5 h-3.5",
 																	// Make icon white when board is selected and has a colored background
@@ -1785,15 +1957,15 @@ export default function MessagesPane({ channelName, channelDescription, members:
 													<span className="text-sm font-normal truncate text-black flex-1 min-w-0">
 														{board.label}
 													</span>
-													
-														{isSelected == true ? (
-															<div className="w-4 h-4 bg-main rounded flex items-center justify-center flex-shrink-0 ml-auto">
-																<img src="/images/icons/check.svg" alt="check" className="w-3 h-3" />
-															</div>
-														) : (
-															<div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center flex-shrink-0 ml-auto">
-															</div>
-														)}
+
+													{isSelected == true ? (
+														<div className="w-4 h-4 bg-main rounded flex items-center justify-center flex-shrink-0 ml-auto">
+															<img src="/images/icons/check.svg" alt="check" className="w-3 h-3" />
+														</div>
+													) : (
+														<div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center flex-shrink-0 ml-auto">
+														</div>
+													)}
 												</div>
 											);
 										})
@@ -1837,11 +2009,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										<div className="text-sm text-grey">No messages found in this workspace</div>
 									</div>
 								)}
-								{!loadingAllMessages && filteredMessages
-									.filter(m => !(m as any).parentId) // Only show parent messages in channel view
-									.map((m, idx) => {
-										const showDay = idx === 0 || !isSameDay(filteredMessages[idx - 1].createdAt, m.createdAt)
-
+								{!loadingAllMessages && parentMessages.map((m, idx) => {
+									const showDay = idx === 0 || (idx > 0 && !isSameDay(parentMessages[idx - 1].createdAt, m.createdAt))
+									
 										// Get replies for this message
 										const replies = filteredMessages.filter(reply => (reply as any).parentId === m.id)
 
@@ -1893,9 +2063,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 						{/* Board List */}
 						{showBoardList && (
-							<div 
+							<div
 								className="board-list-container absolute bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden"
-								style={{ 
+								style={{
 									width: '190px',
 									bottom: '60px',
 									left: '16px',
@@ -1908,25 +2078,25 @@ export default function MessagesPane({ channelName, channelDescription, members:
 											// Get board color if available
 											const boardColor = (board as any).color;
 											const isSelected = selectedBoards.includes(board.id);
-											
+
 											return (
-												<div 
+												<div
 													key={board.id}
 													className={cn(
 														"group/row flex items-center gap-[6px] p-[6px]",
 														"cursor-pointer focus:outline-none hover:bg-[#F4F5F6]",
 														isSelected ? "bg-[#F4F5F6]" : "",
-													  )}
+													)}
 													onClick={() => handleBoardSelection(board.id)}
 												>
 													{board.image && (
-														<div 
+														<div
 															className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
 															style={isSelected && boardColor ? { backgroundColor: boardColor } : undefined}
 														>
-															<img 
-																src={board.image} 
-																alt={board.label} 
+															<img
+																src={board.image}
+																alt={board.label}
 																className={cn(
 																	"w-3.5 h-3.5",
 																	// Make icon white when board is selected and has a colored background
@@ -1939,15 +2109,15 @@ export default function MessagesPane({ channelName, channelDescription, members:
 													<span className="text-sm font-normal truncate text-black flex-1 min-w-0">
 														{board.label}
 													</span>
-													
-														{isSelected == true ? (
-															<div className="w-4 h-4 bg-main rounded flex items-center justify-center flex-shrink-0 ml-auto">
-																<img src="/images/icons/check.svg" alt="check" className="w-3 h-3" />
-															</div>
-														) : (
-															<div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center flex-shrink-0 ml-auto">
-															</div>
-														)}
+
+													{isSelected == true ? (
+														<div className="w-4 h-4 bg-main rounded flex items-center justify-center flex-shrink-0 ml-auto">
+															<img src="/images/icons/check.svg" alt="check" className="w-3 h-3" />
+														</div>
+													) : (
+														<div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center flex-shrink-0 ml-auto">
+														</div>
+													)}
 												</div>
 											);
 										})
@@ -1980,38 +2150,38 @@ export default function MessagesPane({ channelName, channelDescription, members:
 								{selectedBoards.length > 0 && (
 									<div className="px-2.5 pb-2">
 										<div className="flex flex-wrap gap-2">
-											{selectedBoards.map((boardId) => {
-												const board = boardNav.find(b => b.id === boardId);
+											{selectedBoards.map((board_id) => {
+												const board = boardNav.find(b => b.id === board_id);
 												if (!board) return null;
-												
+
 												const boardColor = (board as any).color;
-												
+
 												return (
 													<div
-														key={boardId}
+														key={board_id}
 														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-strokeElement"
 													>
 														{/* Board Icon with Color Background */}
-														<div 
+														<div
 															className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
 															style={boardColor ? { backgroundColor: boardColor } : { backgroundColor: '#6B7280' }}
 														>
-															<img 
-																src={board.image || `/images/boards/static-posts.svg`} 
-																alt={board.label} 
-																className="w-3.5 h-3.5 filter brightness-0 invert" 
+															<img
+																src={board.image || `/images/boards/static-posts.svg`}
+																alt={board.label}
+																className="w-3.5 h-3.5 filter brightness-0 invert"
 																loading="lazy"
 															/>
 														</div>
-														
+
 														{/* Board Name */}
 														<span className="text-sm font-medium text-gray-700">
 															{board.label}
 														</span>
-														
+
 														{/* Remove Button (X icon) */}
 														<button
-															onClick={() => handleBoardSelection(boardId)}
+															onClick={() => handleBoardSelection(board_id)}
 															className="w-4 h-4 hover:bg-gray-200 rounded flex items-center justify-center transition-colors"
 														>
 															<X className="w-3 h-3 text-gray-500 hover:text-gray-700" />
@@ -2033,8 +2203,8 @@ export default function MessagesPane({ channelName, channelDescription, members:
 									<div className="flex items-center pl-1 gap-2">
 										{/* Plus button dropdown */}
 										<div className="relative plus-dropdown-container">
-											<DropdownMenu 
-												open={showPlusDropdown} 
+											<DropdownMenu
+												open={showPlusDropdown}
 												onOpenChange={(open) => {
 													setShowPlusDropdown(open)
 													if (open) {
@@ -2057,13 +2227,13 @@ export default function MessagesPane({ channelName, channelDescription, members:
 														<Plus className="size-[14px]" />
 													</Button>
 												</DropdownMenuTrigger>
-												<DropdownMenuContent 
-													className="w-32" 
-													side="top" 
+												<DropdownMenuContent
+													className="w-32"
+													side="top"
 													align="start"
 													sideOffset={8}
 												>
-													<DropdownMenuItem 
+													<DropdownMenuItem
 														onClick={() => {
 															setShowPlusDropdown(false)
 															setShowBoardList(true)
@@ -2072,7 +2242,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 													>
 														Board
 													</DropdownMenuItem>
-													<DropdownMenuItem 
+													<DropdownMenuItem
 														onClick={() => {
 															setShowPlusDropdown(false)
 															// TODO: Handle Analytics action
@@ -2097,17 +2267,37 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										{/* Emoji button */}
 										<Button
 											variant="ghost"
-											onClick={() => setEmoji((x) => !x)}
+											onClick={() => {
+												if (textareaRef.current) {
+													setStoredCaretPosition(getCaretOffset(textareaRef.current as HTMLElement));
+												}
+												setEmoji(x => !x);
+											}}
 											size="icon"
-											disabled={channelId === 'all' && !selectedChannelForMessage}
-											className="size-[24px] p-0 box-border cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10 disabled:opacity-50 disabled:cursor-not-allowed"
+											className="size-[24px] p-0 box-border cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"
 										>
 											<Smile className="size-[14px]" />
 										</Button>
 										{/* Emoji picker */}
 										{emoji && (
 											<div className="absolute bottom-12 left-0 z-50 composer-emoji-picker-container">
-												<EmojiPicker onEmojiClick={(e) => setInput((p) => p + e.emoji)} />
+												<EmojiPicker
+													onEmojiClick={(e) => {
+														const el = textareaRef.current as HTMLElement | null;
+														if (!el) return;
+
+														// If selection is alive, insert at live range.
+														// If not, fall back to the STORED VISUAL index; mapping happens inside insertTextAtCaret.
+														insertTextAtCaret(el, e.emoji, storedCaretPosition ?? 0);
+
+														setInput(el.textContent || "");
+														requestAnimationFrame(() => {
+															adjustTextareaHeight?.();
+															el.focus();
+														});
+														setEmoji(false);
+													}}
+												/>
 											</div>
 										)}
 										{/* @ mention dropdown */}
@@ -2319,24 +2509,24 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										<div className="text-sm font-medium text-black">Boards</div>
 										<div className="space-y-2">
 											{boardData.map((board) => (
-												<div 
+												<div
 													key={board.id}
 													className="bg-white border border-strokeElement rounded-[4px] overflow-hidden w-[246px]"
 												>
 													{/* Board Card Header */}
-													<div 
+													<div
 														className="flex items-center justify-between gap-3 px-2 py-1.5 cursor-pointer hover:bg-gray-50 transition-colors"
 														onClick={() => toggleBoardExpansion(board.id)}
 													>
 														<div className="flex items-center gap-1.5 min-w-0 flex-1">
 															{board.image && (
-																<div 
+																<div
 																	className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
 																	style={board.color ? { backgroundColor: board.color } : undefined}
 																>
-																	<img 
-																		src={board.image} 
-																		alt={board.label} 
+																	<img
+																		src={board.image}
+																		alt={board.label}
 																		className={cn(
 																			"w-3.5 h-3.5",
 																			board.color && "filter brightness-0 invert"
@@ -2349,7 +2539,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 																{board.label}
 															</div>
 														</div>
-														<div 
+														<div
 															className="flex items-center justify-center rounded-sm w-4 h-4 font-normal text-[10px] px-2 py-1"
 															style={{
 																backgroundColor: board.color || '#F4F5F6',
@@ -2359,7 +2549,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 															{board.totalPosts}
 														</div>
 													</div>
-													
+
 													{/* Board Card Body - Status Items */}
 													{board.expanded && (
 														<div className="border-t border-gray-100 p-2">
@@ -2377,9 +2567,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 																		"Published": { icon: "/images/status/published.svg", bgColor: "#E5EEFF", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" },
 																		"Failed Publishing": { icon: "/images/status/failed-publishing.svg", bgColor: "#F5EEFF", borderColor: "#EAE4F4", textColor: "#1C1D1F" }
 																	}[status] || { icon: "/images/status/draft.svg", bgColor: "#F1F4F9", borderColor: "rgba(28, 29, 31, 0.05)", textColor: "#1C1D1F" };
-																	
+
 																	return (
-																		<div 
+																		<div
 																			key={status}
 																			className="flex items-center justify-between pl-1 pr-1.5 py-0.5 rounded border cursor-pointer transition-colors"
 																			style={{
@@ -2388,9 +2578,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 																			}}
 																		>
 																			<div className="flex items-center gap-2">
-																				<img 
-																					src={statusConfig.icon} 
-																					alt={status} 
+																				<img
+																					src={statusConfig.icon}
+																					alt={status}
 																					className="w-4 h-4"
 																				/>
 																				<span className="text-sm font-semibold text-black">
@@ -2423,73 +2613,73 @@ export default function MessagesPane({ channelName, channelDescription, members:
 									</div>
 								) : boardData.length > 0 ? (
 									<div className="flex flex-col">
-											{(() => {
-												// Get only scheduled, failed publishing, and published posts from all boards and sort by time
-												const allPosts = boardData.flatMap(board => 
-													Object.entries(board.postsByStatus)
-														.filter(([status]) => ['Scheduled', 'Failed Publishing', 'Published'].includes(status))
-														.flatMap(([status, posts]) => 
-															posts.map(post => ({
-																id: post.id,
-																boardId: board.id,
-																boardName: board.label,
-																status: post.status,
-																preview: getPostThumbnail(post),
-																format: post.format,
-																isVideo: isVideo(post),
-																createdAt: post.created_at || post.createdAt || new Date()
-															}))
-														)
-												);
-												
-												// Sort by creation time (newest first)
-												const sortedPosts = allPosts.sort((a, b) => 
-													new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-												);
-												
-												if (sortedPosts.length === 0) return null;
-												
-												return (
-													<div className="grid grid-cols-3">
-														{sortedPosts.map((post) => (
-															<div 
-																key={post.id}
-																className="bg-white border border-strokeElement overflow-hidden cursor-pointer hover:border-gray-300 transition-colors w-[90px] h-[120px]"
-															>
-																<div className="w-[90px] h-[120px] bg-gray-100 flex items-center justify-center overflow-hidden relative">
-																	{post.isVideo ? (
-																		<>
-																			<video
-																				src={post.preview}
-																				className="w-full h-full object-cover"
-																				muted
-																				loop
-																				playsInline
-																			/>
-																			{/* Play icon overlay */}
-																			<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-																				<div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow-md">
-																					<div className="w-0 h-0 border-t-[4px] border-b-[4px] border-l-[6px] border-t-transparent border-b-transparent border-l-white" />
-																				</div>
-																			</div>
-																		</>
-																	) : (
-																		<img 
-																			src={post.preview} 
-																			alt="Post preview" 
+										{(() => {
+											// Get only scheduled, failed publishing, and published posts from all boards and sort by time
+											const allPosts = boardData.flatMap(board =>
+												Object.entries(board.postsByStatus)
+													.filter(([status]) => ['Scheduled', 'Failed Publishing', 'Published'].includes(status))
+													.flatMap(([status, posts]) =>
+														posts.map(post => ({
+															id: post.id,
+															board_id: board.id,
+															boardName: board.label,
+															status: post.status,
+															preview: getPostThumbnail(post),
+															format: post.format,
+															isVideo: isVideo(post),
+															createdAt: post.created_at || post.createdAt || new Date()
+														}))
+													)
+											);
+
+											// Sort by creation time (newest first)
+											const sortedPosts = allPosts.sort((a, b) =>
+												new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+											);
+
+											if (sortedPosts.length === 0) return null;
+
+											return (
+												<div className="grid grid-cols-3">
+													{sortedPosts.map((post) => (
+														<div
+															key={post.id}
+															className="bg-white border border-strokeElement overflow-hidden cursor-pointer hover:border-gray-300 transition-colors w-[90px] h-[120px]"
+														>
+															<div className="w-[90px] h-[120px] bg-gray-100 flex items-center justify-center overflow-hidden relative">
+																{post.isVideo ? (
+																	<>
+																		<video
+																			src={post.preview}
 																			className="w-full h-full object-cover"
-																			onError={(e) => {
-																				const target = e.target as HTMLImageElement;
-																				target.src = '/images/format/image.svg';
-																				}}
+																			muted
+																			loop
+																			playsInline
 																		/>
-																	)}
-																</div>
+																		{/* Play icon overlay */}
+																		<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+																			<div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow-md">
+																				<div className="w-0 h-0 border-t-[4px] border-b-[4px] border-l-[6px] border-t-transparent border-b-transparent border-l-white" />
+																			</div>
+																		</div>
+																	</>
+																) : (
+																	<img
+																		src={post.preview}
+																		alt="Post preview"
+																		className="w-full h-full object-cover"
+																		onError={(e) => {
+																			const target = e.target as HTMLImageElement;
+																			target.src = '/images/format/image.svg';
+																		}}
+																	/>
+																)}
 															</div>
-														))}
-													</div>
-												);
-											})()}
+														</div>
+													))}
+												</div>
+											);
+										})()}
 									</div>
 								) : (
 									<div className="p-4 text-sm text-gray-500 text-center">

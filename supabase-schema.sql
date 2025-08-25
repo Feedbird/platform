@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
   last_name TEXT,
   image_url TEXT,
   unread_msg JSONB DEFAULT '[]',
+  unread_notification JSONB DEFAULT '[]',
+  notification_settings JSONB DEFAULT '[]',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -119,15 +121,16 @@ CREATE TABLE IF NOT EXISTS post_history (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Activities table (normalized from posts.activities JSONB)
+-- Activities table
 CREATE TABLE IF NOT EXISTS activities (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
-  actor TEXT NOT NULL,
-  action TEXT NOT NULL,
   type TEXT NOT NULL,
+  actor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   metadata JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Members table
@@ -189,7 +192,47 @@ CREATE INDEX IF NOT EXISTS idx_post_history_page_id ON post_history(page_id);
 CREATE INDEX IF NOT EXISTS idx_members_workspace_id ON members(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_members_board_id ON members(board_id);
 CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);
+
+-- Add index for unread notifications
+CREATE INDEX IF NOT EXISTS idx_users_unread_notification ON users USING GIN (unread_notification);
+
+-- Add index for notification settings
+CREATE INDEX IF NOT EXISTS idx_users_notification_settings ON users USING GIN (notification_settings);
+
+-- Add comment to document the notification_settings field structure
+COMMENT ON COLUMN users.notification_settings IS 'Array of notification settings per workspace. Structure: [{"workspace_id": "uuid", "settings": {"communication": {"enabled": true, "commentsAndMentions": true}, "boards": {"enabled": true, "pendingApproval": true, "scheduled": true, "published": true, "boardInviteSent": true, "boardInviteAccepted": true}, "workspaces": {"enabled": true, "workspaceInviteSent": true, "workspaceInviteAccepted": true}}}]';
+
+-- Create a function to add activity ID to unread_notification for multiple users
+CREATE OR REPLACE FUNCTION add_unread_notification(emails TEXT[], activity_id TEXT)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE users 
+  SET unread_notification = CASE 
+    WHEN unread_notification IS NULL THEN jsonb_build_array(activity_id)
+    ELSE unread_notification || jsonb_build_array(activity_id)
+  END
+  WHERE email = ANY(emails);
+END;
+$$;
+
+-- Create a function to remove all unread notifications for a user (replaces individual removal)
+CREATE OR REPLACE FUNCTION remove_all_unread_notifications(user_email TEXT)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE users 
+  SET unread_notification = '[]'::jsonb
+  WHERE email = user_email;
+END;
+$$;
+CREATE INDEX IF NOT EXISTS idx_activities_workspace_id ON activities(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_activities_post_id ON activities(post_id);
+CREATE INDEX IF NOT EXISTS idx_activities_type ON activities(type);
+CREATE INDEX IF NOT EXISTS idx_activities_actor_id ON activities(actor_id);
+CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activities(created_at);
 
 -- Create RLS (Row Level Security) policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -556,9 +599,9 @@ CREATE POLICY "Users can delete post history" ON post_history
 CREATE POLICY "Users can view activities in their workspaces" ON activities
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM posts p
-      JOIN members m ON m.workspace_id = p.workspace_id
-      WHERE p.id = activities.post_id
+      SELECT 1
+      FROM members m
+      WHERE m.workspace_id = activities.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -566,9 +609,9 @@ CREATE POLICY "Users can view activities in their workspaces" ON activities
 CREATE POLICY "Users can create activities in their workspaces" ON activities
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM posts p
-      JOIN members m ON m.workspace_id = p.workspace_id
-      WHERE p.id = activities.post_id
+      SELECT 1
+      FROM members m
+      WHERE m.workspace_id = activities.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -576,9 +619,9 @@ CREATE POLICY "Users can create activities in their workspaces" ON activities
 CREATE POLICY "Users can update activities in their workspaces" ON activities
   FOR UPDATE USING (
     EXISTS (
-      SELECT 1 FROM posts p
-      JOIN members m ON m.workspace_id = p.workspace_id
-      WHERE p.id = activities.post_id
+      SELECT 1
+      FROM members m
+      WHERE m.workspace_id = activities.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -586,9 +629,9 @@ CREATE POLICY "Users can update activities in their workspaces" ON activities
 CREATE POLICY "Users can delete activities in their workspaces" ON activities
   FOR DELETE USING (
     EXISTS (
-      SELECT 1 FROM posts p
-      JOIN members m ON m.workspace_id = p.workspace_id
-      WHERE p.id = activities.post_id
+      SELECT 1
+      FROM members m
+      WHERE m.workspace_id = activities.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -649,5 +692,6 @@ CREATE TRIGGER update_social_accounts_updated_at BEFORE UPDATE ON social_account
 CREATE TRIGGER update_social_pages_updated_at BEFORE UPDATE ON social_pages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_board_templates_updated_at BEFORE UPDATE ON board_templates FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_members_updated_at BEFORE UPDATE ON members FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+CREATE TRIGGER update_activities_updated_at BEFORE UPDATE ON activities FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_channels_updated_at BEFORE UPDATE ON channels FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_channel_messages_updated_at BEFORE UPDATE ON channel_messages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

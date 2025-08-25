@@ -10,11 +10,36 @@ const CreateUserSchema = z.object({
   image_url: z.string().url().optional(),
 })
 
+const NotificationSettingsSchema = z.object({
+  workspace_id: z.string(),
+  settings: z.object({
+    communication: z.object({
+      enabled: z.boolean(),
+      commentsAndMentions: z.boolean(),
+    }),
+    boards: z.object({
+      enabled: z.boolean(),
+      pendingApproval: z.boolean(),
+      scheduled: z.boolean(),
+      published: z.boolean(),
+      boardInviteSent: z.boolean(),
+      boardInviteAccepted: z.boolean(),
+    }),
+    workspaces: z.object({
+      enabled: z.boolean(),
+      workspaceInviteSent: z.boolean(),
+      workspaceInviteAccepted: z.boolean(),
+    }),
+  }),
+})
+
 const UpdateUserSchema = z.object({
   first_name: z.string().optional(),
   last_name: z.string().optional(),
   image_url: z.string().url().optional(),
   unread_msg: z.array(z.string()).optional(),
+  unread_notification: z.array(z.string()).optional(),
+  notification_settings: z.array(NotificationSettingsSchema).optional(),
 })
 
 // GET - Get user by ID

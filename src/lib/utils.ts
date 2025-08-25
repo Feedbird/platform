@@ -84,14 +84,14 @@ export function getPageName(pathname: string): string {
 
   // Handle content pages with board names
   if (segments[0] === 'content' && segments[1]) {
-    const boardId = segments[1];
+    const board_id = segments[1];
     // Map board IDs to readable names
     const boardNameMap: Record<string, string> = {
       'static-posts': 'Static Posts',
       'short-form-videos': 'Short-Form Videos',
       'email-design': 'Email Design',
     };
-    return boardNameMap[boardId] || 'Content';
+    return boardNameMap[board_id] || 'Content';
   }
 
   // Handle other main pages

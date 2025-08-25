@@ -3,15 +3,15 @@ import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 // Normalize activities from API/DB into store Activity shape
 function normalizeActivities(items: any[] | undefined) {
   return (items || []).map((a: any) => {
-    const created = a.created_at ?? a.at;
-    const postId = a.post_id ?? a.postId;
+    const created = a.created_at;
+    const postId = a.post_id;
     return {
       id: a.id,
       postId,
       actor: a.actor,
-      action: a.action,
+      action: a.type, // Map type to action for backward compatibility
       type: a.type,
-      at: created instanceof Date ? created : new Date(created),
+      createdAt: created instanceof Date ? created : new Date(created),
       metadata: a.metadata,
     } as any;
   });
@@ -90,6 +90,8 @@ export const userApi = {
       last_name?: string
       image_url?: string
       unread_msg?: string[]
+      unread_notification?: string[]
+      notification_settings?: any[]
     }
   ): Promise<User> => {
     const searchParams = new URLSearchParams()
@@ -98,6 +100,40 @@ export const userApi = {
     return apiRequest<User>(`/user?${searchParams.toString()}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
+    })
+  },
+
+  // Update notification settings for a specific workspace
+  updateNotificationSettings: async (
+    userEmail: string,
+    workspaceId: string,
+    settings: {
+      communication: {
+        enabled: boolean
+        commentsAndMentions: boolean
+      }
+      boards: {
+        enabled: boolean
+        pendingApproval: boolean
+        scheduled: boolean
+        published: boolean
+        boardInviteSent: boolean
+        boardInviteAccepted: boolean
+      }
+      workspaces: {
+        enabled: boolean
+        workspaceInviteSent: boolean
+        workspaceInviteAccepted: boolean
+      }
+    }
+  ): Promise<User> => {
+    return apiRequest<User>('/user/notification-settings', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_email: userEmail,
+        workspace_id: workspaceId,
+        settings
+      }),
     })
   },
 
@@ -122,7 +158,7 @@ export const userApi = {
     useFeedbirdStore.setState((prev: any) => ({
       user: prev.user ? {
         ...prev.user,
-        unreadMsg: response.unread_msg
+        unread_msg: response.unread_msg
       } : null
     }))
     
@@ -139,7 +175,7 @@ export const userApi = {
     useFeedbirdStore.setState((prev: any) => ({
       user: prev.user ? {
         ...prev.user,
-        unreadMsg: response.unread_msg
+        unread_msg: response.unread_msg
       } : null
     }))
     
@@ -565,23 +601,6 @@ export const storeApi = {
         }
       })
 
-      // Helper to normalize activities from DB/API to store shape
-      const normalizeActivities = (items: any[] | undefined) => {
-        return (items || []).map((a: any) => {
-          const created = a.created_at ?? a.at;
-          const postId = a.post_id ?? a.postId;
-          return {
-            id: a.id,
-            postId,
-            actor: a.actor,
-            action: a.action,
-            type: a.type,
-            at: created instanceof Date ? created : new Date(created),
-            metadata: a.metadata,
-          } as any;
-        });
-      };
-
       // Fetch brand and posts for each workspace
       const workspacesWithBrands = await Promise.all(
         transformedWorkspaces.map(async ws => {
@@ -614,18 +633,18 @@ export const storeApi = {
               const postsWithActivities = await Promise.all(
                 posts.map(async (p) => {
                   try {
-                    const acts = await activityApi.getActivities(p.id)
+                    const acts = await activityApi.getPostActivities(p.id);
                     return { ...p, activities: normalizeActivities(acts) }
                   } catch {
                     return { ...p, activities: normalizeActivities(p.activities) }
                   }
                 })
               )
-
+              console.log("postsWithActivities:", postsWithActivities);
               const transformedPosts = postsWithActivities.map(p => ({
                 id: p.id,
                 workspaceId: p.workspace_id ?? ws.id,
-                boardId: p.board_id,
+                board_id: p.board_id,
                 caption: p.caption,
                 status: p.status as any,
                 format: p.format,
@@ -639,7 +658,7 @@ export const storeApi = {
                 hashtags: p.hashtags,
                 blocks: p.blocks || [],
                 comments: p.comments || [],
-                activities: normalizeActivities(p.activities)
+                activities: p.activities
               }))
 
               return {
@@ -707,7 +726,7 @@ export const storeApi = {
         ? workspacesWithBrands.find(w => w.id === nextActiveWorkspaceId)
         : undefined
 
-      const boardNav = activeWs ? boardsToNav(activeWs.boards) : []
+              const boardNav = activeWs ? boardsToNav(activeWs.boards, activeWs.id) : []
       const activeBrandId = activeWs?.brand?.id ?? null
       const activeBoardId = activeWs?.boards[0]?.id ?? null
 
@@ -846,7 +865,7 @@ export const storeApi = {
           const messageIds = items.map(m => m.id)
           
           // Update unread messages in store
-          const currentUnread = store.user?.unreadMsg || []
+          const currentUnread = store.user?.unread_msg || []
           console.log("currentUnread: ", store.user);
           const newUnread = currentUnread.filter(id => !messageIds.includes(id))
           const newRead = currentUnread.filter(id => messageIds.includes(id))
@@ -854,7 +873,7 @@ export const storeApi = {
             useFeedbirdStore.setState({
               user: {
                 ...store.user!,
-                unreadMsg: newUnread
+                unread_msg: newUnread
               }
             })
           }
@@ -915,7 +934,7 @@ export const storeApi = {
           const messageIds = items.map(m => m.id)
           
           // Update unread messages in store
-          const currentUnread = store.user?.unreadMsg || []
+          const currentUnread = store.user?.unread_msg || []
           const newUnread = currentUnread.filter(id => !messageIds.includes(id))
           const newRead = currentUnread.filter(id => messageIds.includes(id))
           
@@ -923,7 +942,7 @@ export const storeApi = {
             useFeedbirdStore.setState({
               user: {
                 ...store.user!,
-                unreadMsg: newUnread
+                unread_msg: newUnread
               }
             })
           }
@@ -1200,7 +1219,6 @@ export const storeApi = {
     rules?: any
   ) => {
     try {
-      console.log("@@@@@@@createBoardAndUpdateStore:", workspaceId, name, description, image, color, rules);
       const board = await boardApi.createBoard({
         workspace_id: workspaceId,
         name,
@@ -1216,7 +1234,7 @@ export const storeApi = {
       const boardPostsWithActivities = await Promise.all(
         boardPosts.map(async (post) => {
           try {
-            const acts = await activityApi.getActivities(post.id)
+            const acts = await activityApi.getPostActivities(post.id)
             return { ...post, activities: normalizeActivities(acts) }
           } catch {
             return { ...post, activities: normalizeActivities(post.activities) }
@@ -1243,7 +1261,7 @@ export const storeApi = {
                  posts: boardPostsWithActivities.map(post => ({
                 id: post.id,
                 workspaceId: post.workspace_id,
-                boardId: post.board_id,
+                board_id: post.board_id,
                 caption: post.caption,
                 status: post.status as any,
                 format: post.format,
@@ -1267,7 +1285,7 @@ export const storeApi = {
       
       // Update board navigation
       const activeWorkspace = updatedWorkspaces.find(w => w.id === workspaceId)
-      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards) : []
+      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards, activeWorkspace.id) : []
       
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
@@ -1308,7 +1326,7 @@ export const storeApi = {
 
       // Update board navigation
       const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
-      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards) : []
+      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards, activeWorkspace.id) : []
 
       useFeedbirdStore.setState({
         workspaces: updatedWorkspaces,
@@ -1342,7 +1360,7 @@ export const storeApi = {
       
       // Update board navigation
       const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
-      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards) : []
+      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards, activeWorkspace.id) : []
       
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
@@ -1359,14 +1377,14 @@ export const storeApi = {
   // Post operations with store integration
   createPostAndUpdateStore: async (
     workspaceId: string,
-    boardId: string,
+    board_id: string,
     postData: any
   ) => {
     try {
-      console.log("createPostAndUpdateStore", workspaceId, boardId, postData);
+      console.log("createPostAndUpdateStore", workspaceId, board_id, postData);
       const post = await postApi.createPost({
         workspace_id: workspaceId,
-        board_id: boardId,
+        board_id: board_id,
         ...postData
       })
       
@@ -1376,13 +1394,13 @@ export const storeApi = {
       store.workspaces = store.workspaces.map(w => ({
         ...w,
         boards: w.boards.map(b => {
-          if (b.id === boardId) {
+          if (b.id === board_id) {
             return {
               ...b,
               posts: [...b.posts, {
                 id: post.id,
                 workspaceId: post.workspace_id,
-                boardId: post.board_id,
+                board_id: post.board_id,
                 caption: post.caption,
                 status: post.status as any,
                 format: post.format,
@@ -1537,7 +1555,7 @@ export const storeApi = {
   // Bulk create posts and update store
   bulkCreatePostsAndUpdateStore: async (
     workspaceId: string,
-    boardId: string,
+    board_id: string,
     postsData: any[]
   ) => {
     try {
@@ -1548,7 +1566,7 @@ export const storeApi = {
       const transformedPosts = result.posts.map(post => ({
         id: post.id,
         workspaceId: post.workspace_id,
-        boardId: post.board_id,
+        board_id: post.board_id,
         caption: post.caption,
         status: post.status as any,
         format: post.format,
@@ -1569,7 +1587,7 @@ export const storeApi = {
       store.workspaces = store.workspaces.map(w => ({
         ...w,
         boards: w.boards.map(b => {
-          if (b.id === boardId) {
+          if (b.id === board_id) {
             return {
               ...b,
               posts: [...b.posts, ...transformedPosts]
@@ -1614,13 +1632,13 @@ export const storeApi = {
 }
 
 // Helper function to convert boards to navigation
-function boardsToNav(boards: any[]): any[] {
+function boardsToNav(boards: any[], workspaceId?: string): any[] {
   return boards.map(board => ({
     id: board.id,
     label: board.name,
     image: board.image,
     selectedImage: board.selectedImage,
-    href: `/content/${board.id}`,
+    href: workspaceId ? `/${workspaceId}/content/${board.id}` : `/content/${board.id}`,
     color: board.color,
     rules: board.rules
   }))
@@ -1628,7 +1646,7 @@ function boardsToNav(boards: any[]): any[] {
 
 // Invite API
 export const inviteApi = {
-  inviteMembers: async (payload: { email: string; workspaceIds: string[]; boardIds: string[] }) => {
+  inviteMembers: async (payload: { email: string; workspaceIds: string[]; boardIds: string[]; actorId?: string }) => {
     return apiRequest<{ message: string; details?: string; warning?: boolean }>('/invite', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -1766,19 +1784,46 @@ export { ApiError }
  
 // Activity API functions
 export const activityApi = {
-  getActivities: async (postId: string) => {
+  getPostActivities: async (postId: string) => {
     return apiRequest<any[]>(`/post/activity?post_id=${postId}`)
   },
+  getWorkspaceActivities: async (workspaceId: string) => {
+    return apiRequest<any[]>(`/workspace/activities?workspace_id=${workspaceId}`)
+  },
   addActivity: async (data: {
-    post_id: string
-    actor: string
-    action: string
-    type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing'
+    workspace_id: string
+    post_id?: string
+    actor_id: string
+    type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing' | 'comment' | 'workspace_invited_sent' | 'board_invited_sent'
     metadata?: any
   }) => {
     return apiRequest<any>('/post/activity', {
       method: 'POST',
       body: JSON.stringify(data),
+    })
+  }
+}
+
+// Notification API functions
+export const notificationApi = {
+  getUserNotifications: async (userEmail: string) => {
+    return apiRequest<{ activities: any[] }>(`/user/notifications?user_email=${encodeURIComponent(userEmail)}`)
+  },
+  removeAllUnreadNotifications: async (userEmail: string) => {
+    return apiRequest<{ success: boolean; cleared: string }>('/user/notifications', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_email: userEmail
+      }),
+    })
+  },
+  removeUnreadNotification: async (userEmail: string, notificationId: string) => {
+    return apiRequest<{ success: boolean; unread_notification: string[] }>('/user/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        user_email: userEmail,
+        notification_id: notificationId
+      }),
     })
   }
 }
