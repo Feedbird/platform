@@ -1,14 +1,21 @@
 'use client'
 
 import { useState, useMemo, Suspense } from 'react'
-import { Users, FileText, Eye, MousePointerClick, BarChart2 } from 'lucide-react'
+import { Users, FileText, Eye, MousePointerClick, BarChart2, Share } from 'lucide-react'
 import { format, addDays, startOfDay } from 'date-fns'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { InfoAlert } from '@/components/analytics/info-alert'
 import { MetricCard, MetricData } from '@/components/analytics/metric-card'
 import { MetricChart } from '@/components/analytics/metric-chart'
 import { TopPostCard, TopPost } from '@/components/analytics/top-post-card'
 import { ContentTable } from '@/components/analytics/content-table'
+import { PeriodSelector, Period } from '@/components/analytics/period-selector'
+import { SocialAccountsTable, SocialAccount } from '@/components/analytics/social-accounts-table'
+import { SocialSelector, SocialAccountOption } from '@/components/analytics/social-selector'
+import { CircleChart } from '@/components/analytics/circle-chart'
 import type { Metric } from '@/components/analytics/metric-card'
 import { DynamicTitle } from '@/components/layout/dynamic-title'
 
@@ -16,6 +23,9 @@ export default function AnalyticsPage() {
   const [showAlert] = useState(true)
   const [activeMetric, setActiveMetric] = useState<Metric>('followers')
   const [topMode, setTopMode] = useState<'impressions' | 'engagement'>('impressions')
+  const [period, setPeriod] = useState<Period>('7D')
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>()
+  const [selectedSocialAccount, setSelectedSocialAccount] = useState<string>('account1')
 
   const rawMetrics: MetricData[] = useMemo(
     () => [
@@ -77,6 +87,57 @@ export default function AnalyticsPage() {
     }
     return arr
   }, [])
+
+  const socialAccounts: SocialAccount[] = useMemo(() => [
+    {
+      id: 'account1',
+      platform: 'instagram',
+      name: 'JuscoSmoothies',
+      handle: 'juscosmoothies',
+      totalFollowersGained: 1245,
+      impressions: 45600,
+      engagement: 3420,
+      followerGrowthPercent: 8.5,
+      engagementRate: 7.5,
+    },
+    {
+      id: 'account2',
+      platform: 'facebook',
+      name: 'Jusco Smoothies',
+      handle: 'jusco.smoothies',
+      totalFollowersGained: 892,
+      impressions: 32100,
+      engagement: 2180,
+      followerGrowthPercent: 6.2,
+      engagementRate: 6.8,
+    },
+    {
+      id: 'account3',
+      platform: 'linkedin',
+      name: 'Jusco Health Foods',
+      handle: 'jusco-health-foods',
+      totalFollowersGained: 567,
+      impressions: 18900,
+      engagement: 1250,
+      followerGrowthPercent: 4.1,
+      engagementRate: 6.6,
+    },
+  ], [])
+
+  const socialAccountOptions: SocialAccountOption[] = useMemo(() => 
+    socialAccounts.map(acc => ({
+      id: acc.id,
+      platform: acc.platform,
+      name: acc.name,
+      handle: acc.handle,
+    })), [socialAccounts]
+  )
+
+  const circleChartData = useMemo(() => [
+    { name: 'Instagram', value: 45600, color: '#E1306C' },
+    { name: 'Facebook', value: 32100, color: '#1877F2' },
+    { name: 'LinkedIn', value: 18900, color: '#0A66C2' },
+  ], [])
 
   const topPosts: TopPost[] = [
     {
@@ -175,74 +236,140 @@ export default function AnalyticsPage() {
     },
   ]
 
+  const handlePeriodChange = (newPeriod: Period, range?: { from: Date; to: Date }) => {
+    setPeriod(newPeriod)
+    if (range) {
+      setCustomRange(range)
+    }
+  }
+
   return (
     <>
       <DynamicTitle />
       <Suspense fallback={null}>
-        <div className="w-full h-full overflow-y-auto p-4 bg-gray-50">
-        <div className="container mx-auto px-4 max-w-[960px] space-y-4">
-          {showAlert && <InfoAlert />}
+        <div className="w-full h-full overflow-y-auto bg-gray-50">
+          {/* Topbar */}
+          <div className="h-12 flex items-center justify-between px-4 bg-white border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="cursor-pointer shrink-0" />
+              <h1 className="text-lg font-semibold text-gray-900">Analytics</h1>
+            </div>
+          </div>
 
-          <div className="flex flex-col items-center bg-white rounded-xl p-4 shadow">
-            <div className="flex flex-wrap gap-4 w-full">
-              {rawMetrics.map((m, idx) => (
-                <div
-                  key={m.metric}
-                  className="flex-1 min-w-[140px] max-w-[220px]"
-                >
-                  <MetricCard
-                    data={m}
-                    diff={metricDiffs[idx]}
-                    active={activeMetric === m.metric}
-                    onClick={() => setActiveMetric(m.metric)}
+          <div className="p-4">
+            <div className="container mx-auto px-4 max-w-[960px] space-y-4">
+              {showAlert && <InfoAlert />}
+
+              {/* Connected Social Accounts Overview section with period selector and share button */}
+              <div className="flex items-center justify-between">
+                <PeriodSelector 
+                  value={period} 
+                  onChange={handlePeriodChange}
+                  customRange={customRange}
+                />
+                <Button variant="default" size="sm" className="flex items-center gap-2">
+                  <Share className="w-4 h-4" />
+                  Share
+                </Button>
+              </div>
+
+              {/* Five metric cards */}
+              <div className="flex flex-wrap gap-4 w-full">
+                {rawMetrics.map((m, idx) => (
+                  <div
+                    key={m.metric}
+                    className="flex-1 min-w-[140px] max-w-[220px]"
+                  >
+                    <MetricCard
+                      data={m}
+                      diff={metricDiffs[idx]}
+                      active={activeMetric === m.metric}
+                      onClick={() => setActiveMetric(m.metric)}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Connected Social Accounts Overview */}
+              <div className="bg-white rounded-xl p-6 shadow">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Connected Social Accounts Overview</h3>
+                <SocialAccountsTable data={socialAccounts} />
+              </div>
+
+              {/* Chart card */}
+              <div className="bg-white rounded-xl p-6 shadow">
+                <div className="flex items-center justify-between mb-6">
+                  <SocialSelector 
+                    accounts={socialAccountOptions}
+                    selected={selectedSocialAccount}
+                    onChange={setSelectedSocialAccount}
+                  />
+                  <PeriodSelector 
+                    value={period} 
+                    onChange={handlePeriodChange}
+                    customRange={customRange}
                   />
                 </div>
-              ))}
-            </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Circle chart */}
+                  <div className="h-[300px]">
+                    <CircleChart 
+                      data={circleChartData} 
+                      title="Platform Distribution" 
+                    />
+                  </div>
+                  
+                  {/* Metric chart */}
+                  <div className="h-[300px]">
+                    <MetricChart metric={activeMetric} data={chartData} />
+                  </div>
+                </div>
+              </div>
 
-            <MetricChart metric={activeMetric} data={chartData} />
-          </div>
+              {/* Top performing content */}
+              <div className="bg-white rounded-xl p-4 shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-medium text-black">Top performing content</h4>
+                  <div className="inline-flex border border-gray-200 rounded-md overflow-hidden">
+                    <button
+                      onClick={() => setTopMode('impressions')}
+                      className={cn(
+                        'px-3 py-1 text-sm font-medium',
+                        topMode === 'impressions' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-700',
+                        'border-r border-gray-200'
+                      )}
+                    >
+                      Impressions
+                    </button>
+                    <button
+                      onClick={() => setTopMode('engagement')}
+                      className={cn(
+                        'px-3 py-1 text-sm font-medium',
+                        topMode === 'engagement' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-700',
+                        'border-l border-gray-200'
+                      )}
+                    >
+                      Engagement
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {topPosts.map((p) => (
+                    <TopPostCard key={p.id} post={p} highlightMode={topMode} />
+                  ))}
+                </div>
+              </div>
 
-          <div className="bg-white rounded-xl p-4 shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-medium text-black">Top performing content</h4>
-              <div className="inline-flex border border-gray-200 rounded-md overflow-hidden">
-                <button
-                  onClick={() => setTopMode('impressions')}
-                  className={cn(
-                    'px-3 py-1 text-sm font-medium',
-                    topMode === 'impressions' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-700',
-                    'border-r border-gray-200'
-                  )}
-                >
-                  Impressions
-                </button>
-                <button
-                  onClick={() => setTopMode('engagement')}
-                  className={cn(
-                    'px-3 py-1 text-sm font-medium',
-                    topMode === 'engagement' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-700',
-                    'border-l border-gray-200'
-                  )}
-                >
-                  Engagement
-                </button>
+              {/* Content table */}
+              <div className="bg-white rounded-xl p-4 shadow">
+                <h4 className="text-sm font-medium text-black">Content</h4>
+                <ContentTable data={allPosts} />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {topPosts.map((p) => (
-                <TopPostCard key={p.id} post={p} highlightMode={topMode} />
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 shadow">
-            <h4 className="text-sm font-medium text-black">Content</h4>
-            <ContentTable data={allPosts} />
           </div>
         </div>
-      </div>
-    </Suspense>
+      </Suspense>
     </>
   )
 } 

@@ -55,9 +55,7 @@ export function FormatEditCell({
         >
           <div className="flex items-center flex-nowrap min-w-0">
             {hasValue ? (
-              <div className="flex-shrink-0">
                 <FormatBadge kind={value} widthFull={false} />
-              </div>
             ) : (
               <div
                 className="flex flex-row items-center gap-1 rounded-[4px] bg-white"

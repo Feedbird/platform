@@ -194,6 +194,10 @@ const MemoizedRow = React.memo(
     fillDragRange,
     rowHeight,
     columnOrder,
+    draggingColumnId,
+    isRowDragging,
+    scrollContainerRef,
+    setRowIndicatorTop,
   }: {
     row: Row<Post>;
     isSelected: boolean;
@@ -211,7 +215,13 @@ const MemoizedRow = React.memo(
     fillDragRange: [number, number] | null;
     rowHeight: RowHeightType;
     columnOrder: string[];
+    draggingColumnId: string | null;
+    isRowDragging: boolean;
+    scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+    setRowIndicatorTop: React.Dispatch<React.SetStateAction<number | null>>;
   }) => {
+    // Access dragging column id from outer closure via prop passthrough
+    const draggingColumnIdLocal = null as any; // will be set via closure below in render scope
     return (
       <TableRow
         key={row.id}
@@ -229,7 +239,10 @@ const MemoizedRow = React.memo(
           e.preventDefault();
           setDragOverIndex(row.index);
         }}
-        onDrop={handleRowDrop}
+        onDrop={(e) => {
+          // ensure the latest insertAfter is visible within the drop handler by syncing ref immediately
+          handleRowDrop(e);
+        }}
       >
         {row.getVisibleCells().map((cell) => {
           const isColSticky = isSticky(cell.column.id);
@@ -244,7 +257,10 @@ const MemoizedRow = React.memo(
                 cell.column.id === "caption" ? "align-top" : "align-middle",
                 "px-0 py-0",
                 "border-t border-[#EAE9E9] last:border-b-0",
-                isColSticky && (isSelected ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
+                // Grey background if this column is currently being dragged
+                (draggingColumnId && draggingColumnId === cell.column.id)
+                  ? "bg-[#F3F4F6]"
+                  : (isColSticky && (isSelected ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]")),
                 cell.column.id === "status" && "sticky-status-shadow",
                 fillDragRange && fillDragColumn === cell.column.id && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
               )}
@@ -286,6 +302,7 @@ const MemoizedRow = React.memo(
     }
     // Re-render when column order changes so the cells re-align
     if (prevProps.columnOrder !== nextProps.columnOrder) return false;
+    if (prevProps.draggingColumnId !== nextProps.draggingColumnId) return false;
     return true; // Props are equal
   }
 );
@@ -892,9 +909,49 @@ export function PostTable({
 
   // Drag & drop reordering of rows
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  // Row drag overlay state
+  const [isRowDragging, setIsRowDragging] = React.useState(false);
+  const [rowDragIndex, setRowDragIndex] = React.useState<number | null>(null);
+  const [rowDragPos, setRowDragPos] = React.useState<{ x: number; y: number } | null>(null);
+  const [rowDragAngle, setRowDragAngle] = React.useState<number>(0);
+  const [rowDragScale, setRowDragScale] = React.useState<number>(1);
+  const [rowIndicatorTop, setRowIndicatorTop] = React.useState<number | null>(null);
 
   function handleRowDragStart(e: React.DragEvent, fromIndex: number) {
     e.dataTransfer.setData("text/plain", String(fromIndex));
+    // Only show overlay when initiated from the row drag handle
+    const startedFromHandle = (e.target as HTMLElement)?.closest('[data-row-drag-handle="true"]');
+    if (startedFromHandle) {
+      // Hide native drag image to avoid duplicate ghost
+      try {
+        const shim = document.createElement('div');
+        shim.style.width = '1px';
+        shim.style.height = '1px';
+        shim.style.opacity = '0';
+        shim.style.position = 'fixed';
+        shim.style.top = '0';
+        shim.style.left = '0';
+        document.body.appendChild(shim);
+        e.dataTransfer.setDragImage(shim, 0, 0);
+        setTimeout(() => { try { shim.remove(); } catch {} }, 0);
+      } catch {}
+      try {
+        document.body.style.userSelect = 'none';
+        document.body.classList.add('fbp-dragging-cursor');
+        document.documentElement.classList.add('fbp-dragging-cursor');
+        document.body.style.cursor = 'grabbing';
+        (document.documentElement as HTMLElement).style.cursor = 'grabbing';
+      } catch {}
+      try { e.dataTransfer.effectAllowed = 'move'; } catch {}
+      setIsRowDragging(true);
+      setRowDragIndex(fromIndex);
+      setRowDragPos({ x: (e as any).clientX ?? 0, y: (e as any).clientY ?? 0 });
+      const angle = (Math.random() * 6) - 3; // -3deg to +3deg
+      setRowDragAngle(Math.abs(angle) < 1 ? (angle < 0 ? -2 : 2) : angle);
+      setRowDragScale(1.04);
+      // animate back to 1 on next frame
+      requestAnimationFrame(() => setRowDragScale(1));
+    }
   }
   function handleRowDrop(e: React.DragEvent) {
     const tr = (e.target as HTMLElement).closest("tr");
@@ -905,13 +962,171 @@ export function PostTable({
     const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
     if (Number.isNaN(fromIndex) || fromIndex === targetIndex) return;
 
-    setTableData((prev) => {
-      const newArr = [...prev];
-      const [moved] = newArr.splice(fromIndex, 1);
-      newArr.splice(targetIndex, 0, moved);
-      return newArr;
-    });
+    // Determine insertion point (before/after) and adjust index for removal offset
+    // Compute insertAfter based on cursor position relative to the target row's midpoint
+    let insertAfter = false;
+    try {
+      const rect = tr.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      const clientY = (e as any).clientY as number;
+      if (typeof clientY === 'number') {
+        insertAfter = clientY > midpoint;
+      }
+    } catch {}
+    console.log("insertAfter", insertAfter);
+    const desiredIndex = insertAfter ? targetIndex + 1 : targetIndex;
+    const insertIndex = fromIndex < desiredIndex ? desiredIndex - 1 : desiredIndex;
+
+    if (grouping.length > 0) {
+      // For grouped tables, only allow reordering within the same group
+      const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+      const allLeafRows = groups.flatMap(group => group.leafRows);
+      
+      // Find the source and target rows
+      const sourceRow = allLeafRows[fromIndex];
+      const targetRow = allLeafRows[targetIndex];
+      
+      if (!sourceRow || !targetRow) return;
+      
+      // Check if we're moving within the same group
+      const sourceGroup = groups.find(group => 
+        group.leafRows.some(row => row.id === sourceRow.id)
+      );
+      const targetGroup = groups.find(group => 
+        group.leafRows.some(row => row.id === targetRow.id)
+      );
+      
+      if (sourceGroup && targetGroup && sourceGroup === targetGroup) {
+        // Moving within the same group - reorder within that group
+        const groupIndex = groups.indexOf(sourceGroup);
+        const groupRows = [...sourceGroup.leafRows];
+        const sourceGroupIndex = groupRows.findIndex(row => row.id === sourceRow.id);
+        const targetGroupIndex = groupRows.findIndex(row => row.id === targetRow.id);
+        
+        if (sourceGroupIndex !== -1 && targetGroupIndex !== -1) {
+          const [moved] = groupRows.splice(sourceGroupIndex, 1);
+          
+          // Calculate the correct insertion index based on insertAfter flag
+          let finalTargetIndex = targetGroupIndex;
+          if (insertAfter) {
+            finalTargetIndex = targetGroupIndex + 1;
+          }
+          
+          // Adjust for the fact that we removed the source row
+          if (sourceGroupIndex < targetGroupIndex) {
+            finalTargetIndex -= 1;
+          }
+          
+          groupRows.splice(Math.max(0, Math.min(finalTargetIndex, groupRows.length)), 0, moved);
+          
+          // Update the table data by reconstructing it from the modified groups
+          const newTableData: Post[] = [];
+          groups.forEach((group, idx) => {
+            if (idx === groupIndex) {
+              newTableData.push(...groupRows.map(row => row.original));
+            } else {
+              newTableData.push(...group.leafRows.map(row => row.original));
+            }
+          });
+          
+          setTableData(newTableData);
+          // Update the store with the new order
+          store.setActivePosts(newTableData);
+        }
+      } else {
+        // Moving between different groups is not allowed
+        // Just end the drag overlay without making any changes
+        console.log("Drag and drop between different groups is not allowed");
+      }
+    } else {
+      // For ungrouped tables, use the existing logic
+      setTableData((prev) => {
+        const newArr = [...prev];
+        const [moved] = newArr.splice(fromIndex, 1);
+        newArr.splice(Math.max(0, Math.min(insertIndex, newArr.length)), 0, moved);
+        // Update the store with the new order
+        store.setActivePosts(newArr);
+        return newArr;
+      });
+    }
+    
+    // end overlay on successful drop
+    endRowDragOverlay();
   }
+
+  function endRowDragOverlay() {
+    setIsRowDragging(false);
+    setRowDragIndex(null);
+    setRowDragPos(null);
+    setRowDragScale(1);
+    setRowIndicatorTop(null);
+    try {
+      document.body.style.userSelect = '';
+      document.body.classList.remove('fbp-dragging-cursor');
+      document.documentElement.classList.remove('fbp-dragging-cursor');
+      document.body.style.cursor = '';
+      (document.documentElement as HTMLElement).style.cursor = '';
+    } catch {}
+  }
+
+  React.useEffect(() => {
+    if (!isRowDragging) return;
+    const onAnyDrag = (ev: DragEvent) => {
+      try {
+        // Force move cursor icon and prevent default browser cursor overrides
+        ev.preventDefault();
+        if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+      } catch {}
+      // Force grabbing cursor throughout drag (same as column drag)
+      try {
+        document.body.style.cursor = 'grabbing';
+        (document.documentElement as HTMLElement).style.cursor = 'grabbing';
+      } catch {}
+      // Follow mouse cursor; position will be converted relative to container in render
+      setRowDragPos({ x: ev.clientX, y: ev.clientY });
+      // Update row gap indicator to nearest row edge for better feedback when not over a row
+      const container = scrollContainerRef.current;
+      if (container) {
+        const rows = Array.from(container.querySelectorAll('tbody tr')) as HTMLElement[];
+        let bestTop: number | null = null;
+        let bestDist = Number.POSITIVE_INFINITY;
+        const cRect = container.getBoundingClientRect();
+        for (const r of rows) {
+          const rect = r.getBoundingClientRect();
+          // Consider top edge
+          const distTop = Math.abs(ev.clientY - rect.top);
+          if (distTop < bestDist) {
+            bestDist = distTop;
+            bestTop = rect.top - cRect.top + container.scrollTop;
+          }
+          // Consider bottom edge
+          const distBottom = Math.abs(ev.clientY - rect.bottom);
+          if (distBottom < bestDist) {
+            bestDist = distBottom;
+            bestTop = rect.bottom - cRect.top + container.scrollTop;
+          }
+        }
+        if (bestTop != null) {
+          setRowIndicatorTop(bestTop);
+        }
+      }
+    };
+    const onEnd = () => {
+      endRowDragOverlay();
+    };
+    window.addEventListener('dragover', onAnyDrag, true);
+    window.addEventListener('drag', onAnyDrag, true);
+    document.addEventListener('dragover', onAnyDrag, true);
+    document.addEventListener('dragenter', onAnyDrag, true);
+    window.addEventListener('dragend', onEnd, true);
+    return () => {
+      try { window.removeEventListener('dragover', onAnyDrag, true); } catch {}
+      try { window.removeEventListener('drag', onAnyDrag, true); } catch {}
+      try { document.removeEventListener('dragover', onAnyDrag, true); } catch {}
+      try { document.removeEventListener('dragenter', onAnyDrag, true); } catch {}
+      try { window.removeEventListener('dragend', onEnd, true); } catch {}
+    };
+  }, [isRowDragging]);
 
   /** Column Visibility menu */
   const [colVisOpen, setColVisOpen] = React.useState(false);
@@ -1128,6 +1343,304 @@ export function PostTable({
   // Internal ref to hold data during an active fill-drag operation
   const fillDragRef = React.useRef<{ value: any; startIndex: number; columnId: string } | null>(null);
 
+  // Column drag visual state
+  const [draggingColumnId, setDraggingColumnId] = React.useState<string | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = React.useState<string | null>(null);
+  const [dragInsertAfter, setDragInsertAfter] = React.useState<boolean>(false);
+  const [dragOverlayLeft, setDragOverlayLeft] = React.useState<number | null>(null);
+  const [dragOverlayWidth, setDragOverlayWidth] = React.useState<number | null>(null);
+  const [dragStartOffsetX, setDragStartOffsetX] = React.useState<number>(0);
+  const headerRefs = React.useRef<Record<string, HTMLElement | null>>({});
+  const nativeDragBindingsRef = React.useRef<{
+    attached: boolean;
+    containerOver?: (ev: DragEvent) => void;
+    containerDrop?: (ev: DragEvent) => void;
+    perHeader: Array<{ el: HTMLElement; over: (ev: DragEvent) => void; drop: (ev: DragEvent) => void }>;
+  }>({ attached: false, perHeader: [] });
+  const dragEndHandlerRef = React.useRef<((ev: DragEvent) => void) | null>(null);
+  // Stable refs to avoid state/closure timing issues during drag end
+  const draggingColumnIdRef = React.useRef<string | null>(null);
+  const dragOverColumnIdRef = React.useRef<string | null>(null);
+  const dragInsertAfterRef = React.useRef<boolean>(false);
+
+  // Column drag handlers (shared)
+  function updateOverlayForMouseX(mouseClientX: number) {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const cRect = container.getBoundingClientRect();
+    // Keep constant offset from cursor captured at dragStart
+    const left = mouseClientX - cRect.left - dragStartOffsetX + container.scrollLeft;
+    setDragOverlayLeft(left);
+    // Only compute target column and side for the blue gap indicator
+    let targetId: string | null = null;
+    let insertAfterLocal = false;
+    let closestDist = Number.POSITIVE_INFINITY;
+    for (const [id, el] of Object.entries(headerRefs.current)) {
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (mouseClientX >= rect.left && mouseClientX <= rect.right) {
+        targetId = id;
+        insertAfterLocal = mouseClientX > rect.left + rect.width / 2;
+        closestDist = 0;
+        break;
+      }
+      const dist = mouseClientX < rect.left ? rect.left - mouseClientX : mouseClientX - rect.right;
+      if (dist < closestDist) {
+        closestDist = dist;
+        targetId = id;
+        insertAfterLocal = mouseClientX > rect.right;
+      }
+    }
+    if (targetId) {
+      setDragOverColumnId(targetId);
+      setDragInsertAfter(insertAfterLocal);
+      dragOverColumnIdRef.current = targetId;
+      dragInsertAfterRef.current = insertAfterLocal;
+    }
+  }
+
+  function beginColumnDrag(colId: string, clientX: number) {
+    setDraggingColumnId(colId);
+    draggingColumnIdRef.current = colId;
+    const headerEl = headerRefs.current[colId];
+    if (headerEl) {
+      const rect = headerEl.getBoundingClientRect();
+      setDragStartOffsetX(clientX - rect.left);
+      setDragOverlayWidth(rect.width);
+      const container = scrollContainerRef.current;
+      if (container) {
+        const cRect = container.getBoundingClientRect();
+        setDragOverlayLeft(rect.left - cRect.left);
+      }
+    }
+    // Initialize overlay target immediately
+    updateOverlayForMouseX(clientX);
+    // Mousemove fallback (attach once per drag)
+    if (!dragMouseMoveHandlerRef.current) {
+      const onMove = (mv: MouseEvent) => {
+        updateOverlayForMouseX(mv.clientX);
+      };
+      dragMouseMoveHandlerRef.current = onMove;
+      document.addEventListener('mousemove', onMove, true);
+    }
+    // End on mouseup as a safety net
+    if (!dragMouseUpHandlerRef.current) {
+      const onUp = (_: MouseEvent) => {
+        finalizeColumnDrag();
+      };
+      dragMouseUpHandlerRef.current = onUp;
+      document.addEventListener('mouseup', onUp, true);
+    }
+    try { document.body.style.userSelect = 'none'; } catch {}
+    try {
+      document.body.classList.add('fbp-dragging-cursor');
+      document.documentElement.classList.add('fbp-dragging-cursor');
+      document.body.style.cursor = 'grabbing';
+      (document.documentElement as HTMLElement).style.cursor = 'grabbing';
+    } catch {}
+
+    // Attach native dragover/drop listeners to ensure events are captured
+    const container = scrollContainerRef.current;
+    if (container && !nativeDragBindingsRef.current.attached) {
+      const containerOver = (ev: DragEvent) => {
+        ev.preventDefault();
+        try { if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'; } catch {}
+        if (typeof ev.clientX === 'number') updateOverlayForMouseX(ev.clientX);
+      };
+      const containerDrop = (ev: DragEvent) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        // choose current target header or nearest by mouse X
+        let toId = dragOverColumnId;
+        if (!toId) {
+          const mouseX = ev.clientX;
+          let bestId: string | null = null;
+          let bestDist = Number.POSITIVE_INFINITY;
+          for (const [id, el] of Object.entries(headerRefs.current)) {
+            if (!el) continue;
+            const rect = el.getBoundingClientRect();
+            if (mouseX >= rect.left && mouseX <= rect.right) {
+              bestId = id;
+              bestDist = 0;
+              break;
+            }
+            const dist = mouseX < rect.left ? rect.left - mouseX : mouseX - rect.right;
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestId = id;
+            }
+          }
+          toId = bestId || null;
+        }
+      };
+      container.addEventListener('dragover', containerOver, true);
+      container.addEventListener('drop', containerDrop, true);
+
+      const perHeader: Array<{ el: HTMLElement; over: (ev: DragEvent) => void; drop: (ev: DragEvent) => void }> = [];
+      for (const [id, el] of Object.entries(headerRefs.current)) {
+        if (!el) continue;
+        const over = (ev: DragEvent) => {
+          ev.preventDefault();
+          try { if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'; } catch {}
+        };
+        const drop = (ev: DragEvent) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+        };
+        el.addEventListener('dragover', over, true);
+        el.addEventListener('drop', drop, true);
+        perHeader.push({ el, over, drop });
+      }
+      nativeDragBindingsRef.current = { attached: true, containerOver, containerDrop, perHeader };
+    }
+
+    // Attach a global dragend/drop finalizer in case drop doesn't fire on our elements
+    if (!dragEndHandlerRef.current) {
+      const onEnd = (ev: DragEvent) => {
+        finalizeColumnDrag(ev);
+      };
+      dragEndHandlerRef.current = onEnd;
+      window.addEventListener('dragend', onEnd, true);
+      window.addEventListener('drop', onEnd, true);
+    }
+  }
+
+  function startColumnMouseDrag(e: React.MouseEvent, colId: string) {
+    e.preventDefault();
+    beginColumnDrag(colId, (e as any).clientX);
+  }
+
+  const dragMouseMoveHandlerRef = React.useRef<((ev: MouseEvent) => void) | null>(null);
+  const dragMouseUpHandlerRef = React.useRef<((ev: MouseEvent) => void) | null>(null);
+
+  function endColumnDrag() {
+    setDraggingColumnId(null);
+    setDragOverColumnId(null);
+    setDragInsertAfter(false);
+    draggingColumnIdRef.current = null;
+    dragOverColumnIdRef.current = null;
+    dragInsertAfterRef.current = false;
+    setDragOverlayLeft(null);
+    setDragOverlayWidth(null);
+    if (dragMouseMoveHandlerRef.current) {
+      try { document.removeEventListener('mousemove', dragMouseMoveHandlerRef.current as any, true); } catch {}
+      dragMouseMoveHandlerRef.current = null;
+    }
+    if (dragMouseUpHandlerRef.current) {
+      try { document.removeEventListener('mouseup', dragMouseUpHandlerRef.current as any, true); } catch {}
+      dragMouseUpHandlerRef.current = null;
+    }
+    // detach native listeners
+    const container = scrollContainerRef.current;
+    if (nativeDragBindingsRef.current.attached) {
+      try {
+        if (container && nativeDragBindingsRef.current.containerOver) container.removeEventListener('dragover', nativeDragBindingsRef.current.containerOver as any, true);
+        if (container && nativeDragBindingsRef.current.containerDrop) container.removeEventListener('drop', nativeDragBindingsRef.current.containerDrop as any, true);
+        for (const b of nativeDragBindingsRef.current.perHeader) {
+          b.el.removeEventListener('dragover', b.over as any, true);
+          b.el.removeEventListener('drop', b.drop as any, true);
+        }
+      } catch {}
+      nativeDragBindingsRef.current = { attached: false, perHeader: [] } as any;
+    }
+    if (dragEndHandlerRef.current) {
+      try {
+        window.removeEventListener('dragend', dragEndHandlerRef.current as any, true);
+        window.removeEventListener('drop', dragEndHandlerRef.current as any, true);
+      } catch {}
+      dragEndHandlerRef.current = null;
+    }
+    try {
+      document.body.style.userSelect = "";
+      document.body.classList.remove('fbp-dragging-cursor');
+      document.documentElement.classList.remove('fbp-dragging-cursor');
+      document.body.style.cursor = '';
+      (document.documentElement as HTMLElement).style.cursor = '';
+    } catch {}
+    try { document.body.classList.remove('fbp-dragging-cursor'); } catch {}
+  }
+
+  // Finalize column reorder on drag end or global drop if needed
+  function finalizeColumnDrag(ev?: DragEvent) {
+    const fromId = draggingColumnIdRef.current;
+    if (!fromId) {
+      endColumnDrag();
+      return;
+    }
+    // Determine target header: prefer tracked, else nearest to cursor
+    let toId = dragOverColumnIdRef.current;
+    if (!toId && ev && typeof ev.clientX === 'number') {
+      const mouseX = ev.clientX;
+      let bestId: string | null = null;
+      let bestDist = Number.POSITIVE_INFINITY;
+      for (const [id, el] of Object.entries(headerRefs.current)) {
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (mouseX >= rect.left && mouseX <= rect.right) {
+          bestId = id;
+          bestDist = 0;
+          break;
+        }
+        const dist = mouseX < rect.left ? rect.left - mouseX : mouseX - rect.right;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestId = id;
+        }
+      }
+      toId = bestId || null;
+    }
+    if (!toId || toId === fromId) {
+      endColumnDrag();
+      return;
+    }
+    // Compute insert side at end time
+    let insertAfterAtEnd = dragInsertAfterRef.current;
+    if (ev && toId) {
+      const overEl = headerRefs.current[toId];
+      if (overEl) {
+        const rect = overEl.getBoundingClientRect();
+        insertAfterAtEnd = ev.clientX > rect.left + rect.width / 2;
+      }
+    }
+    setColumnOrder((prev) => {
+      const current = prev.length ? prev : table.getAllLeafColumns().map(c => c.id);
+      const newOrder = [...current];
+      const fromIndex = newOrder.indexOf(fromId);
+      const toIndex = newOrder.indexOf(toId!);
+      if (fromIndex < 0 || toIndex < 0) return prev;
+      const [moved] = newOrder.splice(fromIndex, 1);
+      let insertIndex = newOrder.indexOf(toId!);
+      if (insertAfterAtEnd) insertIndex += 1;
+      newOrder.splice(insertIndex, 0, moved);
+      try { table.setColumnOrder(newOrder); } catch {}
+      return newOrder;
+    });
+    endColumnDrag();
+  }
+
+  // Global dragover listener to ensure overlay updates anywhere the cursor goes
+  React.useEffect(() => {
+    if (!draggingColumnId) return;
+    const onAnyDrag = (ev: DragEvent) => {
+      ev.preventDefault();
+      const x = (typeof ev.clientX === 'number' && ev.clientX) ? ev.clientX : (ev as any).pageX;
+      if (typeof x === 'number') updateOverlayForMouseX(x);
+    };
+    // Capture to ensure we receive events even if inner elements stop propagation
+    window.addEventListener('dragover', onAnyDrag, { capture: true });
+    window.addEventListener('drag', onAnyDrag, { capture: true });
+    document.addEventListener('dragover', onAnyDrag, { capture: true });
+    document.addEventListener('dragenter', onAnyDrag, { capture: true });
+    // Note: per-drag global end listeners are attached in handleColumnDragStart
+    return () => {
+      try { window.removeEventListener('dragover', onAnyDrag, { capture: true } as any); } catch {}
+      try { window.removeEventListener('drag', onAnyDrag, { capture: true } as any); } catch {}
+      try { document.removeEventListener('dragover', onAnyDrag, { capture: true } as any); } catch {}
+      try { document.removeEventListener('dragenter', onAnyDrag, { capture: true } as any); } catch {}
+    };
+  }, [draggingColumnId]);
+
+
   /* ⇢ NEW helper fns — used for styling rows during fill-drag and for MemoizedRow */
   const isFillSource = React.useCallback(
     (idx: number) => !!fillDragRange && idx === fillDragRange[0],
@@ -1269,17 +1782,27 @@ export function PostTable({
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-center">
-            <div
-              className="cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
-              draggable
-              onDragStart={(e) => handleRowDragStart(e, row.index)}
-            >
-              <GripVertical size={18} />
+        cell: ({ row, table }) => {
+          const isSorted = (table.getState().sorting ?? []).length > 0;
+          return (
+            <div className="flex items-center justify-center">
+              <div
+                className={cn(
+                  "transition-opacity",
+                  !isSorted ? "cursor-grab opacity-0 group-hover:opacity-100" : "cursor-not-allowed opacity-40"
+                )}
+                draggable={!isSorted}
+                data-row-drag-handle="true"
+                onDragStart={(e) => {
+                  if (isSorted) { e.preventDefault(); return; }
+                  handleRowDragStart(e, row.index);
+                }}
+              >
+                <GripVertical size={18} />
+              </div>
             </div>
-          </div>
-        ),
+          );
+        },
       },
       // Row index + checkbox
       {
@@ -1849,7 +2372,7 @@ export function PostTable({
       },
       
     ];
-  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn, boardRules, activeBoardId, updateBoard]);
+  }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn, boardRules, activeBoardId, updateBoard, sorting]);
 
   /** 2) user-defined columns **/
   const userColumnDefs: ColumnDef<Post>[] = React.useMemo(() => {
@@ -2110,13 +2633,15 @@ export function PostTable({
                   className={cn(
                     "relative text-left border-b border-[#E6E4E2] px-2 py-0",
                     index !== 0 && "border-r",
-                    isSticky(h.id) && 'bg-[#FBFBFB]',
+                    isSticky(h.column.id) && 'bg-[#FBFBFB]',
+                    draggingColumnId === h.column.id && 'bg-[#F3F4F6]',
                     h.id === 'status' && 'sticky-status-shadow'
                   )}
-                  style={{ width: h.getSize(), ...stickyStyles(h.id, 10)}}
+                  ref={(el) => { headerRefs.current[h.column.id] = el as HTMLElement; }}
+                  style={{ width: h.getSize(), ...stickyStyles(h.column.id, 10)}}
                 >
                   {(() => {
-                    const canDrag = h.id !== "rowIndex" && h.id !== "drag";
+                    const canDrag = h.column.id !== "rowIndex" && h.column.id !== "drag";
                     const sortStatus = h.column.getIsSorted();
                     const headerContent = flexRender(h.column.columnDef.header, h.getContext());
 
@@ -2131,27 +2656,7 @@ export function PostTable({
                             }
                           }}
                           draggable={canDrag}
-                          onDragStart={(e) => {
-                            if (!canDrag) return;
-                            e.dataTransfer.setData('text/plain', h.id);
-                          }}
-                          onDragOver={(e) => {
-                            if (!canDrag) return;
-                            e.preventDefault();
-                          }}
-                          onDrop={(e) => {
-                            if (!canDrag) return;
-                            const fromId = e.dataTransfer.getData('text/plain');
-                            if (!fromId) return;
-                            setColumnOrder((prev) => {
-                              const newOrder = [...prev];
-                              const fromIndex = newOrder.indexOf(fromId);
-                              const toIndex = newOrder.indexOf(h.id);
-                              if (fromIndex < 0 || toIndex < 0) return prev;
-                              newOrder.splice(toIndex, 0, newOrder.splice(fromIndex, 1)[0]);
-                              return newOrder;
-                            });
-                          }}
+                          onMouseDown={(e) => { console.log("onMouseDown_canDrag", canDrag); if (!canDrag) return; startColumnMouseDrag(e, h.column.id); }}
                         >
                           <div className="flex items-center gap-1 text-black w-full">
                             {headerContent}
@@ -2289,7 +2794,42 @@ export function PostTable({
           setCursorPos({ x: e.clientX, y: e.clientY });
           if (!isHoveringDivider) setIsHoveringDivider(true);
         }}
-        onMouseLeave={() => setIsHoveringDivider(false)}>
+        onMouseLeave={() => setIsHoveringDivider(false)}
+        onDragOver={(e) => {
+          // Prevent dropping on group headers when group is collapsed
+          if (!isExpanded) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'none';
+            return;
+          }
+          
+          // Prevent dropping on group headers when dragging from different group
+          if (grouping.length > 0) {
+            const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+            const allLeafRows = groups.flatMap(group => group.leafRows);
+            
+            // Get the source row from drag data
+            const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+            if (!Number.isNaN(fromIndex)) {
+              const sourceRow = allLeafRows[fromIndex];
+              
+              if (sourceRow) {
+                // Find source group
+                const sourceGroup = groups.find(group => 
+                  group.leafRows.some(r => r.id === sourceRow.id)
+                );
+                
+                // Check if source group is different from current group
+                const currentGroup = groups.find(g => g.groupValues.month === month);
+                if (sourceGroup && currentGroup && sourceGroup !== currentGroup) {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'none';
+                  return;
+                }
+              }
+            }
+          }
+        }}>
         {/* ◀ left phantom sticky */}
         <td
           style={{
@@ -2618,6 +3158,55 @@ export function PostTable({
                         row.getIsSelected() && "bg-[#EBF5FF]"
                       )}
                       onMouseDownCapture={(e) => handleRowClick(e, row)}
+                      onContextMenu={(e) => handleContextMenu(e, row)}
+                      onDragStart={(e) => handleRowDragStart(e, row.index)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        
+                        if (grouping.length > 0) {
+                          const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+                          const allLeafRows = groups.flatMap(group => group.leafRows);
+                          
+                          // Get the source row from drag data
+                          const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                          if (!Number.isNaN(fromIndex) && fromIndex !== row.index) {
+                            const sourceRow = allLeafRows[fromIndex];
+                            const targetRow = row;
+                            
+                            if (sourceRow && targetRow) {
+                              // Find source and target groups
+                              const sourceGroup = groups.find(group => 
+                                group.leafRows.some(r => r.id === sourceRow.id)
+                              );
+                              const targetGroup = groups.find(group => 
+                                group.leafRows.some(r => r.id === targetRow.id)
+                              );
+                              
+                              // Check if groups are different
+                              if (sourceGroup && targetGroup && sourceGroup !== targetGroup) {
+                                // Different groups - prevent dropping
+                                e.dataTransfer.dropEffect = 'none';
+                                return;
+                              }
+                              
+                              // Check if target group is collapsed
+                              if (targetGroup) {
+                                const groupKey = JSON.stringify(targetGroup.groupValues);
+                                const isGroupExpanded = !!flatGroupExpanded[groupKey];
+                                if (!isGroupExpanded) {
+                                  e.dataTransfer.dropEffect = 'none';
+                                  return; // Don't allow dropping in collapsed groups
+                                }
+                              }
+                            }
+                          }
+                        }
+                        
+                        setDragOverIndex(row.index);
+                      }}
+                      onDrop={(e) => {
+                        handleRowDrop(e);
+                      }}
                     >
                       {/* ◀ left phantom */}
                       <TableCell
@@ -2632,7 +3221,10 @@ export function PostTable({
                           singleClickEdit={cell.column.id === "platforms" || cell.column.id === "format"}
                           className={cn(
                             "text-left",
-                            isSticky(cell.column.id) && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]"),
+                            // Grey while dragging this column
+                            draggingColumnId === cell.column.id
+                              ? "bg-[#F3F4F6]"
+                              : (isSticky(cell.column.id) && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]")),
                             cell.column.id === "caption"
                               ? "align-top"
                               : "align-middle",
@@ -2808,7 +3400,7 @@ export function PostTable({
               >
                 {hg.headers.map((header) => {
                   if (header.isPlaceholder) return null;
-                  const canDrag = header.id !== "rowIndex" && header.id !== "drag";
+                  const canDrag = header.column.id !== "rowIndex" && header.column.id !== "drag";
                   const sortStatus = header.column.getIsSorted();
 
                   return (
@@ -2817,12 +3409,14 @@ export function PostTable({
                       className={cn(
                         "relative align-middle text-left border-r border-[#EAE9E9] last:border-r-0 px-2 py-2",
                         isSticky(header.id) && "bg-[#FBFBFB]",
+                        draggingColumnId === header.id && 'bg-[#F3F4F6]',
                         header.id === "status" && "sticky-status-shadow"
                       )}
                       style={{
                         width: header.getSize(),
                         ...stickyStyles(header.id, 9)
                       }}
+                      ref={(el) => { headerRefs.current[header.id] = el as HTMLElement; }}
                       colSpan={header.colSpan}
                     >
                       {header.column.getCanSort() ? (
@@ -2842,31 +3436,7 @@ export function PostTable({
                             setRenameValue(columnNames[header.id] || header.id);
                           }}
                           draggable={canDrag}
-                          onDragStart={(e) => {
-                            if (!canDrag) return;
-                            e.dataTransfer.setData("text/plain", header.id);
-                          }}
-                          onDragOver={(e) => {
-                            if (!canDrag) return;
-                            e.preventDefault();
-                          }}
-                          onDrop={(e) => {
-                            if (!canDrag) return;
-                            const fromId = e.dataTransfer.getData("text/plain");
-                            if (!fromId) return;
-                            setColumnOrder((prev) => {
-                              const newOrder = [...prev];
-                              const fromIndex = newOrder.indexOf(fromId);
-                              const toIndex = newOrder.indexOf(header.id);
-                              if (fromIndex < 0 || toIndex < 0) return prev;
-                              newOrder.splice(
-                                toIndex,
-                                0,
-                                newOrder.splice(fromIndex, 1)[0]
-                              );
-                              return newOrder;
-                            });
-                          }}
+                          onMouseDown={(e) => { if (!canDrag) return; startColumnMouseDrag(e, header.column.id); }}
                         >
                           <div className="flex items-center gap-1 text-black w-full">
                             {flexRender(
@@ -2889,31 +3459,7 @@ export function PostTable({
                             setRenameValue(columnNames[header.id] || header.id);
                           }}
                           draggable={canDrag}
-                          onDragStart={(e) => {
-                            if (!canDrag) return;
-                            e.dataTransfer.setData("text/plain", header.id);
-                          }}
-                          onDragOver={(e) => {
-                            if (!canDrag) return;
-                            e.preventDefault();
-                          }}
-                          onDrop={(e) => {
-                            if (!canDrag) return;
-                            const fromId = e.dataTransfer.getData("text/plain");
-                            if (!fromId) return;
-                            setColumnOrder((prev) => {
-                              const newOrder = [...prev];
-                              const fromIndex = newOrder.indexOf(fromId);
-                              const toIndex = newOrder.indexOf(header.id);
-                              if (fromIndex < 0 || toIndex < 0) return prev;
-                              newOrder.splice(
-                                toIndex,
-                                0,
-                                newOrder.splice(fromIndex, 1)[0]
-                              );
-                              return newOrder;
-                            });
-                          }}
+                          onMouseDown={(e) => { if (!canDrag) return; startColumnMouseDrag(e, header.column.id); }}
                         >
                           {flexRender(
                             header.column.columnDef.header,
@@ -2957,6 +3503,10 @@ export function PostTable({
                   fillDragRange={fillDragRange}
                   rowHeight={rowHeight}
                   columnOrder={columnOrder}
+                  draggingColumnId={draggingColumnId}
+                  isRowDragging={isRowDragging}
+                  scrollContainerRef={scrollContainerRef}
+                  setRowIndicatorTop={setRowIndicatorTop}
                 />
             ))}
 
@@ -3321,8 +3871,6 @@ export function PostTable({
                 scrollbarColor: '#D0D5DD #F9FAFB',
                 paddingBottom: grouping.length === 0 && isScrollable ? '32px' : '0px', // Add padding for fixed button only when scrollable
               }}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleRowDrop}
               onScroll={handleScroll}
             >
               <style jsx global>{`
@@ -3352,7 +3900,147 @@ export function PostTable({
                   box-shadow: 5px 0px 0px 0px rgba(16, 24, 40, 0.05);
                   transition: none;
                 }
+
+                /* Force grabbing cursor globally during column drag */
+                .fbp-dragging-cursor,
+                .fbp-dragging-cursor * {
+                  cursor: grabbing !important;
+                  cursor: -webkit-grabbing !important;
+                }
               `}</style>
+              {/* Column drag overlay following cursor */}
+              {draggingColumnId && dragOverlayLeft != null && dragOverlayWidth != null && (
+                <div
+                  className="pointer-events-none absolute"
+                  style={{
+                    top: 0,
+                    left: dragOverlayLeft,
+                    width: dragOverlayWidth,
+                    height: (scrollContainerRef.current?.scrollHeight || 0),
+                    background: '#E5E7EB',
+                    opacity: 0.6,
+                    border: '1px dashed #A3A3A3',
+                    zIndex: 50,
+                  }}
+                />
+              )}
+
+              {/* Blue gap indicator showing insertion point (header-only height) */}
+              {draggingColumnId && dragOverColumnId && (() => {
+                const overEl = headerRefs.current[dragOverColumnId!];
+                const container = scrollContainerRef.current;
+                if (!overEl || !container) return null;
+                const rect = overEl.getBoundingClientRect();
+                const cRect = container.getBoundingClientRect();
+                const left = (dragInsertAfter ? rect.right : rect.left) - cRect.left + container.scrollLeft;
+                // Limit the indicator to the header height area only
+                const headerEl = container.querySelector('thead') as HTMLElement | null;
+                const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 40;
+                return (
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      top: 0,
+                      left,
+                      width: 3,
+                      height: headerHeight,
+                      background: '#3B82F6',
+                      zIndex: 60,
+                    }}
+                  />
+                );
+              })()}
+
+              {/* Row blue gap indicator */}
+              {isRowDragging && rowIndicatorTop != null && (
+                <div
+                  className="pointer-events-none absolute"
+                  style={{
+                    left: grouping.length > 0 ? 14 : 0,
+                    right: 0,
+                    top: rowIndicatorTop,
+                    height: 3,
+                    background: '#3B82F6',
+                    zIndex: 65,
+                  }}
+                />
+              )}
+
+              {/* Row drag overlay that follows cursor, showing 3-7 cells */}
+              {isRowDragging && rowDragIndex != null && rowDragPos && (() => {
+                const container = scrollContainerRef.current;
+                if (!container) return null;
+                const cRect = container.getBoundingClientRect();
+                const top = rowDragPos.y - cRect.top + container.scrollTop;
+                const left = rowDragPos.x - cRect.left + container.scrollLeft;
+
+                // Build a visual of 5 cells (skip drag and rowIndex); min-width:100px each, expand to content
+                let row: Row<Post> | null = null;
+                if (grouping.length > 0) {
+                  // For grouped tables, get the row from the grouped model
+                  const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+                  const allLeafRows = groups.flatMap(group => group.leafRows);
+                  row = allLeafRows[rowDragIndex] || null;
+                } else {
+                  // For ungrouped tables, use the regular row model
+                  row = table.getRowModel().rows[rowDragIndex] || null;
+                }
+                if (!row) return null;
+                const dataCellsAll = row
+                  .getVisibleCells()
+                  .filter((c) => c.column.id !== 'drag' && c.column.id !== 'rowIndex');
+                const count = Math.min(5, dataCellsAll.length);
+                const cells = dataCellsAll.slice(0, count);
+
+                return (
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      top,
+                      left,
+                      transform: `translate(-8px, -12px) rotate(${rowDragAngle}deg) scale(${rowDragScale})`,
+                      transformOrigin: 'center center',
+                      zIndex: 70,
+                      transition: 'transform 140ms ease-out',
+                      filter: 'drop-shadow(0 8px 16px rgba(16,24,40,0.18))',
+                    }}
+                  >
+                    <div
+                      className="bg-white border border-[#E4E7EC]"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'stretch',
+                        padding: 0,
+                      }}
+                    >
+                      {cells.map((cell) => (
+                        <div
+                          key={cell.id}
+                          className="px-2"
+                          style={{
+                            minWidth: 100,
+                            borderRight: '1px solid #EAE9E9',
+                            background: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: cell.column.id === 'caption' ? 'flex-start' : 'center',
+                            justifyContent: 'flex-start',
+                            height: getRowHeightPixels(rowHeight),
+                          }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, {
+                            ...(cell.getContext() as any),
+                            isFocused: false,
+                            isEditing: false,
+                            enterEdit: () => {},
+                            exitEdit: () => {},
+                          } as any)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="min-w-full inline-block">
                 {grouping.length > 0 ? (
                   <div className="p-0 m-0">{renderGroupedTable()}</div>
@@ -3659,3 +4347,4 @@ export function PostTable({
     </div>
   );
 }
+
