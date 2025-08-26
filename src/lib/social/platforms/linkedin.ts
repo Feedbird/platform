@@ -1539,6 +1539,11 @@ export class LinkedInPlatform extends BasePlatform {
     }
   }
 
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch post analytics
+     Note: The API from the linkedin giving 500 error so it's not used.
+     would be used if it's fixed by linkedin API.
+     ────────────────────────────────────────────────────────── */
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> { 
     if (IS_BROWSER) {
       const res = await fetch("/api/social/linkedin/analytics", {
