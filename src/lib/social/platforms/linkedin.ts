@@ -95,7 +95,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 1 ─ consent URL */
-  // https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin#api-request
+  // https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow?context=linkedin%2Fcontext&tabs=HTTPS1
   getAuthUrl() {
     const u = new URL(config.authUrl);
     u.searchParams.set("response_type", "code");
@@ -105,9 +105,10 @@ export class LinkedInPlatform extends BasePlatform {
     return u.toString();
   }
 
-  /* 2 ─ code ➜ token ➜ OIDC profile */
+  /* 2 ─ code ➜ token */
   async connectAccount(code: string): Promise<SocialAccount> {
     // 1. Exchange authorization code for an access token.
+    // https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow?context=linkedin%2Fcontext&tabs=HTTPS1#step-3-exchange-authorization-code-for-an-access-token
     const tokenResponse = await fetch(TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -134,6 +135,7 @@ export class LinkedInPlatform extends BasePlatform {
     };
 
     // 2. Get user info from the OIDC userinfo endpoint.
+    // https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow?context=linkedin%2Fcontext&tabs=HTTPS1#step-4-make-authenticated-requests
     const userInfoResponse = await fetch(USERINFO_URL, {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
@@ -1134,6 +1136,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 4 — publish post (text, single image, multiple images, or video) */
+  // https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin#api-request
   async publishPost(
     page: SocialPage,
     content: PostContent,
