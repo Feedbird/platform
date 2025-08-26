@@ -1561,7 +1561,7 @@ export class LinkedInPlatform extends BasePlatform {
 
       // For organization pages, we can fetch organization-specific analytics
       if (page.entityType === 'organization') {
-        const analytics = await this.getOrganizationPostAnalytics(token);
+        const analytics = await this.getOrganizationPostAnalytics(token, postId);
         return {
           reach: analytics.membersReached || 0,
           likes: analytics.reactions || 0,
@@ -1572,13 +1572,14 @@ export class LinkedInPlatform extends BasePlatform {
           engagement: this.calculateEngagement(analytics),
           metadata: {
             platform: 'linkedin',
-            analyticsType: 'organization_aggregated',
+            analyticsType: 'organization_single_post',
+            postId: postId,
             lastUpdated: new Date().toISOString()
           }
         };
       } else {
         // For personal profiles, use member analytics
-        const analytics = await this.getMemberPostAnalytics(token);
+        const analytics = await this.getMemberPostAnalytics(token, postId);
         return {
           reach: analytics.membersReached || 0,
           likes: analytics.reactions || 0,
@@ -1589,7 +1590,8 @@ export class LinkedInPlatform extends BasePlatform {
           engagement: this.calculateEngagement(analytics),
           metadata: {
             platform: 'linkedin',
-            analyticsType: 'member_aggregated',
+            analyticsType: 'member_single_post',
+            postId: postId,
             lastUpdated: new Date().toISOString()
           }
         };
@@ -1613,10 +1615,10 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* ──────────────────────────────────────────────────────────
-     helper – fetch organization post analytics (aggregated)
-     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-post-statistics?view=li-lms-2025-07&tabs=curl
+     helper – fetch organization post analytics (single post)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics?view=li-lms-2025-07&tabs=http
      ────────────────────────────────────────────────────────── */
-  private async getOrganizationPostAnalytics(token: string): Promise<{
+  private async getOrganizationPostAnalytics(token: string, postId: string): Promise<{
     impressions?: number;
     membersReached?: number;
     reactions?: number;
@@ -1626,7 +1628,7 @@ export class LinkedInPlatform extends BasePlatform {
     try {
       // For now, we'll use the same member analytics endpoint
       // In the future, we can implement organization-specific analytics if available
-      return await this.getMemberPostAnalytics(token);
+      return await this.getMemberPostAnalytics(token, postId);
     } catch (error) {
       console.error('[LinkedIn] Failed to fetch organization post analytics:', error);
       return {};
@@ -1634,10 +1636,10 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* ──────────────────────────────────────────────────────────
-     helper – fetch member post analytics (aggregated)
+     helper – fetch member post analytics (single post)
      @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics?view=li-lms-2025-07&tabs=http
      ────────────────────────────────────────────────────────── */
-  private async getMemberPostAnalytics(token: string): Promise<{
+  private async getMemberPostAnalytics(token: string, postId: string): Promise<{
     impressions?: number;
     membersReached?: number;
     reactions?: number;
@@ -1648,10 +1650,12 @@ export class LinkedInPlatform extends BasePlatform {
       const metrics = ['IMPRESSION', 'MEMBERS_REACHED', 'REACTION', 'COMMENT', 'RESHARE'];
       const results: any = {};
 
-      // Fetch each metric type
+      // Fetch each metric type for the specific post
       for (const metric of metrics) {
         try {
-          const url = `${config.baseUrl}/rest/memberCreatorPostAnalytics?q=me&queryType=${metric}&aggregation=TOTAL`;
+          // Use entity query for single post analytics
+          const encodedEntity = encodeURIComponent(`${postId}`);
+          const url = `${config.baseUrl}/rest/memberCreatorPostAnalytics?q=entity&entity=(${postId.includes('share') ? 'share' : 'post'}:${encodedEntity})&queryType=${metric}&aggregation=TOTAL`;
           
           const response = await fetch(url, {
             method: "GET",
@@ -1664,7 +1668,7 @@ export class LinkedInPlatform extends BasePlatform {
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.warn(`[LinkedIn] Failed to fetch ${metric} analytics:`, response.status, errorText);
+            console.warn(`[LinkedIn] Failed to fetch ${metric} analytics for post ${postId}:`, response.status, errorText);
             continue;
           }
 
@@ -1700,7 +1704,7 @@ export class LinkedInPlatform extends BasePlatform {
             }
           }
         } catch (metricError) {
-          console.warn(`[LinkedIn] Error fetching ${metric} analytics:`, metricError);
+          console.warn(`[LinkedIn] Error fetching ${metric} analytics for post ${postId}:`, metricError);
         }
       }
 
