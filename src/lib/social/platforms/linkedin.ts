@@ -95,7 +95,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 1 ─ consent URL */
-  // https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin#api-request
+  // https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow?context=linkedin%2Fcontext&tabs=HTTPS1
   getAuthUrl() {
     const u = new URL(config.authUrl);
     u.searchParams.set("response_type", "code");
@@ -105,9 +105,10 @@ export class LinkedInPlatform extends BasePlatform {
     return u.toString();
   }
 
-  /* 2 ─ code ➜ token ➜ OIDC profile */
+  /* 2 ─ code ➜ token */
   async connectAccount(code: string): Promise<SocialAccount> {
     // 1. Exchange authorization code for an access token.
+    // https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow?context=linkedin%2Fcontext&tabs=HTTPS1#step-3-exchange-authorization-code-for-an-access-token
     const tokenResponse = await fetch(TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -134,6 +135,7 @@ export class LinkedInPlatform extends BasePlatform {
     };
 
     // 2. Get user info from the OIDC userinfo endpoint.
+    // https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow?context=linkedin%2Fcontext&tabs=HTTPS1#step-4-make-authenticated-requests
     const userInfoResponse = await fetch(USERINFO_URL, {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
@@ -1134,6 +1136,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 4 — publish post (text, single image, multiple images, or video) */
+  // https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin#api-request
   async publishPost(
     page: SocialPage,
     content: PostContent,
@@ -1378,7 +1381,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 5 — optional history using fetchWithAuth */
-  async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
+  async getPostHistory(pg: SocialPage, limit = 20, cursor?: number): Promise<PostHistory[]> {
     if (IS_BROWSER) {
       const res = await fetch("/api/social/linkedin/history", {
         method: "POST",
@@ -1386,6 +1389,7 @@ export class LinkedInPlatform extends BasePlatform {
         body: JSON.stringify({
           page: pg,
           limit,
+          cursor,
         })
       });
       if (!res.ok) throw new Error(await res.text());
@@ -1396,15 +1400,15 @@ export class LinkedInPlatform extends BasePlatform {
       // Only support organization pages for now since we need r_organization_social permission
       if (pg.entityType !== 'organization') {
         console.warn('[LinkedIn] Post history only supported for organization pages');
-    return [];
-  }
+        return [];
+      }
 
       const token = await this.getToken(pg.id);
       if (!token) {
         throw new Error("Token not found");
       }
 
-      const posts = await this.getOrganizationPosts(pg.pageId, token, limit);
+      const posts = await this.getOrganizationPosts(pg.pageId, token, limit, cursor);
       return posts;
     } catch (error) {
       console.error('[LinkedIn] Failed to get post history:', error);
@@ -1419,10 +1423,16 @@ export class LinkedInPlatform extends BasePlatform {
   private async getOrganizationPosts(
     organizationUrn: string,
     token: string,
-    limit: number = 20
+    limit: number = 20,
+    cursor?: number
   ): Promise<PostHistory[]> {
     try {
-      const url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
+      let url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
+      
+      // Add pagination cursor if provided
+      if (cursor !== undefined) {
+        url += `&start=${cursor}`;
+      }
       
       const response = await fetch(url, {
         method: "GET",
@@ -1479,8 +1489,8 @@ export class LinkedInPlatform extends BasePlatform {
 
       const resolvedPosts: PostHistory[] = [];
 
-        for (const post of data.elements || []) {
-          // Extract media URNs if present
+      for (const post of data.elements || []) {
+        // Extract media URNs if present
         let mediaUrns: string[] = [];
         if (post.content?.media?.id) {
           mediaUrns.push(post.content.media.id);
@@ -1512,7 +1522,14 @@ export class LinkedInPlatform extends BasePlatform {
                        post.content?.article ? 'article' : 'text',
               isReshare: !!post.reshareContext,
               visibility: post.visibility,
-              mediaTypes: mediaTypes // Store media types for frontend use
+              mediaTypes: mediaTypes, // Store media types for frontend use
+              // Add pagination metadata
+              pagination: {
+                start: data.paging.start,
+                count: data.paging.count,
+                hasMore: data.paging.links.some(link => link.rel === 'next'),
+                nextCursor: data.paging.start + data.paging.count
+              }
             }
           }
         });
@@ -1525,6 +1542,11 @@ export class LinkedInPlatform extends BasePlatform {
     }
   }
 
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch post analytics
+     Note: The API from the linkedin giving 500 error so it's not used.
+     would be used if it's fixed by linkedin API.
+     ────────────────────────────────────────────────────────── */
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> { 
     if (IS_BROWSER) {
       const res = await fetch("/api/social/linkedin/analytics", {
@@ -1547,7 +1569,7 @@ export class LinkedInPlatform extends BasePlatform {
 
       // For organization pages, we can fetch organization-specific analytics
       if (page.entityType === 'organization') {
-        const analytics = await this.getOrganizationPostAnalytics(token);
+        const analytics = await this.getOrganizationPostAnalytics(token, postId);
         return {
           reach: analytics.membersReached || 0,
           likes: analytics.reactions || 0,
@@ -1558,13 +1580,14 @@ export class LinkedInPlatform extends BasePlatform {
           engagement: this.calculateEngagement(analytics),
           metadata: {
             platform: 'linkedin',
-            analyticsType: 'organization_aggregated',
+            analyticsType: 'organization_single_post',
+            postId: postId,
             lastUpdated: new Date().toISOString()
           }
         };
       } else {
         // For personal profiles, use member analytics
-        const analytics = await this.getMemberPostAnalytics(token);
+        const analytics = await this.getMemberPostAnalytics(token, postId);
         return {
           reach: analytics.membersReached || 0,
           likes: analytics.reactions || 0,
@@ -1575,7 +1598,8 @@ export class LinkedInPlatform extends BasePlatform {
           engagement: this.calculateEngagement(analytics),
           metadata: {
             platform: 'linkedin',
-            analyticsType: 'member_aggregated',
+            analyticsType: 'member_single_post',
+            postId: postId,
             lastUpdated: new Date().toISOString()
           }
         };
@@ -1599,10 +1623,10 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* ──────────────────────────────────────────────────────────
-     helper – fetch organization post analytics (aggregated)
-     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-post-statistics?view=li-lms-2025-07&tabs=curl
+     helper – fetch organization post analytics (single post)
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics?view=li-lms-2025-07&tabs=http
      ────────────────────────────────────────────────────────── */
-  private async getOrganizationPostAnalytics(token: string): Promise<{
+  private async getOrganizationPostAnalytics(token: string, postId: string): Promise<{
     impressions?: number;
     membersReached?: number;
     reactions?: number;
@@ -1612,7 +1636,7 @@ export class LinkedInPlatform extends BasePlatform {
     try {
       // For now, we'll use the same member analytics endpoint
       // In the future, we can implement organization-specific analytics if available
-      return await this.getMemberPostAnalytics(token);
+      return await this.getMemberPostAnalytics(token, postId);
     } catch (error) {
       console.error('[LinkedIn] Failed to fetch organization post analytics:', error);
       return {};
@@ -1620,10 +1644,10 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* ──────────────────────────────────────────────────────────
-     helper – fetch member post analytics (aggregated)
+     helper – fetch member post analytics (single post)
      @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics?view=li-lms-2025-07&tabs=http
      ────────────────────────────────────────────────────────── */
-  private async getMemberPostAnalytics(token: string): Promise<{
+  private async getMemberPostAnalytics(token: string, postId: string): Promise<{
     impressions?: number;
     membersReached?: number;
     reactions?: number;
@@ -1634,10 +1658,12 @@ export class LinkedInPlatform extends BasePlatform {
       const metrics = ['IMPRESSION', 'MEMBERS_REACHED', 'REACTION', 'COMMENT', 'RESHARE'];
       const results: any = {};
 
-      // Fetch each metric type
+      // Fetch each metric type for the specific post
       for (const metric of metrics) {
         try {
-          const url = `${config.baseUrl}/rest/memberCreatorPostAnalytics?q=me&queryType=${metric}&aggregation=TOTAL`;
+          // Use entity query for single post analytics
+          const encodedEntity = encodeURIComponent(`${postId}`);
+          const url = `${config.baseUrl}/rest/memberCreatorPostAnalytics?q=entity&entity=(${postId.includes('share') ? 'share' : 'post'}:${encodedEntity})&queryType=${metric}&aggregation=TOTAL`;
           
           const response = await fetch(url, {
             method: "GET",
@@ -1650,7 +1676,7 @@ export class LinkedInPlatform extends BasePlatform {
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.warn(`[LinkedIn] Failed to fetch ${metric} analytics:`, response.status, errorText);
+            console.warn(`[LinkedIn] Failed to fetch ${metric} analytics for post ${postId}:`, response.status, errorText);
             continue;
           }
 
@@ -1686,7 +1712,7 @@ export class LinkedInPlatform extends BasePlatform {
             }
           }
         } catch (metricError) {
-          console.warn(`[LinkedIn] Error fetching ${metric} analytics:`, metricError);
+          console.warn(`[LinkedIn] Error fetching ${metric} analytics for post ${postId}:`, metricError);
         }
       }
 
@@ -1713,7 +1739,54 @@ export class LinkedInPlatform extends BasePlatform {
     const totalEngagement = (analytics.reactions || 0) + (analytics.comments || 0) + (analytics.reshares || 0);
     return Math.round((totalEngagement / reach) * 10000) / 100; // Return as percentage with 2 decimal places
   }
-  async deletePost()       { /* not supported for member UGC */ }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – delete a post
+     ────────────────────────────────────────────────────────── */
+  async deletePost(page: SocialPage, postId: string): Promise<void> {
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/linkedin/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page, postId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return;
+    }
+
+    // Check if this is an organization page (required for deletion)
+    if (page.entityType !== 'organization') {
+      throw new Error('LinkedIn post deletion is only supported for organization pages, not personal profiles');
+    }
+
+  
+    const token = await this.getToken(page.id);
+    if(!token) {
+      throw new Error('No token found for page');
+    }
+
+    // LinkedIn API requires the post URN to be URL-encoded
+    const encodedPostUrn = encodeURIComponent(postId);
+    
+    // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2025-08&tabs=curl#delete-posts
+    const response = await fetch(`${config.baseUrl}/rest/posts/${encodedPostUrn}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'LinkedIn-Version': '202507',
+        'X-Restli-Protocol-Version': '2.0.0',
+        'X-RestLi-Method': 'DELETE'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[LinkedIn] Delete post failed: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to delete LinkedIn post: ${response.status} - ${errorText}`);
+    }
+
+    log(`Successfully deleted post ${postId}`);
+  }
 
   async createPost(
     page: SocialPage,
@@ -1848,12 +1921,6 @@ export class LinkedInPlatform extends BasePlatform {
         }
       }
 
-      console.log(`[LinkedIn] Asset ${assetId} resolved:`, {
-        imageUrl: bestImageUrl,
-        videoUrl: bestVideoUrl,
-        documentUrl: bestDocumentUrl
-      });
-
       return {
         imageUrl: bestImageUrl,
         videoUrl: bestVideoUrl,
@@ -1875,7 +1942,6 @@ export class LinkedInPlatform extends BasePlatform {
       return resolvedMedia;
     }
 
-    console.log(`[LinkedIn] Resolving ${mediaUrns.length} media URNs to URLs...`);
     
     for (const urn of mediaUrns) {
       const assetId = this.extractAssetIdFromUrn(urn);
@@ -1884,7 +1950,6 @@ export class LinkedInPlatform extends BasePlatform {
         continue;
       }
 
-      console.log(`[LinkedIn] Resolving asset ID: ${assetId} from URN: ${urn}`);
       
       // Determine media type from URN first
       let mediaType: 'image' | 'video' | 'document' = 'document';
@@ -1901,13 +1966,10 @@ export class LinkedInPlatform extends BasePlatform {
       
       if (mediaType === 'image' && artifacts.imageUrl) {
         resolvedUrl = artifacts.imageUrl;
-        console.log(`[LinkedIn] Resolved to image URL: ${resolvedUrl}`);
       } else if (mediaType === 'video' && artifacts.videoUrl) {
         resolvedUrl = artifacts.videoUrl;
-        console.log(`[LinkedIn] Resolved to video URL: ${resolvedUrl}`);
       } else if (mediaType === 'document' && artifacts.documentUrl) {
         resolvedUrl = artifacts.documentUrl;
-        console.log(`[LinkedIn] Resolved to document URL: ${resolvedUrl}`);
       } else {
         console.warn(`[LinkedIn] No ${mediaType} URL found for asset: ${assetId}`);
       }
@@ -1917,7 +1979,6 @@ export class LinkedInPlatform extends BasePlatform {
       }
     }
     
-    console.log(`[LinkedIn] Successfully resolved ${resolvedMedia.length}/${mediaUrns.length} media URLs`);
     return resolvedMedia;
   }
 }
