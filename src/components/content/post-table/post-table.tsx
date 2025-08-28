@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   ColumnDef,
@@ -61,7 +62,15 @@ import {
   Copy,
   ChevronDown,
   MoreHorizontal,
-  CircleArrowOutDownRight
+  CircleArrowOutDownRight,
+  ChevronLeft,
+  ChevronRight,
+  EyeOff,
+  FilePlus,
+  PlusCircle,
+  CheckSquare,
+  User,
+  Clock
 } from "lucide-react";
 
 import { nanoid } from "nanoid";
@@ -168,6 +177,13 @@ import {
 } from "@/components/content/shared/content-post-ui";
 import { CaptionEditor } from "./CaptionEditor";
 import { AddColumnDialog } from "./AddColumnDialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { PostContextMenu } from "./PostContextMenu";
 import { CaptionCell } from "./CaptionCell";
 import { SettingsEditCell } from "./SettingsCell";
@@ -175,6 +191,7 @@ import { MonthEditCell } from "./MonthEditCell";
 import { GroupFeedbackSidebar } from "./GroupFeedbackSidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 
 const MemoizedRow = React.memo(
   ({
@@ -648,12 +665,12 @@ export function PostTable({
     return styles;
   }
 
-  function handleAddColumn(label: string, type: ColumnType, options?: string[]) {
-    setUserColumns((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), label, type, options },
-    ]);
-  }
+  // Column header context menu state
+  const [headerMenuOpenFor, setHeaderMenuOpenFor] = React.useState<string | null>(null);
+  const [headerMenuAlign, setHeaderMenuAlign] = React.useState<"start" | "end">("end");
+  const [headerMenuAlignOffset, setHeaderMenuAlignOffset] = React.useState<number>(0);
+  const [headerMenuSideOffset, setHeaderMenuSideOffset] = React.useState<number>(0);
+  const HEADER_MENU_WIDTH_PX = 160; // matches tailwind w-40
 
   // context menu
   const [contextMenuOpen, setContextMenuOpen] = React.useState(false);
@@ -852,6 +869,70 @@ export function PostTable({
     null
   );
   const [renameValue, setRenameValue] = React.useState("");
+
+  // Edit Field dialog state
+  const [editFieldOpen, setEditFieldOpen] = React.useState(false);
+  const [editFieldColumnId, setEditFieldColumnId] = React.useState<string | null>(null);
+  const [editFieldType, setEditFieldType] = React.useState<string>("single line text");
+  const [editFieldPanelPos, setEditFieldPanelPos] = React.useState<{ top: number; left: number; align: 'left' | 'right' } | null>(null);
+  const [editFieldTypeOpen, setEditFieldTypeOpen] = React.useState(false);
+  const editFieldPanelRef = React.useRef<HTMLDivElement | null>(null);
+  const [newFieldLabel, setNewFieldLabel] = React.useState<string>("");
+  const plusHeaderRef = React.useRef<HTMLTableCellElement | null>(null);
+
+  // Close edit panel when clicking outside (but allow interactions when the type dropdown is open)
+  React.useEffect(() => {
+    function handlePointerDown(e: PointerEvent) {
+      if (!editFieldOpen) return;
+      if (editFieldTypeOpen) return; // keep open while select is open
+      const panel = editFieldPanelRef.current;
+      if (panel && e.target instanceof Node) {
+        if (!panel.contains(e.target)) {
+          setEditFieldOpen(false);
+        }
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [editFieldOpen, editFieldTypeOpen]);
+
+  function openEditPanelAtElement(el: HTMLElement | null) {
+    const container = scrollContainerRef.current;
+    if (el && container) {
+      const hRect = el.getBoundingClientRect();
+      const cRect = container.getBoundingClientRect();
+      const columnWidth = hRect.width;
+      const panelWidth = 280;
+      const top = hRect.bottom - cRect.top + container.scrollTop;
+      let left: number;
+      let align: 'left' | 'right';
+      // If this is the plus column header, always align panel's right edge to header's right edge
+      if (el === plusHeaderRef.current) {
+        left = hRect.right - cRect.left - panelWidth + container.scrollLeft;
+        align = 'right';
+      } else if (panelWidth <= columnWidth) {
+        left = hRect.right - cRect.left - panelWidth + container.scrollLeft;
+        align = 'right';
+      } else {
+        left = hRect.left - cRect.left + container.scrollLeft;
+        align = 'left';
+      }
+      setEditFieldPanelPos({ top, left, align });
+    } else {
+      setEditFieldPanelPos(null);
+    }
+  }
+
+  function handleOpenAddFieldFromPlus() {
+    // Set insertion to the far right
+    const visible = table.getAllLeafColumns().map(c => c.id).filter(id => id !== 'drag' && id !== 'rowIndex');
+    const lastId = visible[visible.length - 1];
+    if (lastId) setPendingInsertRef({ targetId: lastId, side: 'right' });
+    setEditFieldColumnId(null);
+    setNewFieldLabel("");
+    openEditPanelAtElement(plusHeaderRef.current);
+    setEditFieldOpen(true);
+  }
 
   // Build the flatten filter from filterTree
   React.useEffect(() => {
@@ -2386,10 +2467,7 @@ export function PostTable({
         header: () => (
           <div
             className="flex items-center gap-2"
-            onDoubleClick={() => {
-              setRenameColumnId(col.id);
-              setRenameValue(col.label);
-            }}
+            
           >
             <Type size={18} />
             {col.label}
@@ -2521,6 +2599,116 @@ export function PostTable({
   const table = useReactTable<Post>(tableConfig);
   tableRef.current = table;
 
+  // Track where to insert newly added user columns from header menu
+  const [pendingInsertRef, setPendingInsertRef] = React.useState<{ targetId: string; side: 'left' | 'right' } | null>(null);
+
+  const handleHeaderMenuAction = React.useCallback((action: string, columnId: string) => {
+    switch (action) {
+      case 'edit': {
+        setEditFieldColumnId(columnId);
+        // Compute anchored position relative to header
+        const headerEl = headerRefs.current[columnId];
+        const container = scrollContainerRef.current;
+        if (headerEl && container) {
+          const hRect = headerEl.getBoundingClientRect();
+          const cRect = container.getBoundingClientRect();
+          const columnWidth = hRect.width;
+          const panelWidth = 280;
+          const top = hRect.bottom - cRect.top + container.scrollTop; // align panel top to header bottom
+          // Align rules
+          let left: number;
+          let align: 'left' | 'right';
+          if (panelWidth <= columnWidth) {
+            // right edges match
+            left = hRect.right - cRect.left - panelWidth + container.scrollLeft;
+            align = 'right';
+          } else {
+            // left edges match
+            left = hRect.left - cRect.left + container.scrollLeft;
+            align = 'left';
+          }
+          setEditFieldPanelPos({ top, left, align });
+        } else {
+          setEditFieldPanelPos(null);
+        }
+        setHeaderMenuOpenFor(null);
+        setEditFieldOpen(true);
+        break;
+      }
+      case 'duplicate': {
+        // Duplicate user-defined column definition if applicable
+        setUserColumns((prev) => {
+          const isUserCol = prev.some(c => c.id === columnId);
+          if (!isUserCol) return prev; // Only duplicate user-defined for now
+          const orig = prev.find(c => c.id === columnId)!;
+          const newId = crypto.randomUUID();
+          const copy = { ...orig, id: newId, label: `${orig.label} copy` };
+          // insert right after
+          setColumnOrder((orderPrev) => {
+            const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
+            const idx = order.indexOf(columnId);
+            if (idx === -1) return orderPrev;
+            const newOrder = [...order];
+            newOrder.splice(idx + 1, 0, newId);
+            try { table.setColumnOrder(newOrder); } catch {}
+            return newOrder;
+          });
+          return [...prev, copy];
+        });
+        break;
+      }
+      case 'insert-left':
+      case 'insert-right': {
+        // Open Add Column dialog and remember where to insert
+        setAddColumnOpen(true);
+        setPendingInsertRef({ targetId: columnId, side: action === 'insert-left' ? 'left' : 'right' });
+        break;
+      }
+      case 'sort-asc': {
+        table.setSorting([{ id: columnId, desc: false }]);
+        break;
+      }
+      case 'sort-desc': {
+        table.setSorting([{ id: columnId, desc: true }]);
+        break;
+      }
+      case 'hide': {
+        table.getColumn(columnId)?.toggleVisibility(false);
+        break;
+      }
+      case 'delete': {
+        // Remove user-defined column if present
+        setUserColumns((prev) => prev.filter(c => c.id !== columnId));
+        setColumnOrder((prev) => prev.filter(id => id !== columnId));
+        try { table.getColumn(columnId)?.toggleVisibility(false); } catch {}
+        break;
+      }
+    }
+    setHeaderMenuOpenFor(null);
+  }, [columnNames, table]);
+
+  function handleAddColumn(label: string, type: ColumnType, options?: string[]) {
+    const newId = crypto.randomUUID();
+    setUserColumns((prev) => [
+      ...prev,
+      { id: newId, label, type, options },
+    ]);
+    if (pendingInsertRef) {
+      const { targetId, side } = pendingInsertRef;
+      setColumnOrder((orderPrev) => {
+        const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
+        const idx = order.indexOf(targetId);
+        if (idx === -1) return orderPrev;
+        const insertIndex = side === 'left' ? idx : idx + 1;
+        const newOrder = [...order];
+        newOrder.splice(insertIndex, 0, newId);
+        try { table.setColumnOrder(newOrder); } catch {}
+        return newOrder;
+      });
+      setPendingInsertRef(null);
+    }
+  }
+
   // set default col order once
   React.useEffect(() => {
     if (!columnOrder.length) {
@@ -2621,7 +2809,7 @@ export function PostTable({
         {table.getHeaderGroups().map((hg) => (
           <TableRow
             key={hg.id}
-            className="bg-[#FBFBFB] border-b border-[#E6E4E2]"
+            className="bg-[#FBFBFB]"
           >
             {/* ◀ phantom on the left */}
             <TableHead className="border-b border-[#E6E4E2] bg-[#FBFBFB]" style={{ width: 14, padding: 0}} />
@@ -2631,7 +2819,7 @@ export function PostTable({
                 <TableHead
                   key={h.id}
                   className={cn(
-                    "relative text-left border-b border-[#E6E4E2] px-2 py-0",
+                    "group relative text-left border-b border-[#E6E4E2] px-2 py-0",
                     index !== 0 && "border-r",
                     isSticky(h.column.id) && 'bg-[#FBFBFB]',
                     draggingColumnId === h.column.id && 'bg-[#F3F4F6]',
@@ -2648,15 +2836,16 @@ export function PostTable({
                     return (
                       <>
                         <div
-                          className="flex cursor-pointer select-none items-center justify-between gap-2 h-full"
-                          onClick={(e) => {
-                            if (h.column.getCanSort() && e.detail === 1) {
-                              const handler = h.column.getToggleSortingHandler();
-                              if (typeof handler === 'function') handler(e);
-                            }
-                          }}
+                          className="flex select-none items-center justify-between gap-2 h-full"
                           draggable={canDrag}
-                          onMouseDown={(e) => { console.log("onMouseDown_canDrag", canDrag); if (!canDrag) return; startColumnMouseDrag(e, h.column.id); }}
+                          onMouseDown={(e) => {
+                            if (!canDrag) return;
+                            if (e.button !== 0) return; // left click only
+                            if ((e as any).detail >= 2) return; // ignore double-clicks
+                            const target = e.target as HTMLElement;
+                            if (target.closest('[data-col-menu-trigger]')) return; // don't start drag when clicking menu trigger
+                            startColumnMouseDrag(e, h.column.id);
+                          }}
                         >
                           <div className="flex items-center gap-1 text-black w-full">
                             {headerContent}
@@ -2667,6 +2856,63 @@ export function PostTable({
                           {sortStatus === 'desc' && (
                             <ChevronDownIcon size={16} className="text-blue-600" />
                           )}
+                          <DropdownMenu open={headerMenuOpenFor === h.id} onOpenChange={(o) => setHeaderMenuOpenFor(o ? h.id : null)}>
+                            <DropdownMenuTrigger asChild>
+                              <div
+                                data-col-menu-trigger
+                                className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                aria-label="Column options"
+                                onPointerDown={(e) => {
+                                  const triggerEl = e.currentTarget as HTMLElement;
+                                  const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
+                                  if (!th) return;
+                                  const colRect = th.getBoundingClientRect();
+                                  const trigRect = triggerEl.getBoundingClientRect();
+                                  const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
+                                  setHeaderMenuAlign('start');
+                                  setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
+                                  setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
+                                }}
+                              >
+                                <ChevronDown className="h-4 w-4 text-[#475467]" />
+                              </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="bottom" align={headerMenuAlign} sideOffset={headerMenuSideOffset} alignOffset={headerMenuAlignOffset} className="w-40 text-sm">
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('edit', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/rename.svg" alt="Edit field" className="h-4 w-4" />
+                                Edit field
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('duplicate', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/duplicate.svg" alt="Duplicate field" className="h-4 w-4" />
+                                Duplicate field
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-left', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/arrow-left.svg" alt="Insert left" className="h-4 w-4" />
+                                Insert left
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-right', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/arrow-right.svg" alt="Insert right" className="h-4 w-4" />
+                                Insert right
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-asc', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/sort-down.svg" alt="Sort A - Z" className="h-4 w-4" />
+                                Sort A - Z
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-desc', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/sort-up.svg" alt="Sort Z - A" className="h-4 w-4" />
+                                Sort Z - A
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-elementStroke mx-2"/>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('hide', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/hide.svg" alt="Hide field" className="h-4 w-4" />
+                                Hide field
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('delete', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/delete.svg" alt="Delete field" className="h-4 w-4" />
+                                Delete field
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
 
                         {/* Resizer Handle */}
@@ -2685,8 +2931,22 @@ export function PostTable({
               )
             )}
 
-            {/* ▶ phantom on the right */}
-            <TableHead style={{ width: 10, padding: 0, border: "none" }} />
+            {/* ▶ plus column on the right */}
+            <TableHead
+              ref={plusHeaderRef as any}
+              className="border-b border-[#E6E4E2]"
+              style={{ width: 100, padding: 0 }}
+            >
+              <div className="flex items-center justify-center h-full">
+                <button
+                  aria-label="Add field"
+                  className="p-0.5 rounded hover:bg-[#F4F5F6] cursor-pointer"
+                  onClick={handleOpenAddFieldFromPlus}
+                >
+                  <PlusIcon className="w-4 h-4 text-[#5C5E63]" />
+                </button>
+              </div>
+            </TableHead>
           </TableRow>
         ))}
       </TableHeader>
@@ -3389,7 +3649,7 @@ export function PostTable({
           style={{
             borderCollapse: "separate", // Important for rounded corners
             borderSpacing: 0,
-            width: table.getCenterTotalSize(),
+            width: table.getCenterTotalSize() + 100,
           }}
         >
           <TableHeader>
@@ -3407,7 +3667,7 @@ export function PostTable({
                     <TableHead
                       key={header.id}
                       className={cn(
-                        "relative align-middle text-left border-r border-[#EAE9E9] last:border-r-0 px-2 py-2",
+                        "group relative align-middle text-left border-r border-b border-[#EAE9E9] last:border-r-0 px-2",
                         isSticky(header.id) && "bg-[#FBFBFB]",
                         draggingColumnId === header.id && 'bg-[#F3F4F6]',
                         header.id === "status" && "sticky-status-shadow"
@@ -3419,24 +3679,21 @@ export function PostTable({
                       ref={(el) => { headerRefs.current[header.id] = el as HTMLElement; }}
                       colSpan={header.colSpan}
                     >
-                      {header.column.getCanSort() ? (
                         <div
-                          className="flex cursor-pointer select-none items-center justify-between gap-2 h-full"
-                          onClick={(e) => {
-                            // Only trigger sort if it's not a double click
-                            if (e.detail === 1) {
-                              const handler = header.column.getToggleSortingHandler();
-                              if (typeof handler === 'function') {
-                                handler(e);
-                              }
-                            }
-                          }}
+                          className="flex cursor-pointer items-center justify-between gap-2 h-full w-full"
                           onDoubleClick={() => {
                             setRenameColumnId(header.id);
                             setRenameValue(columnNames[header.id] || header.id);
                           }}
                           draggable={canDrag}
-                          onMouseDown={(e) => { if (!canDrag) return; startColumnMouseDrag(e, header.column.id); }}
+                          onMouseDown={(e) => {
+                            if (!canDrag) return;
+                            if (e.button !== 0) return; // left click only
+                            if ((e as any).detail >= 2) return; // ignore double-clicks
+                            const target = e.target as HTMLElement;
+                            if (target.closest('[data-col-menu-trigger]')) return; // avoid drag when clicking chevron
+                            startColumnMouseDrag(e, header.column.id);
+                          }}
                         >
                           <div className="flex items-center gap-1 text-black w-full">
                             {flexRender(
@@ -3450,23 +3707,64 @@ export function PostTable({
                           {sortStatus === "desc" && (
                             <ChevronDownIcon size={16} className="text-blue-600" />
                           )}
+                          <DropdownMenu open={headerMenuOpenFor === header.id} onOpenChange={(o) => setHeaderMenuOpenFor(o ? header.id : null)}>
+                            <DropdownMenuTrigger asChild>
+                              <div
+                                data-col-menu-trigger
+                                className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                aria-label="Column options"
+                                onPointerDown={(e) => {
+                                  const triggerEl = e.currentTarget as HTMLElement;
+                                  const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
+                                  if (!th) return;
+                                  const colRect = th.getBoundingClientRect();
+                                  const trigRect = triggerEl.getBoundingClientRect();
+                                  const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
+                                  setHeaderMenuAlign('start');
+                                  setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
+                                  setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
+                                }}
+                              >
+                                <ChevronDown className="h-4 w-4 text-[#475467]" />
+                              </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="bottom" align={headerMenuAlign} sideOffset={headerMenuSideOffset} alignOffset={headerMenuAlignOffset} className="w-40 text-sm">
+                            <DropdownMenuItem onClick={() => handleHeaderMenuAction('edit', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/rename.svg" alt="Edit field" className="h-4 w-4" />
+                                Edit field
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('duplicate', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/duplicate.svg" alt="Duplicate field" className="h-4 w-4" />
+                                Duplicate field
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-left', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/arrow-left.svg" alt="Insert left" className="h-4 w-4" />
+                                Insert left
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-right', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/arrow-right.svg" alt="Insert right" className="h-4 w-4" />
+                                Insert right
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-asc', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/sort-down.svg" alt="Sort A - Z" className="h-4 w-4" />
+                                Sort A - Z
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-desc', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/sort-up.svg" alt="Sort Z - A" className="h-4 w-4" />
+                                Sort Z - A
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-elementStroke mx-2"/>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('hide', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/hide.svg" alt="Hide field" className="h-4 w-4" />
+                                Hide field
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('delete', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                                <img src="/images/boards/delete.svg" alt="Delete field" className="h-4 w-4" />
+                                Delete field
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      ) : (
-                        <div 
-                          className="flex items-center gap-1 h-full text-black"
-                          onDoubleClick={() => {
-                            setRenameColumnId(header.id);
-                            setRenameValue(columnNames[header.id] || header.id);
-                          }}
-                          draggable={canDrag}
-                          onMouseDown={(e) => { if (!canDrag) return; startColumnMouseDrag(e, header.column.id); }}
-                        >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                        </div>
-                      )}
 
                       {/* resize handle */}
                       {header.column.getCanResize() && (
@@ -3480,6 +3778,22 @@ export function PostTable({
                     </TableHead>
                   );
                 })}
+                {/* ▶ plus column on the right (ungrouped) */}
+                <TableHead
+                  ref={plusHeaderRef as any}
+                  className="border-b border-[#EAE9E9]"
+                  style={{ width: 100, padding: 0 }}
+                >
+                  <div className="flex items-center justify-center h-full">
+                    <button
+                      aria-label="Add field"
+                      className="p-0.5 rounded hover:bg-[#F4F5F6] cursor-pointer"
+                      onClick={handleOpenAddFieldFromPlus}
+                    >
+                      <PlusIcon className="w-4 h-4 text-[#5C5E63]" />
+                    </button>
+                  </div>
+                </TableHead>
               </TableRow>
             ))}
           </TableHeader>
@@ -4041,11 +4355,156 @@ export function PostTable({
                 );
               })()}
 
-              <div className="min-w-full inline-block">
+              <div className="min-w-full inline-block relative">
                 {grouping.length > 0 ? (
                   <div className="p-0 m-0">{renderGroupedTable()}</div>
                 ) : (
                   renderUngroupedTable()
+                )}
+                {/* Inline Edit Field Panel anchored to header */}
+                {editFieldOpen && editFieldPanelPos && (
+                  <div
+                    className="absolute z-50 bg-white border border-[#E4E7EC] shadow-md rounded"
+                    style={{
+                      top: editFieldPanelPos.top,
+                      left: editFieldPanelPos.left,
+                      width: 280,
+                    }}
+                    ref={editFieldPanelRef}
+                  >
+                    <div className="p-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-edit-name" className="text-sm font-medium text-darkGrey">Name</Label>
+                        {editFieldColumnId ? (
+                          <Input
+                            id="inline-edit-name"
+                            value={columnNames[editFieldColumnId] || editFieldColumnId}
+                            onChange={(e) => {
+                              setColumnNames(prev => ({ ...prev, [editFieldColumnId]: e.target.value }));
+                            }}
+                          />
+                        ) : (
+                          <Input
+                            id="inline-edit-name"
+                            value={newFieldLabel}
+                            onChange={(e) => setNewFieldLabel(e.target.value)}
+                            placeholder="New field name"
+                          />
+                        )}
+                        <div className="text-[12px] text-darkGrey font-normal pb-2">
+                          The underlying attribute names will still be visible on hover.
+                        </div>
+
+                        <Label className="text-sm font-medium text-darkGrey">Field type</Label>
+                        <Select open={editFieldTypeOpen} onOpenChange={setEditFieldTypeOpen} value={editFieldType} onValueChange={(v) => setEditFieldType(v)}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Choose type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="single line text">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                              <img src="/images/columns/single-line-text.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Single line text</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Long text">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/long-text.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Long text</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Attachment">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/preview.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Attachment</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Checkbox">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/approve.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Checkbox</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Single select">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/format.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Single select</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Multiple select">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/status.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Multiple select</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Calendar">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/post-time.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Calendar</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Setting">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/settings.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Setting</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="social media">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/social-media.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Social media</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Created by">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/created-by.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Created by</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Last modified by">
+                              <div className="flex items-center gap-2 text-sm font-medium text-black">
+                                <img src="/images/columns/updated-time.svg" alt="Edit field" className="w-4 h-4" />
+                                <span>Last modified by</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-3">
+                        <Button variant="outline" className="text-black text-sm font-medium" size="sm" onClick={() => setEditFieldOpen(false)}>Back</Button>
+                        <Button
+                          className="flex-1 bg-main text-white text-sm font-medium"
+                          size="sm"
+                          onClick={() => {
+                            if (!editFieldColumnId) {
+                              // plus-button flow: create new column
+                              const inferredType:
+                                | 'singleLine'
+                                | 'longText'
+                                | 'attachment'
+                                | 'checkbox'
+                                | 'feedback'
+                                | 'singleSelect'
+                                | 'multiSelect'
+                                | 'date'
+                                | 'lastUpdatedTime' = 'singleLine';
+                              const trimmed = newFieldLabel.trim();
+                              if (trimmed.length === 0) {
+                                toast.error('Please enter a column name');
+                                return; // keep panel open
+                              }
+                              handleAddColumn(trimmed, inferredType);
+                              setNewFieldLabel('');
+                            }
+                            setEditFieldOpen(false);
+                          }}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
               
@@ -4112,52 +4571,7 @@ export function PostTable({
           onAddColumn={handleAddColumn}
         />
 
-        {/* Rename Column Dialog */}
-        <Dialog open={!!renameColumnId} onOpenChange={(o) => !o && setRenameColumnId(null)}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-semibold">Rename Column</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
-                Enter a new name for this column. The change will be reflected immediately.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="column-name" className="text-sm font-medium">Column Name</Label>
-                <Input
-                  id="column-name"
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  className="w-full"
-                  placeholder="Enter column name..."
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      applyRename();
-                    } else if (e.key === 'Escape') {
-                      setRenameColumnId(null);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <DialogFooter className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setRenameColumnId(null)}
-                className="px-4"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={applyRename}
-                className="px-4"
-              >
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        
 
         {editingPost && (
           <CaptionEditor
