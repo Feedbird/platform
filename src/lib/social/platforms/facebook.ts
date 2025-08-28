@@ -145,15 +145,18 @@ export class FacebookPlatform extends BasePlatform {
       }
     });
 
-    let userData ={
+    let userData = {
       id: crypto.randomUUID(),
       platform: 'facebook',
       name: userInfo.name,
       accountId: userInfo.id,
       authToken: tokenRes.access_token,
+      refreshToken: undefined, // Facebook doesn't use refresh tokens
       accessTokenExpiresAt: new Date(Date.now() + tokenRes.expires_in * 1000),
+      refreshTokenExpiresAt: undefined, // Facebook doesn't use refresh tokens
+      tokenIssuedAt: new Date(),
       connected: true,
-      status: 'active'
+      status: 'active',
     }
 
     // generate a long lived access token
@@ -181,8 +184,11 @@ export class FacebookPlatform extends BasePlatform {
 
     return {
       ...acc,
+      tokenIssuedAt: new Date(Date.now()),
       authToken: response.access_token,
-      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000)
+      refreshToken: undefined, // Facebook doesn't use refresh tokens
+      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000),
+      refreshTokenExpiresAt: undefined // Facebook doesn't use refresh tokens
     };
   }
 
