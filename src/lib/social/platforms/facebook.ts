@@ -17,15 +17,27 @@ const config: SocialPlatformConfig = {
   name: 'Facebook',
   channel: 'facebook',
   icon: '/images/platforms/facebook.svg',
-  authUrl: 'https://www.facebook.com/v19.0/dialog/oauth',
+  // https://developers.facebook.com/docs/facebook-login/facebook-login-for-business/
+  authUrl: 'https://www.facebook.com/v23.0/dialog/oauth',
+
+  // Main permissions for posting to the page
+  // https://developers.facebook.com/docs/pages-api/posts/
+
+  // Dependency Permissions
+  // https://developers.facebook.com/docs/permissions/
   scopes: [
+    'email',
+    'public_profile',
+    'business_management',
+    'pages_manage_engagement',
     'pages_manage_posts',
     'pages_read_engagement',
+    'publish_video',
     'pages_show_list',
     'pages_manage_metadata',
     'pages_read_user_content',
   ],
-  apiVersion: 'v19.0',
+  apiVersion: 'v23.0',
   baseUrl: 'https://graph.facebook.com',
   features: {
     multipleAccounts: true,
@@ -106,12 +118,14 @@ export class FacebookPlatform extends BasePlatform {
 
   async connectAccount(code: string): Promise<SocialAccount> {
     // Exchange code for access token
+    // https://developers.facebook.com/docs/facebook-login/facebook-login-for-business/#invoke-a-login-dialog
     const tokenRes = await this.fetchWithAuth<{
       access_token: string;
       expires_in: number;
     }>(`${config.baseUrl}/oauth/access_token`, {
       token: '',
       queryParams: {
+        grant_type: 'authorization_code',
         client_id: this.env.clientId,
         client_secret: this.env.clientSecret,
         redirect_uri: this.env.redirectUri,
@@ -120,6 +134,7 @@ export class FacebookPlatform extends BasePlatform {
     });
 
     // Get user info
+    // https://developers.facebook.com/docs/graph-api/overview/#me
     const userInfo = await this.fetchWithAuth<{
       id: string;
       name: string;
@@ -130,7 +145,7 @@ export class FacebookPlatform extends BasePlatform {
       }
     });
 
-    return {
+    let userData ={
       id: crypto.randomUUID(),
       platform: 'facebook',
       name: userInfo.name,
@@ -139,10 +154,18 @@ export class FacebookPlatform extends BasePlatform {
       accessTokenExpiresAt: new Date(Date.now() + tokenRes.expires_in * 1000),
       connected: true,
       status: 'active'
-    };
+    }
+
+    // generate a long lived access token
+    const finalData = await this.refreshToken(userData);
+
+    return finalData;
   }
 
-  async refreshToken(acc: SocialAccount): Promise<SocialAccount> {
+  
+  async refreshToken(acc: any): Promise<SocialAccount> {
+
+    // https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived/#get-a-long-lived-user-access-token
     const response = await this.fetchWithAuth<{
       access_token: string;
       expires_in: number;
@@ -164,20 +187,52 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
-    const response = await this.fetchWithAuth<{
-      data: Array<{
-        id: string;
-        name: string;
-        access_token: string;
-      }>;
-    }>(`${config.baseUrl}/${config.apiVersion}/me/accounts`, {
-      token: acc.authToken || '',
-      queryParams: {
-        fields: 'id,name,access_token'
-      }
-    });
 
-    return response.data.map(page => ({
+    let allPages: any[] = [];
+
+    let cursor = null;
+
+    while (true) {
+
+      // https://developers.facebook.com/docs/pages-api/manage-pages#get-your-pages
+      const response: any = await this.fetchWithAuth<{
+        data: Array<{
+          id: string;
+          name: string;
+          access_token: string;
+          category?: string;
+          category_list?: Array<{
+            id: string;
+            name: string;
+          }>;
+          tasks?: string[];
+        }>;
+        paging: {
+          cursors: {
+            before: string;
+            after: string;
+          };
+          next: string;
+        };
+      }>(`${config.baseUrl}/${config.apiVersion}/${acc.accountId}/accounts`, {
+        token: acc.authToken || '',
+        queryParams: {
+          fields: 'id,name,access_token,category,category_list,tasks',
+          limit: '100',
+          ...(cursor && { after: cursor })
+        }
+      });
+
+      allPages.push(...response.data);
+
+      if (!response.paging?.cursors?.after) {
+        break;
+      }
+
+      cursor = response.paging?.cursors?.after;
+    }
+    
+    return allPages.map(page => ({
       id: crypto.randomUUID(),
       platform: 'facebook',
       entityType: 'page',
