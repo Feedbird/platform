@@ -614,8 +614,37 @@ export class FacebookPlatform extends BasePlatform {
           created_time: string;
           attachments?: {
             data: Array<{
-              media: {
-                image: { src: string };
+              type: string;
+              title?: string;
+              description?: string;
+              url?: string;
+              media?: {
+                image?: {
+                  src: string;
+                  height: number;
+                  width: number;
+                };
+                source?: string;
+              };
+              target?: {
+                id: string;
+                url: string;
+              };
+              subattachments?: {
+                data: Array<{
+                  type: string;
+                  media?: {
+                    image?: {
+                      src: string;
+                      height: number;
+                      width: number;
+                    };
+                  };
+                  target?: {
+                    id: string;
+                    url: string;
+                  };
+                }>;
               };
             }>;
           };
@@ -623,15 +652,89 @@ export class FacebookPlatform extends BasePlatform {
       }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/posts`, {
         token: token,
         queryParams: {
-          fields: 'id,message,created_time,attachments,status',
+          fields: 'id,message,created_time,attachments',
           limit: limit.toString()
         }
       });
+      
 
-      return response.data.map(post => normalizePostHistory(post, 'facebook'));
+      return response.data.map(post => this.mapFacebookPostToHistory(post, page.id));
     } catch (error) {
       this.handleApiError(error, 'get post history');
     }
+  }
+
+  // Custom mapping function for Facebook post history
+  private mapFacebookPostToHistory(post: any, pageId: string): PostHistory {
+    const attachment = post.attachments?.data?.[0];
+    
+    // Determine media type and extract media URLs
+    let mediaType: 'image' | 'video' | 'carousel' | undefined;
+    let mediaUrls: string[] = [];
+    
+    if (attachment) {
+      switch (attachment.type) {
+        case 'photo':
+          mediaType = 'image';
+          if (attachment.media?.image?.src) {
+            mediaUrls = [attachment.media.image.src];
+          }
+          break;
+          
+        case 'video_inline':
+          mediaType = 'video';
+          if (attachment.media?.source) {
+            mediaUrls = [attachment.media.source];
+          } else if (attachment.media?.image?.src) {
+            // Use thumbnail if video source not available
+            mediaUrls = [attachment.media.image.src];
+          }
+          break;
+          
+        case 'album':
+          mediaType = 'carousel';
+          // Get images from subattachments
+          if (attachment.subattachments?.data) {
+            mediaUrls = attachment.subattachments.data
+              .map((sub: any) => sub.media?.image?.src)
+              .filter(Boolean) as string[];
+          }
+          // Include main image if available
+          if (attachment.media?.image?.src) {
+            mediaUrls.unshift(attachment.media.image.src);
+          }
+          break;
+      }
+    }
+
+    return {
+      id: post.id,
+      pageId: pageId,
+      content: post.message || '',
+      mediaUrls: mediaUrls,
+      publishedAt: new Date(post.created_time),
+      status: 'published',
+      
+      // Default analytics (to be populated by separate call)
+      analytics: {
+        views: 0,
+        engagement: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        clicks: 0,
+        reach: 0,
+        metadata: {
+          facebookPostId: post.id,
+          attachmentType: attachment?.type,
+          postUrl: attachment?.url || attachment?.target?.url,
+          title: attachment?.title,
+          description: attachment?.description,
+          mediaType: mediaType,
+          thumbnailUrl: attachment?.media?.image?.src
+        }
+      }
+    };
   }
 
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> {

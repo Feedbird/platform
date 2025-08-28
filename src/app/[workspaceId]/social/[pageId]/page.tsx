@@ -237,6 +237,7 @@ function PostCard({
   /** crude helper – look at the URL to decide how to render             */
   const isVideoUrl = useCallback((u: string) =>
     /\.(mp4|m4v|mov|webm|ogg)$/i.test(u) ||
+    /fbcdn\.net.*\.mp4/i.test(u) ||
     /youtube\.com|youtu\.be|vimeo\.com|tiktok\.com/.test(u), []);
 
   // Memoize the media rendering to avoid unnecessary re-renders
