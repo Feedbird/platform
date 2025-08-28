@@ -906,7 +906,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 let publishOptions: any = { scheduledTime };
                 let postContent: any;
 
-                if (['tiktok', 'linkedin'].includes(page.platform)) {
+                if (['tiktok', 'linkedin', 'facebook'].includes(page.platform)) {
                   
                   // Use TikTok settings if available, otherwise use defaults
                   if (post.settings?.tiktok) {

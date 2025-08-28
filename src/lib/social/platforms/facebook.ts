@@ -12,6 +12,9 @@ import { withLoading } from '@/lib/utils/loading-manager';
 import { validatePostContent, validateScheduledTime } from '@/lib/utils/validation';
 import { normalizePostHistory } from '@/lib/utils/api-response';
 import { calculateEngagementRate } from '@/lib/utils/analytics';
+import { supabase } from '@/lib/supabase/client';
+
+const IS_BROWSER = typeof window !== 'undefined';
 
 const config: SocialPlatformConfig = {
   name: 'Facebook',
@@ -114,6 +117,21 @@ export class FacebookPlatform extends BasePlatform {
       `An unexpected error occurred while ${operation}`,
       'UNKNOWN_ERROR'
     );
+  }
+
+  // Secure token fetching method (like LinkedIn)
+  async getToken(pageId: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('social_pages')
+      .select('account_id, auth_token, auth_token_expires_at')
+      .eq('id', pageId)
+      .single();
+
+    if (error) {
+      throw new Error('Failed to get Facebook token. Please reconnect your Facebook account.');
+    }
+
+    return data?.auth_token;
   }
 
   async connectAccount(code: string): Promise<SocialAccount> {
@@ -303,99 +321,216 @@ export class FacebookPlatform extends BasePlatform {
     content: PostContent,
     options?: PublishOptions
   ): Promise<PostHistory> {
-    try {
-      const endpoint = options?.scheduledTime
-        ? `${config.baseUrl}/${config.apiVersion}/${page.pageId}/scheduled_posts`
-        : `${config.baseUrl}/${config.apiVersion}/${page.pageId}/feed`;
-
-      if (!content.media) {
-        // Text-only post
-        const response = await this.fetchWithAuth<{ id: string }>(endpoint, {
-          method: 'POST',
-          token: page.authToken || '',
-          body: JSON.stringify({
-            message: content.text,
-            scheduled_publish_time: options?.scheduledTime
-              ? Math.floor(options.scheduledTime.getTime() / 1000)
-              : undefined,
-            published: !options?.scheduledTime
-          })
-        });
-
-        return normalizePostHistory({
-          id: response.id,
-          page_id: page.id,
-          message: content.text,
-          created_time: new Date().toISOString(),
-          scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
-          status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED'
-        }, 'facebook');
-      }
-
-      // Handle media posts based on type and count
-      if (content.media.type === 'carousel' && content.media.urls.length > 1) {
-        return await withLoading(
-          () => this.publishCarouselPost(page, content, options),
-          'Publishing carousel post...'
-        );
-      }
-
-      // Single photo/video
-      const mediaEndpoint = content.media.type === 'video'
-        ? `${config.baseUrl}/${config.apiVersion}/${page.pageId}/videos`
-        : `${config.baseUrl}/${config.apiVersion}/${page.pageId}/photos`;
-
-      const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(mediaEndpoint, {
+    // Prevent browser calls - route to API endpoint (like TikTok)
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/facebook/publish', {
         method: 'POST',
-        token: page.authToken || '',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: content.media.urls[0],
-          message: content.text,
-          scheduled_publish_time: options?.scheduledTime
-            ? Math.floor(options.scheduledTime.getTime() / 1000)
-            : undefined,
-          published: !options?.scheduledTime
-        })
+          page,
+          content,
+          options,
+        }),
       });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
 
-      return normalizePostHistory({
-        id: response.post_id ?? response.id,
-        page_id: page.id,
-        message: content.text,
-        created_time: new Date().toISOString(),
-        scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
-        status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
-        attachments: {
-          data: [{
-            media: {
-              image: { src: content.media.urls[0] }
-            }
-          }]
+    try {
+      // Get secure token from database (like TikTok/LinkedIn)
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // Determine media type and route accordingly (like LinkedIn/TikTok)
+      const mediaUrls = content.media?.urls || [];
+      const mediaType = content.media?.type;
+
+      // 1. Text-only post
+      if (!content.media || mediaUrls.length === 0) {
+        return await this.publishTextPost(page, content, token, options);
+      }
+
+      // 2. Single video post  
+      if (mediaType === 'video') {
+        if (mediaUrls.length > 1) {
+          throw new SocialAPIError('Facebook only supports single video uploads', 'VALIDATION_ERROR');
         }
-      }, 'facebook');
+        return await this.publishVideoPost(page, content, token, options);
+      }
+
+      // 3. Single photo post
+      if (mediaType === 'image' && mediaUrls.length === 1) {
+        return await this.publishPhotoPost(page, content, token, options);
+      }
+
+      // 4. Carousel post (multiple images)
+      if ((mediaType === 'image' || mediaType === 'carousel') && mediaUrls.length > 1) {
+        return await this.publishCarouselPost(page, content, token, options);
+      }
+
+      throw new SocialAPIError('Unsupported media configuration', 'VALIDATION_ERROR');
+      
     } catch (error) {
       this.handleApiError(error, 'publish post');
     }
   }
 
+  // 1. Text-only post using /page_id/feed endpoint
+  private async publishTextPost(
+    page: SocialPage,
+    content: PostContent,
+    token: string,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
+    const endpoint = `${config.baseUrl}/${config.apiVersion}/${page.pageId}/feed`;
+    
+    const postData: any = {
+      message: content.text,
+    };
+
+    // Add scheduling if needed
+    if (options?.scheduledTime) {
+      postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+      postData.published = false;
+    } else {
+      postData.published = true;
+    }
+
+    // Add link if provided
+    if (content.link?.url) {
+      postData.link = content.link.url;
+    }
+
+    const response = await this.fetchWithAuth<{ id: string }>(endpoint, {
+      method: 'POST',
+      token: token,
+      body: JSON.stringify(postData)
+    });
+
+    return normalizePostHistory({
+      id: response.id,
+      page_id: page.id,
+      message: content.text,
+      created_time: new Date().toISOString(),
+      scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
+      status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED'
+    }, 'facebook');
+  }
+
+  // 2. Single photo post using /page_id/photos endpoint
+  // https://developers.facebook.com/docs/pages-api/posts/#publish-a-photo
+  private async publishPhotoPost(
+    page: SocialPage,
+    content: PostContent,
+    token: string,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
+    const endpoint = `${config.baseUrl}/${config.apiVersion}/${page.pageId}/photos`;
+    
+    const postData: any = {
+      url: content.media!.urls[0],
+      message: content.text,
+    };
+
+    // Add scheduling if needed
+    if (options?.scheduledTime) {
+      postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+      postData.published = false;
+    } else {
+      postData.published = true;
+    }
+
+    const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(endpoint, {
+      method: 'POST',
+      token: token,
+      body: JSON.stringify(postData)
+    });
+
+    return normalizePostHistory({
+      id: response.post_id ?? response.id,
+      page_id: page.id,
+      message: content.text,
+      created_time: new Date().toISOString(),
+      scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
+      status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
+      attachments: {
+        data: [{
+          media: {
+            image: { src: content.media!.urls[0] }
+          }
+        }]
+      }
+    }, 'facebook');
+  }
+
+  // 3. Single video post using /page_id/videos endpoint
+  // https://developers.facebook.com/docs/pages-api/posts/#publish-a-video
+  private async publishVideoPost(
+    page: SocialPage,
+    content: PostContent,
+    token: string,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
+    const endpoint = `${config.baseUrl}/${config.apiVersion}/${page.pageId}/videos`;
+    
+    const postData: any = {
+      file_url: content.media!.urls[0], // Facebook uses file_url for videos
+      description: content.text,
+    };
+
+    // Add scheduling if needed
+    if (options?.scheduledTime) {
+      postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+      postData.published = false;
+    } else {
+      postData.published = true;
+    }
+
+    const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(endpoint, {
+      method: 'POST',
+      token: token,
+      body: JSON.stringify(postData)
+    });
+
+    return normalizePostHistory({
+      id: response.post_id ?? response.id,
+      page_id: page.id,
+      message: content.text,
+      created_time: new Date().toISOString(),
+      scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
+      status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
+      attachments: {
+        data: [{
+          media: {
+            image: { src: content.media!.urls[0] }
+          }
+        }]
+      }
+    }, 'facebook');
+  }
+
+  // 4. Carousel post (multiple images) using upload then attach pattern
   private async publishCarouselPost(
     page: SocialPage,
     content: PostContent,
+    token: string,
     options?: PublishOptions
   ): Promise<PostHistory> {
     try {
-      // 1. Upload each media separately
+      // Step 1: Upload each photo separately without publishing (similar to LinkedIn pattern)
       const mediaIds = await Promise.all(
-        content.media!.urls.map(async (url, index) => {
+        content.media!.urls.map(async (url) => {
           const response = await this.fetchWithAuth<{ id: string }>(
             `${config.baseUrl}/${config.apiVersion}/${page.pageId}/photos`,
             {
               method: 'POST',
-              token: page.authToken || '',
+              token: token,
               body: JSON.stringify({
                 url,
-                published: false,
-                temporary: true
+                published: false, // Don't publish yet
+                temporary: true   // Mark as temporary for carousel
               })
             }
           );
@@ -403,24 +538,29 @@ export class FacebookPlatform extends BasePlatform {
         })
       );
 
-      // 2. Create the carousel post
-      const attachedMedia = mediaIds.map(id => ({
-        media_fbid: id
-      }));
+      // Step 2: Create the carousel post using /page_id/feed with attached_media
+      // https://developers.facebook.com/docs/pages-api/posts/#publish-posts
+      const postData: any = {
+        message: content.text,
+        attached_media: mediaIds.map(id => ({
+          media_fbid: id
+        }))
+      };
+
+      // Add scheduling if needed
+      if (options?.scheduledTime) {
+        postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+        postData.published = false;
+      } else {
+        postData.published = true;
+      }
 
       const response = await this.fetchWithAuth<{ id: string }>(
         `${config.baseUrl}/${config.apiVersion}/${page.pageId}/feed`,
         {
           method: 'POST',
-          token: page.authToken || '',
-          body: JSON.stringify({
-            message: content.text,
-            attached_media: attachedMedia,
-            scheduled_publish_time: options?.scheduledTime
-              ? Math.floor(options.scheduledTime.getTime() / 1000)
-              : undefined,
-            published: !options?.scheduledTime
-          })
+          token: token,
+          body: JSON.stringify(postData)
         }
       );
 
@@ -445,7 +585,28 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   async getPostHistory(page: SocialPage, limit = 20): Promise<PostHistory[]> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/facebook/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          limit,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     try {
+      // Get secure token from database
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // https://developers.facebook.com/docs/pages-api/posts/#posts-2
       const response = await this.fetchWithAuth<{
         data: Array<{
           id: string;
@@ -460,7 +621,7 @@ export class FacebookPlatform extends BasePlatform {
           };
         }>;
       }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/posts`, {
-        token: page.authToken || '',
+        token: token,
         queryParams: {
           fields: 'id,message,created_time,attachments,status',
           limit: limit.toString()
@@ -474,14 +635,34 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/facebook/analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          postId,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     try {
+      // Get secure token from database
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
       const response = await this.fetchWithAuth<{
         data: Array<{
           name: string;
           values: Array<{ value: number }>;
         }>;
       }>(`${config.baseUrl}/${config.apiVersion}/${postId}/insights`, {
-        token: page.authToken || '',
+        token: token,
         queryParams: {
           metric: [
             'post_impressions',
@@ -535,10 +716,29 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   async checkPageStatus(page: SocialPage): Promise<SocialPage> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/facebook/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
     try {
+      // Get secure token from database
+      const token = await this.getToken(page.id);
+      if (!token) {
+        return { ...page, status: 'expired', statusUpdatedAt: new Date() };
+      }
+
       await this.fetchWithAuth(
         `${config.baseUrl}/${config.apiVersion}/${page.pageId}`,
-        { token: page.authToken || '' }
+        { token: token }
       );
       return { ...page, status: 'active', statusUpdatedAt: new Date() };
     } catch {
@@ -547,11 +747,32 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   async deletePost(page: SocialPage, postId: string): Promise<void> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/facebook/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          postId,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    // Get secure token from database
+    const token = await this.getToken(page.id);
+    if (!token) {
+      throw new Error('No auth token available');
+    }
+
+    // https://developers.facebook.com/docs/pages-api/posts/#delete-a-post
     await this.fetchWithAuth(
       `${config.baseUrl}/${config.apiVersion}/${postId}`,
       {
         method: 'DELETE',
-        token: page.authToken || ''
+        token: token
       }
     );
   }
