@@ -19,7 +19,7 @@ export default function SocialPagePosts() {
   const brandId          = useFeedbirdStore(s => s.activeBrandId);
   const postHistory      = useFeedbirdStore(s => s.postHistory);
   const syncPostHistory  = useFeedbirdStore(s => s.syncPostHistory);
-  const loadMorePostHistory = useFeedbirdStore(s => s.loadMorePostHistory);
+  const nextPage         = useFeedbirdStore(s => s.nextPage[pageId]);
   const deletePagePost   = useFeedbirdStore(s => s.deletePagePost);
   const brand            = useFeedbirdStore(s => s.getActiveBrand());
   
@@ -148,9 +148,13 @@ export default function SocialPagePosts() {
     if (!brandId || !pageId) return;
     
     await executeWithLoading(async () => {
-      await loadMorePostHistory(brandId, pageId);
+      await syncPostHistory(
+        brandId,
+        pageId,
+        nextPage
+      );
     }, "Loading more posts...");
-  }, [brandId, pageId, loadMorePostHistory, executeWithLoading]);
+  }, [brandId, pageId, nextPage, syncPostHistory, executeWithLoading]);
 
   // Determine if we're really loading (either local state or store state)
   const isReallyLoading = isInitialLoading || isStoreSyncing;

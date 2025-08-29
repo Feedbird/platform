@@ -6,6 +6,9 @@ import type {
   PostHistory,
   PublishOptions,
   SocialPlatformConfig,
+  PostHistoryResponse,
+  PageStatus,
+  PostStatus,
 } from './platform-types';
 import { SocialAPIError, isTokenExpiredError, handleSuccess } from '@/lib/utils/error-handler';
 import { withLoading } from '@/lib/utils/loading-manager';
@@ -584,7 +587,7 @@ export class FacebookPlatform extends BasePlatform {
     }
   }
 
-  async getPostHistory(page: SocialPage, limit = 20): Promise<PostHistory[]> {
+  async getPostHistory(page: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
     // Prevent browser calls - route to API endpoint
     if (IS_BROWSER) {
       const res = await fetch('/api/social/facebook/history', {
@@ -593,6 +596,7 @@ export class FacebookPlatform extends BasePlatform {
         body: JSON.stringify({
           page,
           limit,
+          nextPage,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -649,16 +653,27 @@ export class FacebookPlatform extends BasePlatform {
             }>;
           };
         }>;
+        paging?: {
+          cursors?: {
+            before?: string;
+            after?: string;
+          };
+          next?: string;
+          previous?: string;
+        };
       }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/posts`, {
         token: token,
         queryParams: {
           fields: 'id,message,created_time,attachments',
-          limit: limit.toString()
+          limit: limit.toString(),
+          ...(nextPage && { after: typeof nextPage === 'string' ? nextPage : nextPage.toString() })
         }
       });
       
 
-      return response.data.map(post => this.mapFacebookPostToHistory(post, page.id));
+      const posts = response.data.map(post => this.mapFacebookPostToHistory(post, page.id));
+
+      return { posts, nextPage: response.paging?.cursors?.after || undefined };
     } catch (error) {
       this.handleApiError(error, 'get post history');
     }
@@ -713,7 +728,7 @@ export class FacebookPlatform extends BasePlatform {
       content: post.message || '',
       mediaUrls: mediaUrls,
       publishedAt: new Date(post.created_time),
-      status: 'published',
+      status: 'published' as PostStatus,
       
       // Default analytics (to be populated by separate call)
       analytics: {
@@ -801,7 +816,7 @@ export class FacebookPlatform extends BasePlatform {
   // Implement remaining required methods
   async disconnectAccount(acc: SocialAccount): Promise<void> {
     acc.connected = false;
-    acc.status = 'disconnected';
+    acc.status = 'disconnected' as PageStatus;
   }
 
   async connectPage(acc: SocialAccount, pageId: string): Promise<SocialPage> {
@@ -815,7 +830,7 @@ export class FacebookPlatform extends BasePlatform {
 
   async disconnectPage(page: SocialPage): Promise<void> {
     page.connected = false;
-    page.status = 'disconnected';
+    page.status = 'disconnected' as PageStatus;
   }
 
   async checkPageStatus(page: SocialPage): Promise<SocialPage> {
@@ -836,16 +851,16 @@ export class FacebookPlatform extends BasePlatform {
       // Get secure token from database
       const token = await this.getToken(page.id);
       if (!token) {
-        return { ...page, status: 'expired', statusUpdatedAt: new Date() };
+        return { ...page, status: 'expired' as PageStatus, statusUpdatedAt: new Date() };
       }
 
       await this.fetchWithAuth(
         `${config.baseUrl}/${config.apiVersion}/${page.pageId}`,
         { token: token }
       );
-      return { ...page, status: 'active', statusUpdatedAt: new Date() };
+      return { ...page, status: 'active' as PageStatus, statusUpdatedAt: new Date() };
     } catch {
-      return { ...page, status: 'expired', statusUpdatedAt: new Date() };
+      return { ...page, status: 'expired' as PageStatus, statusUpdatedAt: new Date() };
     }
   }
 

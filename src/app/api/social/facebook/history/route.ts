@@ -7,13 +7,14 @@ const ops = getPlatformOperations("facebook")!;
 const Body = z.object({
   page: z.any(),
   limit: z.number().optional(),
+  nextPage: z.union([z.number(), z.string()]).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body: any = Body.parse(await req.json());
     
-    const result = await ops.getPostHistory(body.page, body.limit);
+    const result = await ops.getPostHistory(body.page, body.limit, body.nextPage);
     
     return Response.json(result);
 

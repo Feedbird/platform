@@ -12,6 +12,7 @@ import type {
   PostHistory,
   PublishOptions,
   SocialPlatformConfig,
+  PostHistoryResponse,
 } from "./platform-types";
 
 /* ─── toggle console noise ─── */
@@ -1381,7 +1382,7 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* 5 — optional history using fetchWithAuth */
-  async getPostHistory(pg: SocialPage, limit = 20, cursor?: number): Promise<PostHistory[]> {
+  async getPostHistory(pg: SocialPage, limit = 20, nextPage?: number): Promise<PostHistoryResponse<PostHistory>> {
     if (IS_BROWSER) {
       const res = await fetch("/api/social/linkedin/history", {
         method: "POST",
@@ -1389,7 +1390,7 @@ export class LinkedInPlatform extends BasePlatform {
         body: JSON.stringify({
           page: pg,
           limit,
-          cursor,
+          nextPage,
         })
       });
       if (!res.ok) throw new Error(await res.text());
@@ -1400,7 +1401,7 @@ export class LinkedInPlatform extends BasePlatform {
       // Only support organization pages for now since we need r_organization_social permission
       if (pg.entityType !== 'organization') {
         console.warn('[LinkedIn] Post history only supported for organization pages');
-        return [];
+        return { posts: [], nextPage: undefined };
       }
 
       const token = await this.getToken(pg.id);
@@ -1408,11 +1409,11 @@ export class LinkedInPlatform extends BasePlatform {
         throw new Error("Token not found");
       }
 
-      const posts = await this.getOrganizationPosts(pg.pageId, token, limit, cursor);
-      return posts;
+      const fetchedPosts = await this.getOrganizationPosts(pg.pageId, token, limit, nextPage);
+      return { posts: fetchedPosts.posts, nextPage: fetchedPosts.nextPage };
     } catch (error) {
       console.error('[LinkedIn] Failed to get post history:', error);
-      return [];
+      return { posts: [], nextPage: undefined };
     }
   }
 
@@ -1424,14 +1425,14 @@ export class LinkedInPlatform extends BasePlatform {
     organizationUrn: string,
     token: string,
     limit: number = 20,
-    cursor?: number
-  ): Promise<PostHistory[]> {
+    nextPage?: number
+  ): Promise<PostHistoryResponse<PostHistory>> {
     try {
       let url = `${config.baseUrl}/rest/posts?author=${encodeURIComponent(organizationUrn)}&q=author&count=${Math.min(limit, 100)}&sortBy=LAST_MODIFIED`;
       
       // Add pagination cursor if provided
-      if (cursor !== undefined) {
-        url += `&start=${cursor}`;
+      if (nextPage !== undefined) {
+        url += `&start=${nextPage}`;
       }
       
       const response = await fetch(url, {
@@ -1535,10 +1536,10 @@ export class LinkedInPlatform extends BasePlatform {
         });
       }
 
-      return resolvedPosts;
+      return { posts: resolvedPosts, nextPage: data.paging.start + data.paging.count };
     } catch (error) {
       console.error('[LinkedIn] Failed to fetch organization posts:', error);
-      return [];
+      return { posts: [], nextPage: undefined };
     }
   }
 
