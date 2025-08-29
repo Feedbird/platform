@@ -647,7 +647,7 @@ export class TikTokPlatform extends BasePlatform {
       }
     }));
 
-    return { posts, nextPage: response.data.cursor || undefined };
+    return { posts, nextPage: response.data.has_more ? (nextPage || 0) + limit : undefined };
   }
 
   async getCreatorInfo(page: SocialPage): Promise<TikTokCreatorInfo> {
