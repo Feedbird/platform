@@ -31,8 +31,10 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
 
   const headerMapping = React.useMemo(() => {
     if (!pathname) return null;
-    if (pathname.startsWith("/messages")) return null;
-    if (pathname.startsWith("/messages")) return <AppHeader />;
+    if (pathname.startsWith("/messages") || pathname.startsWith("/analytics"))
+      return null;
+    if (pathname.includes("/messages") || pathname.includes("/analytics"))
+      return <AppHeader />;
     if (pathname.startsWith("/forms")) return <FormsHeader />;
     return <AppHeader />;
   }, [pathname]);

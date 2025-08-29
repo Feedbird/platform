@@ -1,4 +1,4 @@
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 // Normalize activities from API/DB into store Activity shape
 function normalizeActivities(items: any[] | undefined) {
@@ -16,20 +16,28 @@ function normalizeActivities(items: any[] | undefined) {
     } as any;
   });
 }
-import { User, Workspace, Brand, Board, Post, Channel, ChannelMessage } from '@/lib/supabase/client'
+import {
+  User,
+  Workspace,
+  Brand,
+  Board,
+  Post,
+  Channel,
+  ChannelMessage,
+  Form,
+} from "@/lib/supabase/client";
 
 // API Base URL
-const API_BASE = '/api'
+const API_BASE =
+  typeof window === "undefined"
+    ? "http://localhost:3000/api" // Server-side: full URL
+    : "/api"; // Client-side: relative path
 
 // Generic API error handler
 class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public details?: any
-  ) {
-    super(message)
-    this.name = 'ApiError'
+  constructor(message: string, public status: number, public details?: any) {
+    super(message);
+    this.name = "ApiError";
   }
 }
 
@@ -38,69 +46,69 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE}${endpoint}`
+  const url = `${API_BASE}${endpoint}`;
   const response = await fetch(url, {
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     },
     ...options,
-  })
+  });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
+    const errorData = await response.json().catch(() => ({}));
     throw new ApiError(
       errorData.error || `HTTP ${response.status}`,
       response.status,
       errorData.details
-    )
+    );
   }
 
-  return response.json()
+  return response.json();
 }
 
 // User API functions
 export const userApi = {
   // Get user by ID or email
   getUser: async (params: { id?: string; email?: string }): Promise<User> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.email) searchParams.append('email', params.email)
-    return apiRequest(`/user?${searchParams.toString()}`)
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.email) searchParams.append("email", params.email);
+    return apiRequest(`/user?${searchParams.toString()}`);
   },
 
   // Create new user
   createUser: async (userData: {
-    email: string
-    first_name?: string
-    last_name?: string
-    image_url?: string
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    image_url?: string;
   }): Promise<User> => {
-    return apiRequest<User>('/user', {
-      method: 'POST',
+    return apiRequest<User>("/user", {
+      method: "POST",
       body: JSON.stringify(userData),
-    })
+    });
   },
 
   // Update user
   updateUser: async (
     params: { id?: string; email?: string },
     updates: {
-      first_name?: string
-      last_name?: string
-      image_url?: string
-      unread_msg?: string[]
-      unread_notification?: string[]
-      notification_settings?: any[]
+      first_name?: string;
+      last_name?: string;
+      image_url?: string;
+      unread_msg?: string[];
+      unread_notification?: string[];
+      notification_settings?: any[];
     }
   ): Promise<User> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.email) searchParams.append('email', params.email)
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.email) searchParams.append("email", params.email);
     return apiRequest<User>(`/user?${searchParams.toString()}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(updates),
-    })
+    });
   },
 
   // Update notification settings for a specific workspace
@@ -109,466 +117,560 @@ export const userApi = {
     workspaceId: string,
     settings: {
       communication: {
-        enabled: boolean
-        commentsAndMentions: boolean
-      }
+        enabled: boolean;
+        commentsAndMentions: boolean;
+      };
       boards: {
-        enabled: boolean
-        pendingApproval: boolean
-        scheduled: boolean
-        published: boolean
-        boardInviteSent: boolean
-        boardInviteAccepted: boolean
-      }
+        enabled: boolean;
+        pendingApproval: boolean;
+        scheduled: boolean;
+        published: boolean;
+        boardInviteSent: boolean;
+        boardInviteAccepted: boolean;
+      };
       workspaces: {
-        enabled: boolean
-        workspaceInviteSent: boolean
-        workspaceInviteAccepted: boolean
-      }
+        enabled: boolean;
+        workspaceInviteSent: boolean;
+        workspaceInviteAccepted: boolean;
+      };
     }
   ): Promise<User> => {
-    return apiRequest<User>('/user/notification-settings', {
-      method: 'POST',
+    return apiRequest<User>("/user/notification-settings", {
+      method: "POST",
       body: JSON.stringify({
         user_email: userEmail,
         workspace_id: workspaceId,
-        settings
+        settings,
       }),
-    })
+    });
   },
 
   // Delete user
-  deleteUser: async (params: { id?: string; email?: string }): Promise<{ message: string }> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.email) searchParams.append('email', params.email)
-    
+  deleteUser: async (params: {
+    id?: string;
+    email?: string;
+  }): Promise<{ message: string }> => {
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.email) searchParams.append("email", params.email);
+
     return apiRequest<{ message: string }>(`/user?${searchParams.toString()}`, {
-      method: 'DELETE',
-    })
+      method: "DELETE",
+    });
   },
 
-  addUnreadMessage: async (email: string, messageId: string): Promise<{ unread_msg: string[] }> => {
-    const response = await apiRequest<{ unread_msg: string[] }>('/user/unread-messages', {
-      method: 'POST',
-      body: JSON.stringify({ email, message_id: messageId, action: 'add' }),
-    })
-    
+  addUnreadMessage: async (
+    email: string,
+    messageId: string
+  ): Promise<{ unread_msg: string[] }> => {
+    const response = await apiRequest<{ unread_msg: string[] }>(
+      "/user/unread-messages",
+      {
+        method: "POST",
+        body: JSON.stringify({ email, message_id: messageId, action: "add" }),
+      }
+    );
+
     // Update the store after successful API request
     useFeedbirdStore.setState((prev: any) => ({
-      user: prev.user ? {
-        ...prev.user,
-        unread_msg: response.unread_msg
-      } : null
-    }))
-    
-    return response
+      user: prev.user
+        ? {
+            ...prev.user,
+            unread_msg: response.unread_msg,
+          }
+        : null,
+    }));
+
+    return response;
   },
 
-  removeUnreadMessage: async (email: string, messageId: string): Promise<{ unread_msg: string[] }> => {
-    const response = await apiRequest<{ unread_msg: string[] }>('/user/unread-messages', {
-      method: 'POST',
-      body: JSON.stringify({ email, message_id: messageId, action: 'remove' }),
-    })
-    
+  removeUnreadMessage: async (
+    email: string,
+    messageId: string
+  ): Promise<{ unread_msg: string[] }> => {
+    const response = await apiRequest<{ unread_msg: string[] }>(
+      "/user/unread-messages",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          message_id: messageId,
+          action: "remove",
+        }),
+      }
+    );
+
     // Update the store after successful API request
     useFeedbirdStore.setState((prev: any) => ({
-      user: prev.user ? {
-        ...prev.user,
-        unread_msg: response.unread_msg
-      } : null
-    }))
-    
-    return response
+      user: prev.user
+        ? {
+            ...prev.user,
+            unread_msg: response.unread_msg,
+          }
+        : null,
+    }));
+
+    return response;
   },
-}
+};
 // Workspace helper endpoints
 export const workspaceHelperApi = {
   // Get members + creator profiles for a workspace
-  getWorkspaceMembers: async (workspace_id: string): Promise<{ users: { email: string; first_name?: string; image_url?: string }[] }> => {
-    const searchParams = new URLSearchParams()
-    searchParams.append('workspace_id', workspace_id)
-    return apiRequest<{ users: { email: string; first_name?: string; image_url?: string }[] }>(`/workspace/members?${searchParams.toString()}`)
+  getWorkspaceMembers: async (
+    workspace_id: string
+  ): Promise<{
+    users: { email: string; first_name?: string; image_url?: string }[];
+  }> => {
+    const searchParams = new URLSearchParams();
+    searchParams.append("workspace_id", workspace_id);
+    return apiRequest<{
+      users: { email: string; first_name?: string; image_url?: string }[];
+    }>(`/workspace/members?${searchParams.toString()}`);
   },
-}
+};
+
+export const formsApi = {
+  // Create new empty form
+  createInitialForm: async (creatorEmail: string, workspaceId: string) => {
+    return apiRequest<Form>("/form/initial", {
+      method: "POST",
+      body: JSON.stringify({
+        type: "intake",
+        workspace_id: workspaceId,
+        title: "Untitled form",
+        createdBy: creatorEmail,
+        location_tags: [],
+        account_tags: [],
+      }),
+    });
+  },
+  getFormById: async (id: string) => {
+    return apiRequest<{ data: Form }>(`/form?id=${id}`);
+  },
+};
 
 // Workspace API functions
 export const workspaceApi = {
   // Get workspace by ID or list all
   getWorkspace: async (id?: string): Promise<Workspace | Workspace[]> => {
-    const endpoint = id ? `/workspace?id=${id}` : '/workspace'
-    return apiRequest<Workspace | Workspace[]>(endpoint)
+    const endpoint = id ? `/workspace?id=${id}` : "/workspace";
+    return apiRequest<Workspace | Workspace[]>(endpoint);
   },
 
   // Get workspaces (created + invited) for a specific user
   getWorkspacesByCreator: async (email: string): Promise<Workspace[]> => {
-    const endpoint = `/workspace?email=${encodeURIComponent(email)}`
-    return apiRequest<Workspace[]>(endpoint)
+    const endpoint = `/workspace?email=${encodeURIComponent(email)}`;
+    return apiRequest<Workspace[]>(endpoint);
   },
 
   // Create new workspace
   createWorkspace: async (workspaceData: {
-    name: string
-    logo?: string
-    email: string
+    name: string;
+    logo?: string;
+    email: string;
   }): Promise<Workspace> => {
     console.log("workspaceData", workspaceData);
-    return apiRequest<Workspace>('/workspace', {
-      method: 'POST',
+    return apiRequest<Workspace>("/workspace", {
+      method: "POST",
       body: JSON.stringify(workspaceData),
-    })
+    });
   },
 
   // Update workspace
   updateWorkspace: async (
     id: string,
     updates: {
-      name?: string
-      logo?: string
+      name?: string;
+      logo?: string;
     }
   ): Promise<Workspace> => {
     return apiRequest<Workspace>(`/workspace?id=${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(updates),
-    })
+    });
   },
 
   // Delete workspace
   deleteWorkspace: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/workspace?id=${id}`, {
-      method: 'DELETE',
-    })
+      method: "DELETE",
+    });
   },
-}
+};
 
 // Brand API functions
 export const brandApi = {
   // Get brand by ID or by workspace (now returns single brand)
-  getBrand: async (params: { id?: string; workspace_id?: string; include_social?: boolean }): Promise<Brand | null> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.workspace_id) searchParams.append('workspace_id', params.workspace_id)
-    if (params.include_social) searchParams.append('include_social', 'true')
-    
-    return apiRequest<Brand | null>(`/brand?${searchParams.toString()}`)
+  getBrand: async (params: {
+    id?: string;
+    workspace_id?: string;
+    include_social?: boolean;
+  }): Promise<Brand | null> => {
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.workspace_id)
+      searchParams.append("workspace_id", params.workspace_id);
+    if (params.include_social) searchParams.append("include_social", "true");
+
+    return apiRequest<Brand | null>(`/brand?${searchParams.toString()}`);
   },
 
   // Create new brand
   createBrand: async (brandData: {
-    workspace_id: string
-    name: string
-    logo?: string
-    style_guide?: any
-    link?: string
-    voice?: string
-    prefs?: string
+    workspace_id: string;
+    name: string;
+    logo?: string;
+    style_guide?: any;
+    link?: string;
+    voice?: string;
+    prefs?: string;
   }): Promise<Brand> => {
-    return apiRequest<Brand>('/brand', {
-      method: 'POST',
+    return apiRequest<Brand>("/brand", {
+      method: "POST",
       body: JSON.stringify(brandData),
-    })
+    });
   },
 
   // Update brand
   updateBrand: async (
     id: string,
     updates: {
-      name?: string
-      logo?: string
-      style_guide?: any
-      link?: string
-      voice?: string
-      prefs?: string
+      name?: string;
+      logo?: string;
+      style_guide?: any;
+      link?: string;
+      voice?: string;
+      prefs?: string;
     }
   ): Promise<Brand> => {
     return apiRequest<Brand>(`/brand?id=${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(updates),
-    })
+    });
   },
 
   // Delete brand
   deleteBrand: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/brand?id=${id}`, {
-      method: 'DELETE',
-    })
+      method: "DELETE",
+    });
   },
-}
+};
 
 // Board API functions
 export const boardApi = {
   // Get board by ID or list by workspace
-  getBoard: async (params: { id?: string; workspace_id?: string }): Promise<Board | Board[]> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.workspace_id) searchParams.append('workspace_id', params.workspace_id)
-    
-    return apiRequest<Board | Board[]>(`/board?${searchParams.toString()}`)
+  getBoard: async (params: {
+    id?: string;
+    workspace_id?: string;
+  }): Promise<Board | Board[]> => {
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.workspace_id)
+      searchParams.append("workspace_id", params.workspace_id);
+
+    return apiRequest<Board | Board[]>(`/board?${searchParams.toString()}`);
   },
 
   // Create new board
   createBoard: async (boardData: {
-    workspace_id: string
-    name: string
-    image?: string
-    description?: string
-    color?: string
-    rules?: any
-    columns?: Array<{ name: string; is_default: boolean; order: number; type?: string; options?: any }>
+    workspace_id: string;
+    name: string;
+    image?: string;
+    description?: string;
+    color?: string;
+    rules?: any;
+    columns?: Array<{
+      name: string;
+      is_default: boolean;
+      order: number;
+      type?: string;
+      options?: any;
+    }>;
   }): Promise<Board> => {
-    return apiRequest<Board>('/board', {
-      method: 'POST',
+    return apiRequest<Board>("/board", {
+      method: "POST",
       body: JSON.stringify(boardData),
-    })
+    });
   },
 
   // Update board
   updateBoard: async (
     id: string,
     updates: {
-      name?: string
-      image?: string
-      selected_image?: string
-      description?: string
-      color?: string
-      rules?: any
-      group_data?: any
-      columns?: Array<{ name: string; is_default: boolean; order: number; type?: string; options?: any }>
+      name?: string;
+      image?: string;
+      selected_image?: string;
+      description?: string;
+      color?: string;
+      rules?: any;
+      group_data?: any;
+      columns?: Array<{
+        name: string;
+        is_default: boolean;
+        order: number;
+        type?: string;
+        options?: any;
+      }>;
     }
   ): Promise<Board> => {
     return apiRequest<Board>(`/board?id=${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(updates),
-    })
+    });
   },
 
   // Delete board
   deleteBoard: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/board?id=${id}`, {
-      method: 'DELETE',
-    })
+      method: "DELETE",
+    });
   },
-}
+};
 
 // Channel API functions
 export const channelApi = {
   // Get channel by ID or list by workspace
-  getChannel: async (params: { id?: string; workspace_id?: string }): Promise<Channel | Channel[]> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.workspace_id) searchParams.append('workspace_id', params.workspace_id)
-    return apiRequest<Channel | Channel[]>(`/channel?${searchParams.toString()}`)
+  getChannel: async (params: {
+    id?: string;
+    workspace_id?: string;
+  }): Promise<Channel | Channel[]> => {
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.workspace_id)
+      searchParams.append("workspace_id", params.workspace_id);
+    return apiRequest<Channel | Channel[]>(
+      `/channel?${searchParams.toString()}`
+    );
   },
 
   // Create new channel
   createChannel: async (channelData: {
-    workspace_id: string
-    created_by: string
-    name: string
-    description?: string
-    members?: any
-    icon?: string
-    color?: string
+    workspace_id: string;
+    created_by: string;
+    name: string;
+    description?: string;
+    members?: any;
+    icon?: string;
+    color?: string;
   }): Promise<Channel> => {
-    return apiRequest<Channel>('/channel', {
-      method: 'POST',
+    return apiRequest<Channel>("/channel", {
+      method: "POST",
       body: JSON.stringify(channelData),
-    })
+    });
   },
 
   // Update channel
   updateChannel: async (
     id: string,
     updates: {
-      name?: string
-      description?: string
-      members?: any
-      icon?: string
-      color?: string
+      name?: string;
+      description?: string;
+      members?: any;
+      icon?: string;
+      color?: string;
     }
   ): Promise<Channel> => {
     return apiRequest<Channel>(`/channel?id=${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(updates),
-    })
+    });
   },
 
   // Delete channel
   deleteChannel: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/channel?id=${id}`, {
-      method: 'DELETE',
-    })
+      method: "DELETE",
+    });
   },
-}
+};
 
 // Channel Message API functions
 export const channelMessageApi = {
   // Get message by ID or list by channel/workspace
-  getChannelMessage: async (params: { id?: string; channel_id?: string; workspace_id?: string }): Promise<(ChannelMessage & { author_name?: string; author_image_url?: string }) | Array<ChannelMessage & { author_name?: string; author_image_url?: string }>> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.channel_id) searchParams.append('channel_id', params.channel_id)
-    if (params.workspace_id) searchParams.append('workspace_id', params.workspace_id)
-    return apiRequest(`/channel-message?${searchParams.toString()}`)
+  getChannelMessage: async (params: {
+    id?: string;
+    channel_id?: string;
+    workspace_id?: string;
+  }): Promise<
+    | (ChannelMessage & { author_name?: string; author_image_url?: string })
+    | Array<
+        ChannelMessage & { author_name?: string; author_image_url?: string }
+      >
+  > => {
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.channel_id) searchParams.append("channel_id", params.channel_id);
+    if (params.workspace_id)
+      searchParams.append("workspace_id", params.workspace_id);
+    return apiRequest(`/channel-message?${searchParams.toString()}`);
   },
 
   // Create new channel message
   createChannelMessage: async (messageData: {
-    workspace_id: string
-    channel_id: string
-    content: string
-    parent_id?: string | null
-    addon?: any
-    readby?: any
-    author_email: string
-    emoticons?: any
+    workspace_id: string;
+    channel_id: string;
+    content: string;
+    parent_id?: string | null;
+    addon?: any;
+    readby?: any;
+    author_email: string;
+    emoticons?: any;
   }): Promise<ChannelMessage> => {
-    return apiRequest<ChannelMessage>('/channel-message', {
-      method: 'POST',
+    return apiRequest<ChannelMessage>("/channel-message", {
+      method: "POST",
       body: JSON.stringify(messageData),
-    })
+    });
   },
 
   // Update channel message
   updateChannelMessage: async (
     id: string,
     updates: {
-      content?: string
-      addon?: any
-      readby?: any
-      emoticons?: any
+      content?: string;
+      addon?: any;
+      readby?: any;
+      emoticons?: any;
     }
   ): Promise<ChannelMessage> => {
     return apiRequest<ChannelMessage>(`/channel-message?id=${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(updates),
-    })
+    });
   },
 
   // Delete channel message
   deleteChannelMessage: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/channel-message?id=${id}`, {
-      method: 'DELETE',
-    })
+      method: "DELETE",
+    });
   },
-}
+};
 
 // Post API functions
 export const postApi = {
   // Get post by ID or list by workspace/board
-  getPost: async (params: { 
-    id?: string; 
-    workspace_id?: string; 
-    board_id?: string 
+  getPost: async (params: {
+    id?: string;
+    workspace_id?: string;
+    board_id?: string;
   }): Promise<Post | Post[]> => {
-    const searchParams = new URLSearchParams()
-    if (params.id) searchParams.append('id', params.id)
-    if (params.workspace_id) searchParams.append('workspace_id', params.workspace_id)
-    if (params.board_id) searchParams.append('board_id', params.board_id)
-    
-    return apiRequest<Post | Post[]>(`/post?${searchParams.toString()}`)
+    const searchParams = new URLSearchParams();
+    if (params.id) searchParams.append("id", params.id);
+    if (params.workspace_id)
+      searchParams.append("workspace_id", params.workspace_id);
+    if (params.board_id) searchParams.append("board_id", params.board_id);
+
+    return apiRequest<Post | Post[]>(`/post?${searchParams.toString()}`);
   },
 
   // Create new post
   createPost: async (postData: {
-    workspace_id: string
-    board_id: string
-    caption: any
-    status: string
-    format: string
-    publish_date?: string
-    platforms?: string[]
-    pages?: string[]
-    billing_month?: string
-    month?: number
-    settings?: any
-    hashtags?: any
-    blocks?: any[]
-    comments?: any[]
-    activities?: any[]
-    user_columns?: Array<{ name: string; value: string }>
+    workspace_id: string;
+    board_id: string;
+    caption: any;
+    status: string;
+    format: string;
+    publish_date?: string;
+    platforms?: string[];
+    pages?: string[];
+    billing_month?: string;
+    month?: number;
+    settings?: any;
+    hashtags?: any;
+    blocks?: any[];
+    comments?: any[];
+    activities?: any[];
+    user_columns?: Array<{ name: string; value: string }>;
   }): Promise<Post> => {
     console.log("postData", postData);
-    return apiRequest<Post>('/post', {
-      method: 'POST',
+    return apiRequest<Post>("/post", {
+      method: "POST",
       body: JSON.stringify(postData),
-    })
+    });
   },
 
   // Update post
   updatePost: async (
     id: string,
     updates: {
-      caption?: any
-      status?: string
-      format?: string
-      publish_date?: string
-      platforms?: string[]
-      pages?: string[]
-      billing_month?: string
-      month?: number
-      settings?: any
-      hashtags?: any
-      blocks?: any[]
-      comments?: any[]
-      activities?: any[]
-      user_columns?: Array<{ name: string; value: string }>
+      caption?: any;
+      status?: string;
+      format?: string;
+      publish_date?: string;
+      platforms?: string[];
+      pages?: string[];
+      billing_month?: string;
+      month?: number;
+      settings?: any;
+      hashtags?: any;
+      blocks?: any[];
+      comments?: any[];
+      activities?: any[];
+      user_columns?: Array<{ name: string; value: string }>;
     }
   ): Promise<Post> => {
     return apiRequest<Post>(`/post?id=${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(updates),
-    })
+    });
   },
 
   // Delete post
   deletePost: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/post?id=${id}`, {
-      method: 'DELETE',
-    })
+      method: "DELETE",
+    });
   },
 
   // Bulk create posts
-  bulkCreatePosts: async (posts: {
-    workspace_id: string
-    board_id: string
-    caption: any
-    status: string
-    format: string
-    publish_date?: string
-    platforms?: string[]
-    pages?: string[]
-    billing_month?: string
-    month?: number
-    settings?: any
-    hashtags?: any
-    blocks?: any[]
-    comments?: any[]
-    activities?: any[]
-    user_columns?: Array<{ name: string; value: string }>
-  }[]): Promise<{ message: string; posts: Post[] }> => {
-    return apiRequest<{ message: string; posts: Post[] }>('/post/bulk', {
-      method: 'POST',
+  bulkCreatePosts: async (
+    posts: {
+      workspace_id: string;
+      board_id: string;
+      caption: any;
+      status: string;
+      format: string;
+      publish_date?: string;
+      platforms?: string[];
+      pages?: string[];
+      billing_month?: string;
+      month?: number;
+      settings?: any;
+      hashtags?: any;
+      blocks?: any[];
+      comments?: any[];
+      activities?: any[];
+      user_columns?: Array<{ name: string; value: string }>;
+    }[]
+  ): Promise<{ message: string; posts: Post[] }> => {
+    return apiRequest<{ message: string; posts: Post[] }>("/post/bulk", {
+      method: "POST",
       body: JSON.stringify({ posts }),
-    })
+    });
   },
 
   // Bulk delete posts
-  bulkDeletePosts: async (postIds: string[]): Promise<{ message: string; deleted_posts: Post[] }> => {
-    return apiRequest<{ message: string; deleted_posts: Post[] }>('/post/bulk', {
-      method: 'DELETE',
-      body: JSON.stringify({ post_ids: postIds }),
-    })
+  bulkDeletePosts: async (
+    postIds: string[]
+  ): Promise<{ message: string; deleted_posts: Post[] }> => {
+    return apiRequest<{ message: string; deleted_posts: Post[] }>(
+      "/post/bulk",
+      {
+        method: "DELETE",
+        body: JSON.stringify({ post_ids: postIds }),
+      }
+    );
   },
 
   // Auto-schedule post (server computes publish_date)
   autoSchedule: async (postId: string, status: string): Promise<Post> => {
-    return apiRequest<Post>('/post/auto-schedule', {
-      method: 'POST',
-      body: JSON.stringify({ post_id: postId, status: status })
-    })
+    return apiRequest<Post>("/post/auto-schedule", {
+      method: "POST",
+      body: JSON.stringify({ post_id: postId, status: status }),
+    });
   },
-}
+};
 
 // Zustand store integration functions
 export const storeApi = {
@@ -576,15 +678,15 @@ export const storeApi = {
   loadUserWorkspaces: async (email: string) => {
     try {
       // mark loading in store
-      useFeedbirdStore.setState({ workspacesLoading: true })
+      useFeedbirdStore.setState({ workspacesLoading: true });
 
-      const workspaces = await workspaceApi.getWorkspacesByCreator(email)
-      const store = useFeedbirdStore.getState()
-      
+      const workspaces = await workspaceApi.getWorkspacesByCreator(email);
+      const store = useFeedbirdStore.getState();
+
       // Transform workspaces - boards are already included from the API
-      const transformedWorkspaces = workspaces.map(ws => {
+      const transformedWorkspaces = workspaces.map((ws) => {
         // Transform boards that came with the workspace
-        const boards = (ws.boards || []).map(b => ({
+        const boards = (ws.boards || []).map((b) => ({
           id: b.id,
           name: b.name,
           image: b.image,
@@ -594,8 +696,8 @@ export const storeApi = {
           rules: b.rules,
           columns: (b as any).columns,
           createdAt: b.created_at ? new Date(b.created_at) : new Date(),
-          groupData: (b as any).group_data || []
-        }))
+          groupData: (b as any).group_data || [],
+        }));
 
         return {
           id: ws.id,
@@ -603,19 +705,28 @@ export const storeApi = {
           logo: ws.logo,
           role: ws.role, // Include the role from API
           boards,
-          brands: [] // Will be populated below
-        }
-      })
+          brands: [], // Will be populated below
+        };
+      });
 
       // Fetch brand and posts for each workspace
       const workspacesWithBrands = await Promise.all(
-        transformedWorkspaces.map(async ws => {
-          const brandResp = await brandApi.getBrand({ workspace_id: ws.id, include_social: true })
-          const brand = brandResp || null
+        transformedWorkspaces.map(async (ws) => {
+          const brandResp = await brandApi.getBrand({
+            workspace_id: ws.id,
+            include_social: true,
+          });
+          const brand = brandResp || null;
 
           // Load channels for this workspace and transform to store shape
-          const channelsResp = await channelApi.getChannel({ workspace_id: ws.id })
-          const channelsDb = Array.isArray(channelsResp) ? channelsResp : (channelsResp ? [channelsResp] : [])
+          const channelsResp = await channelApi.getChannel({
+            workspace_id: ws.id,
+          });
+          const channelsDb = Array.isArray(channelsResp)
+            ? channelsResp
+            : channelsResp
+            ? [channelsResp]
+            : [];
           const channels = channelsDb.map((c: any) => ({
             id: c.id,
             workspaceId: c.workspace_id,
@@ -627,27 +738,32 @@ export const storeApi = {
             color: c.color,
             createdAt: c.created_at ? new Date(c.created_at) : new Date(),
             updatedAt: c.updated_at ? new Date(c.updated_at) : new Date(),
-          }))
+          }));
 
           // Load posts for each board
           const boardsWithPosts = await Promise.all(
             ws.boards.map(async (board) => {
-              const postsResp = await postApi.getPost({ board_id: board.id })
-              const posts = Array.isArray(postsResp) ? postsResp as Post[] : [postsResp as Post]
+              const postsResp = await postApi.getPost({ board_id: board.id });
+              const posts = Array.isArray(postsResp)
+                ? (postsResp as Post[])
+                : [postsResp as Post];
 
               // Fetch activities per post and attach to each post
               const postsWithActivities = await Promise.all(
                 posts.map(async (p) => {
                   try {
                     const acts = await activityApi.getPostActivities(p.id);
-                    return { ...p, activities: normalizeActivities(acts) }
+                    return { ...p, activities: normalizeActivities(acts) };
                   } catch {
-                    return { ...p, activities: normalizeActivities(p.activities) }
+                    return {
+                      ...p,
+                      activities: normalizeActivities(p.activities),
+                    };
                   }
                 })
-              )
+              );
               console.log("postsWithActivities:", postsWithActivities);
-              const transformedPosts = postsWithActivities.map(p => ({
+              const transformedPosts = postsWithActivities.map((p) => ({
                 id: p.id,
                 workspaceId: p.workspace_id ?? ws.id,
                 board_id: p.board_id,
@@ -665,78 +781,92 @@ export const storeApi = {
                 hashtags: p.hashtags,
                 blocks: p.blocks || [],
                 comments: p.comments || [],
-                activities: p.activities
-              }))
+                activities: p.activities,
+              }));
 
               return {
                 ...board,
                 columns: (board as any).columns,
-                posts: transformedPosts
-              }
+                posts: transformedPosts,
+              };
             })
-          )
+          );
 
           return {
             ...ws,
             boards: boardsWithPosts,
             channels,
-            brand: brand ? {
-              id: brand.id,
-              name: brand.name,
-              logo: brand.logo,
-              styleGuide: (brand as any).style_guide,
-              link: (brand as any).link,
-              voice: (brand as any).voice,
-              prefs: (brand as any).prefs,
-              platforms: (brand as any).platforms || [],
-              socialAccounts: ((brand as any).social_accounts || []).map((acc: any) => ({
-                id: acc.id,
-                platform: acc.platform,
-                name: acc.name,
-                accountId: acc.account_id,
-                authToken: acc.auth_token,
-                connected: acc.connected,
-                status: acc.status,
-                socialPages: acc.social_pages || []
-              })),
-              socialPages: ((brand as any).social_accounts || []).flatMap((acc: any) => 
-                (acc.social_pages || []).map((page: any) => ({
-                  id: page.id,
-                  platform: page.platform,
-                  entityType: page.entity_type || 'page',
-                  name: page.name,
-                  pageId: page.page_id,
-                  authToken: page.auth_token,
-                  connected: page.connected,
-                  status: page.status,
-                  accountId: acc.id,
-                  statusUpdatedAt: page.status_updated_at ? new Date(page.status_updated_at) : undefined,
-                  lastSyncAt: page.last_sync_at ? new Date(page.last_sync_at) : undefined,
-                  followerCount: page.follower_count,
-                  postCount: page.post_count,
-                  metadata: page.metadata
-                }))
-              )
-            } : undefined
-          }
+            brand: brand
+              ? {
+                  id: brand.id,
+                  name: brand.name,
+                  logo: brand.logo,
+                  styleGuide: (brand as any).style_guide,
+                  link: (brand as any).link,
+                  voice: (brand as any).voice,
+                  prefs: (brand as any).prefs,
+                  platforms: (brand as any).platforms || [],
+                  socialAccounts: ((brand as any).social_accounts || []).map(
+                    (acc: any) => ({
+                      id: acc.id,
+                      platform: acc.platform,
+                      name: acc.name,
+                      accountId: acc.account_id,
+                      authToken: acc.auth_token,
+                      connected: acc.connected,
+                      status: acc.status,
+                      socialPages: acc.social_pages || [],
+                    })
+                  ),
+                  socialPages: ((brand as any).social_accounts || []).flatMap(
+                    (acc: any) =>
+                      (acc.social_pages || []).map((page: any) => ({
+                        id: page.id,
+                        platform: page.platform,
+                        entityType: page.entity_type || "page",
+                        name: page.name,
+                        pageId: page.page_id,
+                        authToken: page.auth_token,
+                        connected: page.connected,
+                        status: page.status,
+                        accountId: acc.id,
+                        statusUpdatedAt: page.status_updated_at
+                          ? new Date(page.status_updated_at)
+                          : undefined,
+                        lastSyncAt: page.last_sync_at
+                          ? new Date(page.last_sync_at)
+                          : undefined,
+                        followerCount: page.follower_count,
+                        postCount: page.post_count,
+                        metadata: page.metadata,
+                      }))
+                  ),
+                }
+              : undefined,
+          };
         })
-      )
+      );
 
       // Decide active workspace:
       // - keep existing selection if it still exists
       // - otherwise, auto-select the first workspace (if any)
-      let nextActiveWorkspaceId = store.activeWorkspaceId ?? null
-      if (!nextActiveWorkspaceId || !workspacesWithBrands.some(w => w.id === nextActiveWorkspaceId)) {
-        nextActiveWorkspaceId = workspacesWithBrands[0]?.id ?? null
+      let nextActiveWorkspaceId = store.activeWorkspaceId ?? null;
+      if (
+        !nextActiveWorkspaceId ||
+        !workspacesWithBrands.some((w) => w.id === nextActiveWorkspaceId)
+      ) {
+        nextActiveWorkspaceId = workspacesWithBrands[0]?.id ?? null;
       }
 
       const activeWs = nextActiveWorkspaceId
-        ? workspacesWithBrands.find(w => w.id === nextActiveWorkspaceId)
-        : undefined
+        ? workspacesWithBrands.find((w) => w.id === nextActiveWorkspaceId)
+        : undefined;
 
-              const boardNav = activeWs ? boardsToNav(activeWs.boards, activeWs.id) : []
-      const activeBrandId = activeWs?.brand?.id ?? null
-      const activeBoardId = activeWs?.boards[0]?.id ?? null
+      const boardNav = activeWs
+        ? boardsToNav(activeWs.boards, activeWs.id)
+        : [];
+      const activeBrandId = activeWs?.brand?.id ?? null;
+      const activeBoardId = activeWs?.boards[0]?.id ?? null;
 
       useFeedbirdStore.setState({
         workspaces: workspacesWithBrands,
@@ -746,16 +876,17 @@ export const storeApi = {
         boardNav,
         workspacesLoading: false,
         workspacesInitialized: true,
-      })
+      });
 
-
-
-      return workspacesWithBrands
+      return workspacesWithBrands;
     } catch (error) {
-      console.error('Failed to load user workspaces:', error)
+      console.error("Failed to load user workspaces:", error);
       // ensure loading flags reset even on error
-      useFeedbirdStore.setState({ workspacesLoading: false, workspacesInitialized: true })
-      throw error
+      useFeedbirdStore.setState({
+        workspacesLoading: false,
+        workspacesInitialized: true,
+      });
+      throw error;
     }
   },
 
@@ -778,9 +909,9 @@ export const storeApi = {
         members,
         icon,
         color,
-      })
+      });
 
-      const store = useFeedbirdStore.getState()
+      const store = useFeedbirdStore.getState();
       const storeChannel = {
         id: channel.id,
         workspaceId: channel.workspace_id,
@@ -790,58 +921,71 @@ export const storeApi = {
         members: channel.members,
         icon: channel.icon,
         color: (channel as any).color,
-        createdAt: channel.created_at ? new Date(channel.created_at) : new Date(),
-        updatedAt: channel.updated_at ? new Date(channel.updated_at) : new Date(),
-      }
-      const updatedWorkspaces = store.workspaces.map(w => {
-        if (w.id !== workspaceId) return w
-        const nextChannels = Array.isArray((w as any).channels) ? [...(w as any).channels, storeChannel] : [storeChannel]
-        return { ...w, channels: nextChannels }
-      })
-      useFeedbirdStore.setState({ workspaces: updatedWorkspaces })
-      return channel.id
+        createdAt: channel.created_at
+          ? new Date(channel.created_at)
+          : new Date(),
+        updatedAt: channel.updated_at
+          ? new Date(channel.updated_at)
+          : new Date(),
+      };
+      const updatedWorkspaces = store.workspaces.map((w) => {
+        if (w.id !== workspaceId) return w;
+        const nextChannels = Array.isArray((w as any).channels)
+          ? [...(w as any).channels, storeChannel]
+          : [storeChannel];
+        return { ...w, channels: nextChannels };
+      });
+      useFeedbirdStore.setState({ workspaces: updatedWorkspaces });
+      return channel.id;
     } catch (error) {
-      console.error('Failed to create channel:', error)
-      throw error
+      console.error("Failed to create channel:", error);
+      throw error;
     }
   },
 
   updateChannelAndUpdateStore: async (id: string, updates: any) => {
     try {
-      const channel = await channelApi.updateChannel(id, updates)
-      const store = useFeedbirdStore.getState()
-      const updatedWorkspaces = store.workspaces.map(w => ({
+      const channel = await channelApi.updateChannel(id, updates);
+      const store = useFeedbirdStore.getState();
+      const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
-        channels: (w as any).channels?.map((c: any) => (c.id === id ? { ...c, ...updates } : c)) || (w as any).channels
-      }))
-      useFeedbirdStore.setState({ workspaces: updatedWorkspaces })
-      return channel
+        channels:
+          (w as any).channels?.map((c: any) =>
+            c.id === id ? { ...c, ...updates } : c
+          ) || (w as any).channels,
+      }));
+      useFeedbirdStore.setState({ workspaces: updatedWorkspaces });
+      return channel;
     } catch (error) {
-      console.error('Failed to update channel:', error)
-      throw error
+      console.error("Failed to update channel:", error);
+      throw error;
     }
   },
 
   deleteChannelAndUpdateStore: async (id: string) => {
     try {
-      await channelApi.deleteChannel(id)
-      const store = useFeedbirdStore.getState()
-      const updatedWorkspaces = store.workspaces.map(w => ({
+      await channelApi.deleteChannel(id);
+      const store = useFeedbirdStore.getState();
+      const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
-        channels: (w as any).channels?.filter((c: Channel) => c.id !== id) || (w as any).channels
-      }))
-      useFeedbirdStore.setState({ workspaces: updatedWorkspaces })
+        channels:
+          (w as any).channels?.filter((c: Channel) => c.id !== id) ||
+          (w as any).channels,
+      }));
+      useFeedbirdStore.setState({ workspaces: updatedWorkspaces });
     } catch (error) {
-      console.error('Failed to delete channel:', error)
-      throw error
+      console.error("Failed to delete channel:", error);
+      throw error;
     }
   },
 
   // Channel Message operations with store integration
   fetchChannelMessagesAndUpdateStore: async (channelId: string) => {
     try {
-      const resp = await channelMessageApi.getChannelMessage({ channel_id: channelId }) as Array<any>
-      const items = Array.isArray(resp) ? resp : (resp ? [resp] : [])
+      const resp = (await channelMessageApi.getChannelMessage({
+        channel_id: channelId,
+      })) as Array<any>;
+      const items = Array.isArray(resp) ? resp : resp ? [resp] : [];
       const transformed = items.map((m: any) => ({
         id: m.id,
         author: m.author_name || m.author_email,
@@ -854,63 +998,67 @@ export const storeApi = {
         readby: m.readby,
         emoticons: m.emoticons,
         channelId: channelId, // Add channel ID for consistency
-      }))
+      }));
 
-      const prev = useFeedbirdStore.getState().channelMessagesByChannelId || {}
+      const prev = useFeedbirdStore.getState().channelMessagesByChannelId || {};
       useFeedbirdStore.setState({
         channelMessagesByChannelId: {
           ...prev,
           [channelId]: transformed,
         },
-      })
+      });
 
       // Mark messages as read for current user
       try {
-        const store = useFeedbirdStore.getState()
-        const currentUserEmail = store.user?.email
+        const store = useFeedbirdStore.getState();
+        const currentUserEmail = store.user?.email;
         if (currentUserEmail && items.length > 0) {
           // Get message IDs that should be marked as read
-          const messageIds = items.map(m => m.id)
-          
+          const messageIds = items.map((m) => m.id);
+
           // Update unread messages in store
-          const currentUnread = store.user?.unread_msg || []
+          const currentUnread = store.user?.unread_msg || [];
           console.log("currentUnread: ", store.user);
-          const newUnread = currentUnread.filter(id => !messageIds.includes(id))
-          const newRead = currentUnread.filter(id => messageIds.includes(id))
+          const newUnread = currentUnread.filter(
+            (id) => !messageIds.includes(id)
+          );
+          const newRead = currentUnread.filter((id) => messageIds.includes(id));
           if (newUnread.length !== currentUnread.length) {
             useFeedbirdStore.setState({
               user: {
                 ...store.user!,
-                unread_msg: newUnread
-              }
-            })
+                unread_msg: newUnread,
+              },
+            });
           }
           console.log("channelmessageIds:", newRead);
           // Update unread messages in database for each message
           for (const messageId of newRead) {
-            await userApi.removeUnreadMessage(currentUserEmail, messageId)
+            await userApi.removeUnreadMessage(currentUserEmail, messageId);
           }
         }
       } catch (unreadError) {
-        console.error('Error marking messages as read:', unreadError)
+        console.error("Error marking messages as read:", unreadError);
         // Don't fail the message loading if unread update fails
       }
 
-      return transformed
+      return transformed;
     } catch (error) {
-      console.error('Failed to fetch channel messages:', error)
-      throw error
+      console.error("Failed to fetch channel messages:", error);
+      throw error;
     }
   },
 
   fetchAllWorkspaceMessagesAndUpdateStore: async () => {
     try {
-      const store = useFeedbirdStore.getState()
-      const activeWorkspaceId = store.activeWorkspaceId
-      if (!activeWorkspaceId) throw new Error('No active workspace')
-      
-      const resp = await channelMessageApi.getChannelMessage({ workspace_id: activeWorkspaceId }) as Array<any>
-      const items = Array.isArray(resp) ? resp : (resp ? [resp] : [])
+      const store = useFeedbirdStore.getState();
+      const activeWorkspaceId = store.activeWorkspaceId;
+      if (!activeWorkspaceId) throw new Error("No active workspace");
+
+      const resp = (await channelMessageApi.getChannelMessage({
+        workspace_id: activeWorkspaceId,
+      })) as Array<any>;
+      const items = Array.isArray(resp) ? resp : resp ? [resp] : [];
       const transformed = items.map((m: any) => ({
         id: m.id,
         author: m.author_name || m.author_email,
@@ -923,52 +1071,54 @@ export const storeApi = {
         readby: m.readby,
         emoticons: m.emoticons,
         channelId: m.channel_id, // Add channel ID to identify which channel the message belongs to
-      }))
+      }));
 
       // Store all workspace messages under a special 'all' key
-      const prev = store.channelMessagesByChannelId || {}
+      const prev = store.channelMessagesByChannelId || {};
       useFeedbirdStore.setState({
         channelMessagesByChannelId: {
           ...prev,
           all: transformed,
         },
-      })
+      });
 
       // Mark messages as read for current user
       try {
-        const currentUserEmail = store.user?.email
+        const currentUserEmail = store.user?.email;
         if (currentUserEmail && items.length > 0) {
           // Get message IDs that should be marked as read
-          const messageIds = items.map(m => m.id)
-          
+          const messageIds = items.map((m) => m.id);
+
           // Update unread messages in store
-          const currentUnread = store.user?.unread_msg || []
-          const newUnread = currentUnread.filter(id => !messageIds.includes(id))
-          const newRead = currentUnread.filter(id => messageIds.includes(id))
-          
+          const currentUnread = store.user?.unread_msg || [];
+          const newUnread = currentUnread.filter(
+            (id) => !messageIds.includes(id)
+          );
+          const newRead = currentUnread.filter((id) => messageIds.includes(id));
+
           if (newUnread.length !== currentUnread.length) {
             useFeedbirdStore.setState({
               user: {
                 ...store.user!,
-                unread_msg: newUnread
-              }
-            })
+                unread_msg: newUnread,
+              },
+            });
           }
           console.log("workspacemessageIds:", newRead);
           // Update unread messages in database for each message
           for (const messageId of newRead) {
-            await userApi.removeUnreadMessage(currentUserEmail, messageId)
+            await userApi.removeUnreadMessage(currentUserEmail, messageId);
           }
         }
       } catch (unreadError) {
-        console.error('Error marking messages as read:', unreadError)
+        console.error("Error marking messages as read:", unreadError);
         // Don't fail the message loading if unread update fails
       }
 
-      return transformed
+      return transformed;
     } catch (error) {
-      console.error('Failed to fetch all workspace messages:', error)
-      throw error
+      console.error("Failed to fetch all workspace messages:", error);
+      throw error;
     }
   },
 
@@ -988,12 +1138,12 @@ export const storeApi = {
         parent_id: parentId,
         author_email: authorEmail,
         addon,
-      })
+      });
 
       // Use current user profile for sender display
-      const store = useFeedbirdStore.getState()
-      const senderDisplayName = (store as any)?.user?.firstName || authorEmail
-      const senderImageUrl = (store as any)?.user?.imageUrl || undefined
+      const store = useFeedbirdStore.getState();
+      const senderDisplayName = (store as any)?.user?.firstName || authorEmail;
+      const senderImageUrl = (store as any)?.user?.imageUrl || undefined;
 
       const message = {
         id: created.id,
@@ -1001,109 +1151,124 @@ export const storeApi = {
         authorEmail: authorEmail,
         authorImageUrl: senderImageUrl as string | undefined,
         text: created.content,
-        createdAt: created.created_at ? new Date(created.created_at) : new Date(),
+        createdAt: created.created_at
+          ? new Date(created.created_at)
+          : new Date(),
         parentId: created.parent_id || null,
         addon: (created as any).addon,
         readby: (created as any).readby,
         emoticons: (created as any).emoticons,
         channelId: channelId,
-      }
+      };
 
-      const allMessages = (store as any).channelMessagesByChannelId?.['all'] || []
-      const channelMessages = (store as any).channelMessagesByChannelId?.[channelId] || []
+      const allMessages =
+        (store as any).channelMessagesByChannelId?.["all"] || [];
+      const channelMessages =
+        (store as any).channelMessagesByChannelId?.[channelId] || [];
       useFeedbirdStore.setState({
         channelMessagesByChannelId: {
           ...(store as any).channelMessagesByChannelId,
           [channelId]: [...channelMessages, message],
           all: [...allMessages, message],
         },
-      })
+      });
 
-      return created.id
+      return created.id;
     } catch (error) {
-      console.error('Failed to create channel message:', error)
+      console.error("Failed to create channel message:", error);
       // If it's an API error with validation details, log them
-      if (error && typeof error === 'object' && 'message' in error) {
+      if (error && typeof error === "object" && "message" in error) {
         const apiError = error as any;
-        if (apiError.message === 'Validation error' && apiError.details) {
-          console.error('Validation error details:', apiError.details);
+        if (apiError.message === "Validation error" && apiError.details) {
+          console.error("Validation error details:", apiError.details);
         }
       }
-      throw error
+      throw error;
     }
   },
 
   // Workspace operations with store integration
-  createWorkspaceAndUpdateStore: async (name: string, email: string, logo?: string) => {
+  createWorkspaceAndUpdateStore: async (
+    name: string,
+    email: string,
+    logo?: string
+  ) => {
     try {
-      const workspace = await workspaceApi.createWorkspace({ name, logo, email })
-      const store = useFeedbirdStore.getState()
+      const workspace = await workspaceApi.createWorkspace({
+        name,
+        logo,
+        email,
+      });
+      const store = useFeedbirdStore.getState();
 
       const newWorkspace = {
         id: workspace.id,
         name: workspace.name,
         logo: workspace.logo,
         boards: [],
-        brands: []
-      }
+        brands: [],
+      };
 
-      store.workspaces = [...store.workspaces, newWorkspace]
-      return workspace.id
+      store.workspaces = [...store.workspaces, newWorkspace];
+      return workspace.id;
     } catch (error) {
-      console.error('Failed to create workspace:', error)
-      throw error
+      console.error("Failed to create workspace:", error);
+      throw error;
     }
   },
 
-  updateWorkspaceAndUpdateStore: async (id: string, updates: { name?: string; logo?: string }) => {
+  updateWorkspaceAndUpdateStore: async (
+    id: string,
+    updates: { name?: string; logo?: string }
+  ) => {
     try {
-      const workspace = await workspaceApi.updateWorkspace(id, updates)
-      const store = useFeedbirdStore.getState()
-      
+      const workspace = await workspaceApi.updateWorkspace(id, updates);
+      const store = useFeedbirdStore.getState();
+
       // Update store using Zustand setter to trigger re-renders
-      const updatedWorkspaces = store.workspaces.map(w => 
+      const updatedWorkspaces = store.workspaces.map((w) =>
         w.id === id ? { ...w, ...updates } : w
-      )
-      
+      );
+
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
-        workspaces: updatedWorkspaces
-      })
-      
-      return workspace
+        workspaces: updatedWorkspaces,
+      });
+
+      return workspace;
     } catch (error) {
-      console.error('Failed to update workspace:', error)
-      throw error
+      console.error("Failed to update workspace:", error);
+      throw error;
     }
   },
 
   deleteWorkspaceAndUpdateStore: async (id: string) => {
     try {
-      await workspaceApi.deleteWorkspace(id)
-      const store = useFeedbirdStore.getState()
-      
+      await workspaceApi.deleteWorkspace(id);
+      const store = useFeedbirdStore.getState();
+
       // Update store using Zustand setter to trigger re-renders
-      const newWorkspaces = store.workspaces.filter(w => w.id !== id)
-      let newActiveWorkspaceId = store.activeWorkspaceId
-      let newActiveBrandId = store.activeBrandId
-      let newActiveBoardId = store.activeBoardId
-      
+      const newWorkspaces = store.workspaces.filter((w) => w.id !== id);
+      let newActiveWorkspaceId = store.activeWorkspaceId;
+      let newActiveBrandId = store.activeBrandId;
+      let newActiveBoardId = store.activeBoardId;
+
       if (store.activeWorkspaceId === id) {
-        newActiveWorkspaceId = newWorkspaces[0]?.id || null
-        newActiveBrandId = null
-        newActiveBoardId = null
+        newActiveWorkspaceId = newWorkspaces[0]?.id || null;
+        newActiveBrandId = null;
+        newActiveBoardId = null;
       }
-      
+
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
         workspaces: newWorkspaces,
         activeWorkspaceId: newActiveWorkspaceId,
         activeBrandId: newActiveBrandId,
-        activeBoardId: newActiveBoardId
-      })
+        activeBoardId: newActiveBoardId,
+      });
     } catch (error) {
-      console.error('Failed to delete workspace:', error)
-      throw error
+      console.error("Failed to delete workspace:", error);
+      throw error;
     }
   },
 
@@ -1125,13 +1290,13 @@ export const storeApi = {
         style_guide: styleGuide,
         link,
         voice,
-        prefs
-      })
-      
-      const store = useFeedbirdStore.getState()
-      
+        prefs,
+      });
+
+      const store = useFeedbirdStore.getState();
+
       // Update store using Zustand setter to trigger re-renders
-      const updatedWorkspaces = store.workspaces.map(w => {
+      const updatedWorkspaces = store.workspaces.map((w) => {
         if (w.id === workspaceId) {
           return {
             ...w,
@@ -1146,74 +1311,77 @@ export const storeApi = {
               platforms: [],
               socialAccounts: [],
               socialPages: [],
-              contents: []
-            }
-          }
+              contents: [],
+            },
+          };
         }
-        return w
-      })
-      
+        return w;
+      });
+
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
-        workspaces: updatedWorkspaces
-      })
-      
-      return brand.id
+        workspaces: updatedWorkspaces,
+      });
+
+      return brand.id;
     } catch (error) {
-      console.error('Failed to create brand:', error)
-      throw error
+      console.error("Failed to create brand:", error);
+      throw error;
     }
   },
 
   updateBrandAndUpdateStore: async (id: string, updates: any) => {
     try {
-      const brand = await brandApi.updateBrand(id, updates)
-      const store = useFeedbirdStore.getState()
-      
+      const brand = await brandApi.updateBrand(id, updates);
+      const store = useFeedbirdStore.getState();
+
       // Update store using Zustand setter to trigger re-renders
-      const updatedWorkspaces = store.workspaces.map(w => ({
+      const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
-        brand: w.brand && w.brand.id === id ? { ...w.brand, ...updates } : w.brand
-      }))
-      
+        brand:
+          w.brand && w.brand.id === id ? { ...w.brand, ...updates } : w.brand,
+      }));
+
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
-        workspaces: updatedWorkspaces
-      })
-      
-      return brand
+        workspaces: updatedWorkspaces,
+      });
+
+      return brand;
     } catch (error) {
-      console.error('Failed to update brand:', error)
-      throw error
+      console.error("Failed to update brand:", error);
+      throw error;
     }
   },
 
   deleteBrandAndUpdateStore: async (id: string) => {
     try {
-      await brandApi.deleteBrand(id)
-      const store = useFeedbirdStore.getState()
-      
+      await brandApi.deleteBrand(id);
+      const store = useFeedbirdStore.getState();
+
       // Update store using Zustand setter to trigger re-renders
-      const updatedWorkspaces = store.workspaces.map(w => ({
+      const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
-        brand: w.brand && w.brand.id === id ? undefined : w.brand
-      }))
-      
+        brand: w.brand && w.brand.id === id ? undefined : w.brand,
+      }));
+
       // Update active brand if needed
-      let newActiveBrandId = store.activeBrandId
+      let newActiveBrandId = store.activeBrandId;
       if (store.activeBrandId === id) {
-        const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
-        newActiveBrandId = activeWorkspace?.brand?.id || null
+        const activeWorkspace = updatedWorkspaces.find(
+          (w) => w.id === store.activeWorkspaceId
+        );
+        newActiveBrandId = activeWorkspace?.brand?.id || null;
       }
-      
+
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
         workspaces: updatedWorkspaces,
-        activeBrandId: newActiveBrandId
-      })
+        activeBrandId: newActiveBrandId,
+      });
     } catch (error) {
-      console.error('Failed to delete brand:', error)
-      throw error
+      console.error("Failed to delete brand:", error);
+      throw error;
     }
   },
 
@@ -1233,93 +1401,105 @@ export const storeApi = {
         description,
         image,
         color,
-        rules
-      })
-      
+        rules,
+      });
+
       // Fetch the posts that were automatically created for this board
-      const posts = await postApi.getPost({ board_id: board.id })
-      const boardPosts = Array.isArray(posts) ? posts : [posts]
+      const posts = await postApi.getPost({ board_id: board.id });
+      const boardPosts = Array.isArray(posts) ? posts : [posts];
       const boardPostsWithActivities = await Promise.all(
         boardPosts.map(async (post) => {
           try {
-            const acts = await activityApi.getPostActivities(post.id)
-            return { ...post, activities: normalizeActivities(acts) }
+            const acts = await activityApi.getPostActivities(post.id);
+            return { ...post, activities: normalizeActivities(acts) };
           } catch {
-            return { ...post, activities: normalizeActivities(post.activities) }
+            return {
+              ...post,
+              activities: normalizeActivities(post.activities),
+            };
           }
         })
-      )
-      
-      const store = useFeedbirdStore.getState()
-      
+      );
+
+      const store = useFeedbirdStore.getState();
+
       // Update store using Zustand setter to trigger re-renders
-      const updatedWorkspaces = store.workspaces.map(w => {
+      const updatedWorkspaces = store.workspaces.map((w) => {
         if (w.id === workspaceId) {
           return {
             ...w,
-            boards: [...w.boards, {
-              id: board.id,
-              name: board.name,
-              image: board.image,
-              description: board.description,
-              color: board.color,
-              rules: board.rules,
-              columns: (board as any).columns,
-              groupData: board.group_data || [],
-              createdAt: new Date(),
-              posts: boardPostsWithActivities.map(post => ({
-                id: post.id,
-                workspaceId: post.workspace_id,
-                board_id: post.board_id,
-                caption: post.caption,
-                status: post.status as any,
-                format: post.format,
-                publish_date: post.publish_date ? new Date(post.publish_date) : null,
-                updatedAt: post.updated_at ? new Date(post.updated_at) : null,
-                platforms: (post.platforms || []) as any,
-                pages: post.pages || [],
-                billingMonth: post.billing_month,
-                month: post.month || 1,
-                user_columns: (post as any).user_columns || [],
-                settings: post.settings,
-                hashtags: post.hashtags,
-                blocks: post.blocks || [],
-                comments: post.comments || [],
-                activities: normalizeActivities(post.activities)
-              }))
-            }]
-          }
+            boards: [
+              ...w.boards,
+              {
+                id: board.id,
+                name: board.name,
+                image: board.image,
+                description: board.description,
+                color: board.color,
+                rules: board.rules,
+                columns: (board as any).columns,
+                groupData: board.group_data || [],
+                createdAt: new Date(),
+                posts: boardPostsWithActivities.map((post) => ({
+                  id: post.id,
+                  workspaceId: post.workspace_id,
+                  board_id: post.board_id,
+                  caption: post.caption,
+                  status: post.status as any,
+                  format: post.format,
+                  publish_date: post.publish_date
+                    ? new Date(post.publish_date)
+                    : null,
+                  updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+                  platforms: (post.platforms || []) as any,
+                  pages: post.pages || [],
+                  billingMonth: post.billing_month,
+                  month: post.month || 1,
+                  user_columns: (post as any).user_columns || [],
+                  settings: post.settings,
+                  hashtags: post.hashtags,
+                  blocks: post.blocks || [],
+                  comments: post.comments || [],
+                  activities: normalizeActivities(post.activities),
+                })),
+              },
+            ],
+          };
         }
-        return w
-      })
-      
+        return w;
+      });
+
       // Update board navigation
-      const activeWorkspace = updatedWorkspaces.find(w => w.id === workspaceId)
-      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards, activeWorkspace.id) : []
-      
+      const activeWorkspace = updatedWorkspaces.find(
+        (w) => w.id === workspaceId
+      );
+      const newBoardNav = activeWorkspace
+        ? boardsToNav(activeWorkspace.boards, activeWorkspace.id)
+        : [];
+
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
         workspaces: updatedWorkspaces,
-        boardNav: newBoardNav
-      })
-      
-      return board.id
+        boardNav: newBoardNav,
+      });
+
+      return board.id;
     } catch (error) {
-      console.error('Failed to create board:', error)
-      throw error
+      console.error("Failed to create board:", error);
+      throw error;
     }
   },
 
   updateBoardAndUpdateStore: async (id: string, updates: any) => {
     try {
-      const board = await boardApi.updateBoard(id, updates)
-      const store = useFeedbirdStore.getState()
+      const board = await boardApi.updateBoard(id, updates);
+      const store = useFeedbirdStore.getState();
 
       // Update store using the server's latest board data to avoid drift
-      const updatedWorkspaces = store.workspaces.map(w => ({
+      const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => {
-          if (b.id !== id) return b
+        boards: w.boards.map((b) => {
+          if (b.id !== id) return b;
           return {
             ...b,
             name: (board as any).name ?? b.name,
@@ -1329,59 +1509,79 @@ export const storeApi = {
             color: (board as any).color ?? b.color,
             rules: (board as any).rules ?? b.rules,
             // Map server field group_data -> client field groupData
-            groupData: (board as any).group_data !== undefined ? (board as any).group_data : (updates.group_data !== undefined ? updates.group_data : b.groupData),
-            columns: (board as any).columns !== undefined ? (board as any).columns : (updates.columns !== undefined ? updates.columns : (b as any).columns),
-          }
-        })
-      }))
+            groupData:
+              (board as any).group_data !== undefined
+                ? (board as any).group_data
+                : updates.group_data !== undefined
+                ? updates.group_data
+                : b.groupData,
+            columns:
+              (board as any).columns !== undefined
+                ? (board as any).columns
+                : updates.columns !== undefined
+                ? updates.columns
+                : (b as any).columns,
+          };
+        }),
+      }));
 
       // Update board navigation
-      const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
-      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards, activeWorkspace.id) : []
+      const activeWorkspace = updatedWorkspaces.find(
+        (w) => w.id === store.activeWorkspaceId
+      );
+      const newBoardNav = activeWorkspace
+        ? boardsToNav(activeWorkspace.boards, activeWorkspace.id)
+        : [];
 
       useFeedbirdStore.setState({
         workspaces: updatedWorkspaces,
-        boardNav: newBoardNav
-      })
+        boardNav: newBoardNav,
+      });
 
-      return board
+      return board;
     } catch (error) {
-      console.error('Failed to update board:', error)
-      throw error
+      console.error("Failed to update board:", error);
+      throw error;
     }
   },
 
   deleteBoardAndUpdateStore: async (id: string) => {
     try {
-      await boardApi.deleteBoard(id)
-      const store = useFeedbirdStore.getState()
-      
+      await boardApi.deleteBoard(id);
+      const store = useFeedbirdStore.getState();
+
       // Update store using Zustand setter to trigger re-renders
-      const updatedWorkspaces = store.workspaces.map(w => ({
+      const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.filter(b => b.id !== id)
-      }))
-      
+        boards: w.boards.filter((b) => b.id !== id),
+      }));
+
       // Update active board if needed
-      let newActiveBoardId = store.activeBoardId
+      let newActiveBoardId = store.activeBoardId;
       if (store.activeBoardId === id) {
-        const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
-        newActiveBoardId = activeWorkspace?.boards[0]?.id || null
+        const activeWorkspace = updatedWorkspaces.find(
+          (w) => w.id === store.activeWorkspaceId
+        );
+        newActiveBoardId = activeWorkspace?.boards[0]?.id || null;
       }
-      
+
       // Update board navigation
-      const activeWorkspace = updatedWorkspaces.find(w => w.id === store.activeWorkspaceId)
-      const newBoardNav = activeWorkspace ? boardsToNav(activeWorkspace.boards, activeWorkspace.id) : []
-      
+      const activeWorkspace = updatedWorkspaces.find(
+        (w) => w.id === store.activeWorkspaceId
+      );
+      const newBoardNav = activeWorkspace
+        ? boardsToNav(activeWorkspace.boards, activeWorkspace.id)
+        : [];
+
       // Use Zustand setter to update store
       useFeedbirdStore.setState({
         workspaces: updatedWorkspaces,
         activeBoardId: newActiveBoardId,
-        boardNav: newBoardNav
-      })
+        boardNav: newBoardNav,
+      });
     } catch (error) {
-      console.error('Failed to delete board:', error)
-      throw error
+      console.error("Failed to delete board:", error);
+      throw error;
     }
   },
 
@@ -1396,171 +1596,182 @@ export const storeApi = {
       const post = await postApi.createPost({
         workspace_id: workspaceId,
         board_id: board_id,
-        ...postData
-      })
-      
-      const store = useFeedbirdStore.getState()
-      
+        ...postData,
+      });
+
+      const store = useFeedbirdStore.getState();
+
       // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      store.workspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => {
+        boards: w.boards.map((b) => {
           if (b.id === board_id) {
             return {
               ...b,
-              posts: [...b.posts, {
-                id: post.id,
-                workspaceId: post.workspace_id,
-                board_id: post.board_id,
-                caption: post.caption,
-                status: post.status as any,
-                format: post.format,
-                publish_date: post.publish_date ? new Date(post.publish_date) : null,
-                updatedAt: post.updated_at ? new Date(post.updated_at) : null,
-                platforms: (post.platforms || []) as any,
-                pages: post.pages || [],
-                billingMonth: post.billing_month,
-                month: post.month || 1,
-                user_columns: (post as any).user_columns || [],
-                settings: post.settings,
-                hashtags: post.hashtags,
-                blocks: post.blocks || [],
-                comments: post.comments || [],
-                activities: post.activities || []
-              }]
-            }
+              posts: [
+                ...b.posts,
+                {
+                  id: post.id,
+                  workspaceId: post.workspace_id,
+                  board_id: post.board_id,
+                  caption: post.caption,
+                  status: post.status as any,
+                  format: post.format,
+                  publish_date: post.publish_date
+                    ? new Date(post.publish_date)
+                    : null,
+                  updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+                  platforms: (post.platforms || []) as any,
+                  pages: post.pages || [],
+                  billingMonth: post.billing_month,
+                  month: post.month || 1,
+                  user_columns: (post as any).user_columns || [],
+                  settings: post.settings,
+                  hashtags: post.hashtags,
+                  blocks: post.blocks || [],
+                  comments: post.comments || [],
+                  activities: post.activities || [],
+                },
+              ],
+            };
           }
-          return b
-        })
-      }))
+          return b;
+        }),
+      }));
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
-      
-      return post.id
+
+      return post.id;
     } catch (error) {
-      console.error('Failed to create post:', error)
-      throw error
+      console.error("Failed to create post:", error);
+      throw error;
     }
   },
 
   updatePostAndUpdateStore: async (id: string, updates: any) => {
     try {
-      const post = await postApi.updatePost(id, updates)
-      const store = useFeedbirdStore.getState()
-      
+      const post = await postApi.updatePost(id, updates);
+      const store = useFeedbirdStore.getState();
+
       // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      store.workspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => ({
+        boards: w.boards.map((b) => ({
           ...b,
-          posts: b.posts.map(p => 
-            p.id === id ? { ...p, ...updates } : p
-          )
-        }))
-      }))
+          posts: b.posts.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+        })),
+      }));
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
-      
-      return post
+
+      return post;
     } catch (error) {
-      console.error('Failed to update post:', error)
-      throw error
+      console.error("Failed to update post:", error);
+      throw error;
     }
   },
 
   autoScheduleAndUpdateStore: async (postId: string, status: string) => {
     try {
-      const updated = await postApi.autoSchedule(postId, status)
-      const store = useFeedbirdStore.getState()
+      const updated = await postApi.autoSchedule(postId, status);
+      const store = useFeedbirdStore.getState();
 
       // Update store with server values
-      store.workspaces = store.workspaces.map(w => ({
+      store.workspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => ({
+        boards: w.boards.map((b) => ({
           ...b,
-          posts: b.posts.map(p => {
-            if (p.id !== postId) return p
+          posts: b.posts.map((p) => {
+            if (p.id !== postId) return p;
             return {
               ...p,
               status: (updated as any).status as any,
-              publish_date: (updated as any).publish_date ? new Date((updated as any).publish_date) : null,
-              updatedAt: (updated as any).updated_at ? new Date((updated as any).updated_at) : p.updatedAt,
-            }
-          })
-        }))
-      }))
-      useFeedbirdStore.setState({ workspaces: store.workspaces })
-      return updated
+              publish_date: (updated as any).publish_date
+                ? new Date((updated as any).publish_date)
+                : null,
+              updatedAt: (updated as any).updated_at
+                ? new Date((updated as any).updated_at)
+                : p.updatedAt,
+            };
+          }),
+        })),
+      }));
+      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      return updated;
     } catch (error) {
-      console.error('Failed to auto-schedule post:', error)
-      throw error
+      console.error("Failed to auto-schedule post:", error);
+      throw error;
     }
   },
 
   updatePostBlocksAndUpdateStore: async (postId: string, blocks: any[]) => {
     try {
-      const response = await fetch('/api/post/update-blocks', {
-        method: 'POST',
+      const response = await fetch("/api/post/update-blocks", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           postId,
-          blocks
+          blocks,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to update post blocks: ${response.status}`);
+        throw new Error(
+          errorData.error || `Failed to update post blocks: ${response.status}`
+        );
       }
 
       const result = await response.json();
-      
+
       // Update Zustand store with the database result
       const store = useFeedbirdStore.getState();
-      store.workspaces = store.workspaces.map(w => ({
+      store.workspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => ({
+        boards: w.boards.map((b) => ({
           ...b,
-          posts: b.posts.map(p => 
-            p.id === postId ? { 
-              ...p, 
-              blocks: result.post.blocks,
-              updatedAt: new Date(result.post.updated_at)
-            } : p
-          )
-        }))
+          posts: b.posts.map((p) =>
+            p.id === postId
+              ? {
+                  ...p,
+                  blocks: result.post.blocks,
+                  updatedAt: new Date(result.post.updated_at),
+                }
+              : p
+          ),
+        })),
       }));
-      
+
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
-      
-      return result.post
+
+      return result.post;
     } catch (error) {
-      console.error('Failed to update post blocks:', error)
-      throw error
+      console.error("Failed to update post blocks:", error);
+      throw error;
     }
   },
 
   deletePostAndUpdateStore: async (id: string) => {
     try {
-      await postApi.deletePost(id)
-      const store = useFeedbirdStore.getState()
-      
+      await postApi.deletePost(id);
+      const store = useFeedbirdStore.getState();
+
       // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      store.workspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => ({
+        boards: w.boards.map((b) => ({
           ...b,
-          posts: b.posts.filter(p => p.id !== id)
-        }))
-      }))
+          posts: b.posts.filter((p) => p.id !== id),
+        })),
+      }));
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
     } catch (error) {
-      console.error('Failed to delete post:', error)
-      throw error
+      console.error("Failed to delete post:", error);
+      throw error;
     }
   },
 
@@ -1571,11 +1782,11 @@ export const storeApi = {
     postsData: any[]
   ) => {
     try {
-      const result = await postApi.bulkCreatePosts(postsData)
-      const store = useFeedbirdStore.getState()
-      
+      const result = await postApi.bulkCreatePosts(postsData);
+      const store = useFeedbirdStore.getState();
+
       // Transform posts to match store format
-      const transformedPosts = result.posts.map(post => ({
+      const transformedPosts = result.posts.map((post) => ({
         id: post.id,
         workspaceId: post.workspace_id,
         board_id: post.board_id,
@@ -1593,250 +1804,335 @@ export const storeApi = {
         hashtags: post.hashtags,
         blocks: post.blocks || [],
         comments: post.comments || [],
-        activities: post.activities || []
-      }))
-      
+        activities: post.activities || [],
+      }));
+
       // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      store.workspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => {
+        boards: w.boards.map((b) => {
           if (b.id === board_id) {
             return {
               ...b,
-              posts: [...b.posts, ...transformedPosts]
-            }
+              posts: [...b.posts, ...transformedPosts],
+            };
           }
-          return b
-        })
-      }))
+          return b;
+        }),
+      }));
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
-      
-      return result.posts.map(p => p.id)
+
+      return result.posts.map((p) => p.id);
     } catch (error) {
-      console.error('Failed to bulk create posts:', error)
-      throw error
+      console.error("Failed to bulk create posts:", error);
+      throw error;
     }
   },
 
   // Bulk delete posts and update store
   bulkDeletePostsAndUpdateStore: async (postIds: string[]) => {
     try {
-      const result = await postApi.bulkDeletePosts(postIds)
-      const store = useFeedbirdStore.getState()
-      
+      const result = await postApi.bulkDeletePosts(postIds);
+      const store = useFeedbirdStore.getState();
+
       // Update store
-      store.workspaces = store.workspaces.map(w => ({
+      store.workspaces = store.workspaces.map((w) => ({
         ...w,
-        boards: w.boards.map(b => ({
+        boards: w.boards.map((b) => ({
           ...b,
-          posts: b.posts.filter(p => !postIds.includes(p.id))
-        }))
-      }))
+          posts: b.posts.filter((p) => !postIds.includes(p.id)),
+        })),
+      }));
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
-      
-      return result.deleted_posts
+
+      return result.deleted_posts;
     } catch (error) {
-      console.error('Failed to bulk delete posts:', error)
-      throw error
+      console.error("Failed to bulk delete posts:", error);
+      throw error;
     }
-  }
-}
+  },
+};
 
 // Helper function to convert boards to navigation
 function boardsToNav(boards: any[], workspaceId?: string): any[] {
-  return boards.map(board => ({
+  return boards.map((board) => ({
     id: board.id,
     label: board.name,
     image: board.image,
     selectedImage: board.selectedImage,
-    href: workspaceId ? `/${workspaceId}/content/${board.id}` : `/content/${board.id}`,
+    href: workspaceId
+      ? `/${workspaceId}/content/${board.id}`
+      : `/content/${board.id}`,
     color: board.color,
-    rules: board.rules
-  }))
+    rules: board.rules,
+  }));
 }
 
 // Invite API
 export const inviteApi = {
-  inviteMembers: async (payload: { email: string; workspaceIds: string[]; boardIds: string[]; actorId?: string }) => {
-    return apiRequest<{ message: string; details?: string; warning?: boolean }>('/invite', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
+  inviteMembers: async (payload: {
+    email: string;
+    workspaceIds: string[];
+    boardIds: string[];
+    actorId?: string;
+  }) => {
+    return apiRequest<{ message: string; details?: string; warning?: boolean }>(
+      "/invite",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
   },
-}
+};
 
 // Comment API functions
 export const commentApi = {
   // Post comments
   getPostComments: async (postId: string) => {
-    return apiRequest<any[]>(`/post/comment?post_id=${postId}`)
+    return apiRequest<any[]>(`/post/comment?post_id=${postId}`);
   },
 
   addPostComment: async (data: {
-    post_id: string
-    text: string
-    parent_id?: string
-    revision_requested?: boolean
-    author: string
-    authorEmail?: string
-    authorImageUrl?: string
+    post_id: string;
+    text: string;
+    parent_id?: string;
+    revision_requested?: boolean;
+    author: string;
+    authorEmail?: string;
+    authorImageUrl?: string;
   }) => {
-    return apiRequest<any>('/post/comment', {
-      method: 'POST',
+    return apiRequest<any>("/post/comment", {
+      method: "POST",
       body: JSON.stringify(data),
-    })
+    });
   },
 
-  updatePostComment: async (postId: string, commentId: string, data: { text: string }) => {
-    return apiRequest<any>(`/post/comment?post_id=${postId}&comment_id=${commentId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
+  updatePostComment: async (
+    postId: string,
+    commentId: string,
+    data: { text: string }
+  ) => {
+    return apiRequest<any>(
+      `/post/comment?post_id=${postId}&comment_id=${commentId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
   },
 
   deletePostComment: async (postId: string, commentId: string) => {
-    return apiRequest<{ message: string }>(`/post/comment?post_id=${postId}&comment_id=${commentId}`, {
-      method: 'DELETE',
-    })
+    return apiRequest<{ message: string }>(
+      `/post/comment?post_id=${postId}&comment_id=${commentId}`,
+      {
+        method: "DELETE",
+      }
+    );
   },
 
   // Block comments
   getBlockComments: async (postId: string, blockId: string) => {
-    return apiRequest<any[]>(`/post/block/comment?post_id=${postId}&block_id=${blockId}`)
+    return apiRequest<any[]>(
+      `/post/block/comment?post_id=${postId}&block_id=${blockId}`
+    );
   },
 
   addBlockComment: async (data: {
-    post_id: string
-    block_id: string
-    text: string
-    parent_id?: string
-    revision_requested?: boolean
-    author: string
-    authorEmail?: string
-    authorImageUrl?: string
+    post_id: string;
+    block_id: string;
+    text: string;
+    parent_id?: string;
+    revision_requested?: boolean;
+    author: string;
+    authorEmail?: string;
+    authorImageUrl?: string;
   }) => {
-    return apiRequest<any>('/post/block/comment', {
-      method: 'POST',
+    return apiRequest<any>("/post/block/comment", {
+      method: "POST",
       body: JSON.stringify(data),
-    })
+    });
   },
 
-  updateBlockComment: async (postId: string, blockId: string, commentId: string, data: { text: string }) => {
-    return apiRequest<any>(`/post/block/comment?post_id=${postId}&block_id=${blockId}&comment_id=${commentId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
+  updateBlockComment: async (
+    postId: string,
+    blockId: string,
+    commentId: string,
+    data: { text: string }
+  ) => {
+    return apiRequest<any>(
+      `/post/block/comment?post_id=${postId}&block_id=${blockId}&comment_id=${commentId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
   },
 
-  deleteBlockComment: async (postId: string, blockId: string, commentId: string) => {
-    return apiRequest<{ message: string }>(`/post/block/comment?post_id=${postId}&block_id=${blockId}&comment_id=${commentId}`, {
-      method: 'DELETE',
-    })
+  deleteBlockComment: async (
+    postId: string,
+    blockId: string,
+    commentId: string
+  ) => {
+    return apiRequest<{ message: string }>(
+      `/post/block/comment?post_id=${postId}&block_id=${blockId}&comment_id=${commentId}`,
+      {
+        method: "DELETE",
+      }
+    );
   },
 
   // Version comments
-  getVersionComments: async (postId: string, blockId: string, versionId: string) => {
-    return apiRequest<any[]>(`/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}`)
+  getVersionComments: async (
+    postId: string,
+    blockId: string,
+    versionId: string
+  ) => {
+    return apiRequest<any[]>(
+      `/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}`
+    );
   },
 
   addVersionComment: async (data: {
-    post_id: string
-    block_id: string
-    version_id: string
-    text: string
-    parent_id?: string
-    revision_requested?: boolean
-    author: string
-    authorEmail?: string
-    authorImageUrl?: string
-    rect?: { x: number; y: number; w: number; h: number }
+    post_id: string;
+    block_id: string;
+    version_id: string;
+    text: string;
+    parent_id?: string;
+    revision_requested?: boolean;
+    author: string;
+    authorEmail?: string;
+    authorImageUrl?: string;
+    rect?: { x: number; y: number; w: number; h: number };
   }) => {
-    return apiRequest<any>('/post/block/version/comment', {
-      method: 'POST',
+    return apiRequest<any>("/post/block/version/comment", {
+      method: "POST",
       body: JSON.stringify(data),
-    })
+    });
   },
 
-  updateVersionComment: async (postId: string, blockId: string, versionId: string, commentId: string, data: { text: string }) => {
-    return apiRequest<any>(`/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}&comment_id=${commentId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
+  updateVersionComment: async (
+    postId: string,
+    blockId: string,
+    versionId: string,
+    commentId: string,
+    data: { text: string }
+  ) => {
+    return apiRequest<any>(
+      `/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}&comment_id=${commentId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
   },
 
-  deleteVersionComment: async (postId: string, blockId: string, versionId: string, commentId: string) => {
-    return apiRequest<{ message: string }>(`/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}&comment_id=${commentId}`, {
-      method: 'DELETE',
-    })
+  deleteVersionComment: async (
+    postId: string,
+    blockId: string,
+    versionId: string,
+    commentId: string
+  ) => {
+    return apiRequest<{ message: string }>(
+      `/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}&comment_id=${commentId}`,
+      {
+        method: "DELETE",
+      }
+    );
   },
-}
+};
 
 // Social Account API functions
 export const socialAccountApi = {
   // Get social accounts for a brand
   getSocialAccounts: async (brandId: string) => {
-    return apiRequest<any[]>(`/social-account?brandId=${brandId}`)
+    return apiRequest<any[]>(`/social-account?brandId=${brandId}`);
   },
 
   // Disconnect social page or account
   disconnectSocial: async (data: {
-    brandId: string
-    pageId?: string
-    accountId?: string
+    brandId: string;
+    pageId?: string;
+    accountId?: string;
   }) => {
-    return apiRequest<{ success: boolean; message: string }>('/social-account/disconnect', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
+    return apiRequest<{ success: boolean; message: string }>(
+      "/social-account/disconnect",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    );
   },
-}
+};
 
-export { ApiError } 
- 
+export { ApiError };
+
 // Activity API functions
 export const activityApi = {
   getPostActivities: async (postId: string) => {
-    return apiRequest<any[]>(`/post/activity?post_id=${postId}`)
+    return apiRequest<any[]>(`/post/activity?post_id=${postId}`);
   },
   getWorkspaceActivities: async (workspaceId: string) => {
-    return apiRequest<any[]>(`/workspace/activities?workspace_id=${workspaceId}`)
+    return apiRequest<any[]>(
+      `/workspace/activities?workspace_id=${workspaceId}`
+    );
   },
   addActivity: async (data: {
-    workspace_id: string
-    post_id?: string
-    actor_id: string
-    type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing' | 'comment' | 'workspace_invited_sent' | 'board_invited_sent'
-    metadata?: any
+    workspace_id: string;
+    post_id?: string;
+    actor_id: string;
+    type:
+      | "revision_request"
+      | "revised"
+      | "approved"
+      | "scheduled"
+      | "published"
+      | "failed_publishing"
+      | "comment"
+      | "workspace_invited_sent"
+      | "board_invited_sent";
+    metadata?: any;
   }) => {
-    return apiRequest<any>('/post/activity', {
-      method: 'POST',
+    return apiRequest<any>("/post/activity", {
+      method: "POST",
       body: JSON.stringify(data),
-    })
-  }
-}
+    });
+  },
+};
 
 // Notification API functions
 export const notificationApi = {
   getUserNotifications: async (userEmail: string) => {
-    return apiRequest<{ activities: any[] }>(`/user/notifications?user_email=${encodeURIComponent(userEmail)}`)
+    return apiRequest<{ activities: any[] }>(
+      `/user/notifications?user_email=${encodeURIComponent(userEmail)}`
+    );
   },
   removeAllUnreadNotifications: async (userEmail: string) => {
-    return apiRequest<{ success: boolean; cleared: string }>('/user/notifications', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_email: userEmail
-      }),
-    })
+    return apiRequest<{ success: boolean; cleared: string }>(
+      "/user/notifications",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          user_email: userEmail,
+        }),
+      }
+    );
   },
-  removeUnreadNotification: async (userEmail: string, notificationId: string) => {
-    return apiRequest<{ success: boolean; unread_notification: string[] }>('/user/notifications', {
-      method: 'PATCH',
-      body: JSON.stringify({
-        user_email: userEmail,
-        notification_id: notificationId
-      }),
-    })
-  }
-}
+  removeUnreadNotification: async (
+    userEmail: string,
+    notificationId: string
+  ) => {
+    return apiRequest<{ success: boolean; unread_notification: string[] }>(
+      "/user/notifications",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          user_email: userEmail,
+          notification_id: notificationId,
+        }),
+      }
+    );
+  },
+};
