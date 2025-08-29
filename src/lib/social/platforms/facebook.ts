@@ -42,6 +42,7 @@ const config: SocialPlatformConfig = {
     'pages_show_list',
     'pages_manage_metadata',
     'pages_read_user_content',
+    'read_insights' // for analytics
   ],
   apiVersion: 'v23.0',
   baseUrl: 'https://graph.facebook.com',
@@ -671,9 +672,14 @@ export class FacebookPlatform extends BasePlatform {
       });
       
 
-      const posts = response.data.map(post => this.mapFacebookPostToHistory(post, page.id));
+      const modifiedPosts = response.data.map(post => this.mapFacebookPostToHistory(post, page.id));
 
-      return { posts, nextPage: response.paging?.cursors?.after || undefined };
+      for (const post of modifiedPosts) {
+        const analytics = await this.getPostAnalytics(page, post.id);
+        post.analytics = analytics;
+      }
+
+      return { posts: modifiedPosts, nextPage: response.paging?.cursors?.after || undefined };
     } catch (error) {
       this.handleApiError(error, 'get post history');
     }
@@ -774,37 +780,78 @@ export class FacebookPlatform extends BasePlatform {
         throw new Error('No auth token available');
       }
 
+      // https://developers.facebook.com/docs/graph-api/reference/post/insights/
       const response = await this.fetchWithAuth<{
         data: Array<{
           name: string;
-          values: Array<{ value: number }>;
+          period: string;
+          values: Array<{ value: number | Record<string, number> }>;
+          title?: string;
+          description?: string;
         }>;
       }>(`${config.baseUrl}/${config.apiVersion}/${postId}/insights`, {
         token: token,
         queryParams: {
           metric: [
             'post_impressions',
-            'post_engagements',
             'post_reactions_by_type_total',
             'post_clicks',
-            'post_reach'
-          ].join(',')
+          ].join(','),
+          period: 'lifetime'
         }
       });
 
-      const metrics = response.data.reduce((acc, metric) => {
-        acc[metric.name] = metric.values[0].value;
-        return acc;
-      }, {} as Record<string, number>);
+      // Process metrics handling both numeric and object values
+      const metrics: Record<string, number> = {};
+      let totalReactions = 0;
+      let reactionBreakdown: Record<string, number> = {};
+
+      response.data.forEach(metric => {
+        if (metric.values && metric.values.length > 0) {
+          const value = metric.values[0].value;
+          
+          if (metric.name === 'post_reactions_by_type_total') {
+            // Handle reaction breakdown object: {"like": 1, "love": 1}
+            if (typeof value === 'object' && value !== null) {
+              reactionBreakdown = value as Record<string, number>;
+              totalReactions = Object.values(reactionBreakdown).reduce((sum, count) => sum + count, 0);
+              metrics.total_reactions = totalReactions;
+            } else {
+              // Fallback if it's somehow a number
+              metrics.total_reactions = value as number;
+              totalReactions = value as number;
+            }
+          } else {
+            // Handle simple numeric values
+            metrics[metric.name] = value as number;
+          }
+        }
+      });
 
       const analyticsData = {
         views: metrics.post_impressions || 0,
-        engagement: metrics.post_engagements || 0,
-        likes: metrics.post_reactions_by_type_total || 0,
+        engagement: totalReactions || 0, // Use total reactions as base engagement
+        likes: totalReactions || 0, // Total of all reactions
         clicks: metrics.post_clicks || 0,
-        reach: metrics.post_reach || 0,
+        reach: 0, // post_reach not included in basic metrics
         comments: 0, // Need to fetch separately
-        shares: 0 // Need to fetch separately
+        shares: 0, // Need to fetch separately
+        
+        // Additional Facebook-specific metadata
+        metadata: {
+          platform: 'facebook',
+          postId: postId,
+          reactions: {
+            like: reactionBreakdown.like || 0,
+            love: reactionBreakdown.love || 0,
+            wow: reactionBreakdown.wow || 0,
+            haha: reactionBreakdown.haha || 0,
+            sorry: reactionBreakdown.sorry || 0,
+            anger: reactionBreakdown.anger || 0,
+            total: totalReactions
+          },
+          lastUpdated: new Date().toISOString()
+        }
       };
 
       return analyticsData;
