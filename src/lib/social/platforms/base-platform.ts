@@ -177,7 +177,9 @@ export abstract class BasePlatform implements PlatformOperations {
   abstract createPost(page: SocialPage, content: PostContent, options?: PublishOptions): Promise<PostHistory>;
   abstract publishPost(page: SocialPage, content: PostContent, options?: PublishOptions): Promise<PostHistory>;
   abstract deletePost(page: SocialPage, postId: string): Promise<void>;
-  abstract getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<{ posts: PostHistory[], nextPage: number | string | null | undefined }>;
+  // TODO: Use this when we have implemented across all platforms
+  // abstract getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<{ posts: PostHistory[], nextPage: number | string | null | undefined }>;
+  abstract getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<any>;
   abstract getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']>;
 
   // Platform features
