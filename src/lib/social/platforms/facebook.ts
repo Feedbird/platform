@@ -864,7 +864,7 @@ export class FacebookPlatform extends BasePlatform {
     }
   }
 
-  async deletePost(page: SocialPage, postId: string): Promise<void> {
+  async deletePost(page: SocialPage, postId: string): Promise<any> {
     // Prevent browser calls - route to API endpoint
     if (IS_BROWSER) {
       const res = await fetch('/api/social/facebook/delete', {
@@ -886,12 +886,15 @@ export class FacebookPlatform extends BasePlatform {
     }
 
     // https://developers.facebook.com/docs/pages-api/posts/#delete-a-post
-    await this.fetchWithAuth(
+    const res = await this.fetchWithAuth(
       `${config.baseUrl}/${config.apiVersion}/${postId}`,
       {
         method: 'DELETE',
         token: token
       }
     );
+
+    return res;
   }
+
 } 

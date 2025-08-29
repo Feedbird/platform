@@ -125,6 +125,9 @@ export default function SocialPagePosts() {
     await executeWithLoading(async () => {
       try {
         await deletePagePost(brandId, pageId, ph.postId || ph.id);
+        // remove the post from the store's post history
+        await syncPostHistory(brandId, pageId);
+     
       } catch (e: any) {
         const errorMsg = e.message ?? 'Failed deleting post';
         setErrMsg(errorMsg);
