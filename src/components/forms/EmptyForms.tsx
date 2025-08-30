@@ -1,8 +1,10 @@
-import React from "react";
+"use client";
 import EmptyFormPreview from "./content/EmptyFormPreview";
 import { Button } from "../ui/button";
+import { useRouter } from "next/navigation";
 
 export default function EmptyFormsComponent() {
+  const router = useRouter();
   return (
     <div className="w-full h-full bg-[#F8F8F8] items-center justify-center flex flex-col p-4">
       <div className="w-full md:max-w-[230px] flex flex-col gap-4">
@@ -20,7 +22,10 @@ export default function EmptyFormsComponent() {
           </p>
         </div>
 
-        <Button className="bg-[#4670F9] hover:cursor-pointer self-center w-24 text-white py-1 px-[10px] rounded-[4px] font-medium text-[13px]">
+        <Button
+          onClick={() => router.push("/forms/new")}
+          className="bg-[#4670F9] hover:cursor-pointer self-center w-24 text-white py-1 px-[10px] rounded-[4px] font-medium text-[13px]"
+        >
           + New Form
         </Button>
       </div>
