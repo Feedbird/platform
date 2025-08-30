@@ -11,56 +11,11 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import InputCard from "./content/InputCard";
-import React, { useState } from "react";
-
-type FieldType = {
-  id: string;
-  label: string;
-  icon: string;
-  type: string;
-};
+import React from "react";
+import { FormFieldsArray } from "@/lib/forms/fields";
 
 export default function FormEditorSideBar() {
   const [activeId, setActiveId] = React.useState<string | null>(null);
-
-  const fieldTemplates: FieldType[] = [
-    {
-      id: "text",
-      label: "Single line text",
-      icon: "/images/forms/inputs/text.svg",
-      type: "text",
-    },
-    {
-      id: "longText",
-      label: "Long text",
-      icon: "/images/forms/inputs/long-text.svg",
-      type: "textarea",
-    },
-    {
-      id: "checkbox",
-      label: "Checkbox",
-      icon: "/images/forms/inputs/checkbox.svg",
-      type: "checkbox",
-    },
-    {
-      id: "email",
-      label: "Email",
-      icon: "/images/forms/inputs/text.svg",
-      type: "email",
-    },
-    {
-      id: "phone",
-      label: "Phone",
-      icon: "/images/forms/inputs/text.svg",
-      type: "phone",
-    },
-    {
-      id: "select",
-      label: "Dropdown",
-      icon: "/images/forms/inputs/text.svg",
-      type: "select",
-    },
-  ];
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -70,6 +25,8 @@ export default function FormEditorSideBar() {
     }),
     useSensor(KeyboardSensor)
   );
+
+  const storedFields = React.useMemo(() => FormFieldsArray, []);
 
   const handleDragStart = React.useCallback((event: DragStartEvent) => {
     console.log("🚀 Started dragging field template:", event.active.id);
@@ -109,12 +66,12 @@ export default function FormEditorSideBar() {
           onDragEnd={handleDragEnd}
         >
           <div className="grid grid-cols-1 gap-1">
-            {fieldTemplates.map((field) => (
+            {storedFields.map((field, idx) => (
               <InputCard
-                key={field.id}
-                id={field.id}
+                key={idx}
+                id={field.label}
                 label={field.label}
-                icon={field.icon}
+                icon={field.iconPath}
               />
             ))}
           </div>
