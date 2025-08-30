@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { CreateFormSchema } from "../route";
 import { supabase } from "@/lib/supabase/client";
+
+const CreateFormSchema = z.object({
+  type: z.enum(["intake", "template"]),
+  workspace_id: z.string().uuid(),
+  service_id: z.string().uuid().optional(),
+  title: z.string().min(4),
+  thumbnail_url: z.string().url().optional(),
+  cover_url: z.string().url().optional(),
+  description: z.string().max(900).optional(),
+  location_tags: z.array(z.string()).default([]),
+  account_tags: z.array(z.string()).default([]),
+  createdBy: z.string().email(),
+});
 
 // Validation schemas
 
