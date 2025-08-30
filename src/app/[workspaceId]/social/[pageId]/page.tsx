@@ -19,7 +19,7 @@ export default function SocialPagePosts() {
   const brandId          = useFeedbirdStore(s => s.activeBrandId);
   const postHistory      = useFeedbirdStore(s => s.postHistory);
   const syncPostHistory  = useFeedbirdStore(s => s.syncPostHistory);
-  const loadMorePostHistory = useFeedbirdStore(s => s.loadMorePostHistory);
+  const nextPage         = useFeedbirdStore(s => s.nextPage[pageId]);
   const deletePagePost   = useFeedbirdStore(s => s.deletePagePost);
   const brand            = useFeedbirdStore(s => s.getActiveBrand());
   
@@ -125,6 +125,9 @@ export default function SocialPagePosts() {
     await executeWithLoading(async () => {
       try {
         await deletePagePost(brandId, pageId, ph.postId || ph.id);
+        // remove the post from the store's post history
+        await syncPostHistory(brandId, pageId);
+     
       } catch (e: any) {
         const errorMsg = e.message ?? 'Failed deleting post';
         setErrMsg(errorMsg);
@@ -148,9 +151,13 @@ export default function SocialPagePosts() {
     if (!brandId || !pageId) return;
     
     await executeWithLoading(async () => {
-      await loadMorePostHistory(brandId, pageId);
+      await syncPostHistory(
+        brandId,
+        pageId,
+        nextPage
+      );
     }, "Loading more posts...");
-  }, [brandId, pageId, loadMorePostHistory, executeWithLoading]);
+  }, [brandId, pageId, nextPage, syncPostHistory, executeWithLoading]);
 
   // Determine if we're really loading (either local state or store state)
   const isReallyLoading = isInitialLoading || isStoreSyncing;
@@ -237,6 +244,7 @@ function PostCard({
   /** crude helper – look at the URL to decide how to render             */
   const isVideoUrl = useCallback((u: string) =>
     /\.(mp4|m4v|mov|webm|ogg)$/i.test(u) ||
+    /fbcdn\.net.*\.mp4/i.test(u) ||
     /youtube\.com|youtu\.be|vimeo\.com|tiktok\.com/.test(u), []);
 
   // Memoize the media rendering to avoid unnecessary re-renders

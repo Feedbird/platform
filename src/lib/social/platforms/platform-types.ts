@@ -211,7 +211,9 @@ export interface PlatformOperations {
   deletePost(page: SocialPage, postId: string): Promise<void>;
   
   // Analytics & History
-  getPostHistory(page: SocialPage, limit?: number, cursor?: number): Promise<PostHistory[]>;
+  // TODO: Use this when we have implemented across all platforms
+  // getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<{ posts: PostHistory[], nextPage: number | string | null | undefined }>;
+  getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<any>;
   getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']>;
   
   // Platform-specific operations
@@ -315,4 +317,10 @@ export interface PostSettings {
   taggedAccounts: string[];
   thumbnail: boolean;
   tiktok?: TikTokSettings;
+}
+
+
+export interface PostHistoryResponse<T = PostHistory> {
+  posts: T[];
+  nextPage: number | string | null | undefined;
 }

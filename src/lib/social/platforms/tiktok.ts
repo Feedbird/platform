@@ -7,6 +7,9 @@ import type {
   PublishOptions,
   SocialPlatformConfig,
   TikTokCreatorInfo,
+  PostStatus,
+  PostHistoryResponse,
+  PageStatus,
 } from './platform-types';
 import { getSecureToken } from '@/lib/utils/token-manager';
 import { postApi } from '@/lib/api/api-service';
@@ -476,7 +479,7 @@ export class TikTokPlatform extends BasePlatform {
     return { publishId, id: content.id }
   }
 
-  async getPostHistory(page: SocialPage, limit = 20, cursor?: number): Promise<PostHistory[]> {
+  async getPostHistory(page: SocialPage, limit = 20, nextPage?: number): Promise<PostHistoryResponse<PostHistory>> {
     if (IS_BROWSER) {
       const res = await fetch('/api/social/tiktok/history', {
         method: 'POST',
@@ -538,7 +541,7 @@ export class TikTokPlatform extends BasePlatform {
       },
       body: JSON.stringify({
         max_count: validatedLimit,
-        ...(cursor && { cursor })
+        ...(nextPage && { cursor: nextPage })
       })
     });
     
@@ -604,13 +607,13 @@ export class TikTokPlatform extends BasePlatform {
         }
 
         // Map videos with analytics data
-        return response.data.videos.map(video => ({
+        const posts = response.data.videos.map(video => ({
           id: video.id,
           pageId: page.id,
           postId: video.id,
           content: video.video_description || video.title,
           mediaUrls: [video.share_url],
-          status: 'published',
+          status: 'published' as PostStatus,
           publishedAt: new Date(video.create_time * 1000),
           analytics: analyticsMap.get(video.id) || {
             likes: 0,
@@ -619,6 +622,8 @@ export class TikTokPlatform extends BasePlatform {
             views: 0
           }
         }));
+
+        return { posts, nextPage: response.data.has_more ? (nextPage || 0) + limit : undefined };
       } catch (error) {
         console.warn('Failed to fetch video analytics:', error);
         // Fallback to videos without analytics
@@ -626,13 +631,13 @@ export class TikTokPlatform extends BasePlatform {
     }
 
     // Return videos without analytics if no videos or analytics fetch failed
-    return response.data.videos.map(video => ({
+    const posts = response.data.videos.map(video => ({
       id: video.id,
       pageId: page.id,
       postId: video.id,
       content: video.video_description || video.title,
       mediaUrls: [video.share_url],
-      status: 'published',
+      status: 'published' as PostStatus,
       publishedAt: new Date(video.create_time * 1000),
       analytics: {
         likes: 0,
@@ -641,6 +646,8 @@ export class TikTokPlatform extends BasePlatform {
         views: 0
       }
     }));
+
+    return { posts, nextPage: response.data.has_more ? (nextPage || 0) + limit : undefined };
   }
 
   async getCreatorInfo(page: SocialPage): Promise<TikTokCreatorInfo> {
@@ -751,7 +758,7 @@ export class TikTokPlatform extends BasePlatform {
       console.warn('Failed to revoke TikTok token:', error);
     } finally {
       acc.connected = false;
-      acc.status = 'disconnected';
+      acc.status = 'disconnected' as PageStatus;
     }
   }
 
@@ -766,7 +773,7 @@ export class TikTokPlatform extends BasePlatform {
 
   async disconnectPage(page: SocialPage): Promise<void> {
     page.connected = false;
-    page.status = 'disconnected';
+    page.status = 'disconnected' as PageStatus;
   }
 
   async checkPageStatus(page: SocialPage): Promise<SocialPage> {
@@ -776,9 +783,9 @@ export class TikTokPlatform extends BasePlatform {
         throw new Error('No auth token available');
       }
       await this.getUserInfo(token, ['open_id']);
-      return { ...page, status: 'active', statusUpdatedAt: new Date() };
+      return { ...page, status: 'active' as PageStatus, statusUpdatedAt: new Date() };
     } catch {
-      return { ...page, status: 'expired', statusUpdatedAt: new Date() };
+      return { ...page, status: 'expired' as PageStatus, statusUpdatedAt: new Date() };
     }
   }
 

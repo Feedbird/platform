@@ -323,6 +323,9 @@ export interface FeedbirdStore {
   
   /** NEW: Store post history fetched from each social page. Key = pageId. */
   postHistory: Record<string, PostHistory[]>;
+
+  /** NEW: Store next page for each social page. Key = pageId. */
+  nextPage: Record<string, number | string | null | undefined>;
   
   /** Loading states for post history sync. Key = pageId. */
   syncingPostHistory: Record<string, boolean>;
@@ -358,8 +361,8 @@ export interface FeedbirdStore {
   getActiveBrand: () => Brand | undefined;
   getActivePosts: () => Post[];
   getAllPosts: () => Post[];
-  syncPostHistory: (brandId: string, pageId: string, cursor?: number) => Promise<void>;
-  loadMorePostHistory: (brandId: string, pageId: string) => Promise<void>;
+  syncPostHistory: (brandId: string, pageId: string, nextPage?: number | string | null | undefined) => Promise<void>;
+  // loadMorePostHistory: (brandId: string, pageId: string) => Promise<void>;
   publishPostToAllPages: (postId: string, scheduledTime?: Date) => Promise<void>;
   getPost: (id: string) => Post | undefined;
   updatePost: (pid: string, data: Partial<Post>) => Promise<void>;
@@ -753,6 +756,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         postHistory: {},
         channelMessagesByChannelId: {},
         syncingPostHistory: {},
+        nextPage: {},
         // getters
         getActiveWorkspace: () => {
           const workspace = get().workspaces.find((w) => w.id === get().activeWorkspaceId);
@@ -906,7 +910,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 let publishOptions: any = { scheduledTime };
                 let postContent: any;
 
-                if (['tiktok', 'linkedin'].includes(page.platform)) {
+                if (['tiktok', 'linkedin', 'facebook'].includes(page.platform)) {
                   
                   // Use TikTok settings if available, otherwise use defaults
                   if (post.settings?.tiktok) {
@@ -980,7 +984,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           );
         },
 
-        syncPostHistory: (brandId, pageId, cursor?: number) => {
+        syncPostHistory: (brandId, pageId, nextPage?: number | string | null | undefined) => {
           return withLoading(
             async () => {
               const workspace = get().getActiveWorkspace();
@@ -995,14 +999,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               const ops = getPlatformOperations(page.platform);
               if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
 
-              const fetched = await ops.getPostHistory(page, 20, cursor);
+              // Fix: nextPage can be null, but getPostHistory expects string | number | undefined
+              const fetched = await ops.getPostHistory(page, 20, nextPage ?? undefined);
               
               set((state) => {
                 const existingHistory = state.postHistory[pageId] || [];
-                const newHistory = cursor ? [...existingHistory, ...fetched] : fetched;
+                const newHistory = nextPage ? [...existingHistory, ...fetched.posts] : fetched.posts;
                 
                 return {
                   postHistory: { ...state.postHistory, [pageId]: newHistory },
+                  nextPage: { ...state.nextPage, [pageId]: fetched.nextPage },
                   workspaces: state.workspaces.map((w) => ({
                     ...w,
                     brand: w.brand && w.brand.id === brandId ? {
@@ -1019,49 +1025,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               loading: "Syncing post history...",
               success: "Post history synced successfully!",
               error: "Failed to sync post history."
-            }
-          );
-        },
-
-        loadMorePostHistory: (brandId, pageId) => {
-          return withLoading(
-            async () => {
-              const workspace = get().getActiveWorkspace();
-              if (!workspace?.brand || workspace.brand.id !== brandId) {
-                throw new Error("Brand not found");
-              }
-
-              const brand = workspace.brand;
-              const page = brand.socialPages.find(p => p.id === pageId);
-              if (!page) throw new Error("Page not found");
-
-              const ops = getPlatformOperations(page.platform);
-              if (!ops) throw new Error(`Platform operations not found for ${page.platform}`);
-
-              // Get current history to determine next cursor
-              const currentHistory = get().postHistory[pageId] || [];
-              const lastPost = currentHistory[currentHistory.length - 1];
-              const nextCursor = lastPost?.analytics?.metadata?.pagination?.nextCursor;
-
-              if (!nextCursor) {
-                throw new Error("No more posts to load");
-              }
-
-              const fetched = await ops.getPostHistory(page, 20, nextCursor);
-              
-              set((state) => {
-                const existingHistory = state.postHistory[pageId] || [];
-                const newHistory = [...existingHistory, ...fetched];
-                
-                return {
-                  postHistory: { ...state.postHistory, [pageId]: newHistory },
-                };
-              });
-            },
-            {
-              loading: "Loading more posts...",
-              success: "More posts loaded successfully!",
-              error: "Failed to load more posts."
             }
           );
         },
