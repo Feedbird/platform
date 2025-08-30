@@ -1,11 +1,10 @@
 import { create } from "zustand";
 import { Form } from "../supabase/client";
-import { formsApi } from "../api/api-service";
+import { ApiResponse, formsApi } from "../api/api-service";
 
 interface FormStoreState {
-  workspaceForms: Form[];
-  setWorkspaceForms: (forms: Form[]) => void;
-  getFormById: (id: string) => Promise<{ data: Form }>;
+  getFormsByWorkspaceId: (workspaceId: string) => Promise<ApiResponse<Form[]>>;
+  getFormById: (id: string) => Promise<ApiResponse<Form>>;
   createInitialForm: (
     creatorEmail: string,
     workspaceId: string
@@ -13,8 +12,9 @@ interface FormStoreState {
 }
 
 export const useFormStore = create<FormStoreState>((set, get) => ({
-  workspaceForms: [],
-  setWorkspaceForms: (forms) => set({ workspaceForms: forms }),
+  getFormsByWorkspaceId: async (workspaceId: string) => {
+    return formsApi.getFormsByWorkspaceId(workspaceId);
+  },
   getFormById: async (id: string) => {
     const form = formsApi.getFormById(id);
     if (!form) {

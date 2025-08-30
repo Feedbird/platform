@@ -1,5 +1,9 @@
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
+export interface ApiResponse<T> {
+  data: T;
+}
+
 // Normalize activities from API/DB into store Activity shape
 function normalizeActivities(items: any[] | undefined) {
   return (items || []).map((a: any) => {
@@ -232,7 +236,7 @@ export const workspaceHelperApi = {
 export const formsApi = {
   // Create new empty form
   createInitialForm: async (creatorEmail: string, workspaceId: string) => {
-    return apiRequest<Form>("/form/initial", {
+    return apiRequest<Form>("/forms/initial", {
       method: "POST",
       body: JSON.stringify({
         type: "intake",
@@ -245,7 +249,10 @@ export const formsApi = {
     });
   },
   getFormById: async (id: string) => {
-    return apiRequest<{ data: Form }>(`/form?id=${id}`);
+    return apiRequest<{ data: Form }>(`/forms/${id}`);
+  },
+  getFormsByWorkspaceId: async (workspaceId: string) => {
+    return apiRequest<ApiResponse<Form[]>>(`/forms?workspace_id=${workspaceId}`);
   },
 };
 

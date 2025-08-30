@@ -23,19 +23,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-
-export interface BaseFormData {
-  id: string;
-  formName: string;
-  lastEditedAt: string;
-}
-
-export interface FormData extends BaseFormData {
-  submissionsCount: number;
-  questionCount: number;
-  status: "Published" | "Draft";
-  icon: string;
-}
+import { Form } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import EmptyFormPreview from "./EmptyFormPreview";
+import EmptyFormsComponent from "../EmptyForms";
 
 export interface FormSubmission {
   id: string;
@@ -44,72 +36,13 @@ export interface FormSubmission {
 }
 
 export type FormsTableProps = {
-  forms: FormData[];
+  forms: Form[];
 };
 
 export default function FormsTable({ forms }: FormsTableProps) {
-  // Add sample data if forms array is empty
-  const sampleForms: FormData[] = [
-    {
-      id: "1",
-      formName: "Landing Page Contact Form",
-      submissionsCount: 324,
-      lastEditedAt: "Aug 25, 2025",
-      questionCount: 5,
-      status: "Published",
-      icon: "",
-    },
-    {
-      id: "2",
-      formName: "Customer Feedback Survey",
-      submissionsCount: 156,
-      lastEditedAt: "Aug 23, 2025",
-      questionCount: 12,
-      status: "Published",
-      icon: "",
-    },
-    {
-      id: "3",
-      formName: "Job Application Form",
-      submissionsCount: 89,
-      lastEditedAt: "Aug 22, 2025",
-      questionCount: 18,
-      status: "Draft",
-      icon: "",
-    },
-    {
-      id: "4",
-      formName: "Event Registration",
-      submissionsCount: 67,
-      lastEditedAt: "Aug 20, 2025",
-      questionCount: 8,
-      status: "Published",
-      icon: "",
-    },
-    {
-      id: "5",
-      formName: "Newsletter Signup",
-      submissionsCount: 423,
-      lastEditedAt: "Aug 18, 2025",
-      questionCount: 3,
-      status: "Published",
-      icon: "",
-    },
-    {
-      id: "6",
-      formName: "Product Request Form",
-      submissionsCount: 0,
-      lastEditedAt: "Aug 15, 2025",
-      questionCount: 7,
-      status: "Draft",
-      icon: "",
-    },
-  ];
-
-  const [tabledData, setTableData] = React.useState<FormData[]>(
-    forms.length > 0 ? forms : sampleForms
-  );
+  const [tabledData, setTableData] = React.useState<Form[]>(forms);
   const [filterOpen, setFilterOpen] = React.useState(false);
+  const router = useRouter();
   const [filterTree, setFilterTree] = React.useState<ConditionGroup>({
     id: "root",
     andOr: "AND",
@@ -140,7 +73,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
     );
   }, [filterTree]);
 
-  const baseColumns: ColumnDef<FormData>[] = React.useMemo(() => {
+  const baseColumns: ColumnDef<Form>[] = React.useMemo(() => {
     return [
       {
         id: "placeholder",
@@ -180,22 +113,25 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 400,
         cell: ({ row }) => (
           <div className="group flex items-center gap-3 py-1.5">
-            <span className="text-lg">{row.original.icon}</span>
+            {/* <span className="text-lg">{row.original.icon}</span> */}
             <div className="flex flex-col flex-1 gap-0.5">
               <span className="text-sm font-medium text-gray-900">
-                {row.original.formName}
+                {row.original.title}
               </span>
               <span className="text-xs text-[#838488]">
-                {row.original.questionCount} Questions
+                {/* {row.original.questionCount} Questions */}
               </span>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="px-3 py-1.5 bg-[#4670F9] text-white text-sm font-medium hover:bg-blue-700 rounded-[5px] transition-colors hover:cursor-pointer">
+              <Button
+                onClick={() => router.push(`/forms/${row.original.id}`)}
+                className="px-3 py-1.5 bg-[#4670F9] text-white text-sm font-medium hover:bg-blue-700 rounded-[5px] transition-colors hover:cursor-pointer"
+              >
                 Edit
-              </button>
-              <button className="px-3 py-1.5 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-[5px] hover:bg-gray-50 transition-colors hover:cursor-pointer">
+              </Button>
+              <Button className="px-3 py-1.5 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-[5px] hover:bg-gray-50 transition-colors hover:cursor-pointer">
                 Preview
-              </button>
+              </Button>
             </div>
           </div>
         ),
@@ -212,7 +148,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 120,
         cell: ({ row }) => (
           <span className="text-sm text-gray-900">
-            {row.original.submissionsCount}
+            {/* {row.original.submissionsCount} */}
           </span>
         ),
       },
@@ -228,7 +164,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 120,
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            {row.original.status === "Published" ? (
+            {row.original.status === "published" ? (
               <Badge className="bg-[#E5EEFF] rounded-[4px] border-border-primary border-1 flex justify-start py-[2px] pr-1.5 pl-[2px]">
                 <div className="bg-[#387DFF] content-center p-0.5 rounded-[3px] w-3.5 h-3.5">
                   <Image
@@ -268,7 +204,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 150,
         cell: ({ row }) => (
           <span className="text-sm text-gray-500">
-            {row.original.lastEditedAt}
+            {row.original.updated_at}
           </span>
         ),
       },
@@ -365,7 +301,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
       }));
   }, [columnNames]);
 
-  const table = useReactTable<FormData>({
+  const table = useReactTable<Form>({
     data: tabledData,
     columns: baseColumns,
     state: {
@@ -413,7 +349,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
     table,
     stickyStyles,
   }: {
-    table: ReactTableType<FormData>;
+    table: ReactTableType<Form>;
     stickyStyles: (id: string, z?: number) => React.CSSProperties | undefined;
   }) {
     return (
@@ -578,6 +514,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
           </tbody>
         </table>
       </div>
+      {forms.length === 0 && <EmptyFormsComponent />}
     </>
   );
 }
