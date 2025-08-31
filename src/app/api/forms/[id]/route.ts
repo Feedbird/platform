@@ -46,3 +46,43 @@ export async function GET(
     );
   }
 }
+
+// TODO ASK: Soft delete?
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const extractedParams = await params;
+    const formId = extractedParams.id;
+
+    if (!formId) {
+      return NextResponse.json(
+        { success: false, error: "Form ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("forms")
+      .delete()
+      .eq("id", formId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching form:", error);
+      return NextResponse.json(
+        { success: false, error: "Failed to fetch form" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ data: "Deleted" });
+  } catch (error) {
+    console.error("Error in DELETE /api/form:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

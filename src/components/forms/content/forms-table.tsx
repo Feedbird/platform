@@ -28,6 +28,9 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import EmptyFormPreview from "./EmptyFormPreview";
 import EmptyFormsComponent from "../EmptyForms";
+import { humanizeDate } from "@/lib/utils/transformers";
+import { formsApi } from "@/lib/api/api-service";
+import FormDeleteModal from "./FormDeleteModal";
 
 export interface FormSubmission {
   id: string;
@@ -41,7 +44,9 @@ export type FormsTableProps = {
 
 export default function FormsTable({ forms }: FormsTableProps) {
   const [tabledData, setTableData] = React.useState<Form[]>(forms);
+  const [activeForm, setActiveForm] = React.useState<Form | null>(null);
   const [filterOpen, setFilterOpen] = React.useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const router = useRouter();
   const [filterTree, setFilterTree] = React.useState<ConditionGroup>({
     id: "root",
@@ -148,7 +153,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 120,
         cell: ({ row }) => (
           <span className="text-sm text-gray-900">
-            {/* {row.original.submissionsCount} */}
+            {/* {row.original.submissionsCount} */}0
           </span>
         ),
       },
@@ -204,7 +209,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 150,
         cell: ({ row }) => (
           <span className="text-sm text-gray-500">
-            {row.original.updated_at}
+            {humanizeDate(row.original.updated_at)}
           </span>
         ),
       },
@@ -219,7 +224,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
             <Popover>
-              <PopoverTrigger className="p-1 hover:bg-gray-100 rounded transition-colors hover:cursor-pointer">
+              <PopoverTrigger className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4">
                 <Image
                   src="/images/forms/actions.svg"
                   alt="actions_icon"
@@ -264,7 +269,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
                   />
                   <span>Share</span>
                 </button>
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                <button
+                  className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+                  onClick={() => {
+                    setDeleteModalOpen(true);
+                    setActiveForm(row.original);
+                  }}
+                >
                   <Image
                     src="/images/boards/delete.svg"
                     alt="delete_icon"
@@ -515,6 +526,12 @@ export default function FormsTable({ forms }: FormsTableProps) {
         </table>
       </div>
       {forms.length === 0 && <EmptyFormsComponent />}
+      <FormDeleteModal
+        open={deleteModalOpen}
+        onClose={setDeleteModalOpen}
+        setForms={setTableData}
+        formId={activeForm?.id || ""}
+      />
     </>
   );
 }

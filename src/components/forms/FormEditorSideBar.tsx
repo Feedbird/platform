@@ -65,7 +65,7 @@ export default function FormEditorSideBar() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-1 gap-1">
+          <div className="grid grid-cols-1 gap-2">
             {storedFields.map((field, idx) => (
               <InputCard
                 key={idx}

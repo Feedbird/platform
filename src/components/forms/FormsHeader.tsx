@@ -1,8 +1,11 @@
-import { Suspense } from "react";
+"use client";
+import React, { Suspense } from "react";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Button } from "../ui/button";
 import { UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useFormStore } from "@/lib/store/forms-store";
 
 export function FormsHeader() {
   return (
@@ -12,9 +15,29 @@ export function FormsHeader() {
   );
 }
 
-// TODO This may be moved to a more internal location, perhaps inner layout, so It can have context of edit mode without more global state
+// TODO This may be moved to a more internal location, perhaps inner layout, so It can have context of edit mode without more global states
 function FormsHeaderContent() {
+  const [loading, isLoading] = React.useState(false);
+
   const router = useRouter();
+  const { user, activeWorkspaceId } = useFeedbirdStore();
+  const { createInitialForm } = useFormStore();
+
+  const handleInitialFormCreation = async () => {
+    isLoading(true);
+    try {
+      if (!user || !activeWorkspaceId) {
+        throw new Error("User or active workspace not found");
+      }
+      const newForm = await createInitialForm(user.email, activeWorkspaceId);
+      router.push(`/forms/${newForm.id}`);
+    } catch (e) {
+      console.error("Error creating initial form:", e);
+      throw new Error("Error creating initial form"); //! TODO Check toasts
+    } finally {
+      isLoading(false);
+    }
+  };
   return (
     <header
       className="relative
@@ -41,9 +64,9 @@ function FormsHeaderContent() {
             variant="ghost"
             size="sm"
             className="border border-border-button rounded-[6px] bg-main text-white px-[12px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium"
-            onClick={() => router.push("/forms/new")}
+            onClick={handleInitialFormCreation}
           >
-            + New Form
+            {loading ? "Creating..." : "+ New Form"}
           </Button>
         </div>
         <UserButton afterSignOutUrl="/landing" />

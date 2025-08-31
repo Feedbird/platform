@@ -24,7 +24,7 @@ export default function InputCard({ id, label, icon }: InputCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className={`py-2 px-2.5 shadow-md rounded-sm flex flex-row justify-between items-center cursor-grab active:cursor-grabbing transition-opacity ${
+      className={`py-2 px-2.5 shadow-none rounded-sm flex flex-row justify-between border-1 border-[#EAE9E9] items-center cursor-grab active:cursor-grabbing transition-opacity ${
         isDragging ? "opacity-50 z-50" : ""
       }`}
     >

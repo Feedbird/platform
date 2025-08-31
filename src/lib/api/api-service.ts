@@ -252,7 +252,15 @@ export const formsApi = {
     return apiRequest<{ data: Form }>(`/forms/${id}`);
   },
   getFormsByWorkspaceId: async (workspaceId: string) => {
-    return apiRequest<ApiResponse<Form[]>>(`/forms?workspace_id=${workspaceId}`);
+    return apiRequest<ApiResponse<Form[]>>(
+      `/forms?workspace_id=${workspaceId}`
+    );
+  },
+  // Delete form
+  deleteForm: async (id: string) => {
+    return apiRequest<{ message: string }>(`/forms/${id}`, {
+      method: "DELETE",
+    });
   },
 };
 

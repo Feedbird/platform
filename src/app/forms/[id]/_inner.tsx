@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form } from "@/lib/supabase/client";
 import Image from "next/image";
@@ -31,7 +30,7 @@ export default function FormInnerVisualizer({
           </div>
         </div>
       </div>
-      <div className="flex flex-col p-6">
+      <div className="flex flex-col p-6 gap-2">
         <div className="flex flex-col gap-1">
           <div className="flex flex-col gap-2 p-3">
             <h2 className="text-[#1C1D1F] font-semibold text-3xl">
@@ -51,17 +50,7 @@ export default function FormInnerVisualizer({
             <Input className="border-[#D3D3D3] border-1 rounded-[6px] px-3 py-1.5" />
           </div>
         </div>
-        <div className="p-3 flex justify-end">
-          <Button className="bg-[#4670F9] rounded-[6px] py-1.5 px-3 text-white text-[13px] flex flex-row hover:cursor-pointer">
-            Submit
-            <Image
-              src="/images/forms/basic-arrow-right.svg"
-              alt="button_end_content"
-              width={14}
-              height={14}
-            />
-          </Button>
-        </div>
+
         <div className="p-3 w-full h-[60px]">
           <div className="bg-[#EDF6FF] w-full h-full border-[#4670F9] border-1 border-dashed">
             <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">

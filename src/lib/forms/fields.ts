@@ -44,37 +44,37 @@ export const UIFormFieldDefaults: Record<FormFieldType, UIFormField> = {
   option: {
     type: "option",
     label: "Option group",
-    iconPath: "/images/forms/inputs/text.svg",
+    iconPath: "/images/forms/inputs/option.svg",
     config: getFieldTypeInitialConfiguration("option"),
   },
   dropdown: {
     type: "dropdown",
     label: "Dropdown menu",
-    iconPath: "/images/forms/inputs/text.svg",
+    iconPath: "/images/forms/inputs/dropdown.svg",
     config: getFieldTypeInitialConfiguration("dropdown"),
   },
   attachment: {
     type: "attachment",
     label: "Attachment",
-    iconPath: "/images/forms/inputs/text.svg",
+    iconPath: "/images/forms/inputs/attachment.svg",
     config: getFieldTypeInitialConfiguration("attachment"),
   },
   spreadsheet: {
     type: "spreadsheet",
     label: "Spreadsheet input",
-    iconPath: "/images/forms/inputs/text.svg",
+    iconPath: "/images/forms/inputs/spreadsheet.svg",
     config: getFieldTypeInitialConfiguration("spreadsheet"),
   },
   "section-break": {
     type: "section-break",
     label: "Section break",
-    iconPath: "/images/forms/inputs/text.svg",
+    iconPath: "/images/forms/inputs/section-break.svg",
     config: getFieldTypeInitialConfiguration("section-break"),
   },
   "page-break": {
     type: "page-break",
     label: "Page break",
-    iconPath: "/images/forms/inputs/text.svg",
+    iconPath: "/images/forms/inputs/page-break.svg",
     config: getFieldTypeInitialConfiguration("page-break"),
   },
 };
