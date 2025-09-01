@@ -84,6 +84,7 @@ export interface Board {
   color?: string
   rules?: any
   group_data?: any
+  columns?: Array<{ name: string; is_default: boolean; order: number; type?: string }>
   created_at: string
   updated_at: string
 }

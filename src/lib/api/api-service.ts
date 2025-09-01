@@ -314,6 +314,7 @@ export const boardApi = {
     description?: string
     color?: string
     rules?: any
+    columns?: Array<{ name: string; is_default: boolean; order: number; type?: string; options?: any }>
   }): Promise<Board> => {
     return apiRequest<Board>('/board', {
       method: 'POST',
@@ -332,6 +333,7 @@ export const boardApi = {
       color?: string
       rules?: any
       group_data?: any
+      columns?: Array<{ name: string; is_default: boolean; order: number; type?: string; options?: any }>
     }
   ): Promise<Board> => {
     return apiRequest<Board>(`/board?id=${id}`, {
@@ -484,6 +486,7 @@ export const postApi = {
     blocks?: any[]
     comments?: any[]
     activities?: any[]
+    user_columns?: Array<{ name: string; value: string }>
   }): Promise<Post> => {
     console.log("postData", postData);
     return apiRequest<Post>('/post', {
@@ -509,6 +512,7 @@ export const postApi = {
       blocks?: any[]
       comments?: any[]
       activities?: any[]
+      user_columns?: Array<{ name: string; value: string }>
     }
   ): Promise<Post> => {
     return apiRequest<Post>(`/post?id=${id}`, {
@@ -541,6 +545,7 @@ export const postApi = {
     blocks?: any[]
     comments?: any[]
     activities?: any[]
+    user_columns?: Array<{ name: string; value: string }>
   }[]): Promise<{ message: string; posts: Post[] }> => {
     return apiRequest<{ message: string; posts: Post[] }>('/post/bulk', {
       method: 'POST',
@@ -587,6 +592,7 @@ export const storeApi = {
           description: b.description,
           color: b.color,
           rules: b.rules,
+          columns: (b as any).columns,
           createdAt: b.created_at ? new Date(b.created_at) : new Date(),
           groupData: (b as any).group_data || []
         }))
@@ -654,6 +660,7 @@ export const storeApi = {
                 pages: p.pages || [],
                 billingMonth: p.billing_month,
                 month: p.month ?? 1,
+                user_columns: (p as any).user_columns || [],
                 settings: p.settings,
                 hashtags: p.hashtags,
                 blocks: p.blocks || [],
@@ -663,6 +670,7 @@ export const storeApi = {
 
               return {
                 ...board,
+                columns: (board as any).columns,
                 posts: transformedPosts
               }
             })
@@ -1256,9 +1264,10 @@ export const storeApi = {
               description: board.description,
               color: board.color,
               rules: board.rules,
+              columns: (board as any).columns,
               groupData: board.group_data || [],
               createdAt: new Date(),
-                 posts: boardPostsWithActivities.map(post => ({
+              posts: boardPostsWithActivities.map(post => ({
                 id: post.id,
                 workspaceId: post.workspace_id,
                 board_id: post.board_id,
@@ -1271,11 +1280,12 @@ export const storeApi = {
                 pages: post.pages || [],
                 billingMonth: post.billing_month,
                 month: post.month || 1,
+                user_columns: (post as any).user_columns || [],
                 settings: post.settings,
                 hashtags: post.hashtags,
                 blocks: post.blocks || [],
                 comments: post.comments || [],
-                   activities: normalizeActivities(post.activities)
+                activities: normalizeActivities(post.activities)
               }))
             }]
           }
@@ -1320,6 +1330,7 @@ export const storeApi = {
             rules: (board as any).rules ?? b.rules,
             // Map server field group_data -> client field groupData
             groupData: (board as any).group_data !== undefined ? (board as any).group_data : (updates.group_data !== undefined ? updates.group_data : b.groupData),
+            columns: (board as any).columns !== undefined ? (board as any).columns : (updates.columns !== undefined ? updates.columns : (b as any).columns),
           }
         })
       }))
@@ -1410,6 +1421,7 @@ export const storeApi = {
                 pages: post.pages || [],
                 billingMonth: post.billing_month,
                 month: post.month || 1,
+                user_columns: (post as any).user_columns || [],
                 settings: post.settings,
                 hashtags: post.hashtags,
                 blocks: post.blocks || [],
@@ -1576,6 +1588,7 @@ export const storeApi = {
         pages: post.pages || [],
         billingMonth: post.billing_month,
         month: post.month || 1,
+        user_columns: (post as any).user_columns || [],
         settings: post.settings,
         hashtags: post.hashtags,
         blocks: post.blocks || [],

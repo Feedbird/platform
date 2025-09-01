@@ -20,10 +20,55 @@ interface SortMenuProps {
   setSorting: React.Dispatch<React.SetStateAction<SortingState>>;
   columnNames: Record<string, string>;
   columns: { id: string; getCanSort: () => boolean }[];
+  userColumns?: Array<{ id: string; label: string; type: string }>;
 }
 
-export function SortMenu({ sorting, setSorting, columnNames, columns }: SortMenuProps) {
+export function SortMenu({ sorting, setSorting, columnNames, columns, userColumns = [] }: SortMenuProps) {
   const [open, setOpen] = React.useState(false);
+
+  // Icon mapping for user column types
+  const getUserColumnIcon = (columnId: string) => {
+    const userColumn = userColumns.find(col => col.id === columnId);
+    if (!userColumn) return null;
+
+    const iconSrcByType: Record<string, string> = {
+      singleLine: "/images/columns/single-line-text.svg",
+      longText: "/images/columns/long-text.svg",
+      attachment: "/images/columns/preview.svg",
+      checkbox: "/images/columns/approve.svg",
+      feedback: "/images/columns/message-notification-active.svg",
+      singleSelect: "/images/columns/format.svg",
+      multiSelect: "/images/columns/status.svg",
+      date: "/images/columns/post-time.svg",
+      lastUpdatedTime: "/images/columns/updated-time.svg",
+    };
+
+    const iconSrc = iconSrcByType[userColumn.type] ?? "/images/columns/single-line-text.svg";
+    return <Image src={iconSrc} alt={userColumn.type} width={12} height={12} />;
+  };
+
+  // Get column icon - either from built-in columnMeta or user column
+  const getColumnIcon = (columnId: string) => {
+    // Check if it's a built-in column first
+    if (columnMeta[columnId as ColumnID]) {
+      return columnMeta[columnId as ColumnID]?.icon;
+    }
+    
+    // Check if it's a user column
+    return getUserColumnIcon(columnId);
+  };
+
+  // Get column label - either from built-in columnMeta or user column
+  const getColumnLabel = (columnId: string) => {
+    // Check if it's a built-in column first
+    if (columnMeta[columnId as ColumnID]) {
+      return columnMeta[columnId as ColumnID]?.label;
+    }
+    
+    // Check if it's a user column
+    const userColumn = userColumns.find(col => col.id === columnId);
+    return userColumn?.label || columnId;
+  };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -37,7 +82,7 @@ export function SortMenu({ sorting, setSorting, columnNames, columns }: SortMenu
           <Image src="/images/icons/table-toolbar-sort.svg" alt="Sort" width={12} height={12} />
           <span className="text-sm font-medium text-black leading-[16px]">
             {sorting.length === 1 
-              ? `Sorted by ${columnMeta[sorting[0].id as ColumnID]?.label || sorting[0].id}`
+              ? `Sorted by ${getColumnLabel(sorting[0].id) || sorting[0].id}`
               : sorting.length > 1 
                 ? `Sorted by ${sorting.length} fields` 
                 : "Sort"
@@ -73,8 +118,8 @@ export function SortMenu({ sorting, setSorting, columnNames, columns }: SortMenu
                 />
                 <div className="flex-1 text-sm">
                   <div className="flex items-center gap-2">
-                    {columnMeta[col.id as ColumnID]?.icon}
-                    {columnMeta[col.id as ColumnID]?.label || col.id}
+                    {getColumnIcon(col.id)}
+                    {getColumnLabel(col.id) || col.id}
                   </div>
                 </div>
                 {isActive && (

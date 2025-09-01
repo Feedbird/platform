@@ -58,7 +58,7 @@ export function BoardInner() {
   // Memo-filter by board so the `posts` array keeps a stable reference unless
   // its members actually change.
   const posts = React.useMemo(() => allPosts.filter((p) => p.board_id === board_id), [allPosts, board_id]);
-
+  console.log("##########posts", posts)
   // 5. For opening the record modal.
   const [openPostId, setOpenPostId] = useState<string | null>(null);
 

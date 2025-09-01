@@ -19,6 +19,14 @@ const CreatePostSchema = z.object({
   blocks: z.array(z.any()).optional(),
   comments: z.array(z.any()).optional(),
   activities: z.array(z.any()).optional(),
+  user_columns: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Column name is required'),
+        value: z.string(),
+      })
+    )
+    .optional(),
 })
 
 const UpdatePostSchema = z.object({
@@ -35,6 +43,14 @@ const UpdatePostSchema = z.object({
   blocks: z.array(z.any()).optional(),
   comments: z.array(z.any()).optional(),
   activities: z.array(z.any()).optional(),
+  user_columns: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Column name is required'),
+        value: z.string(),
+      })
+    )
+    .optional(),
 })
 
 // GET - Get post by ID or list posts by workspace/board
@@ -197,7 +213,9 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json()
     const validatedData = UpdatePostSchema.parse(body)
-
+    console.log('id', id)
+    console.log('validatedData', validatedData)
+    console.log('body', body)
     const { data, error } = await supabase
       .from('posts')
       .update(validatedData)

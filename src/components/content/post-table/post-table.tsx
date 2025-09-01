@@ -103,6 +103,8 @@ import { Platform } from "@/lib/social/platforms/platform-types";
 import { RowHeightType, getRowHeightPixels } from "@/lib/utils";
 import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 import { Switch } from "@/components/ui/switch";
+import { SingleSelectCell } from "./SingleSelectCell";
+import { MultiSelectCell } from "./MultiSelectCell";
 
 type FinalGroup = {
   groupValues: Record<string, any>   // e.g. { status: "Pending Approval", channels: "TikTok,LinkedIn" }
@@ -186,6 +188,8 @@ import {
 } from "@/components/ui/select";
 import { PostContextMenu } from "./PostContextMenu";
 import { CaptionCell } from "./CaptionCell";
+import UserTextCell from "./UserTextCell";
+import UserTextEditor from "./UserTextEditor";
 import { SettingsEditCell } from "./SettingsCell";
 import { MonthEditCell } from "./MonthEditCell";
 import { GroupFeedbackSidebar } from "./GroupFeedbackSidebar";
@@ -634,6 +638,113 @@ export function PostTable({
 
   // user-defined columns
   const [userColumns, setUserColumns] = React.useState<UserColumn[]>([]);
+
+  // Helpers to read/write user column values on Post.user_columns
+  const getUserColumnValue = React.useCallback((post: Post, name: string): string => {
+    const arr = post.user_columns || [];
+    const hit = arr.find((x) => x.name === name);
+    return (hit?.value ?? "");
+  }, []);
+
+  const buildUpdatedUserColumnsArr = React.useCallback((post: Post, name: string, value: string): Array<{ name: string; value: string }> => {
+    const arr = [...(post.user_columns || [])];
+    const idx = arr.findIndex((x) => x.name === name);
+    if (idx >= 0) arr[idx] = { name, value };
+    else arr.push({ name, value });
+    return arr;
+  }, []);
+
+  // Mapping between internal column ids and persisted display names
+  const defaultIdToName: Record<string, string> = React.useMemo(() => ({
+    drag: "",
+    rowIndex: "",
+    status: "Status",
+    preview: "Preview",
+    caption: "Caption",
+    platforms: "Socials",
+    format: "Format",
+    month: "Month",
+    revision: "Revision",
+    approve: "Approve",
+    settings: "Settings",
+    publish_date: "Post time",
+    updatedAt: "Updated",
+  }), []);
+  const nameToDefaultId: Record<string, string> = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    Object.entries(defaultIdToName).forEach(([id, nm]) => { if (nm) map[nm] = id; });
+    return map;
+  }, [defaultIdToName]);
+
+  // Keep 'drag' and 'rowIndex' fixed at positions 0 and 1
+  const normalizeOrder = React.useCallback((order: string[]): string[] => {
+    const seen = new Set<string>();
+    const rest = order.filter((id) => {
+      if (id === 'drag' || id === 'rowIndex') return false;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    return ['drag', 'rowIndex', ...rest];
+  }, []);
+
+  // Compose payload for persistence given an explicit order
+  const buildColumnsPayloadForOrder = React.useCallback((orderIds: string[], columnsList: UserColumn[] = userColumns): Array<{ name: string; is_default: boolean; order: number; type?: ColumnType; options?: any }> => {
+    const filtered = orderIds.filter((id) => id !== 'drag' && id !== 'rowIndex');
+    const payload: Array<{ name: string; is_default: boolean; order: number; type?: ColumnType; options?: any }> = [];
+    let ord = 0;
+    console.log("columnsList", columnsList);
+    for (const id of filtered) {
+      if (defaultIdToName[id]) {
+        // Default columns: we can optionally set a type for well-known ones
+        // For now, omit type for defaults to preserve existing behavior
+        payload.push({ name: defaultIdToName[id], is_default: true, order: ord++ });
+        continue;
+      }
+      const u = columnsList.find(c => c.id === id);
+      if (u) {
+        // Normalize options: support legacy string[] and new {value,color}[]
+        let optionsPayload = [];
+        if (Array.isArray(u.options)) {
+          const arr: any[] = (u.options as any[]);
+          if (arr.length > 0) {
+            if (typeof arr[0] === 'string') {
+              optionsPayload = (arr as string[]).map(v => ({ value: v, color: "" }));
+            } else {
+              optionsPayload = arr;
+            }
+          }
+        }
+        payload.push({ name: u.label, is_default: false, order: ord++, type: u.type, options: optionsPayload });
+      }
+    }
+    console.log("payload", payload);
+    return payload;
+  }, [userColumns, defaultIdToName]);
+
+  // Initialize from board.columns when switching boards
+  React.useEffect(() => {
+    if (!currentBoard?.columns) return;
+    const sorted = [...currentBoard.columns].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    console.log("sorted", sorted)
+    const newUserCols: UserColumn[] = [];
+    const newOrder: string[] = [];
+    for (const col of sorted) {
+      if (col.is_default) {
+        const id = nameToDefaultId[col.name];
+        if (id) newOrder.push(id);
+      } else {
+        const anyCol: any = col as any;
+        newUserCols.push({ id: col.name, label: col.name, type: anyCol.type || "singleLine", options: anyCol.options });
+        newOrder.push(col.name);
+      }
+    }
+    console.log("newOrder", newOrder)
+    if (newUserCols.length) setUserColumns(newUserCols);
+    console.log("1111111newUserCols", newUserCols)
+    console.log("normalizeOrder(newOrder)", normalizeOrder(newOrder))
+    if (newOrder.length) setColumnOrder(() => normalizeOrder(newOrder));
+  }, [currentBoard?.columns, nameToDefaultId, normalizeOrder]);
   const [addColumnOpen, setAddColumnOpen] = React.useState(false);
   const STICKY_COLUMNS = ["drag", "rowIndex", "status"] as const;
   const STICKY_OFFSETS: Record<string, number> = {
@@ -878,7 +989,63 @@ export function PostTable({
   const [editFieldTypeOpen, setEditFieldTypeOpen] = React.useState(false);
   const editFieldPanelRef = React.useRef<HTMLDivElement | null>(null);
   const [newFieldLabel, setNewFieldLabel] = React.useState<string>("");
+  const [editFieldOptions, setEditFieldOptions] = React.useState<Array<{ id: string; value: string; color: string }>>([
+    { id: "opt_1", value: "Option A", color: "#3B82F6" },
+    { id: "opt_2", value: "Option B", color: "#10B981" },
+    { id: "opt_3", value: "Option C", color: "#F59E0B" }
+  ]);
   const plusHeaderRef = React.useRef<HTMLTableCellElement | null>(null);
+
+  // Map the human-readable type label from the inline panel to internal ColumnType
+  function mapEditFieldTypeToColumnType(label: string): ColumnType {
+    const s = (label || "").toLowerCase().trim();
+    switch (s) {
+      case 'single line text':
+        return 'singleLine';
+      case 'long text':
+        return 'longText';
+      case 'attachment':
+        return 'attachment';
+      case 'checkbox':
+        return 'checkbox';
+      case 'single select':
+        return 'singleSelect';
+      case 'multiple select':
+        return 'multiSelect';
+      case 'calendar':
+        return 'date';
+      case 'last updated time':
+        return 'lastUpdatedTime';
+      default:
+        return 'singleLine';
+    }
+  }
+
+  // Map from internal ColumnType to human-readable display value
+  function mapColumnTypeToEditFieldType(columnType: ColumnType): string {
+    switch (columnType) {
+      case 'singleLine':
+        return 'single line text';
+      case 'longText':
+        return 'Long text';
+      case 'attachment':
+        return 'Attachment';
+      case 'checkbox':
+        return 'Checkbox';
+      case 'singleSelect':
+        return 'Single select';
+      case 'multiSelect':
+        return 'Multiple select';
+      case 'date':
+        return 'Calendar';
+      case 'lastUpdatedTime':
+        return 'Last modified by';
+      default:
+        return 'single line text';
+    }
+  }
+
+
 
   // Close edit panel when clicking outside (but allow interactions when the type dropdown is open)
   React.useEffect(() => {
@@ -930,6 +1097,13 @@ export function PostTable({
     if (lastId) setPendingInsertRef({ targetId: lastId, side: 'right' });
     setEditFieldColumnId(null);
     setNewFieldLabel("");
+    setEditFieldType("single line text"); // Reset to default type for new columns
+    // Reset options to defaults for new columns
+    setEditFieldOptions([
+      { id: "opt_1", value: "Option A", color: "#3B82F6" },
+      { id: "opt_2", value: "Option B", color: "#10B981" },
+      { id: "opt_3", value: "Option C", color: "#F59E0B" }
+    ]);
     openEditPanelAtElement(plusHeaderRef.current);
     setEditFieldOpen(true);
   }
@@ -1337,6 +1511,9 @@ export function PostTable({
   const [editingPost, setEditingPost] = React.useState<Post|null>(null);
   const [selectedPlatform, setSelectedPlatform] = React.useState<Platform | null>(null);
   const [captionLocked, setCaptionLocked] = React.useState<boolean>(true);
+  // Long text editor state
+  const [userTextOpen, setUserTextOpen] = React.useState(false);
+  const [editingUserText, setEditingUserText] = React.useState<{ postId: string; colId: string } | null>(null);
 
   React.useEffect(()=>{
     if(captionLocked){
@@ -1685,7 +1862,7 @@ export function PostTable({
     }
     setColumnOrder((prev) => {
       const current = prev.length ? prev : table.getAllLeafColumns().map(c => c.id);
-      const newOrder = [...current];
+      const newOrder = normalizeOrder([...current]);
       const fromIndex = newOrder.indexOf(fromId);
       const toIndex = newOrder.indexOf(toId!);
       if (fromIndex < 0 || toIndex < 0) return prev;
@@ -1693,8 +1870,17 @@ export function PostTable({
       let insertIndex = newOrder.indexOf(toId!);
       if (insertAfterAtEnd) insertIndex += 1;
       newOrder.splice(insertIndex, 0, moved);
-      try { table.setColumnOrder(newOrder); } catch {}
-      return newOrder;
+      console.log("11111111111111111newOrder", newOrder)
+      try { table.setColumnOrder(normalizeOrder(newOrder)); } catch {}
+      // Persist board columns order
+      try {
+        if (activeBoardId) {
+          const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder));
+          updateBoard(activeBoardId, { columns: payload as any });
+        }
+      } catch {}
+      console.log("3333333333333newOrder", newOrder)
+      return normalizeOrder(newOrder);
     });
     endColumnDrag();
   }
@@ -2457,48 +2643,187 @@ export function PostTable({
 
   /** 2) user-defined columns **/
   const userColumnDefs: ColumnDef<Post>[] = React.useMemo(() => {
+    const iconSrcByType: Record<ColumnType, string> = {
+      singleLine: "/images/columns/single-line-text.svg",
+      longText: "/images/columns/long-text.svg",
+      attachment: "/images/columns/preview.svg",
+      checkbox: "/images/columns/approve.svg",
+      feedback: "/images/columns/message-notification-active.svg",
+      singleSelect: "/images/columns/format.svg",
+      multiSelect: "/images/columns/status.svg",
+      date: "/images/columns/post-time.svg",
+      lastUpdatedTime: "/images/columns/updated-time.svg",
+    };
+
     return userColumns.map((col) => {
-      let IconComp = EditIcon;
-      if (col.type === "multiSelect") IconComp = ListPlus;
-      else if (col.type === "date") IconComp = CalendarIcon;
+      const headerIconSrc = iconSrcByType[col.type] ?? "/images/columns/single-line-text.svg";
 
       return {
         id: col.id,
+        accessorFn: (row) => {
+          const value = getUserColumnValue(row, col.label);
+          if (col.type === 'singleSelect' && col.options) {
+            // For single select, return the display value instead of the ID for sorting
+            const options = Array.isArray(col.options) ? col.options : [];
+            const option = options.find((opt: any) => 
+              typeof opt === 'string' ? opt === value : opt.id === value
+            );
+            return typeof option === 'string' ? option : option?.value || value;
+          }
+          return value;
+        },
         header: () => (
-          <div
-            className="flex items-center gap-2"
-            
-          >
-            <Type size={18} />
+          <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
+            <Image src={headerIconSrc} alt={col.type} width={14} height={14} />
             {col.label}
           </div>
         ),
         minSize: 100,
         maxSize: 300,
-        cell: ({ row }) => {
+        enableSorting: true,
+        cell: (ctx) => {
+          const { row } = ctx;
+          const { isFocused, isEditing, enterEdit, exitEdit } = ctx as FocusCellContext<Post>;
           const post = row.original;
-          const existingVal = (post as any)[col.id] ?? "";
+          const existingVal = getUserColumnValue(post, col.label);
           switch (col.type) {
             case "singleLine":
               return (
-                <Input
+                <UserTextCell
                   value={existingVal}
-                  onChange={(e) => {
-                    const newVal = e.target.value;
-                    setTableData((prev) =>
-                      prev.map((p) => {
-                        if (p.id === post.id) {
-                          return { ...p, [col.id]: newVal };
-                        }
-                        return p;
-                      })
-                    );
+                  isFocused={isFocused}
+                  rowHeight={getRowHeightPixels(rowHeight)}
+                  singleLine
+                  onValueCommit={(newVal) => {
+                    const newArr = buildUpdatedUserColumnsArr(post, col.label, newVal);
+                    setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
+                    updatePost(post.id, { user_columns: newArr } as any);
                   }}
-                  className="max-w-xs"
                 />
               );
-            case "multiSelect":
-              return <div>{(existingVal ?? []).join(", ")}</div>;
+            case "longText":
+              return (
+                <UserTextCell
+                  value={existingVal}
+                  isFocused={isFocused}
+                  rowHeight={getRowHeightPixels(rowHeight)}
+                  onExpand={() => {
+                    setEditingUserText({ postId: post.id, colId: col.id });
+                    setUserTextOpen(true);
+                  }}
+                  onValueCommit={(newVal) => {
+                    const newArr = buildUpdatedUserColumnsArr(post, col.label, newVal);
+                    setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
+                    updatePost(post.id, { user_columns: newArr } as any);
+                  }}
+                />
+              );
+            case "singleSelect": {
+              const colRef = col; // capture
+              // normalize options for cell component
+              const opts = (Array.isArray(colRef.options)
+                ? (colRef.options as any[])
+                : []) as any[];
+              const normalizedOptions = opts.map((o: any) =>
+                typeof o === 'string' ? { id: o, value: o, color: "" } : o
+              );
+              // existingVal should now be the stored option ID
+              const optionId = String(existingVal || "");
+              return (
+                <SingleSelectCell
+                  value={optionId}
+                  options={normalizedOptions}
+                  isFocused={isFocused}
+                  isEditing={isEditing}
+                  enterEdit={enterEdit}
+                  exitEdit={exitEdit}
+                  onChange={(newVal) => {
+                    // newVal is the option ID, store it directly to the database
+                    const newArr = buildUpdatedUserColumnsArr(post, colRef.label, newVal);
+                    setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
+                    updatePost(post.id, { user_columns: newArr } as any);
+                  }}
+                  onAddOption={(opt) => {
+                    // compute next columns snapshot to both set state and persist
+                    const nextCols = userColumns.map((uc) => {
+                      if (uc.id !== colRef.id) return uc;
+                      const existing = Array.isArray(uc.options) ? (uc.options as any[]) : [];
+                      const exists = existing.some((o: any) => (typeof o === 'string' ? o === opt.value : o.value === opt.value));
+                      if (exists) return uc;
+                      const nextOptions = [
+                        ...existing.map((o: any) => (typeof o === 'string' ? { id: o, value: o, color: "" } : o)),
+                        opt,
+                      ];
+                      return { ...uc, options: nextOptions } as any;
+                    });
+                    setUserColumns(nextCols);
+                    // persist to board columns with updated columns list
+                    try {
+                      if (activeBoardId) {
+                        const order = normalizeOrder(table.getAllLeafColumns().map(c => c.id));
+                        const payload = buildColumnsPayloadForOrder(order, nextCols);
+                        updateBoard(activeBoardId, { columns: payload as any });
+                      }
+                    } catch {}
+                  }}
+                />
+              );
+            }
+            case "multiSelect": {
+              const colRef = col; // capture
+              // normalize options for cell component
+              const opts = (Array.isArray(colRef.options)
+                ? (colRef.options as any[])
+                : []) as any[];
+              const normalizedOptions = opts.map((o: any) =>
+                typeof o === 'string' ? { id: o, value: o, color: "" } : o
+              );
+              // existingVal should be an array of option IDs
+              const selectedIds = Array.isArray(existingVal)
+                ? existingVal
+                : String(existingVal || "").split(",").map(s => s.trim()).filter(Boolean);
+              
+              return (
+                <MultiSelectCell
+                  value={selectedIds}
+                  options={normalizedOptions}
+                  isFocused={isFocused}
+                  isEditing={isEditing}
+                  enterEdit={enterEdit}
+                  exitEdit={exitEdit}
+                  onChange={(newVal) => {
+                    // newVal is an array of option IDs, serialize to comma-separated string for storage
+                    const serializedValue = Array.isArray(newVal) ? newVal.join(',') : String(newVal || '');
+                    const newArr = buildUpdatedUserColumnsArr(post, colRef.label, serializedValue);
+                    setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
+                    updatePost(post.id, { user_columns: newArr } as any);
+                  }}
+                  onAddOption={(opt) => {
+                    // compute next columns snapshot to both set state and persist
+                    const nextCols = userColumns.map((uc) => {
+                      if (uc.id !== colRef.id) return uc;
+                      const existing = Array.isArray(uc.options) ? (uc.options as any[]) : [];
+                      const exists = existing.some((o: any) => (typeof o === 'string' ? o === opt.value : o.value === opt.value));
+                      if (exists) return uc;
+                      const nextOptions = [
+                        ...existing.map((o: any) => (typeof o === 'string' ? { id: o, value: o, color: "" } : o)),
+                        opt,
+                      ];
+                      return { ...uc, options: nextOptions } as any;
+                    });
+                    setUserColumns(nextCols);
+                    // persist to board columns with updated columns list
+                    try {
+                      if (activeBoardId) {
+                        const order = normalizeOrder(table.getAllLeafColumns().map(c => c.id));
+                        const payload = buildColumnsPayloadForOrder(order, nextCols);
+                        updateBoard(activeBoardId, { columns: payload as any });
+                      }
+                    } catch {}
+                  }}
+                />
+              );
+            }
             default:
               return <div className="text-sm">{String(existingVal)}</div>;
           }
@@ -2602,10 +2927,68 @@ export function PostTable({
   // Track where to insert newly added user columns from header menu
   const [pendingInsertRef, setPendingInsertRef] = React.useState<{ targetId: string; side: 'left' | 'right' } | null>(null);
 
+  // Check if a column is a default/system column
+  const isDefaultColumn = React.useCallback((columnId: string): boolean => {
+    const defaultColumnIds = [
+      'drag', 'rowIndex', 'status', 'preview', 'caption', 'platforms', 
+      'format', 'month', 'revision', 'approve', 'settings', 'publish_date', 'updatedAt'
+    ];
+    return defaultColumnIds.includes(columnId);
+  }, []);
+
   const handleHeaderMenuAction = React.useCallback((action: string, columnId: string) => {
     switch (action) {
       case 'edit': {
+        // Only allow editing user-defined columns
+        if (isDefaultColumn(columnId)) {
+          break;
+        }
+        
         setEditFieldColumnId(columnId);
+        
+        // Set the field type based on the existing column type
+        const existingColumn = userColumns.find(col => col.id === columnId);
+        if (existingColumn) {
+          setEditFieldType(mapColumnTypeToEditFieldType(existingColumn.type));
+          
+          // Load existing options for select types
+          if (existingColumn.type === 'singleSelect' || existingColumn.type === 'multiSelect') {
+            if (existingColumn.options && Array.isArray(existingColumn.options)) {
+              // Handle both old string[] format and new {id, value, color} format
+              if (existingColumn.options.length > 0 && typeof existingColumn.options[0] === 'string') {
+                // Convert old format to new format with default colors and IDs
+                const defaultColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#F97316'];
+                setEditFieldOptions(
+                  (existingColumn.options as string[]).map((value, index) => ({
+                    id: `opt_${index + 1}`,
+                    value,
+                    color: defaultColors[index % defaultColors.length]
+                  }))
+                );
+              } else if (existingColumn.options.length > 0 && typeof existingColumn.options[0] === 'object' && existingColumn.options[0] && 'id' in existingColumn.options[0]) {
+                // Already in new format with IDs
+                setEditFieldOptions(existingColumn.options as Array<{ id: string; value: string; color: string }>);
+              } else {
+                // Convert old {value, color} format to new format with IDs
+                setEditFieldOptions(
+                                  (existingColumn.options as any[]).map((opt, index) => ({
+                  id: `opt_${index + 1}`,
+                  value: opt.value,
+                  color: opt.color
+                }))
+                );
+              }
+            } else {
+              // No options, set defaults
+              setEditFieldOptions([
+                { id: "opt_1", value: "Option A", color: "#3B82F6" },
+                { id: "opt_2", value: "Option B", color: "#10B981" },
+                { id: "opt_3", value: "Option C", color: "#F59E0B" }
+              ]);
+            }
+          }
+        }
+        
         // Compute anchored position relative to header
         const headerEl = headerRefs.current[columnId];
         const container = scrollContainerRef.current;
@@ -2641,17 +3024,40 @@ export function PostTable({
           const isUserCol = prev.some(c => c.id === columnId);
           if (!isUserCol) return prev; // Only duplicate user-defined for now
           const orig = prev.find(c => c.id === columnId)!;
-          const newId = crypto.randomUUID();
+          
+          // Generate a unique ID for the duplicated column
+          const generateUniqueId = (baseLabel: string) => {
+            let counter = 1;
+            let newId = `${baseLabel}_copy`;
+            while (prev.some(c => c.id === newId)) {
+              newId = `${baseLabel}_copy_${counter}`;
+              counter++;
+            }
+            return newId;
+          };
+          
+          const newId = generateUniqueId(orig.label);
           const copy = { ...orig, id: newId, label: `${orig.label} copy` };
+          
           // insert right after
           setColumnOrder((orderPrev) => {
             const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
             const idx = order.indexOf(columnId);
             if (idx === -1) return orderPrev;
-            const newOrder = [...order];
+            const newOrder = normalizeOrder([...order]);
             newOrder.splice(idx + 1, 0, newId);
-            try { table.setColumnOrder(newOrder); } catch {}
-            return newOrder;
+            try { table.setColumnOrder(normalizeOrder(newOrder)); } catch {}
+            // Persist after duplicate - pass the updated userColumns that includes the new column
+            try {
+              if (activeBoardId) {
+                console.log("newOrder", newOrder)
+                const nextUserColumns = [...prev, copy];
+                const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder), nextUserColumns);
+                console.log("payload", payload)
+                updateBoard(activeBoardId, { columns: payload as any });
+              }
+            } catch {}
+            return normalizeOrder(newOrder);
           });
           return [...prev, copy];
         });
@@ -2659,9 +3065,23 @@ export function PostTable({
       }
       case 'insert-left':
       case 'insert-right': {
-        // Open Add Column dialog and remember where to insert
-        setAddColumnOpen(true);
+        // Open the same inline panel as the plus button and remember where to insert
         setPendingInsertRef({ targetId: columnId, side: action === 'insert-left' ? 'left' : 'right' });
+        setEditFieldColumnId(null);
+        setNewFieldLabel("");
+        setEditFieldType("single line text"); // Reset to default type for new columns
+        // Reset options to defaults for new columns
+        setEditFieldOptions([
+          { id: "opt_1", value: "Option A", color: "#3B82F6" },
+          { id: "opt_2", value: "Option B", color: "#10B981" },
+          { id: "opt_3", value: "Option C", color: "#F59E0B" }
+        ]);
+        // Find the header element to anchor the panel to
+        const headerElement = headerRefs.current[columnId];
+        if (headerElement) {
+          openEditPanelAtElement(headerElement);
+        }
+        setEditFieldOpen(true);
         break;
       }
       case 'sort-asc': {
@@ -2678,57 +3098,110 @@ export function PostTable({
       }
       case 'delete': {
         // Remove user-defined column if present
+        const nextUserColumns: UserColumn[] = userColumns.filter(c => c.id !== columnId);
         setUserColumns((prev) => prev.filter(c => c.id !== columnId));
-        setColumnOrder((prev) => prev.filter(id => id !== columnId));
+        setColumnOrder((prev) => normalizeOrder(prev.filter(id => id !== columnId)));
         try { table.getColumn(columnId)?.toggleVisibility(false); } catch {}
+        
+        // Handle column deletion from posts
+        const deletedColumn = userColumns.find(c => c.id === columnId);
+        if (deletedColumn) {
+          // Find all posts that have values for this column and remove them
+          const postsToUpdate = tableData.filter(post => {
+            if (!post.user_columns) return false;
+            return post.user_columns.some(uc => uc.name === deletedColumn.label);
+          });
+
+          if (postsToUpdate.length > 0) {
+            // Update each post to remove the column value
+            postsToUpdate.forEach((post) => {
+              const updatedUserColumns = post.user_columns?.filter(uc => uc.name !== deletedColumn.label) || [];
+              
+              // Update local state immediately for better UX
+              setTableData(prev => prev.map(p => 
+                p.id === post.id 
+                  ? { ...p, user_columns: updatedUserColumns }
+                  : p
+              ));
+
+              // Update in database
+              updatePost(post.id, { user_columns: updatedUserColumns } as any).catch(error => {
+                console.error(`Failed to update post ${post.id} after column deletion:`, error);
+                // Revert local state on error
+                setTableData(prev => prev.map(p => 
+                  p.id === post.id ? post : p
+                ));
+              });
+            });
+
+            console.log(`Updating ${postsToUpdate.length} posts after deleting column ${deletedColumn.label}`);
+          }
+        }
+        
+        // Persist after delete
+        try {
+          if (activeBoardId) {
+            const order = normalizeOrder(table.getAllLeafColumns().map(c => c.id).filter(id => id !== columnId));
+            const payload = buildColumnsPayloadForOrder(order, nextUserColumns);
+            updateBoard(activeBoardId, { columns: payload as any });
+          }
+        } catch {}
         break;
       }
     }
     setHeaderMenuOpenFor(null);
-  }, [columnNames, table]);
+  }, [columnNames, table, userColumns, columnOrder, normalizeOrder, buildColumnsPayloadForOrder, activeBoardId, updateBoard, isDefaultColumn]);
 
-  function handleAddColumn(label: string, type: ColumnType, options?: string[]) {
-    const newId = crypto.randomUUID();
-    setUserColumns((prev) => [
-      ...prev,
-      { id: newId, label, type, options },
-    ]);
+  function handleAddColumn(label: string, type: ColumnType, options?: Array<{ id: string; value: string; color: string }> | string[]) {
+    const nextUserColumns: UserColumn[] = [
+      ...userColumns,
+              { id: label, label, type, options: type === 'singleSelect' || type === 'multiSelect' ? (options as Array<{ id: string; value: string; color: string }>) : undefined },
+    ];
+    console.log("333333333333nextUserColumns", nextUserColumns)
+    setUserColumns(nextUserColumns);
+    console.log("pendingInsertRef", pendingInsertRef)
     if (pendingInsertRef) {
       const { targetId, side } = pendingInsertRef;
       setColumnOrder((orderPrev) => {
+        console.log("orderPrev", orderPrev)
         const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
+        console.log("order", order);
         const idx = order.indexOf(targetId);
+        console.log("idx", idx);
         if (idx === -1) return orderPrev;
         const insertIndex = side === 'left' ? idx : idx + 1;
-        const newOrder = [...order];
-        newOrder.splice(insertIndex, 0, newId);
-        try { table.setColumnOrder(newOrder); } catch {}
-        return newOrder;
+        const newOrder = normalizeOrder([...order]);
+        newOrder.splice(insertIndex, 0, label);
+        try { table.setColumnOrder(normalizeOrder(newOrder)) } catch {}
+        // Persist board columns with the newly added user column
+        try {
+          console.log("activeBoardId", activeBoardId)
+          if (activeBoardId) {
+            const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder), nextUserColumns)
+            console.log("add payload", payload)
+            updateBoard(activeBoardId, { columns: payload as any });
+          }
+        } catch {}
+        return normalizeOrder(newOrder);
       });
       setPendingInsertRef(null);
+    } else {
+      // Append to end and persist with last order
+      setColumnOrder((orderPrev) => {
+        const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
+        const newOrder = normalizeOrder([...order, label]);
+        try { table.setColumnOrder(normalizeOrder(newOrder)) } catch {}
+        try {
+          console.log("activeBoardId", activeBoardId)
+          if (activeBoardId) {
+            const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder), nextUserColumns)
+            updateBoard(activeBoardId, { columns: payload as any });
+          }
+        } catch {}
+        return normalizeOrder(newOrder);
+      });
     }
   }
-
-  // set default col order once
-  React.useEffect(() => {
-    if (!columnOrder.length) {
-      setColumnOrder([
-        "drag",
-        "rowIndex",
-        "status",
-        "preview",
-        "caption",
-        "platforms",
-        "format",
-        "month",
-        "revision",
-        "approve",
-        "settings",
-        "publish_date",
-        "updatedAt",
-      ]);
-    }
-  }, [columnOrder]);
 
   // Grouped rows
   /** Instead of your current `renderGroupedRows` 
@@ -2878,11 +3351,19 @@ export function PostTable({
                               </div>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="bottom" align={headerMenuAlign} sideOffset={headerMenuSideOffset} alignOffset={headerMenuAlignOffset} className="w-40 text-sm">
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('edit', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <DropdownMenuItem 
+                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('edit', h.id)} 
+                                className={`text-sm font-medium ${isDefaultColumn(h.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                                disabled={isDefaultColumn(h.id)}
+                              >
                                 <img src="/images/boards/rename.svg" alt="Edit field" className="h-4 w-4" />
                                 Edit field
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('duplicate', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <DropdownMenuItem 
+                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('duplicate', h.id)} 
+                                className={`text-sm font-medium ${isDefaultColumn(h.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                                disabled={isDefaultColumn(h.id)}
+                              >
                                 <img src="/images/boards/duplicate.svg" alt="Duplicate field" className="h-4 w-4" />
                                 Duplicate field
                               </DropdownMenuItem>
@@ -2907,7 +3388,11 @@ export function PostTable({
                                 <img src="/images/boards/hide.svg" alt="Hide field" className="h-4 w-4" />
                                 Hide field
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('delete', h.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <DropdownMenuItem 
+                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('delete', h.id)} 
+                                className={`text-sm font-medium ${isDefaultColumn(h.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                                disabled={isDefaultColumn(h.id)}
+                              >
                                 <img src="/images/boards/delete.svg" alt="Delete field" className="h-4 w-4" />
                                 Delete field
                               </DropdownMenuItem>
@@ -3729,11 +4214,19 @@ export function PostTable({
                               </div>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="bottom" align={headerMenuAlign} sideOffset={headerMenuSideOffset} alignOffset={headerMenuAlignOffset} className="w-40 text-sm">
-                            <DropdownMenuItem onClick={() => handleHeaderMenuAction('edit', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <DropdownMenuItem 
+                                onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('edit', header.id)} 
+                                className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                                disabled={isDefaultColumn(header.id)}
+                              >
                                 <img src="/images/boards/rename.svg" alt="Edit field" className="h-4 w-4" />
                                 Edit field
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('duplicate', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <DropdownMenuItem 
+                                onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('duplicate', header.id)} 
+                                className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                                disabled={isDefaultColumn(header.id)}
+                              >
                                 <img src="/images/boards/duplicate.svg" alt="Duplicate field" className="h-4 w-4" />
                                 Duplicate field
                               </DropdownMenuItem>
@@ -3758,7 +4251,11 @@ export function PostTable({
                                 <img src="/images/boards/hide.svg" alt="Hide field" className="h-4 w-4" />
                                 Hide field
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('delete', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <DropdownMenuItem 
+                                onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('delete', header.id)} 
+                                className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                                disabled={isDefaultColumn(header.id)}
+                              >
                                 <img src="/images/boards/delete.svg" alt="Delete field" className="h-4 w-4" />
                                 Delete field
                               </DropdownMenuItem>
@@ -4086,6 +4583,59 @@ export function PostTable({
     table.setRowSelection(newSelection);
   };
 
+  // Helper function to handle option removal from posts
+  const handleOptionRemoval = React.useCallback(async (columnId: string, removedOptionId: string) => {
+    if (!activeBoardId || !tableData.length) return;
+
+    // Find the column label to match with post user_columns
+    const column = userColumns.find(col => col.id === columnId);
+    if (!column) return;
+
+    const columnLabel = column.label;
+    
+    // Find all posts that have the removed option ID as a value for this column
+    const postsToUpdate = tableData.filter(post => {
+      if (!post.user_columns) return false;
+      
+      const userColumn = post.user_columns.find(uc => uc.name === columnLabel);
+      return userColumn && userColumn.value === removedOptionId;
+    });
+
+    if (postsToUpdate.length === 0) return;
+
+    // Update each post to remove the option value
+    const updatePromises = postsToUpdate.map(async (post) => {
+      const updatedUserColumns = post.user_columns?.map(uc => 
+        uc.name === columnLabel ? { ...uc, value: '' } : uc
+      ) || [];
+
+      // Update local state immediately for better UX
+      setTableData(prev => prev.map(p => 
+        p.id === post.id 
+          ? { ...p, user_columns: updatedUserColumns }
+          : p
+      ));
+
+      // Update in database
+      try {
+        await updatePost(post.id, { user_columns: updatedUserColumns } as any);
+      } catch (error) {
+        console.error(`Failed to update post ${post.id} after option removal:`, error);
+        // Revert local state on error
+        setTableData(prev => prev.map(p => 
+          p.id === post.id ? post : p
+        ));
+      }
+    });
+
+    try {
+      await Promise.all(updatePromises);
+      console.log(`Updated ${postsToUpdate.length} posts after removing option ${removedOptionId} from column ${columnLabel}`);
+    } catch (error) {
+      console.error('Failed to update posts after option removal:', error);
+    }
+  }, [activeBoardId, tableData, userColumns, updatePost]);
+
   if (!mounted) return null;
 
   return (
@@ -4138,6 +4688,7 @@ export function PostTable({
                   id: col.id,
                   getCanSort: col.getCanSort.bind(col),
                 }))}
+                userColumns={userColumns}
               />
               <RowHeightMenu rowHeight={rowHeight} setRowHeight={setRowHeight} />
               <ColumnVisibilityMenu
@@ -4396,7 +4947,18 @@ export function PostTable({
                         </div>
 
                         <Label className="text-sm font-medium text-darkGrey">Field type</Label>
-                        <Select open={editFieldTypeOpen} onOpenChange={setEditFieldTypeOpen} value={editFieldType} onValueChange={(v) => setEditFieldType(v)}>
+                        <Select open={editFieldTypeOpen} onOpenChange={setEditFieldTypeOpen} value={editFieldType} onValueChange={(v) => {
+                          setEditFieldType(v);
+                          // Clear options if changing from select type to non-select type
+                          if ((editFieldType === "Single select" || editFieldType === "Multiple select") && 
+                              (v !== "Single select" && v !== "Multiple select")) {
+                            setEditFieldOptions([
+                              { id: "opt_1", value: "Option A", color: "#3B82F6" },
+                              { id: "opt_2", value: "Option B", color: "#10B981" },
+                              { id: "opt_3", value: "Option C", color: "#F59E0B" }
+                            ]);
+                          }
+                        }}>
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Choose type" />
                           </SelectTrigger>
@@ -4471,6 +5033,75 @@ export function PostTable({
                         </Select>
                       </div>
 
+                      {/* Options section for single select and multiple select */}
+                      {(editFieldType === "Single select" || editFieldType === "Multiple select") && (
+                        <div className="mt-4">
+                          <Label className="text-sm font-medium text-darkGrey">Options</Label>
+                          <div className="space-y-2 mt-2">
+                            {editFieldOptions.map((option, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <div className="flex-1 flex items-center gap-2">
+                                  <div 
+                                    className="w-4 h-4 rounded border border-gray-300 cursor-pointer"
+                                    style={{ backgroundColor: option.color }}
+                                    onClick={() => {
+                                      const input = document.createElement('input');
+                                      input.type = 'color';
+                                      input.value = option.color;
+                                      input.onchange = (e) => {
+                                        const target = e.target as HTMLInputElement;
+                                        const newOptions = [...editFieldOptions];
+                                        newOptions[index].color = target.value;
+                                        setEditFieldOptions(newOptions);
+                                      };
+                                      input.click();
+                                    }}
+                                  />
+                                  <Input
+                                    value={option.value}
+                                    onChange={(e) => {
+                                      const newOptions = [...editFieldOptions];
+                                      newOptions[index].value = e.target.value;
+                                      setEditFieldOptions(newOptions);
+                                    }}
+                                    placeholder="Option value"
+                                    className="flex-1"
+                                  />
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    const optionToRemove = editFieldOptions[index];
+                                    const newOptions = editFieldOptions.filter((_, i) => i !== index);
+                                    setEditFieldOptions(newOptions);
+                                    
+                                    // Handle option removal from posts if we have a column ID
+                                    if (editFieldColumnId && optionToRemove) {
+                                      await handleOptionRemoval(editFieldColumnId, optionToRemove.id);
+                                    }
+                                  }}
+                                  className="px-2 py-1 h-8 w-8"
+                                >
+                                  <XIcon size={14} />
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditFieldOptions([...editFieldOptions, { id: "opt_" + (editFieldOptions.length + 1), value: "New Option", color: "#6B7280" }]);
+                              }}
+                              className="w-full"
+                            >
+                              <PlusIcon size={14} className="mr-2" />
+                              Add Option
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-2 mt-3">
                         <Button variant="outline" className="text-black text-sm font-medium" size="sm" onClick={() => setEditFieldOpen(false)}>Back</Button>
                         <Button
@@ -4479,23 +5110,81 @@ export function PostTable({
                           onClick={() => {
                             if (!editFieldColumnId) {
                               // plus-button flow: create new column
-                              const inferredType:
-                                | 'singleLine'
-                                | 'longText'
-                                | 'attachment'
-                                | 'checkbox'
-                                | 'feedback'
-                                | 'singleSelect'
-                                | 'multiSelect'
-                                | 'date'
-                                | 'lastUpdatedTime' = 'singleLine';
+                              const inferredType = mapEditFieldTypeToColumnType(editFieldType);
                               const trimmed = newFieldLabel.trim();
                               if (trimmed.length === 0) {
                                 toast.error('Please enter a column name');
                                 return; // keep panel open
                               }
-                              handleAddColumn(trimmed, inferredType);
+                              
+                              // Include options for select types
+                              let options;
+                              if (inferredType === 'singleSelect' || inferredType === 'multiSelect') {
+                                options = editFieldOptions;
+                              }
+                              
+                              handleAddColumn(trimmed, inferredType, options);
                               setNewFieldLabel('');
+                            } else {
+                              // Edit existing column flow
+                              const inferredType = mapEditFieldTypeToColumnType(editFieldType);
+                              const trimmed = columnNames[editFieldColumnId] || editFieldColumnId;
+                              
+                              // Find removed options by comparing with existing column options
+                              const existingColumn = userColumns.find(col => col.id === editFieldColumnId);
+                              const removedOptions: string[] = [];
+                              
+                              if (existingColumn && existingColumn.options && Array.isArray(existingColumn.options)) {
+                                const existingOptionIds = existingColumn.options.map((opt: any) => 
+                                  typeof opt === 'string' ? opt : opt.id
+                                );
+                                const newOptionIds = editFieldOptions.map(opt => opt.id);
+                                
+                                removedOptions.push(...existingOptionIds.filter(id => !newOptionIds.includes(id)));
+                              }
+                              
+                              // Update the column in userColumns
+                              setUserColumns(prev => prev.map(col => 
+                                col.id === editFieldColumnId 
+                                  ? { 
+                                      ...col, 
+                                      label: trimmed, 
+                                      type: inferredType,
+                                      options: (inferredType === 'singleSelect' || inferredType === 'multiSelect') 
+                                        ? editFieldOptions 
+                                        : undefined
+                                    }
+                                  : col
+                              ));
+                              
+                              // Update column names
+                              setColumnNames(prev => ({ ...prev, [editFieldColumnId]: trimmed }));
+                              
+                              // Persist changes to the board
+                              if (activeBoardId) {
+                                const currentOrder = table.getAllLeafColumns().map(c => c.id);
+                                const updatedUserColumns = userColumns.map(col => 
+                                  col.id === editFieldColumnId 
+                                    ? { 
+                                        ...col, 
+                                        label: trimmed, 
+                                        type: inferredType,
+                                        options: (inferredType === 'singleSelect' || inferredType === 'multiSelect') 
+                                          ? editFieldOptions 
+                                          : undefined
+                                      }
+                                    : col
+                                );
+                                const payload = buildColumnsPayloadForOrder(currentOrder, updatedUserColumns);
+                                updateBoard(activeBoardId, { columns: payload as any });
+                                
+                                // Handle removed options after board update
+                                if (removedOptions.length > 0) {
+                                  removedOptions.forEach(removedOptionId => {
+                                    handleOptionRemoval(editFieldColumnId, removedOptionId);
+                                  });
+                                }
+                              }
                             }
                             setEditFieldOpen(false);
                           }}
@@ -4580,6 +5269,37 @@ export function PostTable({
             onClose={() => setCaptionOpen(false)}
             onSave={(newCap) => {
               updatePost(editingPost.id, { caption: newCap });
+            }}
+          />
+        )}
+
+        {/* User long text editor */}
+        {userTextOpen && editingUserText && (
+          <UserTextEditor
+            open={userTextOpen}
+            title={(() => {
+              const uc = userColumns.find(c => c.id === editingUserText.colId);
+              return uc?.label || columnNames[editingUserText.colId] || "Edit";
+            })()}
+            value={(() => {
+              const p = tableData.find(p => p.id === editingUserText.postId);
+              const uc = userColumns.find(c => c.id === editingUserText.colId);
+              if (!p || !uc) return "";
+              return getUserColumnValue(p, uc.label);
+            })()}
+            onClose={() => setUserTextOpen(false)}
+            onChange={(newVal) => {
+              const uc = userColumns.find(c => c.id === editingUserText.colId);
+              if (!uc) return;
+              setTableData(prev => prev.map(p => {
+                if (p.id !== editingUserText.postId) return p;
+                const newArr = buildUpdatedUserColumnsArr(p, uc.label, newVal);
+                return { ...p, user_columns: newArr };
+              }));
+              const postId = editingUserText.postId;
+              const p = tableData.find(pp => pp.id === postId);
+              const newArr = p ? buildUpdatedUserColumnsArr(p, uc.label, newVal) : [{ name: uc.label, value: newVal }];
+              updatePost(postId, { user_columns: newArr } as any);
             }}
           />
         )}

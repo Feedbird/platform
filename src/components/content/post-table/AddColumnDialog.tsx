@@ -43,19 +43,19 @@ export function AddColumnDialog({
   onAddColumn: (
     label: string,
     type: ColumnType,
-    options?: string[]
+    options?: Array<{ id: string; value: string; color: string }> | string[]
   ) => void;
 }) {
   const [fieldLabel, setFieldLabel] = React.useState("");
   const [fieldType, setFieldType] = React.useState<ColumnType>("singleLine");
-  const [multiOptions, setMultiOptions] = React.useState(["Option A"]);
+  const [multiOptions, setMultiOptions] = React.useState([{ id: "option-a", value: "Option A", color: "#FDE68A" }]);
 
   function handleSubmit() {
     onAddColumn(fieldLabel, fieldType, fieldType === "multiSelect" ? multiOptions : undefined);
     onOpenChange(false);
     setFieldLabel("");
     setFieldType("singleLine");
-    setMultiOptions(["Option A"]);
+    setMultiOptions([{ id: "option-a", value: "Option A", color: "#FDE68A" }]);
   }
 
   return (
@@ -77,7 +77,7 @@ export function AddColumnDialog({
             onChange={(e) => setFieldLabel(e.target.value)}
           />
 
-          {/* <Label>Field Type</Label>
+          <Label>Field Type</Label>
           <div className="relative">
             <select
               className="border p-1 rounded w-full"
@@ -90,19 +90,19 @@ export function AddColumnDialog({
                 </option>
               ))}
             </select>
-          </div> */}
+          </div>
 
-          {/* {fieldType === "multiSelect" && (
+          {fieldType === "multiSelect" && (
             <div className="border rounded p-2">
               <Label className="text-sm">Options</Label>
               <div className="space-y-1 mt-1">
                 {multiOptions.map((o, idx) => (
                   <div key={idx} className="flex gap-1 items-center">
                     <Input
-                      value={o}
+                      value={o.value}
                       onChange={(e) => {
                         const arr = [...multiOptions];
-                        arr[idx] = e.target.value;
+                        arr[idx] = { ...arr[idx], value: e.target.value };
                         setMultiOptions(arr);
                       }}
                     />
@@ -120,14 +120,18 @@ export function AddColumnDialog({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setMultiOptions((prev) => [...prev, "New Option"])}
+                  onClick={() => {
+                    const newId = `option-${Date.now()}`;
+                    const newColor = `#${Math.floor(Math.random()*16777215).toString(16)}`;
+                    setMultiOptions((prev) => [...prev, { id: newId, value: "New Option", color: newColor }]);
+                  }}
                   className="mt-1"
                 >
                   Add Option
                 </Button>
               </div>
             </div>
-          )} */}
+          )}
         </div>
 
         <DialogFooter>

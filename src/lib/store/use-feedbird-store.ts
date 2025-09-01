@@ -99,7 +99,7 @@ export interface UserColumn {
   id: string;
   label: string;
   type: ColumnType;
-  options?: string[];
+  options?: Array<{ id: string; value: string; color: string }> | string[];
 }
 
 // Re-export types from platform-types.ts for backward compatibility
@@ -187,7 +187,8 @@ export interface Post {
   pages: string[];  // Array of social page IDs
   billingMonth?: string;
   month: number;  // Month number (1-50)
-
+  /** Array of user defined column values saved as name/value pairs */
+  user_columns?: Array<{ name: string; value: string }>;
   /** Per-post settings such as location tag, tagged accounts, custom thumbnail, and platform-specific options */
   settings?: PostSettings;
 
@@ -240,6 +241,7 @@ export interface Board {
   color?: string;
   rules?: BoardRules;
   groupData?: BoardGroupData[]; // Array of group data for months 1-50
+  columns?: Array<{ name: string; is_default: boolean; order: number; type?: ColumnType; options?: any }>;
   createdAt: Date;
   posts: Post[]; // Posts now belong to boards, not brands
 }

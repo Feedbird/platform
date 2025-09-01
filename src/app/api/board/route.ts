@@ -10,6 +10,18 @@ const CreateBoardSchema = z.object({
   description: z.string().optional(),
   color: z.string().optional(),
   rules: z.any().optional(),
+  columns: z
+    .array(
+      z.object({
+        name: z.string(),
+        is_default: z.boolean(),
+        order: z.number().int().nonnegative(),
+        type: z.string().optional(),
+        // Accept arbitrary options payload; UI sends { value, color }[]
+        options: z.any().optional(),
+      })
+    )
+    .optional(),
 })
 
 const UpdateBoardSchema = z.object({
@@ -19,6 +31,18 @@ const UpdateBoardSchema = z.object({
   color: z.string().optional(),
   rules: z.any().optional(),
   group_data: z.any().optional(),
+  columns: z
+    .array(
+      z.object({
+        name: z.string(),
+        is_default: z.boolean(),
+        order: z.number().int().nonnegative(),
+        type: z.string().optional(),
+        // Accept arbitrary options payload; UI sends { value, color }[]
+        options: z.any().optional(),
+      })
+    )
+    .optional(),
 })
 
 // GET - Get board by ID or list boards by workspace
