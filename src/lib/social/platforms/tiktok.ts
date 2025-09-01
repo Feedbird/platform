@@ -14,6 +14,7 @@ import type {
 import { getSecureToken } from '@/lib/utils/token-manager';
 import { postApi } from '@/lib/api/api-service';
 import { supabase } from '@/lib/supabase/client';
+import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
@@ -475,6 +476,11 @@ export class TikTokPlatform extends BasePlatform {
     }
 
     const publishId = initResponse.data.publish_id;
+
+    // Save the published post ID (share_id) to the platform_post_ids column
+    if (publishId) {
+      await updatePlatformPostId(content.id!, 'tiktok', publishId, page.id);
+    }
 
     return { publishId, id: content.id }
   }
