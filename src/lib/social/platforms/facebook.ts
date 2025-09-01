@@ -16,6 +16,7 @@ import { validatePostContent, validateScheduledTime } from '@/lib/utils/validati
 import { normalizePostHistory } from '@/lib/utils/api-response';
 import { calculateEngagementRate } from '@/lib/utils/analytics';
 import { supabase } from '@/lib/supabase/client';
+import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
@@ -52,7 +53,7 @@ const config: SocialPlatformConfig = {
     scheduling: true,
     analytics: true,
     deletion: true,
-    mediaTypes: ['image', 'video', 'carousel'],
+    mediaTypes: ['image', 'video', 'carousel', 'story'],
     maxMediaCount: 10,
     characterLimits: {
       content: 63206 // Facebook's actual limit
@@ -80,6 +81,38 @@ const config: SocialPlatformConfig = {
       },
       video: {
         codecs: ["h264"],
+      },
+    },
+    story: {
+      image: {
+        maxWidth: 1080,
+        maxHeight: 1920,
+        aspectRatios: ["9:16"],
+        maxSizeMb: 4, // Facebook story limit
+        formats: ["jpg", "png", "gif", "bmp", "tiff"],
+      },
+      video: {
+        maxWidth: 1080,
+        maxHeight: 1920,
+        aspectRatios: ["9:16"],
+        maxSizeMb: 250,
+        maxDurationSec: 60, // Facebook story limit
+        minDurationSec: 3,
+        maxFps: 60,
+        minFps: 24,
+        formats: ["mp4"],
+        audio: {
+          codecs: ["aac"],
+          minBitrateKbps: 128,
+          channels: 2, // Stereo
+          sampleRate: 48000, // 48kHz
+        },
+        video: {
+          codecs: ["h264", "h265"],
+          chromaSubsampling: "4:2:0",
+          closedGop: "2-5", // seconds
+          progressiveScan: true,
+        },
       },
     },
   },
@@ -374,6 +407,24 @@ export class FacebookPlatform extends BasePlatform {
         return await this.publishCarouselPost(page, content, token, options);
       }
 
+      // 5. Story posts (photo or video)
+      if (content.media?.type === 'story') {
+        // https://developers.facebook.com/docs/page-stories-api/
+        if (mediaUrls.length !== 1) {
+          throw new SocialAPIError('Facebook stories support only single media uploads', 'VALIDATION_ERROR');
+        }
+        
+        // Determine if it's a photo or video story based on file extension or metadata
+        const mediaUrl = mediaUrls[0];
+        const isVideo = mediaUrl.match(/\.(mp4|mov|avi|mkv)$/i) || content.media.duration;
+
+        if (isVideo) {
+          return await this.publishVideoStory(page, content, token, options);
+        } else {
+          return await this.publishPhotoStory(page, content, token, options);
+        }
+      }
+
       throw new SocialAPIError('Unsupported media configuration', 'VALIDATION_ERROR');
       
     } catch (error) {
@@ -382,6 +433,7 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   // 1. Text-only post using /page_id/feed endpoint
+  // https://developers.facebook.com/docs/pages-api/posts/#publish-posts
   private async publishTextPost(
     page: SocialPage,
     content: PostContent,
@@ -412,6 +464,15 @@ export class FacebookPlatform extends BasePlatform {
       token: token,
       body: JSON.stringify(postData)
     });
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      console.log('Saving Facebook text post ID:', response.id);
+      await updatePlatformPostId(content.id!, 'facebook', response.id, page.id);
+    } catch (error) {
+      console.warn('Failed to save Facebook post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return normalizePostHistory({
       id: response.id,
@@ -451,6 +512,16 @@ export class FacebookPlatform extends BasePlatform {
       token: token,
       body: JSON.stringify(postData)
     });
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      const postId = response.post_id ?? response.id;
+      console.log('Saving Facebook photo post ID:', postId);
+      await updatePlatformPostId(content.id!, 'facebook', postId, page.id);
+    } catch (error) {
+      console.warn('Failed to save Facebook post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return normalizePostHistory({
       id: response.post_id ?? response.id,
@@ -497,6 +568,16 @@ export class FacebookPlatform extends BasePlatform {
       token: token,
       body: JSON.stringify(postData)
     });
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      const postId = response.post_id ?? response.id;
+      console.log('Saving Facebook video post ID:', postId);
+      await updatePlatformPostId(content.id!, 'facebook', postId, page.id);
+    } catch (error) {
+      console.warn('Failed to save Facebook post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return normalizePostHistory({
       id: response.post_id ?? response.id,
@@ -568,6 +649,15 @@ export class FacebookPlatform extends BasePlatform {
         }
       );
 
+      // Save the published post ID to the platform_post_ids column
+      try {
+        console.log('Saving Facebook carousel post ID:', response.id);
+        await updatePlatformPostId(content.id!, 'facebook', response.id, page.id);
+      } catch (error) {
+        console.warn('Failed to save Facebook post ID:', error);
+        // Don't fail the publish if saving the ID fails
+      }
+
       return normalizePostHistory({
         id: response.id,
         page_id: page.id,
@@ -586,6 +676,222 @@ export class FacebookPlatform extends BasePlatform {
     } catch (error) {
       this.handleApiError(error, 'publish carousel post');
     }
+  }
+
+  // 5. Photo Story using /page_id/photo_stories endpoint
+  // https://developers.facebook.com/docs/facebook-stories-api/photo-stories
+  private async publishPhotoStory(
+    page: SocialPage,
+    content: PostContent,
+    token: string,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
+    try {
+      // Step 1: Upload photo without publishing (required for stories)
+      // https://developers.facebook.com/docs/page-stories-api/#step-1--upload-a-photo
+      const photoResponse = await this.fetchWithAuth<{ id: string }>(
+        `${config.baseUrl}/${config.apiVersion}/${page.pageId}/photos`,
+        {
+          method: 'POST',
+          token: token,
+          body: JSON.stringify({
+            url: content.media!.urls[0],
+            published: false // Must be false for stories
+          })
+        }
+      );
+
+      // Step 2: Publish photo as 
+      // https://developers.facebook.com/docs/page-stories-api/#step-2--publish-a-photo-story
+      const storyResponse = await this.fetchWithAuth<{
+        success: boolean;
+        post_id: string;
+      }>(
+        `${config.baseUrl}/${config.apiVersion}/${page.pageId}/photo_stories`,
+        {
+          method: 'POST',
+          token: token,
+          body: JSON.stringify({
+            photo_id: photoResponse.id
+          })
+        }
+      );
+
+      if (!storyResponse.success) {
+        throw new Error('Failed to publish photo story');
+      }
+
+      // Save the published post ID to the platform_post_ids column
+      try {
+        console.log('Saving Facebook photo story ID:', storyResponse.post_id);
+        await updatePlatformPostId(content.id!, 'facebook', storyResponse.post_id, page.id);
+      } catch (error) {
+        console.warn('Failed to save Facebook post ID:', error);
+        // Don't fail the publish if saving the ID fails
+      }
+
+      return normalizePostHistory({
+        id: storyResponse.post_id,
+        page_id: page.id,
+        message: content.text,
+        created_time: new Date().toISOString(),
+        status: 'PUBLISHED',
+        attachments: {
+          data: [{
+            media: {
+              image: { src: content.media!.urls[0] }
+            }
+          }]
+        }
+      }, 'facebook');
+    } catch (error) {
+      this.handleApiError(error, 'publish photo story');
+    }
+  }
+
+  // 6. Video Story using /page_id/video_stories endpoint
+  // https://developers.facebook.com/docs/page-stories-api/#video-stories
+  private async publishVideoStory(
+    page: SocialPage,
+    content: PostContent,
+    token: string,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
+    try {
+      // Step 1: Initialize video upload session
+      // https://developers.facebook.com/docs/page-stories-api/#initialize
+      const initResponse = await this.fetchWithAuth<{
+        video_id: string;
+        upload_url: string;
+      }>(
+        `${config.baseUrl}/${config.apiVersion}/${page.pageId}/video_stories`,
+        {
+          method: 'POST',
+          token: token,
+          body: JSON.stringify({
+            upload_phase: 'start'
+          })
+        }
+      );
+
+      // Step 2: Upload video to Meta servers
+      // https://developers.facebook.com/docs/page-stories-api/#step-2--upload-a-video
+      const uploadResponse = await fetch(initResponse.upload_url + '?access_token=' + token, {
+        method: 'POST',
+        headers: {
+          'file_url': content.media!.urls[0]
+        }
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload video for story');
+      }
+
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResult.success) {
+        throw new Error('Failed to upload video for story');
+      }
+
+      // Step 3: Wait for video processing (optional but recommended)
+      // await this.waitForVideoProcessing(initResponse.video_id, token);
+
+      // Step 4: Publish video story
+      // https://developers.facebook.com/docs/page-stories-api/#step-3--publish-a-video-story
+      const storyResponse = await this.fetchWithAuth<{
+        success: boolean;
+        post_id: string;
+      }>(
+        `${config.baseUrl}/${config.apiVersion}/${page.pageId}/video_stories`,
+        {
+          method: 'POST',
+          token: token,
+          body: JSON.stringify({
+            video_id: initResponse.video_id,
+            upload_phase: 'finish'
+          })
+        }
+      );
+
+      if (!storyResponse.success) {
+        throw new Error('Failed to publish video story');
+      }
+
+      // Save the published post ID to the platform_post_ids column
+      try {
+        console.log('Saving Facebook video story ID:', storyResponse.post_id);
+        await updatePlatformPostId(content.id!, 'facebook', storyResponse.post_id, page.id);
+      } catch (error) {
+        console.warn('Failed to save Facebook post ID:', error);
+        // Don't fail the publish if saving the ID fails
+      }
+
+      return normalizePostHistory({
+        id: storyResponse.post_id,
+        page_id: page.id,
+        message: content.text,
+        created_time: new Date().toISOString(),
+        status: 'PUBLISHED',
+        attachments: {
+          data: [{
+            media: {
+              image: { src: content.media!.urls[0] }
+            }
+          }]
+        }
+      }, 'facebook');
+    } catch (error) {
+      console.log('error', error);
+      this.handleApiError(error, 'publish video story');
+    }
+  }
+
+  // Helper method to wait for video processing
+  private async waitForVideoProcessing(videoId: string, token: string, maxWaitTime = 300000): Promise<void> {
+    const startTime = Date.now();
+    const checkInterval = 5000; // Check every 5 seconds
+
+    while (Date.now() - startTime < maxWaitTime) {
+      try {
+        const statusResponse = await this.fetchWithAuth<{
+          status: {
+            video_status: string;
+            uploading_phase: { status: string };
+            processing_phase: { status: string };
+          };
+        }>(
+          `${config.baseUrl}/${config.apiVersion}/${videoId}`,
+          {
+            token: token,
+            queryParams: {
+              fields: 'status'
+            }
+          }
+        );
+        console.log('statusResponse', statusResponse.status);
+
+        const { video_status, uploading_phase, processing_phase } = statusResponse.status;
+
+        // Check for errors
+        if (video_status === 'error') {
+          throw new Error('Video processing failed');
+        }
+
+        // Check if processing is complete
+        if (uploading_phase.status === 'complete' && processing_phase.status === 'complete') {
+          return; // Video is ready
+        }
+
+        // Wait before next check
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+      } catch (error) {
+        // If we can't check status, continue waiting
+        console.warn('Could not check video status:', error);
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+      }
+    }
+
+    // Timeout reached
+    throw new Error('Video processing timeout - video may still be processing');
   }
 
   async getPostHistory(page: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
@@ -685,6 +991,65 @@ export class FacebookPlatform extends BasePlatform {
     }
   }
 
+  // Get story history for a Facebook Page
+  // https://developers.facebook.com/docs/facebook-stories-api/get-stories
+  async getStoryHistory(page: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/facebook/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          limit,
+          nextPage,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      // Get secure token from database
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // https://developers.facebook.com/docs/page-stories-api/#get-stories
+      const response = await this.fetchWithAuth<{
+        data: Array<{
+          post_id: string;
+          status: 'PUBLISHED' | 'ARCHIVED';
+          creation_time: string;
+          media_type: 'video' | 'photo';
+          media_id: string;
+          url: string;
+        }>;
+        paging?: {
+          cursors?: {
+            before?: string;
+            after?: string;
+          };
+          next?: string;
+          previous?: string;
+        };
+      }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/stories`, {
+        token: token,
+        queryParams: {
+          limit: limit.toString(),
+          ...(nextPage && { after: typeof nextPage === 'string' ? nextPage : nextPage.toString() })
+        }
+      });
+
+      const stories = response.data.map(story => this.mapFacebookStoryToHistory(story, page.id));
+
+      return { posts: stories, nextPage: response.paging?.cursors?.after || undefined };
+    } catch (error) {
+      this.handleApiError(error, 'get story history');
+    }
+  }
+
   // Custom mapping function for Facebook post history
   private mapFacebookPostToHistory(post: any, pageId: string): PostHistory {
     const attachment = post.attachments?.data?.[0];
@@ -753,6 +1118,35 @@ export class FacebookPlatform extends BasePlatform {
           description: attachment?.description,
           mediaType: mediaType,
           thumbnailUrl: attachment?.media?.image?.src
+        }
+      }
+    };
+  }
+
+  // Custom mapping function for Facebook story history
+  private mapFacebookStoryToHistory(story: any, pageId: string): PostHistory {
+    return {
+      id: story.post_id,
+      pageId: pageId,
+      content: '', // Stories typically don't have text content
+      mediaUrls: [story.url], 
+      publishedAt: new Date(story.creation_time),
+      status: 'published' ,
+      
+      // Default analytics (to be populated by separate call)
+      analytics: {
+        views: 0,
+        engagement: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        clicks: 0,
+        reach: 0,
+        metadata: {
+          facebookStoryId: story.post_id,
+          mediaType: story.media_type,
+          storyUrl: story.url,
+          status: story.status,
         }
       }
     };

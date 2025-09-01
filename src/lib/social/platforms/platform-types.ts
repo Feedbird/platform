@@ -61,7 +61,7 @@ export interface SocialPlatformConfig {
     scheduling: boolean;
     analytics: boolean;
     deletion: boolean;
-    mediaTypes: ("image" | "video" | "carousel")[];
+    mediaTypes: ("image" | "video" | "carousel" | "story")[];
     maxMediaCount: number;
     characterLimits: {
       content: number;
@@ -92,6 +92,38 @@ export interface SocialPlatformConfig {
       };
       video?: {
         codecs?: ("h264" | "h265")[];
+      };
+    };
+    story?: {
+      image?: {
+        maxWidth?: number;
+        maxHeight?: number;
+        aspectRatios?: string[];
+        maxSizeMb?: number;
+        formats?: ("jpg" | "png" | "gif" | "bmp" | "tiff")[];
+      };
+      video?: {
+        maxWidth?: number;
+        maxHeight?: number;
+        aspectRatios?: string[];
+        maxSizeMb?: number;
+        minDurationSec?: number;
+        maxDurationSec?: number;
+        formats?: ("mp4")[];
+        minFps?: number;
+        maxFps?: number;
+        audio?: {
+          minBitrateKbps?: number;
+          codecs?: ("aac")[];
+          channels?: number;
+          sampleRate?: number;
+        };
+        video?: {
+          codecs?: ("h264" | "h265")[];
+          chromaSubsampling?: string;
+          closedGop?: string;
+          progressiveScan?: boolean;
+        };
       };
     };
   };
@@ -171,7 +203,7 @@ export interface PostContent {
   text: string;
   title?: string;
   media?: {
-    type: "image" | "video" | "carousel";
+    type: "image" | "video" | "carousel" | "story";
     urls: string[];
     thumbnailUrl?: string;
     duration?: number;
@@ -215,7 +247,14 @@ export interface PlatformOperations {
   // getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<{ posts: PostHistory[], nextPage: number | string | null | undefined }>;
   getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<any>;
   getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']>;
-  
+
+  // optional method for getStoryHistory in the facebook platform
+  getStoryHistory?(
+    page: SocialPage,
+    limit?: number,
+    nextPage?: number | string | null | undefined
+  ): Promise<any>;
+
   // Platform-specific operations
   getPlatformFeatures(): SocialPlatformConfig['features'];
   validateContent(content: PostContent): { isValid: boolean; errors?: string[] };

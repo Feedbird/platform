@@ -14,6 +14,7 @@ import type {
   SocialPlatformConfig,
   PostHistoryResponse,
 } from "./platform-types";
+import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
 /* ─── toggle console noise ─── */
 const DEBUG = true;
@@ -1281,6 +1282,15 @@ export class LinkedInPlatform extends BasePlatform {
       throw new Error("No post ID returned from LinkedIn API");
     }
 
+    // Save the published post ID to the platform_post_ids column
+    try {
+      console.log('Saving LinkedIn post ID:', postId);
+      await updatePlatformPostId(content.id!, 'linkedin', postId, page.id);
+    } catch (error) {
+      console.warn('Failed to save LinkedIn post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
+
     return {
       id: postId,
       pageId: page.id,
@@ -1367,6 +1377,15 @@ export class LinkedInPlatform extends BasePlatform {
         body: JSON.stringify(postData)
       }
     );
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      console.log('Saving LinkedIn post ID:', response.id);
+      await updatePlatformPostId(content.id!, 'linkedin', response.id, page.id);
+    } catch (error) {
+      console.warn('Failed to save LinkedIn post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return {
       id: response.id,
