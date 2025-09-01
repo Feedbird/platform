@@ -16,6 +16,7 @@ import { validatePostContent, validateScheduledTime } from '@/lib/utils/validati
 import { normalizePostHistory } from '@/lib/utils/api-response';
 import { calculateEngagementRate } from '@/lib/utils/analytics';
 import { supabase } from '@/lib/supabase/client';
+import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
@@ -432,6 +433,7 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   // 1. Text-only post using /page_id/feed endpoint
+  // https://developers.facebook.com/docs/pages-api/posts/#publish-posts
   private async publishTextPost(
     page: SocialPage,
     content: PostContent,
@@ -462,6 +464,15 @@ export class FacebookPlatform extends BasePlatform {
       token: token,
       body: JSON.stringify(postData)
     });
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      console.log('Saving Facebook text post ID:', response.id);
+      await updatePlatformPostId(content.id!, 'facebook', response.id, page.id);
+    } catch (error) {
+      console.warn('Failed to save Facebook post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return normalizePostHistory({
       id: response.id,
@@ -501,6 +512,16 @@ export class FacebookPlatform extends BasePlatform {
       token: token,
       body: JSON.stringify(postData)
     });
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      const postId = response.post_id ?? response.id;
+      console.log('Saving Facebook photo post ID:', postId);
+      await updatePlatformPostId(content.id!, 'facebook', postId, page.id);
+    } catch (error) {
+      console.warn('Failed to save Facebook post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return normalizePostHistory({
       id: response.post_id ?? response.id,
@@ -547,6 +568,16 @@ export class FacebookPlatform extends BasePlatform {
       token: token,
       body: JSON.stringify(postData)
     });
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      const postId = response.post_id ?? response.id;
+      console.log('Saving Facebook video post ID:', postId);
+      await updatePlatformPostId(content.id!, 'facebook', postId, page.id);
+    } catch (error) {
+      console.warn('Failed to save Facebook post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return normalizePostHistory({
       id: response.post_id ?? response.id,
@@ -618,6 +649,15 @@ export class FacebookPlatform extends BasePlatform {
         }
       );
 
+      // Save the published post ID to the platform_post_ids column
+      try {
+        console.log('Saving Facebook carousel post ID:', response.id);
+        await updatePlatformPostId(content.id!, 'facebook', response.id, page.id);
+      } catch (error) {
+        console.warn('Failed to save Facebook post ID:', error);
+        // Don't fail the publish if saving the ID fails
+      }
+
       return normalizePostHistory({
         id: response.id,
         page_id: page.id,
@@ -679,6 +719,15 @@ export class FacebookPlatform extends BasePlatform {
 
       if (!storyResponse.success) {
         throw new Error('Failed to publish photo story');
+      }
+
+      // Save the published post ID to the platform_post_ids column
+      try {
+        console.log('Saving Facebook photo story ID:', storyResponse.post_id);
+        await updatePlatformPostId(content.id!, 'facebook', storyResponse.post_id, page.id);
+      } catch (error) {
+        console.warn('Failed to save Facebook post ID:', error);
+        // Don't fail the publish if saving the ID fails
       }
 
       return normalizePostHistory({
@@ -765,6 +814,15 @@ export class FacebookPlatform extends BasePlatform {
 
       if (!storyResponse.success) {
         throw new Error('Failed to publish video story');
+      }
+
+      // Save the published post ID to the platform_post_ids column
+      try {
+        console.log('Saving Facebook video story ID:', storyResponse.post_id);
+        await updatePlatformPostId(content.id!, 'facebook', storyResponse.post_id, page.id);
+      } catch (error) {
+        console.warn('Failed to save Facebook post ID:', error);
+        // Don't fail the publish if saving the ID fails
       }
 
       return normalizePostHistory({
