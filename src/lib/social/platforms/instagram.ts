@@ -796,7 +796,7 @@ export class InstagramPlatform extends BasePlatform {
     throw new Error(`Instagram container ${containerId} processing timeout - container may still be processing`);
   }
 
-  async getPostHistory(page: SocialPage, limit = 20, nextPage = ''): Promise<PostHistory[]> {
+  async getPostHistory(page: SocialPage, limit = 20, nextPage = ''): Promise<{ posts: PostHistory[], nextPage?: string }> {
     // Prevent browser calls - route to API endpoint (same pattern as Facebook)
     if (IS_BROWSER) {
       const res = await fetch('/api/social/instagram/history', {
@@ -819,30 +819,80 @@ export class InstagramPlatform extends BasePlatform {
         throw new Error('No auth token available');
       }
 
+      // https://developers.facebook.com/docs/instagram-api/reference/ig-user/media#reading
       const response = await this.fetchWithAuth<{
         data: Array<{
           id: string;
           caption?: string;
           media_url: string;
+          media_type: string;
           timestamp: string;
+          permalink?: string;
+          thumbnail_url?: string;
         }>;
+        paging?: {
+          cursors?: {
+            before?: string;
+            after?: string;
+          };
+          next?: string;
+          previous?: string;
+        };
       }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/media`, {
         token: token,
         queryParams: {
-          fields: 'id,caption,media_url,timestamp',
-          limit: limit.toString()
+          fields: 'id,caption,media_url,media_type,timestamp,permalink,thumbnail_url',
+          limit: limit.toString(),
+          ...(nextPage && { after: nextPage })
         }
       });
 
-      return response.data.map(post => ({
+      const posts = response.data.map(post => ({
         id: post.id,
         pageId: page.id,
         postId: post.id,
-        content: post.caption ?? '',
+        content: post.caption || '',
         mediaUrls: [post.media_url],
-        status: 'published',
-        publishedAt: new Date(post.timestamp)
+        status: 'published' as const,
+        publishedAt: new Date(post.timestamp),
+       
+        // Initialize analytics (will be populated below)
+        analytics: {
+          views: 0,
+          likes: 0,
+          comments: 0,
+          clicks: 0,
+          reach: 0,
+          metadata: {
+            instagramPostId: post.id,
+            mediaType: post.media_type,
+            permalink: post.permalink,
+            thumbnailUrl: post.thumbnail_url,
+            platform: 'instagram'
+          },
+        } as PostHistory['analytics']
       }));
+
+      // Get analytics for each post (like Facebook does)
+      for (const post of posts) {
+        try {
+          const analytics = await this.getPostAnalytics(page, post.id);
+          if (analytics) {
+            post.analytics = {
+              ...post.analytics,
+              ...analytics
+            };
+          }
+        } catch (error) {
+          console.warn('Failed to get analytics for post:', post.id, error);
+          // Don't fail the entire request if analytics fail
+        }
+      }
+
+      return { 
+        posts, 
+        nextPage: response.paging?.cursors?.after || undefined 
+      };
     } catch (error) {
       console.error('Error in getPostHistory:', error);
       throw error;
@@ -879,7 +929,7 @@ export class InstagramPlatform extends BasePlatform {
       }>(`${config.baseUrl}/${config.apiVersion}/${postId}/insights`, {
         token: token,
         queryParams: {
-          metric: 'impressions,reach,engagement,saved,likes,comments'
+          metric: 'reach,likes,comments'
         }
       });
 
@@ -890,13 +940,8 @@ export class InstagramPlatform extends BasePlatform {
 
       return {
         reach: metrics.reach,
-        engagement: metrics.engagement,
         likes: metrics.likes,
-        comments: metrics.comments,
-        metadata: {
-          saved: metrics.saved,
-          impressions: metrics.impressions
-        }
+        comments: metrics.comments
       };
     } catch (error) {
       console.error('Error in getPostAnalytics:', error);

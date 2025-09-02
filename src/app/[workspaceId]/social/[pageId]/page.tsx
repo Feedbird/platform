@@ -254,7 +254,7 @@ function PostCard({
     return (
       <div className="flex flex-col gap-3 mb-3 mt-2">
         {post.mediaUrls.map((url, idx) => {
-          const isVideo = isVideoUrl(url);
+          const isVideo  = post?.analytics?.metadata?.platform === 'instagram' && post?.analytics?.metadata?.mediaType?.toLowerCase() === 'video' ? true : isVideoUrl(url);
           
           /* ——— LINKEDIN MEDIA (using metadata) ——— */
           if (post.analytics?.metadata?.platform === 'linkedin') {
@@ -348,6 +348,21 @@ function PostCard({
                 className="w-full rounded-md"
                 style={{ maxHeight: 400 }}
                 preload="metadata"
+              />
+            );
+          }
+
+        // if platfform is instagram then return an image
+        if (post.analytics?.metadata?.platform === 'instagram') {
+            return (
+              <img
+                src={url}
+                alt={`Instagram post image ${idx + 1}`}
+                width={600}
+                height={400}
+                className="object-cover rounded-md"
+                style={{ maxHeight: 400, width: "100%", height: "auto" }}
+                loading="lazy"
               />
             );
           }
