@@ -37,13 +37,13 @@ export default function FormCanvas({
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[600px] p-6 transition-colors ${
+      className={`min-h-[600px] px-6 transition-colors ${
         isOver
           ? "bg-blue-50 border-2 border-blue-300 border-dashed"
-          : "bg-gray-50"
+          : "bg-transparent"
       }`}
     >
-      <div className="max-w-2xl mx-auto">
+      <div className="mx-auto max-w-[820px] p-4">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800">Form Preview</h1>

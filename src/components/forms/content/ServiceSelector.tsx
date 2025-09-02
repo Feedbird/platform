@@ -8,7 +8,7 @@ export default function ServiceSelector() {
   const { activeWorkspaceId } = useFeedbirdStore();
   const [selectedServices, onSelectionChange] = React.useState<string[]>([]);
   return (
-    <header className="flex flex-col gap-5">
+    <header className="flex flex-col gap-5 p-6 max-w-[820px] mx-auto">
       <div className="p-4 rounded-[5px] border-1 border-[#D3D3D3] flex flex-col gap-2.5">
         <div className="flex flex-col">
           <span className="text-[#1C1D1F] font-medium text-base">

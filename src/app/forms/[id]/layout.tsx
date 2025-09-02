@@ -10,6 +10,7 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import React from "react";
 import { useForms } from "@/contexts/FormsContext";
+import ServiceSelector from "@/components/forms/content/ServiceSelector";
 
 export default function FormVisualizerLayout({
   children,
@@ -105,10 +106,11 @@ export default function FormVisualizerLayout({
       onDragStart={handleDragStart}
       collisionDetection={closestCenter}
     >
-      <div className="w-full h-full flex">
+      <div className="w-full h-full flex bg-[#FBFBFB]">
         <div className="flex-1 min-w-0 overflow-auto">
+          <ServiceSelector />
           <FormCanvas formFields={formFields} setFormFields={setFormFields} />
-          {children}
+          {/* {children} */}
         </div>
         <FormEditorSideBar />
       </div>
