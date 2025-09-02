@@ -14,27 +14,46 @@ import React from "react";
 import { useForms } from "@/contexts/FormsContext";
 import ServiceSelector from "@/components/forms/content/ServiceSelector";
 import { Form } from "@/lib/supabase/client";
-import { FormFieldsArray, UIFormFieldDefaults } from "@/lib/forms/fields";
-import {
-  BaseContent,
-  DraggableFieldType,
-} from "@/components/forms/content/DraggableFieldType";
+import { FormFieldsArray } from "@/lib/forms/fields";
+import { BaseContent } from "@/components/forms/content/DraggableFieldType";
 import Image from "next/image";
+import { useParams } from "next/navigation";
+import { formsApi } from "@/lib/api/api-service";
+import Loading from "./loading";
 
-type FormInnerVisualizerProps = {
-  form: Form;
-};
-
-export default function FormInnerVisualizer({
-  form,
-}: FormInnerVisualizerProps) {
+export default function FormInnerVisualizer() {
   const { setIsEditing } = useForms();
+  const params = useParams();
+  const formId = params.id as string;
+
+  const [form, setForm] = React.useState<Form | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   // Form fields state - local to the form editor
   const [formFields, setFormFields] = React.useState<FormField[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
 
+  const retrieveForm = async (formId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data } = await formsApi.getFormById(formId);
+      setForm(data);
+    } catch (err) {
+      console.error("Error fetching form:", err);
+      setError(err instanceof Error ? err.message : "Failed to load form");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (formId) {
+      retrieveForm(formId);
+    }
+  }, [formId]);
   // Set edit mode when this layout mounts
   React.useEffect(() => {
     setIsEditing(true);
@@ -162,6 +181,21 @@ export default function FormInnerVisualizer({
   const displayField = activeTemplateField || activePlacedFieldTemplate;
   const displayLabel =
     activeTemplateField?.label || activePlacedField?.label || "Field";
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (error || !form) {
+    return (
+      <div className="w-full h-full flex justify-center items-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Error Loading Form</h2>
+          <p className="text-gray-600">{error || "Form not found"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DndContext
