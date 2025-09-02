@@ -16,7 +16,7 @@ const config: SocialPlatformConfig = {
   name: 'Instagram',
   channel: 'instagram',
   icon: '/images/platforms/instagram.svg',
-  authUrl: 'https://www.facebook.com/v19.0/dialog/oauth',
+  authUrl: 'https://www.facebook.com/v23.0/dialog/oauth',
   scopes: [
     'instagram_basic',
     'instagram_content_publish',
@@ -26,7 +26,7 @@ const config: SocialPlatformConfig = {
     'pages_manage_metadata',
     'business_management',
   ],
-  apiVersion: 'v19.0',
+  apiVersion: 'v23.0',
   baseUrl: 'https://graph.facebook.com',
   features: {
     multipleAccounts: true,
