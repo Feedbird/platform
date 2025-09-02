@@ -21,7 +21,8 @@ const UpdatePostBlocksSchema = z.object({
       comments: z.array(z.any()).optional()
     })),
     comments: z.array(z.any()).optional()
-  }))
+  })),
+  last_updated_by: z.string().email('Invalid email format for last_updated_by').optional()
 })
 
 export async function POST(req: NextRequest) {
@@ -52,12 +53,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Update the post with new blocks
+    const updateData: any = {
+      blocks: validatedData.blocks,
+      updated_at: new Date().toISOString()
+    }
+
+    // Include last_updated_by if provided
+    if (validatedData.last_updated_by) {
+      updateData.last_updated_by = validatedData.last_updated_by
+    }
+
     const { data, error } = await supabase
       .from('posts')
-      .update({ 
-        blocks: validatedData.blocks,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', validatedData.postId)
       .select()
       .single()

@@ -7,6 +7,7 @@ export type UploadStatus = "uploading" | "processing" | "done" | "error";
 export interface GlobalUpload {
   id: string;
   postId: string;
+  columnId?: string; // Optional for backward compatibility with existing uploads
   file: File;
   previewUrl: string;
   progress: number; // 0 - 100
@@ -45,8 +46,13 @@ export const useUploadStore = create<UploadStoreState>((set, get) => ({
     }),
   updatePostAfterUpload: async (postId: string, blocks: any[]) => {
     try {
+      // Get current user email from the store
+      const { useFeedbirdStore } = await import('@/lib/store/use-feedbird-store');
+      const store = useFeedbirdStore.getState();
+      const userEmail = store.user?.email;
+
       // Update post blocks in database using the API service
-      await storeApi.updatePostBlocksAndUpdateStore(postId, blocks);
+      await storeApi.updatePostBlocksAndUpdateStore(postId, blocks, userEmail);
       console.log('✅ Post updated successfully after upload');
     } catch (error) {
       console.error('❌ Failed to update post after upload:', error);

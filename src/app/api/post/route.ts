@@ -22,11 +22,13 @@ const CreatePostSchema = z.object({
   user_columns: z
     .array(
       z.object({
-        name: z.string().min(1, 'Column name is required'),
+        id: z.string().min(1, 'Column ID is required'),
         value: z.string(),
       })
     )
     .optional(),
+  created_by: z.string().email('Invalid email format for created_by'),
+  last_updated_by: z.string().email('Invalid email format for last_updated_by'),
 })
 
 const UpdatePostSchema = z.object({
@@ -46,11 +48,12 @@ const UpdatePostSchema = z.object({
   user_columns: z
     .array(
       z.object({
-        name: z.string().min(1, 'Column name is required'),
+        id: z.string().min(1, 'Column ID is required'),
         value: z.string(),
       })
     )
     .optional(),
+  last_updated_by: z.string().email('Invalid email format for last_updated_by'),
 })
 
 // GET - Get post by ID or list posts by workspace/board
@@ -212,6 +215,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json()
+    console.log("body", body)
     const validatedData = UpdatePostSchema.parse(body)
     console.log('id', id)
     console.log('validatedData', validatedData)

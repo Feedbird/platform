@@ -6,6 +6,7 @@ import { cn, calculateAspectRatioWidth, getAspectRatioType, RowHeightType, getRo
 import { BlockThumbnail } from "./BlockThumbnail";
 import ClipLoader from "react-spinners/ClipLoader";
 import { useUploader } from "@/lib/hooks/use-uploader";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 type AspectRatioType = "1:1" | "4:5" | "9:16";
 
@@ -14,7 +15,7 @@ type AspectRatioType = "1:1" | "4:5" | "9:16";
  * Each thumbnail has a 1:1 aspect ratio, so it fits nicely in a row or table cell.
  */
 export function BlocksPreview({
-  blocks,
+  blocks: initialBlocks,
   postId,
   onFilesSelected,
   rowHeight,
@@ -30,6 +31,12 @@ export function BlocksPreview({
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadDimensions, setUploadDimensions] = useState<Record<string, { w: number, h: number }>>({});
   const [showText, setShowText] = useState(false);
+
+  // Subscribe directly to the store to get the latest blocks data
+  const blocks = useFeedbirdStore((state) => {
+    const post = state.getPost(postId);
+    return post?.blocks || initialBlocks;
+  });
 
   const { uploads, startUploads } = useUploader({ postId });
 

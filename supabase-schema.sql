@@ -48,17 +48,17 @@ CREATE TABLE IF NOT EXISTS boards (
   rules JSONB,
   group_data JSONB,
   columns JSONB DEFAULT '[
-    {"name":"Status","is_default":true,"order":0},
-    {"name":"Preview","is_default":true,"order":1},
-    {"name":"Caption","is_default":true,"order":2},
-    {"name":"Socials","is_default":true,"order":3},
-    {"name":"Format","is_default":true,"order":4},
-    {"name":"Month","is_default":true,"order":5},
-    {"name":"Revision","is_default":true,"order":6},
-    {"name":"Approve","is_default":true,"order":7},
-    {"name":"Settings","is_default":true,"order":8},
-    {"name":"Post time","is_default":true,"order":9},
-    {"name":"Updated","is_default":true,"order":10}
+    {"id":"status","name":"Status","is_default":true,"order":0},
+    {"id":"preview","name":"Preview","is_default":true,"order":1},
+    {"id":"caption","name":"Caption","is_default":true,"order":2},
+    {"id":"platforms","name":"Socials","is_default":true,"order":3},
+    {"id":"format","name":"Format","is_default":true,"order":4},
+    {"id":"month","name":"Month","is_default":true,"order":5},
+    {"id":"revision","name":"Revision","is_default":true,"order":6},
+    {"id":"approve","name":"Approve","is_default":true,"order":7},
+    {"id":"settings","name":"Settings","is_default":true,"order":8},
+    {"id":"publish_date","name":"Post time","is_default":true,"order":9},
+    {"id":"updated_at","name":"Updated","is_default":true,"order":10}
   ]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

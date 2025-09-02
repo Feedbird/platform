@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     const wid = req.nextUrl.searchParams.get('wid');
     const board_id = req.nextUrl.searchParams.get('bid');
     const pid = req.nextUrl.searchParams.get('pid');
+    const cid = req.nextUrl.searchParams.get('cid'); // columnId for attachments
 
     const { uploadUrl, publicUrl } = await getSignedUploadUrl({
         fileName,
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
         wid,
         board_id,
         pid,
+        cid,
     });
 
     return NextResponse.json({ uploadUrl, publicUrl });

@@ -154,6 +154,7 @@ import { RowHeightMenu } from "./RowHeightMenu";
 import { ColumnVisibilityMenu } from "./ColumnVisibilityMenu";
 import { BlocksPreview } from "./BlocksPreview";
 import { MemoBlocksPreview } from "./MemoBlocksPreview";
+import { MemoAttachmentCell } from "./MemoAttachmentCell";
 import { StatusEditCell } from "./StatusEditCell";
 import { ChannelsEditCell } from "./ChannelsEditCell";
 import { FormatEditCell } from "./FormatEditCell";
@@ -189,9 +190,12 @@ import {
 import { PostContextMenu } from "./PostContextMenu";
 import { CaptionCell } from "./CaptionCell";
 import UserTextCell from "./UserTextCell";
+import { CheckboxCell } from "./CheckboxCell";
+import { UserDateCell } from "./UserDateCell";
 import UserTextEditor from "./UserTextEditor";
 import { SettingsEditCell } from "./SettingsCell";
 import { MonthEditCell } from "./MonthEditCell";
+import { CreatedByCell, LastModifiedByCell } from "./UserCell";
 import { GroupFeedbackSidebar } from "./GroupFeedbackSidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createPortal } from "react-dom";
@@ -444,14 +448,14 @@ const formatSortingFn: SortingFn<Post> = (rowA, rowB, columnId) => {
 
 /** ---------- The PostTable ---------- **/
 export function PostTable({
-  posts,
+  posts: initialPosts,
   onOpen,
 }: {
   posts: Post[];
   onOpen?: (id: string) => void;
 }) {
   const [mounted, setMounted] = React.useState(false);
-  const [tableData, setTableData] = React.useState<Post[]>(posts);
+  const [tableData, setTableData] = React.useState<Post[]>(initialPosts);
   const [trashedPosts, setTrashedPosts] = React.useState<Post[]>([]);
   const [showUndoMessage, setShowUndoMessage] = React.useState(false);
   const [lastTrashedCount, setLastTrashedCount] = React.useState(0);
@@ -483,6 +487,14 @@ export function PostTable({
   const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId);
   const activeBoardId = useFeedbirdStore(s => s.activeBoardId);
   
+  // Subscribe directly to posts data from the store to ensure re-renders on updates
+  const posts = useFeedbirdStore(s => {
+    if (!activeBoardId) return initialPosts;
+    const activeWorkspace = s.workspaces.find(w => w.id === activeWorkspaceId);
+    const activeBoard = activeWorkspace?.boards.find(b => b.id === activeBoardId);
+    return activeBoard?.posts || initialPosts;
+  });
+  
   // Compute activeWorkspace from the actual data that changes
   const activeWorkspace = React.useMemo(() => {
     return workspaces.find(w => w.id === activeWorkspaceId);
@@ -510,16 +522,11 @@ export function PostTable({
     setMounted(true);
   }, []);
 
-  // Optimized useEffect to only update when posts actually change
-  const prevPostsRef = React.useRef<Post[]>(posts);
+  // Initialize tableData with posts prop, but don't sync with global store changes
+  // This prevents the global store from overwriting local user column updates
   React.useEffect(() => {
-    // Only update if the posts array reference has actually changed
-    if (posts !== prevPostsRef.current) {
-      console.log("@@@@@@@posts", posts)
-      setTableData(posts);
-      prevPostsRef.current = posts;
-    }
-  }, [posts]);
+    setTableData(posts);
+  }, [posts]); // Run when posts change to keep table data in sync
 
   // CSV import / export
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -640,17 +647,18 @@ export function PostTable({
   const [userColumns, setUserColumns] = React.useState<UserColumn[]>([]);
 
   // Helpers to read/write user column values on Post.user_columns
-  const getUserColumnValue = React.useCallback((post: Post, name: string): string => {
+  const getUserColumnValue = React.useCallback((post: Post, columnId: string): string => {
     const arr = post.user_columns || [];
-    const hit = arr.find((x) => x.name === name);
+    const hit = arr.find((x) => x.id === columnId);
     return (hit?.value ?? "");
   }, []);
 
-  const buildUpdatedUserColumnsArr = React.useCallback((post: Post, name: string, value: string): Array<{ name: string; value: string }> => {
+  const buildUpdatedUserColumnsArr = React.useCallback((post: Post, columnId: string, value: string): Array<{ id: string; value: string }> => {
     const arr = [...(post.user_columns || [])];
-    const idx = arr.findIndex((x) => x.name === name);
-    if (idx >= 0) arr[idx] = { name, value };
-    else arr.push({ name, value });
+    const idx = arr.findIndex((x) => x.id === columnId);
+    
+    if (idx >= 0) arr[idx] = { id: columnId, value };
+    else arr.push({ id: columnId, value });
     return arr;
   }, []);
 
@@ -668,7 +676,7 @@ export function PostTable({
     approve: "Approve",
     settings: "Settings",
     publish_date: "Post time",
-    updatedAt: "Updated",
+    updated_at: "Updated",
   }), []);
   const nameToDefaultId: Record<string, string> = React.useMemo(() => {
     const map: Record<string, string> = {};
@@ -689,11 +697,10 @@ export function PostTable({
   }, []);
 
   // Compose payload for persistence given an explicit order
-  const buildColumnsPayloadForOrder = React.useCallback((orderIds: string[], columnsList: UserColumn[] = userColumns): Array<{ name: string; is_default: boolean; order: number; type?: ColumnType; options?: any }> => {
+  const buildColumnsPayloadForOrder = React.useCallback((orderIds: string[], columnsList: UserColumn[] = userColumns): Array<{ name: string; id?: string; is_default: boolean; order: number; type?: ColumnType; options?: any }> => {
     const filtered = orderIds.filter((id) => id !== 'drag' && id !== 'rowIndex');
-    const payload: Array<{ name: string; is_default: boolean; order: number; type?: ColumnType; options?: any }> = [];
+    const payload: Array<{ name: string; id?: string; is_default: boolean; order: number; type?: ColumnType; options?: any }> = [];
     let ord = 0;
-    console.log("columnsList", columnsList);
     for (const id of filtered) {
       if (defaultIdToName[id]) {
         // Default columns: we can optionally set a type for well-known ones
@@ -715,10 +722,9 @@ export function PostTable({
             }
           }
         }
-        payload.push({ name: u.label, is_default: false, order: ord++, type: u.type, options: optionsPayload });
+        payload.push({ name: u.label, id: u.id, is_default: false, order: ord++, type: u.type, options: optionsPayload });
       }
     }
-    console.log("payload", payload);
     return payload;
   }, [userColumns, defaultIdToName]);
 
@@ -726,7 +732,6 @@ export function PostTable({
   React.useEffect(() => {
     if (!currentBoard?.columns) return;
     const sorted = [...currentBoard.columns].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    console.log("sorted", sorted)
     const newUserCols: UserColumn[] = [];
     const newOrder: string[] = [];
     for (const col of sorted) {
@@ -735,14 +740,13 @@ export function PostTable({
         if (id) newOrder.push(id);
       } else {
         const anyCol: any = col as any;
-        newUserCols.push({ id: col.name, label: col.name, type: anyCol.type || "singleLine", options: anyCol.options });
-        newOrder.push(col.name);
+        // Use existing ID from database if available, otherwise generate new one
+        const columnId = anyCol.id || nanoid();
+        newUserCols.push({ id: columnId, label: col.name, type: anyCol.type || "singleLine", options: anyCol.options });
+        newOrder.push(columnId);
       }
     }
-    console.log("newOrder", newOrder)
     if (newUserCols.length) setUserColumns(newUserCols);
-    console.log("1111111newUserCols", newUserCols)
-    console.log("normalizeOrder(newOrder)", normalizeOrder(newOrder))
     if (newOrder.length) setColumnOrder(() => normalizeOrder(newOrder));
   }, [currentBoard?.columns, nameToDefaultId, normalizeOrder]);
   const [addColumnOpen, setAddColumnOpen] = React.useState(false);
@@ -973,7 +977,7 @@ export function PostTable({
     children: [],
   });
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>(
-    {'platforms': 'Socials', 'publish_date': 'Post Time', 'updatedAt': 'Updated'}
+    {'platforms': 'Socials', 'publish_date': 'Post Time', 'updated_at': 'Updated'}
   );
   
   const [renameColumnId, setRenameColumnId] = React.useState<string | null>(
@@ -1016,6 +1020,10 @@ export function PostTable({
         return 'date';
       case 'last updated time':
         return 'lastUpdatedTime';
+      case 'created by':
+        return 'createdBy';
+      case 'last modified by':
+        return 'lastUpdatedBy';
       default:
         return 'singleLine';
     }
@@ -1039,6 +1047,10 @@ export function PostTable({
       case 'date':
         return 'Calendar';
       case 'lastUpdatedTime':
+        return 'Last modified by';
+      case 'createdBy':
+        return 'Created by';
+      case 'lastUpdatedBy':
         return 'Last modified by';
       default:
         return 'single line text';
@@ -1228,7 +1240,6 @@ export function PostTable({
         insertAfter = clientY > midpoint;
       }
     } catch {}
-    console.log("insertAfter", insertAfter);
     const desiredIndex = insertAfter ? targetIndex + 1 : targetIndex;
     const insertIndex = fromIndex < desiredIndex ? desiredIndex - 1 : desiredIndex;
 
@@ -1870,7 +1881,6 @@ export function PostTable({
       let insertIndex = newOrder.indexOf(toId!);
       if (insertAfterAtEnd) insertIndex += 1;
       newOrder.splice(insertIndex, 0, moved);
-      console.log("11111111111111111newOrder", newOrder)
       try { table.setColumnOrder(normalizeOrder(newOrder)); } catch {}
       // Persist board columns order
       try {
@@ -1879,7 +1889,6 @@ export function PostTable({
           updateBoard(activeBoardId, { columns: payload as any });
         }
       } catch {}
-      console.log("3333333333333newOrder", newOrder)
       return normalizeOrder(newOrder);
     });
     endColumnDrag();
@@ -2239,8 +2248,6 @@ export function PostTable({
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest('[data-preview-exempt]')) return;
                 if (post.blocks.length > 0) {
-                  console.log("Parent clicked");
-                  console.log('post.id', post.id);
                   onOpen?.(post.id);
                 }
               }}
@@ -2619,8 +2626,8 @@ export function PostTable({
         },
       },
       {
-        id: "updatedAt",
-        accessorKey: "updatedAt",
+        id: "updated_at",
+        accessorKey: "updated_at",
         header: () => (
           <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image src={`/images/columns/updated-time.svg`} alt="Updated At" width={14} height={14} />
@@ -2637,7 +2644,7 @@ export function PostTable({
           );
         },
       },
-      
+
     ];
   }, [columnNames, updatePost, rowHeight, selectedPlatform, availablePlatforms, captionLocked, platformsFilterFn, platformsSortingFn, boardRules, activeBoardId, updateBoard, sorting]);
 
@@ -2653,6 +2660,8 @@ export function PostTable({
       multiSelect: "/images/columns/status.svg",
       date: "/images/columns/post-time.svg",
       lastUpdatedTime: "/images/columns/updated-time.svg",
+      createdBy: "/images/columns/created-by.svg",
+      lastUpdatedBy: "/images/columns/updated-time.svg",
     };
 
     return userColumns.map((col) => {
@@ -2661,11 +2670,18 @@ export function PostTable({
       return {
         id: col.id,
         accessorFn: (row) => {
-          const value = getUserColumnValue(row, col.label);
+          // Handle special user columns that map to post properties
+          if (col.type === 'createdBy') {
+            return row.created_by;
+          } else if (col.id === 'lastUpdatedBy') {
+            return row.last_updated_by;
+          }
+
+          const value = getUserColumnValue(row, col.id);
           if (col.type === 'singleSelect' && col.options) {
             // For single select, return the display value instead of the ID for sorting
             const options = Array.isArray(col.options) ? col.options : [];
-            const option = options.find((opt: any) => 
+            const option = options.find((opt: any) =>
               typeof opt === 'string' ? opt === value : opt.id === value
             );
             return typeof option === 'string' ? option : option?.value || value;
@@ -2685,7 +2701,7 @@ export function PostTable({
           const { row } = ctx;
           const { isFocused, isEditing, enterEdit, exitEdit } = ctx as FocusCellContext<Post>;
           const post = row.original;
-          const existingVal = getUserColumnValue(post, col.label);
+          const existingVal = getUserColumnValue(post, col.id);
           switch (col.type) {
             case "singleLine":
               return (
@@ -2695,7 +2711,7 @@ export function PostTable({
                   rowHeight={getRowHeightPixels(rowHeight)}
                   singleLine
                   onValueCommit={(newVal) => {
-                    const newArr = buildUpdatedUserColumnsArr(post, col.label, newVal);
+                    const newArr = buildUpdatedUserColumnsArr(post, col.id, newVal);
                     setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
                     updatePost(post.id, { user_columns: newArr } as any);
                   }}
@@ -2712,7 +2728,7 @@ export function PostTable({
                     setUserTextOpen(true);
                   }}
                   onValueCommit={(newVal) => {
-                    const newArr = buildUpdatedUserColumnsArr(post, col.label, newVal);
+                    const newArr = buildUpdatedUserColumnsArr(post, col.id, newVal);
                     setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
                     updatePost(post.id, { user_columns: newArr } as any);
                   }}
@@ -2739,7 +2755,7 @@ export function PostTable({
                   exitEdit={exitEdit}
                   onChange={(newVal) => {
                     // newVal is the option ID, store it directly to the database
-                    const newArr = buildUpdatedUserColumnsArr(post, colRef.label, newVal);
+                    const newArr = buildUpdatedUserColumnsArr(post, colRef.id, newVal);
                     setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
                     updatePost(post.id, { user_columns: newArr } as any);
                   }}
@@ -2769,6 +2785,18 @@ export function PostTable({
                 />
               );
             }
+            case "checkbox":
+              return (
+                <CheckboxCell
+                  value={existingVal}
+                  isFocused={isFocused}
+                  onChange={(newVal) => {
+                    const newArr = buildUpdatedUserColumnsArr(post, col.id, String(newVal));
+                    setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
+                    updatePost(post.id, { user_columns: newArr } as any);
+                  }}
+                />
+              );
             case "multiSelect": {
               const colRef = col; // capture
               // normalize options for cell component
@@ -2794,7 +2822,7 @@ export function PostTable({
                   onChange={(newVal) => {
                     // newVal is an array of option IDs, serialize to comma-separated string for storage
                     const serializedValue = Array.isArray(newVal) ? newVal.join(',') : String(newVal || '');
-                    const newArr = buildUpdatedUserColumnsArr(post, colRef.label, serializedValue);
+                    const newArr = buildUpdatedUserColumnsArr(post, colRef.id, serializedValue);
                     setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
                     updatePost(post.id, { user_columns: newArr } as any);
                   }}
@@ -2824,6 +2852,56 @@ export function PostTable({
                 />
               );
             }
+            case "attachment": {
+              // Parse the JSON string to get attachments array
+              let attachments = [];
+              try {
+                if (typeof existingVal === 'string' && existingVal.trim()) {
+                  attachments = JSON.parse(existingVal);
+                } else if (Array.isArray(existingVal)) {
+                  attachments = existingVal;
+                }
+              } catch (error) {
+                console.error('Failed to parse attachments:', error);
+                attachments = [];
+              }
+              
+              return (
+                <MemoAttachmentCell
+                  attachments={attachments}
+                  postId={post.id}
+                  columnId={col.id}
+                  rowHeight={rowHeight}
+                />
+              );
+            }
+            case "createdBy":
+              return (
+                <div className="flex items-center h-full px-2 py-[6px]">
+                  <CreatedByCell post={post} />
+                </div>
+              );
+            case "lastUpdatedBy":
+              return (
+                <div className="flex items-center h-full px-2 py-[6px]">
+                  <LastModifiedByCell post={post} />
+                </div>
+              );
+            case "date":
+              return (
+                <UserDateCell
+                  value={existingVal}
+                  isFocused={isFocused}
+                  isEditing={isEditing}
+                  enterEdit={enterEdit}
+                  exitEdit={exitEdit}
+                  onChange={(newVal) => {
+                    const newArr = buildUpdatedUserColumnsArr(post, col.id, newVal);
+                    setTableData((prev) => prev.map((p) => (p.id === post.id ? { ...p, user_columns: newArr } : p)));
+                    updatePost(post.id, { user_columns: newArr } as any);
+                  }}
+                />
+              );
             default:
               return <div className="text-sm">{String(existingVal)}</div>;
           }
@@ -2931,7 +3009,7 @@ export function PostTable({
   const isDefaultColumn = React.useCallback((columnId: string): boolean => {
     const defaultColumnIds = [
       'drag', 'rowIndex', 'status', 'preview', 'caption', 'platforms', 
-      'format', 'month', 'revision', 'approve', 'settings', 'publish_date', 'updatedAt'
+      'format', 'month', 'revision', 'approve', 'settings', 'publish_date', 'updated_at'
     ];
     return defaultColumnIds.includes(columnId);
   }, []);
@@ -3050,10 +3128,8 @@ export function PostTable({
             // Persist after duplicate - pass the updated userColumns that includes the new column
             try {
               if (activeBoardId) {
-                console.log("newOrder", newOrder)
                 const nextUserColumns = [...prev, copy];
                 const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder), nextUserColumns);
-                console.log("payload", payload)
                 updateBoard(activeBoardId, { columns: payload as any });
               }
             } catch {}
@@ -3109,13 +3185,13 @@ export function PostTable({
           // Find all posts that have values for this column and remove them
           const postsToUpdate = tableData.filter(post => {
             if (!post.user_columns) return false;
-            return post.user_columns.some(uc => uc.name === deletedColumn.label);
+            return post.user_columns.some(uc => uc.id === deletedColumn.id);
           });
 
           if (postsToUpdate.length > 0) {
             // Update each post to remove the column value
             postsToUpdate.forEach((post) => {
-              const updatedUserColumns = post.user_columns?.filter(uc => uc.name !== deletedColumn.label) || [];
+              const updatedUserColumns = post.user_columns?.filter(uc => uc.id !== deletedColumn.id) || [];
               
               // Update local state immediately for better UX
               setTableData(prev => prev.map(p => 
@@ -3134,7 +3210,6 @@ export function PostTable({
               });
             });
 
-            console.log(`Updating ${postsToUpdate.length} posts after deleting column ${deletedColumn.label}`);
           }
         }
         
@@ -3143,6 +3218,7 @@ export function PostTable({
           if (activeBoardId) {
             const order = normalizeOrder(table.getAllLeafColumns().map(c => c.id).filter(id => id !== columnId));
             const payload = buildColumnsPayloadForOrder(order, nextUserColumns);
+            console.log("columns after deletetion", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
         } catch {}
@@ -3155,9 +3231,9 @@ export function PostTable({
   function handleAddColumn(label: string, type: ColumnType, options?: Array<{ id: string; value: string; color: string }> | string[]) {
     const nextUserColumns: UserColumn[] = [
       ...userColumns,
-              { id: label, label, type, options: type === 'singleSelect' || type === 'multiSelect' ? (options as Array<{ id: string; value: string; color: string }>) : undefined },
+              { id: nanoid(), label, type, options: type === 'singleSelect' || type === 'multiSelect' ? (options as Array<{ id: string; value: string; color: string }>) : undefined },
     ];
-    console.log("333333333333nextUserColumns", nextUserColumns)
+    console.log("Adding new column:", { label, type, nextUserColumns });
     setUserColumns(nextUserColumns);
     console.log("pendingInsertRef", pendingInsertRef)
     if (pendingInsertRef) {
@@ -3171,34 +3247,48 @@ export function PostTable({
         if (idx === -1) return orderPrev;
         const insertIndex = side === 'left' ? idx : idx + 1;
         const newOrder = normalizeOrder([...order]);
-        newOrder.splice(insertIndex, 0, label);
-        try { table.setColumnOrder(normalizeOrder(newOrder)) } catch {}
+        // Use the new column's ID instead of label for the order
+        const newColumnId = nextUserColumns[nextUserColumns.length - 1].id;
+        newOrder.splice(insertIndex, 0, newColumnId);
+        try { table.setColumnOrder(newOrder) } catch {}
         // Persist board columns with the newly added user column
         try {
           console.log("activeBoardId", activeBoardId)
           if (activeBoardId) {
-            const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder), nextUserColumns)
+            const payload = buildColumnsPayloadForOrder(newOrder, nextUserColumns)
             console.log("add payload", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
         } catch {}
-        return normalizeOrder(newOrder);
+        return newOrder;
       });
       setPendingInsertRef(null);
     } else {
-      // Append to end and persist with last order
+      // If no pendingInsertRef, add the new column to the end of the order
       setColumnOrder((orderPrev) => {
         const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
-        const newOrder = normalizeOrder([...order, label]);
-        try { table.setColumnOrder(normalizeOrder(newOrder)) } catch {}
+        const newOrder = normalizeOrder([...order]);
+        const newColumnId = nextUserColumns[nextUserColumns.length - 1].id;
+        newOrder.push(newColumnId);
+        
+        console.log("Updating column order (no pendingInsertRef):", { 
+          orderPrev, 
+          order, 
+          newOrder, 
+          newColumnId,
+          nextUserColumns 
+        });
+        
+        // Persist board columns with the newly added user column
         try {
-          console.log("activeBoardId", activeBoardId)
           if (activeBoardId) {
-            const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder), nextUserColumns)
+            const payload = buildColumnsPayloadForOrder(newOrder, nextUserColumns)
+            console.log("add payload (no pendingInsertRef)", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
         } catch {}
-        return normalizeOrder(newOrder);
+        
+        return newOrder;
       });
     }
   }
@@ -3816,6 +3906,7 @@ export function PostTable({
     return (
       <div className="bg-background mr-sm">
         <table
+          key={`table-${userColumns.length}-${userColumns.map(c => c.id).join('-')}-${columnOrder.join('-')}`}
           data-grouped="true"
           className="
             w-full caption-bottom text-sm
@@ -3825,7 +3916,7 @@ export function PostTable({
           style={{ borderCollapse: "separate", borderSpacing: 0 }}
         >
           {/* ─── Shared header ───────────────────────────────────── */}
-          <RenderHeader table={table} stickyStyles={stickyStyles} />
+          <RenderHeader key={`header-${userColumns.length}-${userColumns.map(c => c.id).join('-')}-${columnOrder.join('-')}`} table={table} stickyStyles={stickyStyles} />
 
           {groups.length > 0 && (
             <>
@@ -4168,7 +4259,13 @@ export function PostTable({
                           className="flex cursor-pointer items-center justify-between gap-2 h-full w-full"
                           onDoubleClick={() => {
                             setRenameColumnId(header.id);
-                            setRenameValue(columnNames[header.id] || header.id);
+                            // For user columns, use the label; for default columns, use columnNames
+                            const userColumn = userColumns.find(col => col.id === header.id);
+                            if (userColumn) {
+                              setRenameValue(userColumn.label);
+                            } else {
+                              setRenameValue(columnNames[header.id] || header.id);
+                            }
                           }}
                           draggable={canDrag}
                           onMouseDown={(e) => {
@@ -4587,17 +4684,15 @@ export function PostTable({
   const handleOptionRemoval = React.useCallback(async (columnId: string, removedOptionId: string) => {
     if (!activeBoardId || !tableData.length) return;
 
-    // Find the column label to match with post user_columns
+    // Find the column to match with post user_columns
     const column = userColumns.find(col => col.id === columnId);
     if (!column) return;
 
-    const columnLabel = column.label;
-    
     // Find all posts that have the removed option ID as a value for this column
     const postsToUpdate = tableData.filter(post => {
       if (!post.user_columns) return false;
       
-      const userColumn = post.user_columns.find(uc => uc.name === columnLabel);
+      const userColumn = post.user_columns.find(uc => uc.id === columnId);
       return userColumn && userColumn.value === removedOptionId;
     });
 
@@ -4606,7 +4701,7 @@ export function PostTable({
     // Update each post to remove the option value
     const updatePromises = postsToUpdate.map(async (post) => {
       const updatedUserColumns = post.user_columns?.map(uc => 
-        uc.name === columnLabel ? { ...uc, value: '' } : uc
+        uc.id === columnId ? { ...uc, value: '' } : uc
       ) || [];
 
       // Update local state immediately for better UX
@@ -4630,7 +4725,6 @@ export function PostTable({
 
     try {
       await Promise.all(updatePromises);
-      console.log(`Updated ${postsToUpdate.length} posts after removing option ${removedOptionId} from column ${columnLabel}`);
     } catch (error) {
       console.error('Failed to update posts after option removal:', error);
     }
@@ -4699,6 +4793,7 @@ export function PostTable({
                 colVisOpen={colVisOpen}
                 setColVisOpen={setColVisOpen}
                 columnNames={columnNames}
+                userColumns={userColumns}
               />
             </div>
           </div>
@@ -4929,9 +5024,26 @@ export function PostTable({
                         {editFieldColumnId ? (
                           <Input
                             id="inline-edit-name"
-                            value={columnNames[editFieldColumnId] || editFieldColumnId}
+                            value={(() => {
+                              // For user columns, use the label; for default columns, use columnNames
+                              const userColumn = userColumns.find(col => col.id === editFieldColumnId);
+                              if (userColumn) {
+                                return userColumn.label;
+                              }
+                              return columnNames[editFieldColumnId] || editFieldColumnId;
+                            })()}
                             onChange={(e) => {
-                              setColumnNames(prev => ({ ...prev, [editFieldColumnId]: e.target.value }));
+                              const newLabel = e.target.value;
+                              // For user columns, update the label in userColumns
+                              const userColumn = userColumns.find(col => col.id === editFieldColumnId);
+                              if (userColumn) {
+                                setUserColumns(prev => prev.map(col => 
+                                  col.id === editFieldColumnId ? { ...col, label: newLabel } : col
+                                ));
+                              } else {
+                                // For default columns, update columnNames
+                                setColumnNames(prev => ({ ...prev, [editFieldColumnId]: newLabel }));
+                              }
                             }}
                           />
                         ) : (
@@ -5128,7 +5240,9 @@ export function PostTable({
                             } else {
                               // Edit existing column flow
                               const inferredType = mapEditFieldTypeToColumnType(editFieldType);
-                              const trimmed = columnNames[editFieldColumnId] || editFieldColumnId;
+                              // For user columns, use the label; for default columns, use columnNames
+                              const userColumn = userColumns.find(col => col.id === editFieldColumnId);
+                              const trimmed = userColumn ? userColumn.label : (columnNames[editFieldColumnId] || editFieldColumnId);
                               
                               // Find removed options by comparing with existing column options
                               const existingColumn = userColumns.find(col => col.id === editFieldColumnId);
@@ -5285,7 +5399,7 @@ export function PostTable({
               const p = tableData.find(p => p.id === editingUserText.postId);
               const uc = userColumns.find(c => c.id === editingUserText.colId);
               if (!p || !uc) return "";
-              return getUserColumnValue(p, uc.label);
+              return getUserColumnValue(p, uc.id);
             })()}
             onClose={() => setUserTextOpen(false)}
             onChange={(newVal) => {
@@ -5293,12 +5407,12 @@ export function PostTable({
               if (!uc) return;
               setTableData(prev => prev.map(p => {
                 if (p.id !== editingUserText.postId) return p;
-                const newArr = buildUpdatedUserColumnsArr(p, uc.label, newVal);
+                const newArr = buildUpdatedUserColumnsArr(p, uc.id, newVal);
                 return { ...p, user_columns: newArr };
               }));
               const postId = editingUserText.postId;
               const p = tableData.find(pp => pp.id === postId);
-              const newArr = p ? buildUpdatedUserColumnsArr(p, uc.label, newVal) : [{ name: uc.label, value: newVal }];
+              const newArr = p ? buildUpdatedUserColumnsArr(p, uc.id, newVal) : [{ id: uc.id, value: newVal }];
               updatePost(postId, { user_columns: newArr } as any);
             }}
           />

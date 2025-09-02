@@ -22,6 +22,7 @@ interface ColumnVisibilityMenuProps {
   colVisOpen: boolean;
   setColVisOpen: React.Dispatch<React.SetStateAction<boolean>>;
   columnNames: Record<string, string>;
+  userColumns?: Array<{ id: string; label: string; type: string }>;
 }
 
 export function ColumnVisibilityMenu({
@@ -30,6 +31,7 @@ export function ColumnVisibilityMenu({
   colVisOpen,
   setColVisOpen,
   columnNames,
+  userColumns = [],
 }: ColumnVisibilityMenuProps) {
   const [open, setOpen] = React.useState(false);
   const hiddenColumns = Object.entries(columnNames).filter(([_, visible]) => !visible).length;
@@ -63,7 +65,14 @@ export function ColumnVisibilityMenu({
               <Label className="text-sm flex-1 truncate">
                 <div className="flex items-center gap-2">
                   {columnMeta[col.id as ColumnID]?.icon}
-                  {columnMeta[col.id as ColumnID]?.label || col.id}
+                  {(() => {
+                    // For user columns, use the label; for default columns, use columnMeta
+                    const userColumn = userColumns.find(uc => uc.id === col.id);
+                    if (userColumn) {
+                      return userColumn.label;
+                    }
+                    return columnMeta[col.id as ColumnID]?.label || col.id;
+                  })()}
                 </div>
               </Label>
             </div>

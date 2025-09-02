@@ -17,7 +17,8 @@ export const MemoBlocksPreview = React.memo(
   (prev: BlocksPreviewProps, next: BlocksPreviewProps) =>
     prev.postId    === next.postId &&
     prev.rowHeight === next.rowHeight &&
-    prev.blocks    === next.blocks
+    prev.onFilesSelected === next.onFilesSelected
+    // Note: We don't compare blocks anymore since BlocksPreview now subscribes to the store directly
 );
 
 MemoBlocksPreview.displayName = 'MemoBlocksPreview'; 

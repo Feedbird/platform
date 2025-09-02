@@ -98,20 +98,22 @@ export async function getSignedUploadUrl({
     wid,
     board_id,
     pid,
+    cid,
 }: {
     fileName: string;
     fileType: string;
     wid: string | null;
     board_id: string | null;
     pid: string | null;
+    cid?: string | null;
 }) {
     console.log(`[R2 UPLOAD] Requesting signed URL for: ${fileName} (${fileType})`);
 
     const unique = crypto.randomUUID();
     const baseName = path.basename(fileName);
 
-    // Build structured key prefix: workspace/<wid>/board/<board_id>/post/<pid>
-    const parts = [wid && `workspace-${wid}`, board_id && `board-${board_id}`, pid && `post-${pid}`].filter(Boolean);
+    // Build structured key prefix: workspace/<wid>/board/<board_id>/post/<pid>/column/<cid>
+    const parts = [wid && `workspace-${wid}`, board_id && `board-${board_id}`, pid && `post-${pid}`, cid && `column-${cid}`].filter(Boolean);
     const prefix = parts.length ? parts.join('/') + '/' : '';
     const key = `${prefix}${unique}-${baseName}`;
 

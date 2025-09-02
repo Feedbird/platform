@@ -593,7 +593,9 @@ export const postApi = {
     blocks?: any[];
     comments?: any[];
     activities?: any[];
-    user_columns?: Array<{ name: string; value: string }>;
+    user_columns?: Array<{ id: string; value: string }>;
+    created_by: string;
+    last_updated_by: string;
   }): Promise<Post> => {
     console.log("postData", postData);
     return apiRequest<Post>("/post", {
@@ -619,7 +621,8 @@ export const postApi = {
       blocks?: any[];
       comments?: any[];
       activities?: any[];
-      user_columns?: Array<{ name: string; value: string }>;
+      user_columns?: Array<{ id: string; value: string }>;
+      last_updated_by?: string;
     }
   ): Promise<Post> => {
     return apiRequest<Post>(`/post?id=${id}`, {
@@ -653,7 +656,9 @@ export const postApi = {
       blocks?: any[];
       comments?: any[];
       activities?: any[];
-      user_columns?: Array<{ name: string; value: string }>;
+      user_columns?: Array<{ id: string; value: string }>;
+      created_by: string;
+      last_updated_by: string;
     }[]
   ): Promise<{ message: string; posts: Post[] }> => {
     return apiRequest<{ message: string; posts: Post[] }>("/post/bulk", {
@@ -794,6 +799,8 @@ export const storeApi = {
                 blocks: p.blocks || [],
                 comments: p.comments || [],
                 activities: p.activities,
+		            created_by: p.created_by,
+                last_updated_by: p.last_updated_by
               }));
 
               return {
@@ -1601,7 +1608,8 @@ export const storeApi = {
   createPostAndUpdateStore: async (
     workspaceId: string,
     board_id: string,
-    postData: any
+    postData: any,
+    userEmail: string
   ) => {
     try {
       console.log("createPostAndUpdateStore", workspaceId, board_id, postData);
@@ -1609,6 +1617,8 @@ export const storeApi = {
         workspace_id: workspaceId,
         board_id: board_id,
         ...postData,
+	created_by: userEmail,
+        last_updated_by: userEmail
       });
 
       const store = useFeedbirdStore.getState();
@@ -1620,170 +1630,190 @@ export const storeApi = {
           if (b.id === board_id) {
             return {
               ...b,
-              posts: [
-                ...b.posts,
-                {
-                  id: post.id,
-                  workspaceId: post.workspace_id,
-                  board_id: post.board_id,
-                  caption: post.caption,
-                  status: post.status as any,
-                  format: post.format,
-                  publish_date: post.publish_date
-                    ? new Date(post.publish_date)
-                    : null,
-                  updatedAt: post.updated_at ? new Date(post.updated_at) : null,
-                  platforms: (post.platforms || []) as any,
-                  pages: post.pages || [],
-                  billingMonth: post.billing_month,
-                  month: post.month || 1,
-                  user_columns: (post as any).user_columns || [],
-                  settings: post.settings,
-                  hashtags: post.hashtags,
-                  blocks: post.blocks || [],
-                  comments: post.comments || [],
-                  activities: post.activities || [],
-                },
-              ],
-            };
+              posts: [...b.posts, {
+                id: post.id,
+                workspaceId: post.workspace_id,
+                board_id: post.board_id,
+                caption: post.caption,
+                status: post.status as any,
+                format: post.format,
+                publish_date: post.publish_date ? new Date(post.publish_date) : null,
+                updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+                platforms: (post.platforms || []) as any,
+                pages: post.pages || [],
+                billingMonth: post.billing_month,
+                month: post.month || 1,
+                user_columns: (post as any).user_columns || [],
+                settings: post.settings,
+                hashtags: post.hashtags,
+                blocks: post.blocks || [],
+                comments: post.comments || [],
+                activities: post.activities || [],
+                created_by: post.created_by,
+                last_updated_by: post.last_updated_by
+              }]
+            }
           }
-          return b;
-        }),
-      }));
+          return b
+        })
+      }))
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
 
-      return post.id;
+      return post.id
     } catch (error) {
-      console.error("Failed to create post:", error);
-      throw error;
+      console.error('Failed to create post:', error)
+      throw error
     }
   },
 
-  updatePostAndUpdateStore: async (id: string, updates: any) => {
+  updatePostAndUpdateStore: async (id: string, updates: any, userEmail?: string) => {
     try {
-      const post = await postApi.updatePost(id, updates);
-      const store = useFeedbirdStore.getState();
+      const postUpdates = { ...updates };
+      if (userEmail) {
+        postUpdates.last_updated_by = userEmail;
+      }
+
+      const post = await postApi.updatePost(id, postUpdates)
+      const store = useFeedbirdStore.getState()
 
       // Update store
-      store.workspaces = store.workspaces.map((w) => ({
+      store.workspaces = store.workspaces.map(w => ({
         ...w,
-        boards: w.boards.map((b) => ({
+        boards: w.boards.map(b => ({
           ...b,
-          posts: b.posts.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-        })),
-      }));
+          posts: b.posts.map(p => {
+            if (p.id !== id) return p;
+
+            // Special handling for user_columns to ensure proper merging
+            if (updates.user_columns) {
+              return {
+                ...p,
+                ...updates,
+                user_columns: updates.user_columns,
+                last_updated_by: postUpdates.last_updated_by
+              };
+            }
+
+            return {
+              ...p,
+              ...updates,
+              last_updated_by: postUpdates.last_updated_by
+            };
+          })
+        }))
+      }))
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
 
-      return post;
+      return post
     } catch (error) {
-      console.error("Failed to update post:", error);
-      throw error;
+      console.error('Failed to update post:', error)
+      throw error
     }
   },
 
   autoScheduleAndUpdateStore: async (postId: string, status: string) => {
     try {
-      const updated = await postApi.autoSchedule(postId, status);
-      const store = useFeedbirdStore.getState();
+      const updated = await postApi.autoSchedule(postId, status)
+      const store = useFeedbirdStore.getState()
 
       // Update store with server values
-      store.workspaces = store.workspaces.map((w) => ({
+      store.workspaces = store.workspaces.map(w => ({
         ...w,
-        boards: w.boards.map((b) => ({
+        boards: w.boards.map(b => ({
           ...b,
-          posts: b.posts.map((p) => {
-            if (p.id !== postId) return p;
+          posts: b.posts.map(p => {
+            if (p.id !== postId) return p
             return {
               ...p,
               status: (updated as any).status as any,
-              publish_date: (updated as any).publish_date
-                ? new Date((updated as any).publish_date)
-                : null,
-              updatedAt: (updated as any).updated_at
-                ? new Date((updated as any).updated_at)
-                : p.updatedAt,
-            };
-          }),
-        })),
-      }));
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
-      return updated;
+              publish_date: (updated as any).publish_date ? new Date((updated as any).publish_date) : null,
+              updatedAt: (updated as any).updated_at ? new Date((updated as any).updated_at) : p.updatedAt,
+            }
+          })
+        }))
+      }))
+      useFeedbirdStore.setState({ workspaces: store.workspaces })
+      return updated
     } catch (error) {
-      console.error("Failed to auto-schedule post:", error);
-      throw error;
+      console.error('Failed to auto-schedule post:', error)
+      throw error
     }
   },
 
-  updatePostBlocksAndUpdateStore: async (postId: string, blocks: any[]) => {
+  updatePostBlocksAndUpdateStore: async (postId: string, blocks: any[], userEmail?: string) => {
     try {
-      const response = await fetch("/api/post/update-blocks", {
-        method: "POST",
+      const requestBody: any = {
+        postId,
+        blocks
+      }
+
+      // Include user email if provided
+      if (userEmail) {
+        requestBody.last_updated_by = userEmail;
+      }
+
+      const response = await fetch('/api/post/update-blocks', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          postId,
-          blocks,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Failed to update post blocks: ${response.status}`
-        );
+        throw new Error(errorData.error || `Failed to update post blocks: ${response.status}`);
       }
 
       const result = await response.json();
 
       // Update Zustand store with the database result
       const store = useFeedbirdStore.getState();
-      store.workspaces = store.workspaces.map((w) => ({
+      store.workspaces = store.workspaces.map(w => ({
         ...w,
-        boards: w.boards.map((b) => ({
+        boards: w.boards.map(b => ({
           ...b,
-          posts: b.posts.map((p) =>
-            p.id === postId
-              ? {
-                  ...p,
-                  blocks: result.post.blocks,
-                  updatedAt: new Date(result.post.updated_at),
-                }
-              : p
-          ),
-        })),
+          posts: b.posts.map(p =>
+                        p.id === postId ? {
+              ...p,
+              blocks: result.post.blocks,
+              updatedAt: new Date(result.post.updated_at),
+              last_updated_by: userEmail
+            } : p
+          )
+        }))
       }));
 
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
 
-      return result.post;
+      return result.post
     } catch (error) {
-      console.error("Failed to update post blocks:", error);
-      throw error;
+      console.error('Failed to update post blocks:', error)
+      throw error
     }
   },
 
   deletePostAndUpdateStore: async (id: string) => {
     try {
-      await postApi.deletePost(id);
-      const store = useFeedbirdStore.getState();
-
+      await postApi.deletePost(id)
+      const store = useFeedbirdStore.getState()
+      
       // Update store
-      store.workspaces = store.workspaces.map((w) => ({
+      store.workspaces = store.workspaces.map(w => ({
         ...w,
-        boards: w.boards.map((b) => ({
+        boards: w.boards.map(b => ({
           ...b,
-          posts: b.posts.filter((p) => p.id !== id),
-        })),
-      }));
+          posts: b.posts.filter(p => p.id !== id)
+        }))
+      }))
       // Trigger store update for listeners
       useFeedbirdStore.setState({ workspaces: store.workspaces });
     } catch (error) {
-      console.error("Failed to delete post:", error);
-      throw error;
+      console.error('Failed to delete post:', error)
+      throw error
     }
   },
 
@@ -1791,14 +1821,22 @@ export const storeApi = {
   bulkCreatePostsAndUpdateStore: async (
     workspaceId: string,
     board_id: string,
-    postsData: any[]
+    postsData: any[],
+    userEmail: string
   ) => {
     try {
-      const result = await postApi.bulkCreatePosts(postsData);
-      const store = useFeedbirdStore.getState();
+      // Add user fields to each post
+      const postsWithUserFields = postsData.map(post => ({
+        ...post,
+        created_by: userEmail,
+        last_updated_by: userEmail
+      }));
+
+      const result = await postApi.bulkCreatePosts(postsWithUserFields)
+      const store = useFeedbirdStore.getState()
 
       // Transform posts to match store format
-      const transformedPosts = result.posts.map((post) => ({
+      const transformedPosts = result.posts.map(post => ({
         id: post.id,
         workspaceId: post.workspace_id,
         board_id: post.board_id,
@@ -1817,12 +1855,14 @@ export const storeApi = {
         blocks: post.blocks || [],
         comments: post.comments || [],
         activities: post.activities || [],
-      }));
+        created_by: post.created_by,
+        last_updated_by: post.last_updated_by
+      }))
 
       // Update store
-      store.workspaces = store.workspaces.map((w) => ({
+      store.workspaces = store.workspaces.map(w => ({
         ...w,
-        boards: w.boards.map((b) => {
+        boards: w.boards.map(b => {
           if (b.id === board_id) {
             return {
               ...b,

@@ -140,6 +140,8 @@ export interface Post {
   activities?: any[];
   created_at: string;
   updated_at: string;
+  created_by?: string;
+  last_updated_by?: string;
 }
 
 export interface Member {

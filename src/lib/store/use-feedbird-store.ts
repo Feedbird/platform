@@ -93,7 +93,9 @@ export type ColumnType =
   | "singleSelect"
   | "multiSelect"
   | "date"
-  | "lastUpdatedTime";
+  | "lastUpdatedTime"
+  | "createdBy"
+  | "lastUpdatedBy";
 
 export interface UserColumn {
   id: string;
@@ -187,16 +189,21 @@ export interface Post {
   pages: string[];  // Array of social page IDs
   billingMonth?: string;
   month: number;  // Month number (1-50)
-  /** Array of user defined column values saved as name/value pairs */
-  user_columns?: Array<{ name: string; value: string }>;
+  /** Array of user defined column values saved as id/value pairs */
+  user_columns?: Array<{ id: string; value: string }>;
   /** Per-post settings such as location tag, tagged accounts, custom thumbnail, and platform-specific options */
   settings?: PostSettings;
 
   /** Hashtags data with sync/unsync functionality */
   hashtags?: CaptionData;
 
+  /** User who created the post (email) */
+  created_by?: string;
+  /** User who last updated the post (email) */
+  last_updated_by?: string;
+
   blocks: Block[];
-  comments: BaseComment[]; 
+  comments: BaseComment[];
   activities: Activity[];
 }
 
@@ -241,7 +248,7 @@ export interface Board {
   color?: string;
   rules?: BoardRules;
   groupData?: BoardGroupData[]; // Array of group data for months 1-50
-  columns?: Array<{ name: string; is_default: boolean; order: number; type?: ColumnType; options?: any }>;
+  columns?: Array<{ name: string; id?: string; is_default: boolean; order: number; type?: ColumnType; options?: any }>;
   createdAt: Date;
   posts: Post[]; // Posts now belong to boards, not brands
 }
@@ -1592,10 +1599,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const ws = st.getActiveWorkspace();
           const board = ws?.boards.find(b => b.id === prev?.board_id);
           const shouldAuto = board?.rules?.autoSchedule === true;
+          const userEmail = st.user?.email;
+
           if (isApproving && wasNotScheduled && shouldAuto) {
               await storeApi.autoScheduleAndUpdateStore(pid, "Scheduled");
             } else {
-            await storeApi.updatePostAndUpdateStore(pid, data);
+            await storeApi.updatePostAndUpdateStore(pid, data, userEmail);
           }
         }, 
         deletePost: async (postId) => {
@@ -1693,16 +1702,22 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const ws = st.getActiveWorkspace();
           if (!ws) return null;
           const bId = board_id ?? st.activeBoardId ?? (ws?.boards[0]?.id ?? "default");
+          const userEmail = st.user?.email;
+
+          if (!userEmail) {
+            console.error('No user email available for creating post');
+            return null;
+          }
 
           const postId = await storeApi.createPostAndUpdateStore(ws.id, bId, {
             caption: { synced: true, default: "" },
             status: "Draft",
             format: "",
-            
+
             platforms: [],
             pages: [],
             month: 1,
-          });
+          }, userEmail);
 
           return get().getPost(postId) ?? null;
         },
@@ -1710,6 +1725,12 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const st = get();
           const ws = st.getActiveWorkspace();
           if (!ws) return [];
+          const userEmail = st.user?.email;
+
+          if (!userEmail) {
+            console.error('No user email available for bulk creating posts');
+            return [];
+          }
 
           // Transform posts to API format
           const postsData = posts.map(post => {
@@ -1744,8 +1765,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             return postData;
           });
 
-          const postIds = await storeApi.bulkCreatePostsAndUpdateStore(ws.id, board_id, postsData);
-          
+          const postIds = await storeApi.bulkCreatePostsAndUpdateStore(ws.id, board_id, postsData, userEmail);
+
           // Get the created posts from store
           const createdPosts = postIds.map(id => st.getPost(id)).filter(Boolean) as Post[];
           return createdPosts;
@@ -1754,10 +1775,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const st = get();
           const workspace = st.getActiveWorkspace();
           if (!workspace) return null;
-          
+
           const board = workspace.boards.find(b => b.id === orig.board_id);
           if (!board) return null;
-          
+
+          const userEmail = st.user?.email;
+          if (!userEmail) {
+            console.error('No user email available for duplicating post');
+            return null;
+          }
+
           try {
             // Create duplicated post in database
             const postData: any = {
@@ -1788,8 +1815,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               postData.hashtags = orig.hashtags;
             }
 
-            const postId = await storeApi.createPostAndUpdateStore(workspace.id, orig.board_id, postData);
-            
+            const postId = await storeApi.createPostAndUpdateStore(workspace.id, orig.board_id, postData, userEmail);
+
             // Get the created post from updated store
             const updatedStore = get();
             const duplicatedPost = updatedStore.getPost(postId);

@@ -20,6 +20,8 @@ const CreatePostSchema = z.object({
   blocks: z.array(z.any()).optional(),
   comments: z.array(z.any()).optional(),
   activities: z.array(z.any()).optional(),
+  created_by: z.string().email('Invalid email format for created_by'),
+  last_updated_by: z.string().email('Invalid email format for last_updated_by'),
 })
 
 const BulkCreateSchema = z.object({

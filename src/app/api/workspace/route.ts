@@ -303,20 +303,176 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    const { error } = await supabase
+    // Check if workspace exists and get its details
+    const { data: workspace, error: fetchError } = await supabase
       .from('workspaces')
-      .delete()
+      .select('id, name, createdby')
       .eq('id', id)
+      .single()
 
-    if (error) {
-      console.error('Error deleting workspace:', error)
+    if (fetchError || !workspace) {
       return NextResponse.json(
-        { error: 'Failed to delete workspace' },
-        { status: 500 }
+        { error: 'Workspace not found' },
+        { status: 404 }
       )
     }
 
-    return NextResponse.json({ message: 'Workspace deleted successfully' })
+    console.log(`Deleting workspace: ${workspace.name} (ID: ${id})`)
+
+    // Start a transaction-like approach by deleting related records in order
+    // Note: Supabase doesn't support explicit transactions across multiple tables
+    // but we'll handle them in the correct order to respect foreign key constraints
+
+    try {
+      // 1. Delete channel messages first (they reference channels and workspace)
+      const { error: channelMessagesError } = await supabase
+        .from('channel_messages')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (channelMessagesError) {
+        console.error('Error deleting channel messages:', channelMessagesError)
+        throw new Error('Failed to delete channel messages')
+      }
+
+      // 2. Delete channels
+      const { error: channelsError } = await supabase
+        .from('channels')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (channelsError) {
+        console.error('Error deleting channels:', channelsError)
+        throw new Error('Failed to delete channels')
+      }
+
+      // 3. Delete activities
+      const { error: activitiesError } = await supabase
+        .from('activities')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (activitiesError) {
+        console.error('Error deleting activities:', activitiesError)
+        throw new Error('Failed to delete activities')
+      }
+
+      // 4. Delete posts (this will cascade to post_history if configured)
+      const { error: postsError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (postsError) {
+        console.error('Error deleting posts:', postsError)
+        throw new Error('Failed to delete posts')
+      }
+
+      // 5. Delete boards
+      const { error: boardsError } = await supabase
+        .from('boards')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (boardsError) {
+        console.error('Error deleting boards:', boardsError)
+        throw new Error('Failed to delete boards')
+      }
+
+      // 6. Get brand IDs first since social_pages references brands, not workspaces directly
+      const { data: brands, error: brandsFetchError } = await supabase
+        .from('brands')
+        .select('id')
+        .eq('workspace_id', id)
+
+      if (brandsFetchError) {
+        console.error('Error fetching brands:', brandsFetchError)
+        throw new Error('Failed to fetch brands')
+      }
+
+      if (brands && brands.length > 0) {
+        const brandIds = brands.map(b => b.id)
+
+        // Delete social pages for these brands
+        const { error: socialPagesError } = await supabase
+          .from('social_pages')
+          .delete()
+          .in('brand_id', brandIds)
+
+        if (socialPagesError) {
+          console.error('Error deleting social pages:', socialPagesError)
+          throw new Error('Failed to delete social pages')
+        }
+
+        // Delete social accounts for these brands
+        const { error: socialAccountsError } = await supabase
+          .from('social_accounts')
+          .delete()
+          .in('brand_id', brandIds)
+
+        if (socialAccountsError) {
+          console.error('Error deleting social accounts:', socialAccountsError)
+          throw new Error('Failed to delete social accounts')
+        }
+      }
+
+      // 7. Delete brands
+      const { error: brandsError } = await supabase
+        .from('brands')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (brandsError) {
+        console.error('Error deleting brands:', brandsError)
+        throw new Error('Failed to delete brands')
+      }
+
+      // 8. Delete members
+      const { error: membersError } = await supabase
+        .from('members')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (membersError) {
+        console.error('Error deleting members:', membersError)
+        throw new Error('Failed to delete members')
+      }
+
+      // 9. Finally, delete the workspace itself
+      const { error: workspaceError } = await supabase
+        .from('workspaces')
+        .delete()
+        .eq('id', id)
+
+      if (workspaceError) {
+        console.error('Error deleting workspace:', workspaceError)
+        throw new Error('Failed to delete workspace')
+      }
+
+      console.log(`Successfully deleted workspace: ${workspace.name}`)
+      return NextResponse.json({
+        message: 'Workspace deleted successfully',
+        deletedWorkspace: {
+          id: workspace.id,
+          name: workspace.name,
+          createdBy: workspace.createdby
+        }
+      })
+
+    } catch (deleteError: any) {
+      console.error('Error during workspace deletion process:', deleteError)
+
+      // If there's an error during the deletion process, return a more specific error
+      return NextResponse.json(
+        {
+          error: 'Failed to delete workspace due to related data',
+          details: deleteError.message,
+          suggestion: 'Please ensure all posts, boards, and other related data are removed before deleting the workspace'
+        },
+        { status: 409 } // Conflict status
+      )
+    }
+
   } catch (error) {
     console.error('Error in DELETE /api/workspace:', error)
     return NextResponse.json(

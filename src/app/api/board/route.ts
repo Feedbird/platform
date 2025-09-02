@@ -13,6 +13,7 @@ const CreateBoardSchema = z.object({
   columns: z
     .array(
       z.object({
+        id: z.string().optional(), // Optional for backward compatibility, required for user columns
         name: z.string(),
         is_default: z.boolean(),
         order: z.number().int().nonnegative(),
@@ -34,11 +35,12 @@ const UpdateBoardSchema = z.object({
   columns: z
     .array(
       z.object({
+        id: z.string().optional(), // Optional for backward compatibility, required for user columns
         name: z.string(),
         is_default: z.boolean(),
         order: z.number().int().nonnegative(),
         type: z.string().optional(),
-        // Accept arbitrary options payload; UI sends { value, color }[]
+        // Accept arbitrary options payload; UI sends { value, number }[]
         options: z.any().optional(),
       })
     )
