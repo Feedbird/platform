@@ -1,4 +1,5 @@
 "use client";
+import { Form } from "@/lib/supabase/client";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -6,7 +7,9 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import Image from "next/image";
 import React from "react";
+import { Input } from "../ui/input";
 
 export interface FormField {
   id: string;
@@ -17,11 +20,13 @@ export interface FormField {
 }
 
 interface FormCanvasProps {
+  form: Form;
   formFields: FormField[];
   setFormFields: React.Dispatch<React.SetStateAction<FormField[]>>;
 }
 
 export default function FormCanvas({
+  form,
   formFields,
   setFormFields,
 }: FormCanvasProps) {
@@ -44,59 +49,87 @@ export default function FormCanvas({
       }`}
     >
       <div className="mx-auto max-w-[820px] p-4">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Form Preview</h1>
-            <div className="text-sm text-gray-500">
-              {formFields.length} field{formFields.length !== 1 ? "s" : ""}{" "}
-              added
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="w-full h-[160px] bg-[#F4F5F6] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <Image
+                src="/images/forms/image-plus.svg"
+                width={16}
+                height={16}
+                alt="add-image-icon"
+              />
+              <div className="flex flex-col text-center">
+                <span className="text-sm underline hover:cursor-pointer text-black font-medium">
+                  +Add Cover
+                </span>
+                <p className="text-sm text-gray-500">
+                  Optimal dimensions 920x160
+                </p>
+              </div>
             </div>
           </div>
 
-          {formFields.length === 0 ? (
-            <div className="border-2 border-gray-300 border-dashed rounded-lg p-12 text-center">
-              <div className="text-gray-400 mb-2">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-              </div>
-              <p className="text-gray-500 text-lg">
-                Drag fields from the sidebar to start building your form
-              </p>
-              <p className="text-gray-400 text-sm mt-2">
-                Fields will appear here as interactive form elements
+          <div className="flex flex-col gap-1 p-6">
+            <div className="flex flex-col gap-2 p-3">
+              <h2 className="text-[#1C1D1F] font-semibold text-3xl">
+                {form.title}
+              </h2>
+              <p className="text-sm text-[#5C5E63] font-normal">
+                {form.description ?? "Add description here"}
               </p>
             </div>
-          ) : (
-            <SortableContext
-              items={fieldIds}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-4">
-                {formFields.map((field) => (
-                  <SimpleFormField
-                    key={field.id}
-                    field={field}
-                    onDelete={(fieldId) => {
-                      setFormFields((prev) =>
-                        prev.filter((f) => f.id !== fieldId)
-                      );
-                    }}
-                  />
-                ))}
+            <div className="flex flex-col p-3 gap-2">
+              <div>
+                <span className="text-[#1C1D1F] text-base">
+                  Your company name
+                </span>
+                <p className="text-[#5C5E63] font-normal text-sm">
+                  Giving this project a title will help you find it later.
+                </p>
               </div>
-            </SortableContext>
-          )}
+              <Input className="border-[#D3D3D3] border-1 rounded-[6px] px-3 py-1.5" />
+            </div>
+            {formFields.length === 0 ? (
+              <div className="p-3 w-full h-[60px]">
+                <div className="bg-[#EDF6FF] w-full h-full border-[#4670F9] border-1 border-dashed">
+                  <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
+                    +Add Components
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <SortableContext
+                items={fieldIds}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
+                  {formFields.map((field) => (
+                    <SimpleFormField
+                      key={field.id}
+                      field={field}
+                      onDelete={(fieldId) => {
+                        setFormFields((prev) =>
+                          prev.filter((f) => f.id !== fieldId)
+                        );
+                      }}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            )}
+            <div className="flex flex-row py-6 px-3 gap-3 items-center">
+              <Image
+                src="/images/logo/logo.png"
+                alt="feedbird_logo"
+                width={87}
+                height={14}
+                className="h-3.5"
+              />
+              <span className="text-xs text-gray-500 h-4">
+                Do not submit passwords through this form. Report malicious form
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

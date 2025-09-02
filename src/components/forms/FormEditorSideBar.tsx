@@ -37,7 +37,7 @@ function DraggableFieldTemplate({
       style={style}
       {...listeners}
       {...attributes}
-      className={`py-2 px-2.5 border border-gray-200 rounded-lg cursor-grab hover:bg-gray-50 transition-colors ${
+      className={`py-2 px-2.5 border border-gray-200 rounded-sm cursor-grab hover:bg-gray-50 transition-colors ${
         isDragging ? "opacity-50" : "opacity-100"
       }`}
     >
@@ -87,7 +87,7 @@ export default function FormEditorSideBar() {
         Fields
       </header>
       <div className="p-4 flex flex-col gap-4">
-        <p className="text-[#838488] text-[13px]">
+        <p className="text-[#838488] text-sm">
           Double-click or drag and drop fields from the right column onto your
           form here.
         </p>

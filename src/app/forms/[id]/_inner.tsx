@@ -1,9 +1,17 @@
 "use client";
-
-import { Input } from "@/components/ui/input";
-import { Form } from "@/lib/supabase/client";
-import Image from "next/image";
+import FormEditorSideBar from "@/components/forms/FormEditorSideBar";
+import FormCanvas, { FormField } from "@/components/forms/FormCanvas";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  closestCenter,
+} from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import React from "react";
+import { useForms } from "@/contexts/FormsContext";
+import ServiceSelector from "@/components/forms/content/ServiceSelector";
+import { Form } from "@/lib/supabase/client";
 
 type FormInnerVisualizerProps = {
   form: Form;
@@ -12,65 +20,116 @@ type FormInnerVisualizerProps = {
 export default function FormInnerVisualizer({
   form,
 }: FormInnerVisualizerProps) {
-  return (
-    <div className="w-full rounded-lg border-border-primary border-1">
-      <div className="w-full h-[160px] bg-[#F4F5F6] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Image
-            src="/images/forms/image-plus.svg"
-            width={16}
-            height={16}
-            alt="add-image-icon"
-          />
-          <div className="flex flex-col text-center">
-            <span className="text-sm underline hover:cursor-pointer text-black font-medium">
-              +Add Cover
-            </span>
-            <p className="text-sm text-gray-500">Optimal dimensions 920x160</p>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col p-6 gap-2">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-col gap-2 p-3">
-            <h2 className="text-[#1C1D1F] font-semibold text-3xl">
-              {form.title}
-            </h2>
-            <p className="text-[13px] text-[#5C5E63] font-normal">
-              {form.description ?? "Add description here"}
-            </p>
-          </div>
-          <div className="flex flex-col p-3 gap-2">
-            <div>
-              <span className="text-[#1C1D1F] text-sm">Your company name</span>
-              <p className="text-[#5C5E63] text-[13px]">
-                Giving this project a title will help you find it later.
-              </p>
-            </div>
-            <Input className="border-[#D3D3D3] border-1 rounded-[6px] px-3 py-1.5" />
-          </div>
-        </div>
+  const { setIsEditing } = useForms();
 
-        <div className="p-3 w-full h-[60px]">
-          <div className="bg-[#EDF6FF] w-full h-full border-[#4670F9] border-1 border-dashed">
-            <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
-              +Add Components
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-row py-6 px-3 gap-3 items-center">
-          <Image
-            src="/images/logo/logo.png"
-            alt="feedbird_logo"
-            width={87}
-            height={14}
-            className="h-3.5"
+  // Form fields state - local to the form editor
+  const [formFields, setFormFields] = React.useState<FormField[]>([]);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+
+  // Set edit mode when this layout mounts
+  React.useEffect(() => {
+    setIsEditing(true);
+    return () => {
+      // Clean up edit mode when leaving
+      setIsEditing(false);
+    };
+  }, [setIsEditing]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    console.log("🚀 Drag ended:", {
+      activeId: active.id,
+      overId: over?.id,
+      activeData: active.data.current,
+      overData: over?.data.current,
+      currentFieldsCount: formFields.length,
+    });
+
+    if (!over) {
+      console.log("❌ No drop target found");
+      setActiveId(null);
+      return;
+    }
+
+    // Check if dragging from sidebar (template) to form area
+    if (active.data.current?.type === "template" && over.id === "form-canvas") {
+      console.log("✅ Adding new field from template");
+      addNewField(active.id as string);
+    }
+
+    // Handle field reordering within the form
+    if (active.id !== over.id && formFields.find((f) => f.id === active.id)) {
+      console.log("🔄 Reordering existing fields");
+      setFormFields((fields) => {
+        const oldIndex = fields.findIndex((f) => f.id === active.id);
+        const newIndex = fields.findIndex((f) => f.id === over.id);
+
+        const newFields = arrayMove(fields, oldIndex, newIndex);
+        // Update order values
+        return newFields.map((field, index) => ({
+          ...field,
+          order: index,
+        }));
+      });
+    }
+
+    setActiveId(null);
+  };
+
+  const addNewField = (fieldType: string) => {
+    // Generate a more unique ID using timestamp and random number
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    const newField: FormField = {
+      id: `field_${fieldType}_${timestamp}_${random}`,
+      type: fieldType.toLowerCase(),
+      label: `New ${fieldType} Field`,
+      position: formFields.length,
+    };
+
+    console.log("🎯 Creating field:", newField);
+    console.log("📊 Current form fields count:", formFields.length);
+    setFormFields((prev) => {
+      const updated = [...prev, newField];
+      console.log("📊 Updated form fields count:", updated.length);
+      return updated;
+    });
+  };
+
+  const handleDragStart = (event: any) => {
+    console.log("🚀 Drag started:", event.active.id);
+    setActiveId(event.active.id as string);
+  };
+
+  return (
+    <DndContext
+      onDragEnd={handleDragEnd}
+      onDragStart={handleDragStart}
+      collisionDetection={closestCenter}
+    >
+      <div className="w-full h-full flex bg-[#FBFBFB]">
+        <div className="flex-1 min-w-0 overflow-auto">
+          <ServiceSelector />
+          <FormCanvas
+            formFields={formFields}
+            setFormFields={setFormFields}
+            form={form}
           />
-          <span className="text-xs text-gray-500 h-4">
-            Do not submit passwords through this form. Report malicious form
-          </span>
         </div>
+        <FormEditorSideBar />
       </div>
-    </div>
+
+      <DragOverlay>
+        {activeId && (
+          <div className="bg-white border border-blue-300 rounded-lg p-3 shadow-lg opacity-90">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{activeId}</span>
+              <span className="text-sm text-gray-500">field</span>
+            </div>
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }
