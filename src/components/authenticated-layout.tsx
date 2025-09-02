@@ -15,7 +15,6 @@ import { TopProgressBar } from "@/components/layout/top-progress-bar";
 import { DynamicTitle } from "@/components/layout/dynamic-title";
 import PortalRoot from "@/components/portal-root/portal-root";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { FormsHeader } from "./forms/FormsHeader";
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -28,16 +27,6 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const workspacesInitialized = useFeedbirdStore(
     (s) => s.workspacesInitialized
   );
-
-  const headerMapping = React.useMemo(() => {
-    if (!pathname) return null;
-    if (pathname.startsWith("/messages") || pathname.startsWith("/analytics"))
-      return null;
-    if (pathname.includes("/messages") || pathname.includes("/analytics"))
-      return <AppHeader />;
-    if (pathname.startsWith("/forms")) return <FormsHeader />;
-    return <AppHeader />;
-  }, [pathname]);
 
   // Debug logging
   console.log("AuthenticatedLayout state:", {
@@ -83,7 +72,13 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
           <DynamicTitle />
           <AppSidebar />
           <SidebarInset>
-            {headerMapping}
+            {!(
+              pathname?.startsWith("/analytics") ||
+              pathname?.startsWith("/messages") ||
+              pathname?.includes("/analytics") ||
+              pathname?.includes("/messages") ||
+              pathname?.includes("/forms")
+            ) && <AppHeader />}
             <Suspense fallback={null}>
               <main
                 className={`flex w-full ${
