@@ -32,10 +32,7 @@ import {
 } from "@/lib/supabase/client";
 
 // API Base URL
-const API_BASE =
-  typeof window === "undefined"
-    ? "http://localhost:3000/api" // Server-side: full URL
-    : "/api"; // Client-side: relative path
+const API_BASE = '/api';
 
 // Generic API error handler
 class ApiError extends Error {
