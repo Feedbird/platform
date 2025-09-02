@@ -154,12 +154,10 @@ export interface Member {
 
 export interface Form {
   id: string;
-  service_id?: string | null;
   type: "intake" | "template";
   title: string;
   status: "draft" | "published";
   workspace_id: string;
-  accepting_submissions: boolean;
   share_uri?: string | null;
   has_been_submitted: boolean;
   thumbnail_url?: string | null;
@@ -170,4 +168,6 @@ export interface Form {
   account_tags?: string[] | null;
   created_at: string;
   updated_at: string;
+  has_branding: boolean;
+  services?: any[];
 }

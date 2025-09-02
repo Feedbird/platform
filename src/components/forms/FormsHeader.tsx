@@ -6,6 +6,7 @@ import { UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { useFormStore } from "@/lib/store/forms-store";
+import { useForms } from "@/contexts/FormsContext";
 
 export function FormsHeader() {
   return (
@@ -15,13 +16,13 @@ export function FormsHeader() {
   );
 }
 
-// TODO This may be moved to a more internal location, perhaps inner layout, so It can have context of edit mode without more global states
 function FormsHeaderContent() {
   const [loading, isLoading] = React.useState(false);
 
   const router = useRouter();
   const { user, activeWorkspaceId } = useFeedbirdStore();
   const { createInitialForm } = useFormStore();
+  const { activeForm, isEditing } = useForms();
 
   const handleInitialFormCreation = async () => {
     isLoading(true);
@@ -38,6 +39,7 @@ function FormsHeaderContent() {
       isLoading(false);
     }
   };
+
   return (
     <header
       className="relative
@@ -47,19 +49,21 @@ function FormsHeaderContent() {
       <div className="flex flex-row gap-2 items-center">
         <SidebarTrigger className="cursor-pointer shrink-0" />
         <span className="font-semibold text-lg tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
-          Forms
+          {isEditing && activeForm
+            ? `Editing: ${activeForm.title || activeForm.id}`
+            : "Forms"}
         </span>
       </div>
       <div className="flex flex-row gap-4">
         <div className="flex flex-row gap-2">
-          {/* <Button
-            className="border border-border-button border-[#D3D3D3] rounded-[6px] text-black px-[12px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium"
-            variant="ghost"
-            1
-            size="sm"
-          >
-            Share
-          </Button> */}
+          {isEditing && activeForm && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Form ID:</span>
+              <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                {activeForm.id}
+              </code>
+            </div>
+          )}
           <Button
             variant="ghost"
             size="sm"

@@ -13,19 +13,20 @@ CREATE TABLE IF NOT EXISTS workspaces (
 
 -- Create services table
 CREATE TABLE services (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    
-    -- Unique constraint for workspace_id and name
-    UNIQUE(workspace_id, name)
+  id UUID PRIMARY KEY,
+  workspace_id UUID NOT NULL REFERENCES workspaces(id),
+  form_id UUID NULL,
+  name TEXT NOT NULL,
+
+  -- Enforce same-tenant relationship (and allow NULL form_id)
+  FOREIGN KEY (workspace_id, form_id)
+    REFERENCES forms (workspace_id, id)
+    ON DELETE SET NULL
 );
 
 -- Create forms table
 CREATE TABLE forms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_id UUID REFERENCES services(id) ON DELETE CASCADE,
     type form_type NOT NULL,
     title TEXT NOT NULL,
 
@@ -106,3 +107,15 @@ COMMENT ON COLUMN forms.location_tags IS 'JSON array of location tags like ["NYC
 COMMENT ON COLUMN forms.account_tags IS 'JSON array of account-related tags';
 COMMENT ON COLUMN form_fields.config IS 'JSON configuration object for field-specific settings';
 COMMENT ON COLUMN form_fields.position IS 'Order position of field within the form';
+
+CREATE TABLE form_submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID NOT NULL,
+  form_id UUID NOT NULL,
+  form_version INT NOT NULL DEFAULT 1,
+  answers JSONB NOT NULL,                       -- [{ "fieldKey":"email", "fieldId":"...", "type":"email", "value":"a@b.com" }, ...]
+  schema_snapshot JSONB NOT NULL,               -- copy of fields (keys, types, rules) at submission time
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  FOREIGN KEY (workspace_id, form_id) REFERENCES forms(workspace_id, id) ON DELETE CASCADE,
+  CHECK (jsonb_typeof(answers) = 'array')
+);

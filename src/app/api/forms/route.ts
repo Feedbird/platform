@@ -16,7 +16,14 @@ export async function GET(req: NextRequest) {
 
     const { data: forms, error } = await supabase
       .from("forms")
-      .select("*")
+      .select(
+        `
+        *,
+        submissions_count:form_submissions(count),
+        fields_count:form_fields(count),
+        services:services(id, name)
+      `
+      )
       .eq("workspace_id", workspaceId);
 
     if (error) {
@@ -34,7 +41,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ data: forms });
+    // Transform the forms to flatten the count arrays
+    const transformedForms = forms.map((form: any) => ({
+      ...form,
+      submissions_count: form.submissions_count?.[0]?.count || 0,
+      fields_count: form.fields_count?.[0]?.count || 0,
+      services: form.services || [], // Keep services as array since one form can have multiple services
+    }));
+
+    return NextResponse.json({ data: transformedForms });
   } catch (error) {
     console.error("Error in GET /api/forms:", error);
     return NextResponse.json(

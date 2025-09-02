@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { ColumnDef } from "@tanstack/table-core";
 import { ChevronDownIcon, ChevronUpIcon, ListPlus } from "lucide-react";
-import React from "react";
+import React, { Dispatch, SetStateAction } from "react";
 import FormsFiltersPopover from "./FormsFiltersPopover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -26,28 +26,29 @@ import { Badge } from "@/components/ui/badge";
 import { Form } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import EmptyFormPreview from "./EmptyFormPreview";
 import EmptyFormsComponent from "../EmptyForms";
 import { humanizeDate } from "@/lib/utils/transformers";
-import { formsApi } from "@/lib/api/api-service";
+import { useForms } from "@/contexts/FormsContext";
 import FormDeleteModal from "./FormDeleteModal";
+import FormSettingsModal from "./FormSettingsModal";
 
-export interface FormSubmission {
-  id: string;
-  formId: string;
-  submittedAt: string;
+export interface TableForm extends Form {
+  submissions_count?: number;
+  fields_count?: number;
+  services: { id: number; name: string }[];
 }
 
 export type FormsTableProps = {
-  forms: Form[];
+  forms: TableForm[];
 };
 
 export default function FormsTable({ forms }: FormsTableProps) {
-  const [tabledData, setTableData] = React.useState<Form[]>(forms);
-  const [activeForm, setActiveForm] = React.useState<Form | null>(null);
+  const [tabledData, setTableData] = React.useState<TableForm[]>(forms);
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
   const router = useRouter();
+  const { selectFormForEditing } = useForms();
   const [filterTree, setFilterTree] = React.useState<ConditionGroup>({
     id: "root",
     andOr: "AND",
@@ -57,12 +58,14 @@ export default function FormsTable({ forms }: FormsTableProps) {
     "placeholder",
     "rowIndex",
     "name",
+    "type",
     "submissions",
     "status",
     "lastUpdated",
     "actions",
   ]);
 
+  const { activeForm, setActiveForm } = useForms();
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>({
     name: "Name",
   });
@@ -78,7 +81,12 @@ export default function FormsTable({ forms }: FormsTableProps) {
     );
   }, [filterTree]);
 
-  const baseColumns: ColumnDef<Form>[] = React.useMemo(() => {
+  const handleEditClick = (form: TableForm) => {
+    selectFormForEditing(form);
+    router.push(`/forms/${form.id}`);
+  };
+
+  const baseColumns: ColumnDef<TableForm>[] = React.useMemo(() => {
     return [
       {
         id: "placeholder",
@@ -110,26 +118,29 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "name",
         accessorKey: "formName",
         header: () => (
-          <div className="flex items-center gap-[6px] text-gray-700 text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
             Name
           </div>
         ),
-        minSize: 300,
-        size: 400,
+        minSize: 250,
+        size: 350,
         cell: ({ row }) => (
-          <div className="group flex items-center gap-3 py-1.5">
+          <div
+            className="group flex items-center gap-3 py-1 hover:cursor-pointer"
+            onClick={() => handleEditClick(row.original)}
+          >
             {/* <span className="text-lg">{row.original.icon}</span> */}
             <div className="flex flex-col flex-1 gap-0.5">
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-[#4670F9]">
                 {row.original.title}
               </span>
-              <span className="text-xs text-[#838488]">
-                {/* {row.original.questionCount} Questions */}
+              <span className="text-xs text-[#838488] font-normal">
+                {(row.original as any).fields_count || 0} Questions
               </span>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button
-                onClick={() => router.push(`/forms/${row.original.id}`)}
+                onClick={() => handleEditClick(row.original)}
                 className="px-3 py-1.5 bg-[#4670F9] text-white text-sm font-medium hover:bg-blue-700 rounded-[5px] transition-colors hover:cursor-pointer"
               >
                 Edit
@@ -142,18 +153,36 @@ export default function FormsTable({ forms }: FormsTableProps) {
         ),
       },
       {
+        id: "type",
+        accessorKey: "services",
+        header: () => (
+          <div className="flex items-center text-[#1C1D1F] text-sm font-medium">
+            Type
+          </div>
+        ),
+        minSize: 120,
+        size: 150,
+        cell: ({ row }) => (
+          <span className="text-xs font-medium text-[#1C1D1F]">
+            {row.original.services.length
+              ? row.original.services[0].name
+              : "N/A"}
+          </span>
+        ),
+      },
+      {
         id: "submissions",
         accessorKey: "submissionsCount",
         header: () => (
-          <div className="flex items-center gap-[6px] text-gray-700 text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
             Submissions
           </div>
         ),
         minSize: 100,
         size: 120,
         cell: ({ row }) => (
-          <span className="text-sm text-gray-900">
-            {/* {row.original.submissionsCount} */}0
+          <span className="text-xs font-medium text-[#1C1D1F]">
+            {row.original.submissions_count || 0}
           </span>
         ),
       },
@@ -161,7 +190,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "status",
         accessorKey: "status",
         header: () => (
-          <div className="flex items-center gap-[6px] text-gray-700 text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
             Status
           </div>
         ),
@@ -201,7 +230,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "lastUpdated",
         accessorKey: "lastEditedAt",
         header: () => (
-          <div className="flex items-center gap-[6px] text-gray-700 text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
             Last updated
           </div>
         ),
@@ -242,7 +271,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
                   />
                   <span>Rename</span>
                 </button>
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                <button
+                  className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+                  onClick={() => {
+                    setActiveForm(row.original);
+                    setSettingsModalOpen(true);
+                  }}
+                >
                   <Image
                     src="/images/boards/settings.svg"
                     alt="settings_icon"
@@ -272,8 +307,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
                 <button
                   className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
                   onClick={() => {
-                    setDeleteModalOpen(true);
                     setActiveForm(row.original);
+                    setDeleteModalOpen(true);
                   }}
                 >
                   <Image
@@ -312,7 +347,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
       }));
   }, [columnNames]);
 
-  const table = useReactTable<Form>({
+  const table = useReactTable<TableForm>({
     data: tabledData,
     columns: baseColumns,
     state: {
@@ -360,7 +395,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
     table,
     stickyStyles,
   }: {
-    table: ReactTableType<Form>;
+    table: ReactTableType<TableForm>;
     stickyStyles: (id: string, z?: number) => React.CSSProperties | undefined;
   }) {
     return (
@@ -531,6 +566,12 @@ export default function FormsTable({ forms }: FormsTableProps) {
         onClose={setDeleteModalOpen}
         setForms={setTableData}
         formId={activeForm?.id || ""}
+      />
+      <FormSettingsModal
+        open={settingsModalOpen && !!activeForm}
+        onClose={setSettingsModalOpen}
+        setForms={setTableData}
+        form={activeForm!}
       />
     </>
   );

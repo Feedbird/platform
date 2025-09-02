@@ -2,24 +2,20 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
-  DialogHeader,
   DialogOverlay,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formsApi } from "@/lib/api/api-service";
-import { Form } from "@/lib/supabase/client";
 import Image from "next/image";
-import { set } from "nprogress";
 import React, { SetStateAction, Dispatch, useEffect } from "react";
+import { TableForm } from "./forms-table";
 
 type FormDeleteModal = {
   open: boolean;
   formId: string;
   onClose: Dispatch<SetStateAction<boolean>>;
-  setForms: Dispatch<SetStateAction<Form[]>>;
+  setForms: Dispatch<SetStateAction<TableForm[]>>;
 };
 
 export default function FormDeleteModal({
@@ -41,6 +37,7 @@ export default function FormDeleteModal({
       await formsApi.deleteForm(formId);
       setForms((prevForms) => prevForms.filter((form) => form.id !== formId));
       onClose(false);
+      setConfirmation("");
     } catch (e) {
       console.error("❌ Error deleting form:", e);
       throw new Error("Error deleting form"); //! TODO Check toasts
