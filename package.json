@@ -26,7 +26,7 @@
     "@fullcalendar/list": "^6.1.17",
     "@fullcalendar/react": "^6.1.17",
     "@fullcalendar/timegrid": "^6.1.17",
-    "@glideapps/glide-data-grid": "^6.0.3",
+    "@glideapps/glide-data-grid": "^6.0.4-alpha20",
     "@hookform/resolvers": "^5.0.1",
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
