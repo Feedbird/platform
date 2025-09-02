@@ -23,12 +23,16 @@ interface FormCanvasProps {
   form: Form;
   formFields: FormField[];
   setFormFields: React.Dispatch<React.SetStateAction<FormField[]>>;
+  activeId?: string | null;
+  overId?: string | null;
 }
 
 export default function FormCanvas({
   form,
   formFields,
   setFormFields,
+  activeId,
+  overId,
 }: FormCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: "form-canvas",
@@ -42,10 +46,8 @@ export default function FormCanvas({
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[600px] px-6 transition-colors ${
-        isOver
-          ? "bg-blue-50 border-2 border-blue-300 border-dashed"
-          : "bg-transparent"
+      className={`min-h-[600px] px-6 transition-colors duration-200 ${
+        isOver ? "bg-blue-50" : "bg-transparent"
       }`}
     >
       <div className="mx-auto max-w-[820px] p-4">
@@ -103,16 +105,24 @@ export default function FormCanvas({
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-4">
-                  {formFields.map((field) => (
-                    <SimpleFormField
-                      key={field.id}
-                      field={field}
-                      onDelete={(fieldId) => {
-                        setFormFields((prev) =>
-                          prev.filter((f) => f.id !== fieldId)
-                        );
-                      }}
-                    />
+                  {formFields.map((field, index) => (
+                    <React.Fragment key={field.id}>
+                      {/* Insertion indicator */}
+                      {activeId &&
+                        overId === field.id &&
+                        activeId !== field.id &&
+                        !formFields.find((f) => f.id === activeId) && (
+                          <div className="h-1 bg-blue-400 rounded-full mx-4 transition-all duration-200" />
+                        )}
+                      <SimpleFormField
+                        field={field}
+                        onDelete={(fieldId) => {
+                          setFormFields((prev) =>
+                            prev.filter((f) => f.id !== fieldId)
+                          );
+                        }}
+                      />
+                    </React.Fragment>
                   ))}
                 </div>
               </SortableContext>
@@ -162,7 +172,7 @@ function SimpleFormField({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group border border-gray-200 rounded-lg p-4 bg-white hover:border-blue-300 relative ${
+      className={`group rounded-lg p-4 bg-white hover:border-blue-300 relative ${
         isDragging ? "opacity-50" : "opacity-100"
       }`}
     >

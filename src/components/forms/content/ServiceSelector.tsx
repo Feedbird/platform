@@ -25,14 +25,11 @@ export default function ServiceSelector() {
           </span>
           <div className="flex flex-row justify-between w-full">
             <ServicesMultiSelect
-              className="w-[60%]"
+              className="w-full"
               workspaceId={activeWorkspaceId || ""}
               selectedServices={selectedServices}
               onSelectionChange={onSelectionChange}
             />
-            <Button className="bg-[#4670F9] rounded-[6px] py-1.5 px-3 text-white text-[13px] flex flex-row hover:cursor-pointer">
-              Save
-            </Button>
           </div>
         </div>
       </div>
