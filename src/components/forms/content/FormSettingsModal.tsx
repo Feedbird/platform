@@ -17,7 +17,6 @@ type FormSettingsModalProps = {
   open: boolean;
   form: TableForm;
   onClose: Dispatch<SetStateAction<boolean>>;
-  setForms: Dispatch<SetStateAction<TableForm[]>>;
 };
 
 type FormSettingsOptions = {
@@ -30,7 +29,6 @@ export default function FormSettingsModal({
   open,
   onClose,
   form,
-  setForms,
 }: FormSettingsModalProps) {
   const [loading, isLoading] = React.useState(false);
   const { getActiveWorkspace } = useFeedbirdStore();
@@ -66,7 +64,7 @@ export default function FormSettingsModal({
     <Dialog onOpenChange={onClose} open={open} modal={true}>
       <DialogOverlay className="backdrop-blur-sm">
         <DialogContent
-          className="w-[420px] p-4 rounded-[6px]"
+          className="w-[450px] p-4 rounded-[6px]"
           hideCloseButton={true}
         >
           <DialogTitle>
@@ -112,11 +110,15 @@ export default function FormSettingsModal({
             </div>
           </div>
           <div className="flex flex-row-reverse justify-between">
-            <Button className="py-1.5 px-4 rounded-[6px] bg-[#4670F9] text-white text-[13px] font-medium hover:cursor-pointer">
+            <Button
+              variant="default"
+              className="rounded-[6px] bg-[#4670F9] text-white text-[13px] font-medium hover:cursor-pointer"
+            >
               Save
             </Button>
             <Button
-              className="py-1.5 px-4 rounded-[6px] border-1 border-[#D3D3D3] bg-transparent text-[#1C1D1F] text-[13px] font-medium hover:cursor-pointer"
+              variant={"ghost"}
+              className="rounded-[6px] border-1 border-[#D3D3D3] text-[#1C1D1F] text-[13px] font-medium hover:cursor-pointer"
               onClick={() => onClose(false)}
             >
               Cancel

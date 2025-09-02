@@ -570,7 +570,6 @@ export default function FormsTable({ forms }: FormsTableProps) {
       <FormSettingsModal
         open={settingsModalOpen && !!activeForm}
         onClose={setSettingsModalOpen}
-        setForms={setTableData}
         form={activeForm!}
       />
     </>
