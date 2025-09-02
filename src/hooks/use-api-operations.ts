@@ -101,8 +101,10 @@ export function useApiOperations() {
     board_id: string,
     postData: any
   ) => {
-    return withLoading('createPost', () => storeApi.createPostAndUpdateStore(workspaceId, board_id, postData))
-  }, [withLoading])
+    const userEmail = store.user?.email
+    if (!userEmail) throw new Error('No user email available')
+    return withLoading('createPost', () => storeApi.createPostAndUpdateStore(workspaceId, board_id, postData, userEmail))
+  }, [store.user?.email, withLoading])
 
   const updatePost = useCallback(async (id: string, updates: any) => {
     return withLoading('updatePost', () => storeApi.updatePostAndUpdateStore(id, updates))
