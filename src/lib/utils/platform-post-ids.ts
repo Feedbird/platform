@@ -61,7 +61,7 @@ export async function updatePlatformPostId(
     // Update the post
     const { error: updateError } = await supabase
       .from('posts')
-      .update({ platform_post_ids: updatedIds })
+      .update({ platform_post_ids: updatedIds, publish_date: new Date().toISOString() })
       .eq('id', postId);
 
     if (updateError) {

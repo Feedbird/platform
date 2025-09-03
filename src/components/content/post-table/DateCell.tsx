@@ -9,7 +9,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { Plus, X, ChevronDown } from "lucide-react";
+import { Plus, X, ChevronDown, Send } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -205,7 +205,7 @@ export function PublishDateCell({
                               <ChevronDown className="w-3 h-3 text-[#5C5E63]" />
                             </div>
                           ) : (
-                            /* Default no-time UI */
+                            <div className="flex flex-row items-center gap-1 w-full cursor-pointer">
                             <div className={cn(
                               "flex flex-row items-center gap-1 rounded-[4px] bg-white",
                               )} style={{
@@ -219,6 +219,25 @@ export function PublishDateCell({
                                   )}/>
                                 </div>
                                <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
+                            </div>
+
+                            {/* display publish now button */}
+                            <div 
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); publishPostToAllPages(post.id); }}
+                            className={cn(
+                              "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                              )} style={{
+                                padding: "3px 6px 3px 4px",
+                                boxShadow: "0px 0px 0px 1px #D3D3D3",
+                                width: "fit-content"
+                              }}>
+                                <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                                  <Send className={cn(
+                                    "w-3 h-3 text-[#5C5E63]",
+                                  )}/>
+                                </div>
+                               <span className="text-xs text-[#5C5E63] font-semibold">Publish Now</span>
+                            </div>
                             </div>
                           )
                         )}
