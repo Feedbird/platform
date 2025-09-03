@@ -1691,6 +1691,7 @@ export const storeApi = {
                 ...p,
                 ...updates,
                 user_columns: updates.user_columns,
+                publish_date: post.publish_date ? new Date(post.publish_date) : p.publish_date,
                 last_updated_by: postUpdates.last_updated_by
               };
             }
@@ -1698,6 +1699,7 @@ export const storeApi = {
             return {
               ...p,
               ...updates,
+              publish_date: post.publish_date ? new Date(post.publish_date) : p.publish_date,
               last_updated_by: postUpdates.last_updated_by
             };
           })
