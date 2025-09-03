@@ -25,6 +25,8 @@ interface FormCanvasProps {
   setFormFields: React.Dispatch<React.SetStateAction<FormField[]>>;
   activeId?: string | null;
   overId?: string | null;
+  selectedFieldId?: string | null;
+  onFieldSelect?: (fieldId: string | null) => void;
 }
 
 export default function FormCanvas({
@@ -33,6 +35,8 @@ export default function FormCanvas({
   setFormFields,
   activeId,
   overId,
+  selectedFieldId,
+  onFieldSelect,
 }: FormCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: "form-canvas",
@@ -40,6 +44,7 @@ export default function FormCanvas({
       type: "form-area",
     },
   });
+  const [formCover, setFormCover] = React.useState<string | null>(null);
 
   const fieldIds = formFields.map((f) => f.id);
 
@@ -52,23 +57,37 @@ export default function FormCanvas({
     >
       <div className="mx-auto max-w-[820px] p-4">
         <div className="bg-white rounded-lg shadow-sm">
-          <div className="w-full h-[160px] bg-[#F4F5F6] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
+          <div
+            className={`w-full h-[160px] ${
+              formCover ? "" : "bg-[#F4F5F6]"
+            } flex items-center justify-center`}
+          >
+            {formCover ? (
               <Image
-                src="/images/forms/image-plus.svg"
-                width={16}
-                height={16}
-                alt="add-image-icon"
+                src={formCover}
+                alt="form_cover_image"
+                width={920}
+                height={160}
+                className="w-full h-full object-cover"
               />
-              <div className="flex flex-col text-center">
-                <span className="text-sm underline hover:cursor-pointer text-black font-medium">
-                  +Add Cover
-                </span>
-                <p className="text-sm text-gray-500">
-                  Optimal dimensions 920x160
-                </p>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <Image
+                  src="/images/forms/image-plus.svg"
+                  width={16}
+                  height={16}
+                  alt="add-image-icon"
+                />
+                <div className="flex flex-col text-center">
+                  <span className="text-sm underline hover:cursor-pointer text-black font-medium">
+                    +Add Cover
+                  </span>
+                  <p className="text-sm text-gray-500">
+                    Optimal dimensions 920x160
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-1 p-6">
@@ -116,6 +135,8 @@ export default function FormCanvas({
                         )}
                       <SimpleFormField
                         field={field}
+                        selectedFieldId={selectedFieldId}
+                        onFieldSelect={onFieldSelect}
                         onDelete={(fieldId) => {
                           setFormFields((prev) =>
                             prev.filter((f) => f.id !== fieldId)
@@ -149,9 +170,13 @@ export default function FormCanvas({
 // Simple field renderer for now
 function SimpleFormField({
   field,
+  selectedFieldId,
+  onFieldSelect,
   onDelete,
 }: {
   field: FormField;
+  selectedFieldId?: string | null;
+  onFieldSelect?: (fieldId: string | null) => void;
   onDelete: (id: string) => void;
 }) {
   const {
@@ -168,13 +193,23 @@ function SimpleFormField({
     transition,
   };
 
+  const isSelected = selectedFieldId === field.id;
+
+  const handleFieldClick = () => {
+    if (onFieldSelect) {
+      // Toggle selection: if already selected, deselect; otherwise select this field
+      onFieldSelect(isSelected ? null : field.id);
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group rounded-lg p-4 bg-white hover:border-blue-300 relative ${
+      onClick={handleFieldClick}
+      className={`group rounded-lg p-4 bg-white hover:border-blue-300 border-1 relative cursor-pointer transition-all ${
         isDragging ? "opacity-50" : "opacity-100"
-      }`}
+      } ${isSelected ? "border-2 border-blue-500 shadow-md" : "border-white"}`}
     >
       {/* Drag Handle */}
       <div
