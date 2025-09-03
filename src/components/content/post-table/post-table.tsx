@@ -106,6 +106,31 @@ import { Switch } from "@/components/ui/switch";
 import { SingleSelectCell } from "./SingleSelectCell";
 import { MultiSelectCell } from "./MultiSelectCell";
 
+/**
+ * Render overlapping platform icons with +x overflow for column headers
+ */
+function renderPlatformsForHeader(platforms: Platform[], size: "lg" | "sm" = "sm") {
+  const total = platforms.length;
+  const maxIcons = 5;
+  const displayed = total > maxIcons ? platforms.slice(0, 4) : platforms;
+
+  return (
+    <div className="flex platform-stack-header">
+      {displayed.map((platform) => (
+        <img
+          key={platform}
+          src={`/images/platforms/${platform}.svg`}
+          alt={platform}
+          className={size === "lg" ? "w-5 h-5" : "w-4 h-4"}
+        />
+      ))}
+      {total > maxIcons && (
+        <span className="platform-more-badge-header">{total - 4}+</span>
+      )}
+    </div>
+  );
+}
+
 type FinalGroup = {
   groupValues: Record<string, any>   // e.g. { status: "Pending Approval", channels: "TikTok,LinkedIn" }
   rowCount: number                   // how many leaf rows
@@ -2271,31 +2296,19 @@ export function PostTable({
             <Image src={`/images/columns/caption.svg`} alt="caption" width={14} height={14} />
             <span className="text-[13px] leading-[16px]">{columnNames["caption"] || "Caption"}</span>
 
-            {/* channel-icon filter buttons – right-aligned */}
-            <div className="ml-auto flex">
-              <button
-                onClick={(e)=>{e.stopPropagation(); setCaptionLocked(l=>!l);}}
-                className="ml-1 cursor-pointer"
+            {/* Platform icons and switch – right-aligned */}
+            <div className="ml-auto flex items-center gap-2">
+              {renderPlatformsForHeader(availablePlatforms, "sm")}
+              <Switch
+                checked={!captionLocked}
+                onCheckedChange={(checked) => setCaptionLocked(!checked)}
+                className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
                 title={captionLocked ? "Unlock - customise per social" : "Lock"}
-              >
-                {captionLocked ? <Lock   className="w-4 h-4"/> : <Unlock className="w-4 h-4"/>}
-              </button>
-              {!captionLocked && availablePlatforms.map(platform => (
-                <button
-                  key={platform}
-                  onClick={(e) => togglePlatform(e, platform)}
-                  className={cn(
-                    "p-1 rounded hover:bg-accent transition-opacity duration-200",
-                    selectedPlatform === platform ? "opacity-100" : "opacity-40",
-                  )}
-                >
-                  <ChannelIcons channels={[platform]} />
-                </button>
-              ))}
+              />
             </div>
           </div>
         ),
-        minSize: 150,
+        minSize: 200,
         size: 220,
         cell: ({ row, isFocused, isEditing, exitEdit, enterEdit } : FocusCellContext<Post>) => {
           const post = row.original;
@@ -4866,6 +4879,34 @@ export function PostTable({
                 .fbp-dragging-cursor * {
                   cursor: grabbing !important;
                   cursor: -webkit-grabbing !important;
+                }
+
+                /* Platform icon stack overlap for column headers */
+                .platform-stack-header > * + * {
+                  margin-left: -4px; /* overlap amount for column header */
+                }
+
+                /* Platform icon sizes for column headers */
+                .platform-stack-header img {
+                  width: 16px !important;
+                  height: 16px !important;
+                }
+
+                /* More badge styling for column headers */
+                .platform-more-badge-header {
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  border-radius: 9999px;
+                  background-color: #d1d5db;
+                  color: #374151;
+                  font-weight: 600;
+                  line-height: 1;
+                  white-space: nowrap;
+                  height: 16px;
+                  min-width: 16px;
+                  padding: 0 4px;
+                  font-size: 0.65rem;
                 }
               `}</style>
               {/* Column drag overlay following cursor */}
