@@ -119,13 +119,12 @@ export function MultiSelect({
         </div>
         <ChevronDown
           className={cn(
-            "h-4 w-4 transition-transform text-gray-400",
+            "h-4 w-4 transition-transform text-gray-400 self-center",
             isOpen && "rotate-180"
           )}
         />
       </div>
 
-      {/* Dropdown */}
       {isOpen && (
         <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
           {/* Search Input */}

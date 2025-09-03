@@ -32,8 +32,11 @@ export default function FormInnerVisualizer() {
 
   // Form fields state - local to the form editor
   const [formFields, setFormFields] = React.useState<FormField[]>([]);
-  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
+  const [selectedFieldId, setSelectedFieldId] = React.useState<string | null>(
+    null
+  ); // For field settings/editing
 
   const retrieveForm = async (formId: string) => {
     try {
@@ -213,6 +216,8 @@ export default function FormInnerVisualizer() {
             form={form}
             activeId={activeId}
             overId={overId}
+            selectedFieldId={selectedFieldId}
+            onFieldSelect={setSelectedFieldId}
           />
         </div>
         <FormEditorSideBar />
