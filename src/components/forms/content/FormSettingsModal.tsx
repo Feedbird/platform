@@ -32,11 +32,15 @@ export default function FormSettingsModal({
 }: FormSettingsModalProps) {
   const [loading, isLoading] = React.useState(false);
   const { getActiveWorkspace } = useFeedbirdStore();
-  const [settings, setSettings] = React.useState<FormSettingsOptions>({
+
+  const initialSettings: FormSettingsOptions = {
     title: form?.title || "",
     description: form?.description || "",
     serviceIds: form?.services.map((s) => s.id.toString()) || [],
-  });
+  };
+
+  const [settings, setSettings] =
+    React.useState<FormSettingsOptions>(initialSettings);
 
   // Don't render if no form is provided
   if (!form) {
@@ -66,7 +70,11 @@ export default function FormSettingsModal({
         <DialogContent
           className="w-[450px] p-4 rounded-[6px]"
           hideCloseButton={true}
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
+          {/* Hidden element to receive initial focus instead of the input */}
+          <div tabIndex={-1} className="sr-only" />
+
           <DialogTitle>
             <div className="flex flex-row items-center gap-3">
               <span className="text-[16px] font-semibold text-[#1C1D1F]">
@@ -82,7 +90,7 @@ export default function FormSettingsModal({
               <Input
                 id="title"
                 value={settings.title}
-                className="text-[#1C1D1F] py-2 px-3 rounded-[6px] selection:bg-transparent"
+                className="text-[#1C1D1F] py-2 px-3 rounded-[6px]"
                 onChange={handleTextChange}
               />
             </div>
@@ -119,7 +127,10 @@ export default function FormSettingsModal({
             <Button
               variant={"ghost"}
               className="rounded-[6px] border-1 border-[#D3D3D3] text-[#1C1D1F] text-[13px] font-medium hover:cursor-pointer"
-              onClick={() => onClose(false)}
+              onClick={() => {
+                onClose(false);
+                setSettings(initialSettings);
+              }}
             >
               Cancel
             </Button>

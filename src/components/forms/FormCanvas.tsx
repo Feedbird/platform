@@ -91,7 +91,7 @@ export default function FormCanvas({
                 />
                 <div
                   onClick={handleCoverImageClick}
-                  className={`absolute w-full h-full bg-transparent transition-all duration-100 content-center text-center z-20 text-transparent hover:bg-black/20 hover:backdrop-blur-xs hover:text-black font-semibold hover:cursor-pointer`}
+                  className={`absolute w-full h-full bg-transparent transition-all duration-100 content-center text-center z-20 text-transparent hover:bg-black/20 hover:backdrop-blur-xs hover:text-gray-500 font-semibold hover:cursor-pointer`}
                 >
                   Change cover
                 </div>

@@ -44,7 +44,7 @@ export default function FormEditorSideBar() {
         </div>
         <Button
           variant="default"
-          className="w-full mt-4 shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
+          className="w-full mt-4 hover:cursor-pointer shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
         >
           Save Form
         </Button>
