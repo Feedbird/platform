@@ -10,6 +10,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import React from "react";
 import { Input } from "../ui/input";
+import { useImageUploader } from "@/hooks/use-image-uploader";
 
 export interface FormField {
   id: string;
@@ -45,6 +46,23 @@ export default function FormCanvas({
     },
   });
   const [formCover, setFormCover] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCoverImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // For now, create a local preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setFormCover(previewUrl);
+
+      // TODO: Implement actual upload using the useImageUploader hook
+      console.log("File selected:", file);
+    }
+  };
 
   const fieldIds = formFields.map((f) => f.id);
 
@@ -56,20 +74,28 @@ export default function FormCanvas({
       }`}
     >
       <div className="mx-auto max-w-[820px] p-4">
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div
-            className={`w-full h-[160px] ${
+            className={`w-full relative h-[160px] ${
               formCover ? "" : "bg-[#F4F5F6]"
             } flex items-center justify-center`}
           >
             {formCover ? (
-              <Image
-                src={formCover}
-                alt="form_cover_image"
-                width={920}
-                height={160}
-                className="w-full h-full object-cover"
-              />
+              <>
+                <Image
+                  src={formCover}
+                  alt="form_cover_image"
+                  width={920}
+                  height={160}
+                  className="w-full h-full object-cover z-10"
+                />
+                <div
+                  onClick={handleCoverImageClick}
+                  className={`absolute w-full h-full bg-transparent transition-all duration-100 content-center text-center z-20 text-transparent hover:bg-black/20 hover:backdrop-blur-xs hover:text-black font-semibold hover:cursor-pointer`}
+                >
+                  Change cover
+                </div>
+              </>
             ) : (
               <div className="flex flex-col items-center gap-3">
                 <Image
@@ -79,7 +105,10 @@ export default function FormCanvas({
                   alt="add-image-icon"
                 />
                 <div className="flex flex-col text-center">
-                  <span className="text-sm underline hover:cursor-pointer text-black font-medium">
+                  <span
+                    className="text-sm underline hover:cursor-pointer text-black font-medium"
+                    onClick={handleCoverImageClick}
+                  >
                     +Add Cover
                   </span>
                   <p className="text-sm text-gray-500">
@@ -88,6 +117,13 @@ export default function FormCanvas({
                 </div>
               </div>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
 
           <div className="flex flex-col gap-1 p-6">
