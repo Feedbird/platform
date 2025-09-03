@@ -1,18 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Info, ArrowUp, ArrowDown } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-export type Metric = 'followers' | 'posts' | 'impressions' | 'engagement' | 'views'
+export type Metric = 'followers' | 'reach' | 'impressions' | 'engagements' | 'views'
 
 export interface MetricData {
   metric: Metric
   label: string
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  icon: React.ReactElement
   value: number
-  description: string
 }
 
 export function formatNumber(num: number): string {
@@ -48,61 +47,33 @@ export function MetricCard({ data, diff, active, onClick }: MetricCardProps) {
       }}
       className={cn(
         'relative flex flex-col rounded-sm p-4 w-full min-w-[160px] transition-all duration-200 cursor-pointer bg-white gap-2',
-        active ? 'ring-2 ring-blue-400 border-blue-400 text-blue-500' : 'hover:shadow border border-gray-200'
+        active ? 'ring-1 ring-main border-main' : 'hover:shadow border border-strokeElement'
       )}
     >
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-600 font-medium">{data.label}</p>
-        <div className="flex relative w-4 h-4">
-          <div
-            className={cn(
-              'absolute inset-0 transition-opacity duration-200',
-              hovered ? 'opacity-0' : 'opacity-100'
-            )}
-          >
-            <data.icon className="w-4 h-4 text-muted-foreground" />
+        <div>
+          <p className="text-sm text-darkGrey font-normal">{data.label}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xl text-black font-semibold">{formatNumber(data.value)}</p>
+            <div
+              className={cn(
+                'flex items-center text-xs font-medium rounded-[4px] px-1 transition-colors duration-200',
+                isPositive ? 'bg-[#E7F8E1] text-[#247E00]' : 'bg-red-500/10 text-red-500'
+              )}
+            >
+              {trendStr}
+            </div>
           </div>
-          <div
-            className={cn(
-              'absolute inset-0 transition-opacity duration-200',
-              hovered ? 'opacity-100' : 'opacity-0'
-            )}
-          >
-            <Popover open={infoOpen} onOpenChange={setInfoOpen}>
-              <PopoverTrigger asChild>
-                <div
-                  onMouseEnter={() => setInfoOpen(true)}
-                  onMouseLeave={() => setInfoOpen(false)}
-                  className="hover:bg-black/10 rounded-full transition"
-                >
-                  <Info className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="p-4 w-56 text-sm">
-                <p className="text-sm font-medium mb-2">{data.label}</p>
-                <p className="text-xs text-muted-foreground">{data.description}</p>
-              </PopoverContent>
-            </Popover>
-          </div>
+        </div>
+        <div
+          className="flex items-center justify-center bg-[#D7E9FF] rounded-full w-8 h-8"
+        >
+          {React.cloneElement(data.icon, {
+            className: cn("w-3.5 h-3.5", (data.icon as any).props?.className)
+          } as any)}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <p className="text-xl font-semibold">{formatNumber(data.value)}</p>
-        <div
-          className={cn(
-            'flex items-center text-xs font-medium rounded p-1 transition-colors duration-200',
-            isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-          )}
-        >
-          {isPositive ? (
-            <ArrowUp className="h-3 w-3 mr-1" />
-          ) : (
-            <ArrowDown className="h-3 w-3 mr-1" />
-          )}
-          {trendStr}
-        </div>
-      </div>
     </div>
   )
 } 

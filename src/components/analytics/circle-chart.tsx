@@ -1,6 +1,6 @@
 'use client'
 
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
 
 interface CircleChartData {
   name: string
@@ -15,7 +15,7 @@ interface CircleChartProps {
 
 const COLORS = ['#4096FF', '#52C41A', '#FA8C16', '#F5222D', '#722ED1', '#13C2C2']
 
-export function CircleChart({ data, title }: CircleChartProps) {
+export function CircleChart({ data }: CircleChartProps) {
   const chartData = data.map((item, index) => ({
     ...item,
     color: item.color || COLORS[index % COLORS.length]
@@ -36,18 +36,15 @@ export function CircleChart({ data, title }: CircleChartProps) {
 
   return (
     <div className="w-full h-full flex flex-col">
-      {title && (
-        <h4 className="text-sm font-medium text-gray-900 mb-4">{title}</h4>
-      )}
-      <div className="flex-1">
+      <div className="flex-1 min-h-[120px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
               cy="50%"
-              innerRadius={40}
-              outerRadius={80}
+              innerRadius={28}
+              outerRadius={56}
               paddingAngle={2}
               dataKey="value"
             >
@@ -59,22 +56,10 @@ export function CircleChart({ data, title }: CircleChartProps) {
                 />
               ))}
             </Pie>
+           
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
-      </div>
-      
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-4">
-        {chartData.map((item, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: item.color }}
-            />
-            <span className="text-xs text-gray-600">{item.name}</span>
-          </div>
-        ))}
       </div>
     </div>
   )

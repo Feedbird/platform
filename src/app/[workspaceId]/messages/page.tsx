@@ -295,7 +295,7 @@ export default function MessagesPage() {
                                             key={'all'}
                                             onClick={() => setChannel('all')}
                                             className={cn(
-                                                'w-full flex items-center gap-3 px-1.5 py-1.5 rounded-md hover:bg-gray-50',
+                                                'w-full flex items-center gap-2 px-1.5 py-1.5 rounded-md hover:bg-gray-50',
                                                 selectedChannelId === 'all' && 'bg-gray-50'
                                             )}
                                         >
@@ -330,7 +330,7 @@ export default function MessagesPage() {
                                                         key={c.id}
                                                         onClick={() => setChannel(c.id)}
                                                         className={cn(
-                                                            'w-full flex items-center gap-3 px-1.5 py-1.5 rounded-md hover:bg-gray-50',
+                                                            'w-full flex items-center gap-2 px-1.5 py-1.5 rounded-md hover:bg-gray-50',
                                                             active && 'bg-gray-50'
                                                         )}
                                                     >

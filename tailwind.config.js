@@ -26,6 +26,7 @@ module.exports = {
         main: '#4670F9',
         buttonStroke: '#D3D3D3',
         elementStroke: '#EAE9E9',
+        backgroundHover: '#F4F5F6',
       },
       // Set default border color to primary
       borderColor: ({ theme }) => ({

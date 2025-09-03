@@ -450,17 +450,17 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		}
 	}
 
-	const ROLE_STYLES: Record<string, { title: string; bg: string; color: string }> = {
-		designer: { title: 'Designer', bg: '#EDF6FF', color: '#0070DC' },
-		member: { title: 'Member', bg: '#FFEBFD', color: '#C329BD' },
-		client: { title: 'Client', bg: '#E7F8E1', color: '#247E00' },
-		accountmanager: { title: 'Account Manager', bg: '#E1F6FF', color: '#00789F' },
-		admin: { title: 'Admin', bg: '#FFF2E3', color: '#9E5E00' },
+	const ROLE_TITLE: Record<string, string> = {
+		designer: 'Designer',
+		member: 'Member',
+		client: 'Client',
+		accountmanager: 'Account Manager',
+		admin: 'Admin',
 	}
 
-	const getRoleStyle = (role: string) => {
+	const getRoleTitle = (role: string) => {
 		const key = role.replace(/\s+/g, '').toLowerCase()
-		return ROLE_STYLES[key] ?? { title: role, bg: '#F4F5F6', color: '#5C5E63' }
+		return ROLE_TITLE[key] ?? role
 	}
 
 	// members loaded via API above
@@ -1887,15 +1887,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 											<AtSign className="size-[14px]" />
 										</Button>
 									</div>
-									<div className="flex items-center pl-1 gap-2">
-										{/* Voice button */}
-										<Button
-											variant="ghost"
-											size="icon"
-											className="size-[24px] p-0 box-border cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"
-										>
-											<Mic className="size-[14px]" />
-										</Button>
+									<div className="flex items-center pl-1">
 										{/* Send button */}
 										<Button
 											onClick={handleSend}
@@ -2372,16 +2364,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 											</div>
 										)}
 									</div>
-									<div className="flex items-center pl-1 gap-2">
-										{/* Voice button */}
-										<Button
-											variant="ghost"
-											size="icon"
-											disabled={channelId === 'all' && !selectedChannelForMessage}
-											className="size-[24px] p-0 box-border cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10 disabled:opacity-50 disabled:cursor-not-allowed"
-										>
-											<Mic className="size-[14px]" />
-										</Button>
+									<div className="flex items-center pl-1">
 										{/* Send button */}
 										<Button
 											onClick={handleSend}
@@ -2481,13 +2464,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 													<div className="text-xs text-black font-medium truncate">{m.name}</div>
 												</div>
 												{(() => {
-													const style = getRoleStyle(m.role)
+													const title = getRoleTitle(m.role);
 													return (
 														<div
-															className="text-xs font-medium px-1.5 py-0.5 rounded-[5px]"
-															style={{ background: style.bg, color: style.color }}
+															className="text-xs font-medium px-1.5 py-0.5 rounded-[5px] bg-backgroundHover text-darkGrey"
 														>
-															{style.title}
+															{title}
 														</div>
 													)
 												})()}

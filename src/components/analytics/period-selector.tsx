@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar } from 'lucide-react'
+import { Calendar, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,7 +52,7 @@ export function PeriodSelector({ value, onChange, customRange }: PeriodSelectorP
   }
 
   return (
-    <div className="flex items-center gap-1 border border-gray-200 rounded-md overflow-hidden">
+    <div className="flex items-center gap-2 overflow-hidden">
       {periods.map((period) => (
         <Popover
           key={period}
@@ -63,17 +63,17 @@ export function PeriodSelector({ value, onChange, customRange }: PeriodSelectorP
             <button
               onClick={() => handlePeriodClick(period)}
               className={cn(
-                'px-3 py-1.5 text-sm font-medium transition-colors',
-                value === period
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'bg-white text-gray-700 hover:bg-gray-50',
-                period !== 'Custom' && 'border-r border-gray-200 last:border-r-0'
+                'py-1 text-sm font-medium rounded-sm transition-colors',
+                period == 'Custom' 
+                  ? value === period ? 'px-2 bg-main text-white' : 'px-2 border border-buttonStroke text-black' 
+                  : value === period ? 'px-3 bg-main text-white' : 'px-3 bg-backgroundHover hover:bg-backgroundHover/60 text-black'
               )}
             >
               {period === 'Custom' ? (
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   <span>{value === 'Custom' ? getDisplayText() : 'Custom'}</span>
+                  <ChevronDown className="w-4 h-4" />
                 </div>
               ) : (
                 period
@@ -113,6 +113,7 @@ export function PeriodSelector({ value, onChange, customRange }: PeriodSelectorP
                     size="sm" 
                     onClick={handleCustomApply}
                     disabled={!tempRange.from || !tempRange.to}
+                    className="bg-main text-white hover:bg-main/90"
                   >
                     Apply
                   </Button>

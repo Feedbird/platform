@@ -113,6 +113,7 @@ code, kbd, samp, pre {
   --color-main: var(--main);
   --color-buttonStroke: var(--buttonStroke);
   --color-elementStroke: var(--elementStroke);
+  --color-backgroundHover: var(--backgroundHover);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -162,6 +163,7 @@ code, kbd, samp, pre {
   --buttonStroke: #D3D3D3;
   --elementStroke: #EAE9E9;
   --border-primary: #EAE9E9;
+  --backgroundHover: #F4F5F6;
   --color-border-button: #E6E7EA;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
