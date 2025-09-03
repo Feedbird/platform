@@ -26,22 +26,22 @@ const PLATFORMS: Platform[] = [
 
 // Platform-specific connect options
 const PLATFORM_CONNECT_OPTIONS = {
-  facebook: [{ title: "Add Facebook Page" }],
+  facebook: [{ title: "Add Facebook Page", method: "facebook" }],
   instagram: [
-    { title: "Add Instagram Professional Account" },
-    { title: "Add Instagram Account via Facebook" }
+    { title: "Add Instagram Professional Account", method: "instagram_business" },
+    { title: "Add Instagram Account via Facebook", method: "instagram_facebook" }
   ],
   tiktok: [
-    { title: "Add TikTok Business Account" },
-    { title: "Add TikTok Account" }
+    { title: "Add TikTok Business Account", method: "tiktok_business" },
+    { title: "Add TikTok Account", method: "tiktok" }
   ],
-  pinterest: [{ title: "Add Pinterest Account" }],
-  google: [{ title: "Add Google Business Profile" }],
+  pinterest: [{ title: "Add Pinterest Account", method: "pinterest" }],
+  google: [{ title: "Add Google Business Profile", method: "google" }],
   linkedin: [
-    { title: "Add LinkedIn Personal Profile" },
-    { title: "Add LinkedIn Company Page" }
+    { title: "Add LinkedIn Personal Profile", method: "linkedin_personal" },
+    { title: "Add LinkedIn Company Page", method: "linkedin_company" }
   ],
-  youtube: [{ title: "Add YouTube Channel" }]
+  youtube: [{ title: "Add YouTube Channel", method: "youtube" }]
 };
 
 export function ManageSocialsDialog(props: {
@@ -106,9 +106,14 @@ export function ManageSocialsDialog(props: {
       const left = window.screenX + (window.outerWidth  - w) / 2;
       const top  = window.screenY + (window.outerHeight - h) / 2;
       
-      // Include brandId in the URL
+      // Include brandId and connection method in the URL
+      const connectionMethod = sessionStorage.getItem('instagram_connection_method');
+      const url = connectionMethod 
+        ? `/api/oauth/${connectingPlatform}?brandId=${brandId}&method=${connectionMethod}`
+        : `/api/oauth/${connectingPlatform}?brandId=${brandId}`;
+      
       popup = window.open(
-        `/api/oauth/${connectingPlatform}?brandId=${brandId}`, 
+        url, 
         "_blank", 
         `width=${w},height=${h},left=${left},top=${top}`
       );
@@ -116,6 +121,8 @@ export function ManageSocialsDialog(props: {
       interval = setInterval(() => {
         if (popup?.closed) {
           setConnectingPlatform(null);
+          // Clean up the connection method from sessionStorage
+          sessionStorage.removeItem('instagram_connection_method');
           if (interval) clearInterval(interval);
         }
       }, 500);
@@ -127,8 +134,12 @@ export function ManageSocialsDialog(props: {
   }, [connectingPlatform]);
 
   /* ————————— Helpers ————————— */
-  function openPopup(p: Platform) {
+  function openPopup(p: Platform, method?: string) {
     setConnectingPlatform(p);
+    // Store the connection method for use in popup URL
+    if (method) {
+      sessionStorage.setItem('instagram_connection_method', method);
+    }
   }
 
   const createApiHandler = (
@@ -209,7 +220,7 @@ export function ManageSocialsDialog(props: {
                  <ChannelIcons channels={[activePlatform]} size={32} />
                  <span className="text-base font-semibold text-black text-center">{option.title}</span>
                  <Button
-                   onClick={() => openPopup(activePlatform)}
+                   onClick={() => openPopup(activePlatform, option.method)}
                    disabled={isLoading || !!connectingPlatform}
                    size="sm"
                    className="w-[150px] p-2 rounded-[6px] bg-white hover:bg-white cursor-pointer"
@@ -253,7 +264,7 @@ export function ManageSocialsDialog(props: {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openPopup(pg.platform)}
+                            onClick={() => openPopup(pg.platform, pg.platform === 'instagram' ? 'instagram_facebook' : undefined)}
                             disabled={isLoading}
                             className="text-[#F19525] hover:text-[#F19525] border-none bg-white hover:bg-white cursor-pointer shadow-none text-xs font-semibold"
                           >
