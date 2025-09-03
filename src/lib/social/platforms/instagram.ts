@@ -8,6 +8,9 @@ import { supabase } from '@/lib/supabase/client';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
+/* ---------- API Constants (only for non-config URLs) ---------- */
+const INSTAGRAM_OAUTH_API = 'https://api.instagram.com';
+
 /* ---------- Meta constants ---------- */
 const facebookConfig: SocialPlatformConfig = {
   name: 'Instagram (via Facebook)',
@@ -215,7 +218,7 @@ export class InstagramPlatform extends BasePlatform {
 
     // Step 1: Exchange code for short-lived token
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login#step-2---exchange-the-code-for-a-token
-    const shortLived = await fetch('https://api.instagram.com/oauth/access_token', {
+    const shortLived = await fetch(`${INSTAGRAM_OAUTH_API}/oauth/access_token`, {
       method: 'POST',
       body: formData,
     }).then(res => res.json()).catch(err => {
@@ -229,7 +232,7 @@ export class InstagramPlatform extends BasePlatform {
       access_token: string;
       token_type: string;
       expires_in: number;
-    }>(`https://graph.instagram.com/access_token`, {
+    }>(`${this.activeConfig.baseUrl}/access_token`, {
       token: '',
       queryParams: {
         grant_type: 'ig_exchange_token',
@@ -243,7 +246,7 @@ export class InstagramPlatform extends BasePlatform {
       id: string;
       username: string;
       account_type: string;
-    }>(`https://graph.instagram.com/me`, {
+    }>(`${this.activeConfig.baseUrl}/me`, {
       token: longLived.access_token,
       queryParams: {
         fields: 'id,username,account_type'
@@ -338,7 +341,7 @@ export class InstagramPlatform extends BasePlatform {
       access_token: string;
       token_type: string;
       expires_in: number;
-    }>(`https://graph.instagram.com/refresh_access_token`, {
+    }>(`${this.activeConfig.baseUrl}/refresh_access_token`, {
       token: '',
       queryParams: {
         grant_type: 'ig_refresh_token',
@@ -396,7 +399,7 @@ export class InstagramPlatform extends BasePlatform {
         followers_count: number;
         media_count: number;
         account_type: string;
-      }>(`https://graph.instagram.com/me`, {
+      }>(`${this.activeConfig.baseUrl}/me`, {
         token: acc.authToken || '',
         queryParams: {
           fields: 'id,username,profile_picture_url,followers_count,media_count,account_type'
