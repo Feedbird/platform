@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { InstagramPlatform } from '@/lib/social/platforms/instagram';
+import { getPlatformOperations } from '@/lib/social/platforms';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,15 +13,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Instagram platform
-    const instagram = new InstagramPlatform({
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-      redirectUri: process.env.FACEBOOK_REDIRECT_URI!,
-    });
-
+    // check the connection type
+    const connectionType = page.metadata?.connectionType || 'facebook';
+    const ops = getPlatformOperations('instagram' as any, connectionType || undefined);
+    if (!ops) {
+      return NextResponse.json(
+        { error: 'Unsupported platform' },
+        { status: 400 }
+      );
+    }
     // Publish the post
-    const result = await instagram.publishPost(page, content, options);
+    const result = await ops.publishPost(page, content, options);
 
     return NextResponse.json(result);
   } catch (error) {

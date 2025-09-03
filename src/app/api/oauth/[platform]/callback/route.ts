@@ -12,7 +12,8 @@ export async function GET(request: Request): Promise<Response> {
   /* --------------------- query-params ------------------------------ */
   const code = searchParams.get('code')
   const state = searchParams.get('state')
-  const brandId = state?.split('brandId:')[1]
+  const brandId = state?.split('brandId:')[1]?.split(':')[0]
+  const method = state?.includes('method:') ? state?.split('method:')[1] : undefined
   const err  = searchParams.get('error_description') || searchParams.get('error')
 
   if (err || !code || !brandId) {
@@ -26,7 +27,7 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     // 1. Exchange code for tokens
-    const ops     = getPlatformOperations(sp as any)!
+    const ops     = getPlatformOperations(sp as any, method)!
     const account = await ops.connectAccount(code)
     const pages   = await ops.listPages(account)
 

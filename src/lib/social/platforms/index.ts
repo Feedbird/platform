@@ -50,10 +50,15 @@ const ENV = {
 } as const;
 
 /* Factory */
-export function getPlatformOperations(p: keyof typeof ENV): PlatformOperations | null {
+export function getPlatformOperations(p: keyof typeof ENV, method?: string): PlatformOperations | null {
   switch (p) {
     case "facebook":  return new FacebookPlatform (ENV.facebook);
-    case "instagram": return new InstagramPlatform(ENV.instagram);
+    case "instagram": 
+      if (method?.toLowerCase() == 'instagram_business') {
+        return new InstagramPlatform(ENV.instagram, 'instagram_business');
+      } else {
+        return new InstagramPlatform(ENV.facebook, 'facebook');
+      }
     case "pinterest": return new PinterestPlatform(
                          ENV.pinterest.clientId,
                          ENV.pinterest.clientSecret,
