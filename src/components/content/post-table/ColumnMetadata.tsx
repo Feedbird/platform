@@ -69,7 +69,7 @@ export const columnMeta: Record<ColumnID, ColumnMeta> = {
     label: "Approve",
     icon: <CheckIcon className="mr-1 h-3 w-3" />,
   },
-  updatedAt: {
+  updated_at: {
     label: "Updated At",
     icon: <CalendarIcon className="mr-1 h-3 w-3" />,
   },
@@ -86,4 +86,4 @@ export type ColumnID =
 | 'revision'
 | 'approve'
 | 'month'
-| 'updatedAt';
+| 'updated_at';

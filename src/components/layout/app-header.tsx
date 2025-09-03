@@ -77,6 +77,7 @@ function HeaderInner() {
     return activeWorkspace.boards.find(b => b.id === activeBoard.id)
   }, [activeWorkspace, activeBoard?.id])
   const updateBoard = useFeedbirdStore(s => s.updateBoard)
+  const addBoard = useFeedbirdStore(s => s.addBoard)
 
   /* view switcher (table | calendar | grid) --------------------------- */
   const inContent = pathname.includes('/content/')
@@ -100,10 +101,9 @@ function HeaderInner() {
       <SidebarTrigger className="cursor-pointer shrink-0" />
 
       {/* board name → open AddBoardModal prefilled */}
-      {boardNav.length > 0 && (
         <button
           className="flex items-center gap-2 rounded text-sm font-semibold focus:outline-none cursor-pointer text-black"
-          onClick={() => setIsAddBoardModalOpen(!!activeBoard)}
+          onClick={() => setIsAddBoardModalOpen(true)}
         >
           {activeBoard?.image && (
             <div
@@ -128,7 +128,6 @@ function HeaderInner() {
             {activeBoard?.label ?? 'Select board'}
           </span>
         </button>
-      )}
 
       {/* view-switcher (only on content pages) ------------------ */}
       {inContent && (
@@ -235,24 +234,25 @@ function HeaderInner() {
         mode="edit"
       />
 
-      {/* AddBoardModal for editing current board meta */}
-      {currentBoard && (
-        <AddBoardModal
-          isOpen={isAddBoardModalOpen}
-          onClose={() => setIsAddBoardModalOpen(false)}
-          pendingBoardData={{
-            name: currentBoard.name,
-            description: currentBoard.description ?? '',
-            icon: currentBoard.image,
-            color: currentBoard.color,
-            rules: currentBoard.rules,
-          }}
-          onBoardDataReady={(data) => {
-            setPendingBoardData(data)
-            setIsAddBoardModalOpen(false)
-            setIsRulesModalOpen(true)
-          }}
-          onUseTemplate={(data) => {
+      {/* AddBoardModal for editing current board meta or creating new board */}
+      <AddBoardModal
+        isOpen={isAddBoardModalOpen}
+        onClose={() => setIsAddBoardModalOpen(false)}
+        pendingBoardData={currentBoard ? {
+          name: currentBoard.name,
+          description: currentBoard.description ?? '',
+          icon: currentBoard.image,
+          color: currentBoard.color,
+          rules: currentBoard.rules,
+        } : undefined}
+        onBoardDataReady={(data) => {
+          setPendingBoardData(data)
+          setIsAddBoardModalOpen(false)
+          setIsRulesModalOpen(true)
+        }}
+        onUseTemplate={async (data) => {
+          if (currentBoard) {
+            // Update existing board with template data
             updateBoard(currentBoard.id, {
               name: data.name,
               description: data.description,
@@ -260,12 +260,26 @@ function HeaderInner() {
               color: data.color,
               rules: data.rules,
             })
-            setIsAddBoardModalOpen(false)
-          }}
-        />
-      )}
+          } else {
+            // Create new board using template data
+            try {
+              await addBoard(
+                data.name,
+                data.description,
+                data.icon,
+                data.color,
+                data.rules
+              )
+            } catch (error) {
+              console.error('Failed to create board from template:', error)
+              // TODO: Add user-friendly error handling/toast notification
+            }
+          }
+          setIsAddBoardModalOpen(false)
+        }}
+      />
 
-      {currentBoard && (
+      {isRulesModalOpen && (
         <BoardRulesModal
           isOpen={isRulesModalOpen}
           onClose={() => setIsRulesModalOpen(false)}
@@ -273,22 +287,40 @@ function HeaderInner() {
             setIsRulesModalOpen(false)
             setIsAddBoardModalOpen(true)
           }}
-          onSave={(rules) => {
+          onSave={async (rules) => {
             if (pendingBoardData) {
-              updateBoard(currentBoard.id, {
-                name: pendingBoardData.name,
-                description: pendingBoardData.description,
-                image: pendingBoardData.icon,
-                color: pendingBoardData.color,
-                rules,
-              })
-            } else {
+              if (currentBoard) {
+                // Update existing board
+                updateBoard(currentBoard.id, {
+                  name: pendingBoardData.name,
+                  description: pendingBoardData.description,
+                  image: pendingBoardData.icon,
+                  color: pendingBoardData.color,
+                  rules,
+                })
+              } else {
+                // Create new board
+                try {
+                  await addBoard(
+                    pendingBoardData.name,
+                    pendingBoardData.description,
+                    pendingBoardData.icon,
+                    pendingBoardData.color,
+                    rules
+                  )
+                } catch (error) {
+                  console.error('Failed to create board:', error)
+                  // TODO: Add user-friendly error handling/toast notification
+                }
+              }
+            } else if (currentBoard) {
+              // Update existing board with only rules
               updateBoard(currentBoard.id, { rules })
             }
             setPendingBoardData(null)
             setIsRulesModalOpen(false)
           }}
-          initialRules={currentBoard.rules}
+          initialRules={currentBoard?.rules}
           primaryLabel="Save"
         />
       )}
