@@ -27,7 +27,7 @@ interface FormCanvasProps {
   activeId?: string | null;
   overId?: string | null;
   selectedFieldId?: string | null;
-  onFieldSelect?: (fieldId: string | null) => void;
+  onFieldSelect?: (val: { id: string; type: string } | null) => void;
 }
 
 export default function FormCanvas({
@@ -212,7 +212,7 @@ function SimpleFormField({
 }: {
   field: FormField;
   selectedFieldId?: string | null;
-  onFieldSelect?: (fieldId: string | null) => void;
+  onFieldSelect?: (val: { id: string; type: string } | null) => void;
   onDelete: (id: string) => void;
 }) {
   const {
@@ -233,8 +233,8 @@ function SimpleFormField({
 
   const handleFieldClick = () => {
     if (onFieldSelect) {
-      // Toggle selection: if already selected, deselect; otherwise select this field
-      onFieldSelect(isSelected ? null : field.id);
+      const newValue = isSelected ? null : { id: field.id, type: field.type };
+      onFieldSelect(newValue);
     }
   };
 

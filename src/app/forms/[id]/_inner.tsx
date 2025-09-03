@@ -20,6 +20,12 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
+import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
+
+type SelectedField = {
+  id: string;
+  type: string;
+};
 
 export default function FormInnerVisualizer() {
   const { setIsEditing } = useForms();
@@ -34,9 +40,8 @@ export default function FormInnerVisualizer() {
   const [formFields, setFormFields] = React.useState<FormField[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
-  const [selectedFieldId, setSelectedFieldId] = React.useState<string | null>(
-    null
-  ); // For field settings/editing
+  const [selectedField, setSelectedField] =
+    React.useState<SelectedField | null>(null); // For field settings/editing
 
   const retrieveForm = async (formId: string) => {
     try {
@@ -208,7 +213,7 @@ export default function FormInnerVisualizer() {
       collisionDetection={pointerWithin}
     >
       <div className="w-full h-full flex bg-[#FBFBFB]">
-        <div className="flex-1 min-w-0 overflow-auto">
+        <div className="flex-1 min-w-0 overflow-aut relative">
           <ServiceSelector />
           <FormCanvas
             formFields={formFields}
@@ -216,11 +221,17 @@ export default function FormInnerVisualizer() {
             form={form}
             activeId={activeId}
             overId={overId}
-            selectedFieldId={selectedFieldId}
-            onFieldSelect={setSelectedFieldId}
+            selectedFieldId={selectedField?.id || null}
+            onFieldSelect={(val: { id: string; type: string } | null) => {
+              setSelectedField(val);
+            }}
           />
         </div>
         <FormEditorSideBar />
+        <FormTypeConfig
+          isVisible={selectedField !== null}
+          type={selectedField?.type!}
+        />
       </div>
 
       <DragOverlay>
