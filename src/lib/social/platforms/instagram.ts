@@ -92,7 +92,7 @@ const instagramBusinessConfig: SocialPlatformConfig = {
   scopes: [
     'instagram_business_basic',
     'instagram_business_content_publish',
-    'instagram_business_basic',
+    'instagram_business_manage_insights'
   ],
   apiVersion: 'v23.0',
   baseUrl: 'https://graph.instagram.com',
