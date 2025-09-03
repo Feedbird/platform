@@ -990,7 +990,7 @@ export class InstagramPlatform extends BasePlatform {
     containerId: string,
     token: string,
     maxWaitTime = 300000, // 5 minutes max
-    checkInterval = 30000  // Check every 30 seconds
+    checkInterval = 20000  // Check every 20 seconds
   ): Promise<void> {
     const startTime = Date.now();
     
