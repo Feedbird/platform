@@ -4,7 +4,7 @@
 import { useParams }  from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Image          from 'next/image';
-import { Trash2, Eye, Heart, MousePointer } from 'lucide-react';
+import { Trash2, Eye, Heart } from 'lucide-react';
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
 import type { PostHistory } from '@/lib/social/platforms/platform-types';
 import { Button } from '@/components/ui/button';
@@ -411,7 +411,7 @@ function PostCard({
               }
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-xs">
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
                 <Eye className="h-3 w-3 text-gray-500" />
@@ -425,13 +425,6 @@ function PostCard({
                 <span className="text-gray-600">Likes</span>
               </div>
               <span className="font-medium">{post.analytics.likes?.toLocaleString() || 0}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <MousePointer className="h-3 w-3 text-purple-500" />
-                <span className="text-gray-600">Clicks</span>
-              </div>
-              <span className="font-medium">{post.analytics.clicks?.toLocaleString() || 0}</span>
             </div>
           </div>
       
