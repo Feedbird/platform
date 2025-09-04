@@ -1,21 +1,37 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Video, Eye, ThumbsUp, MessageSquare, Share2, MousePointerClick } from 'lucide-react'
+import { Eye, Zap, ThumbsUp, MessageSquare, Share2, MousePointerClick, ImageIcon, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { FormatBadge } from '@/components/content/shared/content-post-ui'
 
 export interface TopPost {
   id: string
-  caption: string
-  imgUrl: string
-  video?: boolean
-  date: string
-  impressions: number
-  engagement: number
-  plays: number
-  reacts: number
-  comments: number
-  shares: number
+  workspace_id: string
+  board_id: string
+  caption: any // JSONB in database
+  status: string
+  format: string
+  publish_date?: string
+  platforms: string[]
+  pages: string[]
+  billing_month?: string
+  month: number
+  settings?: any // JSONB
+  hashtags?: any // JSONB
+  blocks: any[] // JSONB
+  comments: any[] // JSONB
+  activities: any[] // JSONB
+  user_columns: any[] // JSONB
+  created_at: string
+  updated_at: string
+  platform_post_ids?: any // JSONB from migration
+  // Analytics fields (not in posts table but needed for UI)
+  analytics_impressions?: number
+  analytics_engagement?: number
+  analytics_comments?: number
+  analytics_reacts?: number
+  analytics_shares?: number
 }
 
 function shortNumber(n: number): string {
@@ -37,72 +53,115 @@ export function TopPostCard({ post, highlightMode }: TopPostCardProps) {
   const laugh = useMemo(() => getRandomInt(60), [])
   const angry = useMemo(() => getRandomInt(20), [])
 
+  // Safe access with defaults for analytics fields
+  const impressions = post.analytics_impressions || 0
+  const engagement = post.analytics_engagement || 0
+  const reacts = post.analytics_reacts || 0
+  const commentsCount = post.analytics_comments || 0
+  const shares = post.analytics_shares || 0
+
+  // Extract text from caption (handle JSONB structure)
+  const captionText = typeof post.caption === 'string'
+    ? post.caption
+    : Array.isArray(post.caption)
+      ? post.caption.map(block => block.text || '').join(' ')
+      : post.caption?.text || 'No caption'
+
+  // Get first block for preview
+  const firstBlock = Array.isArray(post.blocks) && post.blocks.length > 0 ? post.blocks[0] : null
+  const hasBlocks = Array.isArray(post.blocks) && post.blocks.length > 0
+
+  // Get current version from first block (following calendar-view pattern)
+  const currentVer = firstBlock ? firstBlock.versions?.find((v: any) => v.id === firstBlock.currentVersionId) : null
+  const isVideo = currentVer?.file?.kind === 'video'
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 flex flex-col text-sm pb-3">
-      <div className="relative aspect-square overflow-hidden rounded">
-        {post.video && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
-            <Video className="w-8 h-8 text-white" />
-          </div>
+    <div className="bg-white rounded-lg border border-strokeElement flex flex-col text-sm p-2 space-y-2">
+      {/* Blocks Preview */}
+      <div className="relative aspect-square overflow-hidden rounded-sm">
+        {hasBlocks && firstBlock && currentVer ? (
+          <>
+            {isVideo ? (
+              <>
+                <video
+                  src={`${currentVer.file.url}?v=${currentVer.id}`}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  muted
+                  loop
+                  playsInline
+                />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="w-8 h-8 bg-black/60 rounded-full flex items-center justify-center">
+                    <Play className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <img
+                src={currentVer.file.url}
+                alt="preview"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+            {/* Format Badge - Top Left */}
+            <div className="absolute top-2 left-2 z-10">
+              <FormatBadge kind={post.format} widthFull={false} />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <ImageIcon className="w-8 h-8 text-gray-400" />
+                <div className="text-xs text-gray-500">No preview</div>
+              </div>
+            </div>
+            {/* Format Badge - Top Left (even when no preview) */}
+            <div className="absolute top-2 left-2 z-10">
+              <FormatBadge kind={post.format} widthFull={false} />
+            </div>
+          </>
         )}
-        <img
-          src={post.imgUrl}
-          alt="post"
-          className="w-full h-full object-cover"
-        />
       </div>
 
-      <p className="line-clamp-1 font-medium my-2 px-3">{post.caption}</p>
-
-      <div className="flex items-center justify-between px-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <Eye className="w-4 h-4 text-gray-600" />
-            <span>{shortNumber(post.impressions)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <ThumbsUp className="w-4 h-4 text-gray-600" />
-            <span>{shortNumber(post.reacts)}</span>
-          </div>
+      <div className="flex items-center justify-evenly">
+        <div className="flex flex-col items-center justify-center gap-0.5">
+          <img src="/images/analytics/heart.svg" alt="impressions" className="w-4 h-4" />
+          <span>{shortNumber(reacts)}</span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <MessageSquare className="w-4 h-4 text-gray-600" />
-            <span>{shortNumber(post.comments)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Share2 className="w-4 h-4 text-gray-600" />
-            <span>{shortNumber(post.shares)}</span>
-          </div>
+        <div className="flex flex-col items-center justify-center gap-0.5">
+          <img src="/images/analytics/comment.svg" alt="engagement" className="w-4 h-4 " />
+          <span>{shortNumber(commentsCount)}</span>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-0.5">
+          <img src="/images/analytics/share.svg" alt="engagement" className="w-4 h-4" />
+          <span>{shortNumber(shares)}</span>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-col gap-1 text-xs px-3">
+      <div className="flex flex-col gap-1 text-sm font-normal">
         <div
           className={cn(
-            'px-2 py-1 flex items-center justify-between rounded',
-            highlightMode === 'impressions' ? 'bg-blue-50 text-blue-600' : 'bg-transparent'
+            'px-2 py-1 flex items-center justify-between rounded-[5px] border border-storkeElement',
           )}
         >
-          <div className="flex items-center gap-1">
-            <Eye className="w-4 h-4" />
+          <div className="flex items-center text-darkGrey gap-1">
+            <Eye style={{ width: '14px', height: '14px' }} />
             <span>Impressions</span>
           </div>
-          <span className="font-semibold text-sm">{shortNumber(post.impressions)}</span>
+          <span className="text-black">{shortNumber(impressions)}</span>
         </div>
 
         <div
           className={cn(
-            'px-2 py-1 flex items-center justify-between rounded',
-            highlightMode === 'engagement' ? 'bg-blue-50 text-blue-600' : 'bg-transparent'
+            'px-2 py-1 flex items-center justify-between rounded-[5px] border border-strokeElement',
           )}
         >
-          <div className="flex items-center gap-1">
-            <MousePointerClick className="w-4 h-4" />
+          <div className="flex items-center text-darkGrey gap-1">
+            <Zap style={{ width: '14px', height: '14px' }} />
             <span>Engagement</span>
           </div>
-          <span className="font-semibold text-sm">{shortNumber(post.engagement)}</span>
+          <span className="text-black">{shortNumber(engagement)}</span>
         </div>
       </div>
     </div>

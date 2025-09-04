@@ -48,6 +48,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.tiktokcdn.com'
       },
+      // Country flags
+      {
+        protocol: 'https',
+        hostname: 'flagcdn.com'
+      },
     ],
   },
 };

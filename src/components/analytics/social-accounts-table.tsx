@@ -24,6 +24,19 @@ export interface SocialAccount {
   engagementRate: number
 }
 
+// Legacy interface for backward compatibility - will be removed
+export interface SocialPageDisplay {
+  id: string
+  platform: Platform
+  name: string
+  pageId: string
+  connected: boolean
+  status: string
+  accountId: string
+  followerCount?: number
+  postCount?: number
+}
+
 function shortNumber(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
   if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
@@ -31,53 +44,77 @@ function shortNumber(n: number): string {
 }
 
 function formatPercent(n: number): string {
+  if (typeof n !== 'number' || isNaN(n)) {
+    return '0.0%'
+  }
   return n.toFixed(1) + '%'
 }
 
 interface SocialAccountsTableProps {
-  data: SocialAccount[]
+  data: SocialAccount[] | SocialPageDisplay[]
 }
 
 export function SocialAccountsTable({ data }: SocialAccountsTableProps) {
 
-  const columns = useMemo<ColumnDef<SocialAccount>[]>(() => {
+  const columns = useMemo<ColumnDef<SocialAccount | SocialPageDisplay>[]>(() => {
     return [
       {
         id: 'account',
         header: 'Account',
         cell: ({ row }) => {
-          const account = row.original
+          const item = row.original
+          const isSocialAccount = 'handle' in item
+          const displayName = item.name
+          const statusText = isSocialAccount ? 'Connected' : (item as SocialPageDisplay).connected ? 'Active' : 'Disconnected'
+
           return (
             <div className="flex items-center gap-2.5">
               <Image
-                src={`/images/platforms/${account.platform}.svg`}
-                alt={account.platform}
+                src={`/images/platforms/${item.platform}.svg`}
+                alt={item.platform}
                 width={18}
                 height={18}
               />
               <div className="flex flex-col gap-1">
-                <div className="font-medium text-sm text-black">{account.name}</div>
-                <div className="text-xs text-darkGrey font-normal">Connected</div>
+                <div className="font-medium text-sm text-black">{displayName}</div>
+                <div className="text-xs text-darkGrey font-normal">{statusText}</div>
               </div>
             </div>
           )
         },
       },
       {
-        accessorKey: 'totalFollowersGained',
-        header: 'Total Followers Gained',
-        cell: (info) => (
-          <div className="text-sm font-medium text-darkGrey text-right">
-            +{shortNumber(info.getValue<number>())}
-          </div>
-        ),
+        id: 'followers',
+        header: 'Followers',
+        cell: ({ row }) => {
+          const item = row.original
+          const followerCount = 'followerCount' in item ? item.followerCount : 0
+          return (
+            <div className="text-sm text-darkGrey text-right">
+              {shortNumber(followerCount || 0)}
+            </div>
+          )
+        },
+      },
+      {
+        id: 'posts',
+        header: 'Posts',
+        cell: ({ row }) => {
+          const item = row.original
+          const postCount = 'postCount' in item ? item.postCount : ('totalFollowersGained' in item ? item.totalFollowersGained : 0)
+          return (
+            <div className="text-sm text-darkGrey text-right">
+              {shortNumber(postCount || 0)}
+            </div>
+          )
+        },
       },
       {
         accessorKey: 'impressions',
         header: 'Impressions',
         cell: (info) => (
           <div className="text-sm text-darkGrey text-right">
-            {shortNumber(info.getValue<number>())}
+            {shortNumber(info.getValue<number>() || 0)}
           </div>
         ),
       },
@@ -86,7 +123,7 @@ export function SocialAccountsTable({ data }: SocialAccountsTableProps) {
         header: 'Engagement',
         cell: (info) => (
           <div className="text-sm text-darkGrey text-right">
-            {shortNumber(info.getValue<number>())}
+            {shortNumber(info.getValue<number>() || 0)}
           </div>
         ),
       },
@@ -94,7 +131,7 @@ export function SocialAccountsTable({ data }: SocialAccountsTableProps) {
         accessorKey: 'followerGrowthPercent',
         header: 'Follower Growth %',
         cell: (info) => {
-          const value = info.getValue<number>()
+          const value = info.getValue<number>() || 0
           const isPositive = value >= 0
           return (
             <div className="flex justify-end">
@@ -115,14 +152,14 @@ export function SocialAccountsTable({ data }: SocialAccountsTableProps) {
         header: 'Engagement Rate',
         cell: (info) => (
           <div className="text-sm text-darkGrey text-right">
-            {formatPercent(info.getValue<number>())}
+            {formatPercent(info.getValue<number>() || 0)}
           </div>
         ),
       },
     ]
   }, [])
 
-  const table = useReactTable<SocialAccount>({
+  const table = useReactTable<SocialAccount | SocialPageDisplay>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),

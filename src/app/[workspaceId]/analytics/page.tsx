@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, Suspense } from 'react'
-import { Share } from 'lucide-react'
+import { Share, Info } from 'lucide-react'
 import { format, addDays, startOfDay } from 'date-fns'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
@@ -14,9 +14,12 @@ import { ContentTable } from '@/components/analytics/content-table'
 import { PeriodSelector, Period } from '@/components/analytics/period-selector'
 import { SocialAccountsTable, SocialAccount } from '@/components/analytics/social-accounts-table'
 import { SocialSelector, SocialAccountOption } from '@/components/analytics/social-selector'
-import { CircleChart } from '@/components/analytics/circle-chart'
+import { HistoricalStatsTable, HistoricalStatsData } from '@/components/analytics/historical-stats-table'
+import type { SocialPage } from '@/lib/social/platforms/platform-types'
 import type { Metric } from '@/components/analytics/metric-card'
 import { DynamicTitle } from '@/components/layout/dynamic-title'
+import { FollowersLocationMap } from '@/components/analytics/followers-location-map'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
 
 export default function AnalyticsPage() {
   const [showAlert] = useState(true)
@@ -159,49 +162,52 @@ export default function AnalyticsPage() {
     return generateChartData(period, customRange)
   }, [period, customRange])
 
-  const socialAccounts: SocialAccount[] = useMemo(() => [
+  const socialPages: SocialPage[] = useMemo(() => [
     {
-      id: 'account1',
+      id: 'page1',
       platform: 'instagram',
+      entityType: 'page',
       name: 'JuscoSmoothies',
-      handle: 'juscosmoothies',
-      totalFollowersGained: 1245,
-      impressions: 45600,
-      engagement: 3420,
-      followerGrowthPercent: 8.5,
-      engagementRate: 7.5,
+      pageId: 'jusco_smoothies_instagram',
+      connected: true,
+      status: 'active',
+      accountId: 'account1',
+      followerCount: 45600,
+      postCount: 1245,
     },
     {
-      id: 'account2',
+      id: 'page2',
       platform: 'facebook',
+      entityType: 'page',
       name: 'Jusco Smoothies',
-      handle: 'jusco.smoothies',
-      totalFollowersGained: 892,
-      impressions: 32100,
-      engagement: 2180,
-      followerGrowthPercent: 6.2,
-      engagementRate: 6.8,
+      pageId: 'jusco_smoothies_facebook',
+      connected: true,
+      status: 'active',
+      accountId: 'account2',
+      followerCount: 32100,
+      postCount: 892,
     },
     {
-      id: 'account3',
+      id: 'page3',
       platform: 'linkedin',
+      entityType: 'page',
       name: 'Jusco Health Foods',
-      handle: 'jusco-health-foods',
-      totalFollowersGained: 567,
-      impressions: 18900,
-      engagement: 1250,
-      followerGrowthPercent: 4.1,
-      engagementRate: 6.6,
+      pageId: 'jusco_health_foods_linkedin',
+      connected: true,
+      status: 'active',
+      accountId: 'account3',
+      followerCount: 18900,
+      postCount: 567,
     },
   ], [])
 
-  const socialAccountOptions: SocialAccountOption[] = useMemo(() => 
-    socialAccounts.map(acc => ({
-      id: acc.id,
-      platform: acc.platform,
-      name: acc.name,
-      handle: acc.handle,
-    })), [socialAccounts]
+  const socialAccountOptions: SocialAccountOption[] = useMemo(() =>
+    socialPages.map(page => ({
+      id: page.id,
+      platform: page.platform,
+      name: page.name,
+      handle: page.pageId,
+    })), [socialPages]
   )
 
   const circleChartData = useMemo(() => [
@@ -210,102 +216,555 @@ export default function AnalyticsPage() {
     { name: 'LinkedIn', value: 18900, color: '#0A66C2' },
   ], [])
 
+  const topCountries = useMemo(() => [
+    { country: 'United States', code: 'us', percentage: 32.5 },
+    { country: 'United Kingdom', code: 'gb', percentage: 18.7 },
+    { country: 'Canada', code: 'ca', percentage: 12.3 },
+    { country: 'Australia', code: 'au', percentage: 9.8 },
+    { country: 'Germany', code: 'de', percentage: 7.2 },
+  ], [])
+
+  const topCities = useMemo(() => [
+    { city: 'New York', percentage: 15.4 },
+    { city: 'London', percentage: 12.8 },
+    { city: 'Toronto', percentage: 9.6 },
+    { city: 'Sydney', percentage: 8.1 },
+    { city: 'Los Angeles', percentage: 6.9 },
+  ], [])
+
+  const genderDistribution = useMemo(() => [
+    { name: 'Women', value: 65, color: '#4196FF' },
+    { name: 'Men', value: 35, color: '#91CAFF' },
+  ], [])
+
+  const ageDistribution = useMemo(() => [
+    { age: '13-17', women: 8, men: 6 },
+    { age: '18-24', women: 25, men: 18 },
+    { age: '25-34', women: 35, men: 28 },
+    { age: '35-44', women: 22, men: 25 },
+    { age: '45-54', women: 15, men: 18 },
+    { age: '55-64', women: 12, men: 14 },
+    { age: '65+', women: 8, men: 9 },
+  ], [])
+
+  const jobFunctionDistribution = useMemo(() => [
+    { function: 'Entrepreneurship', count: 966, percentage: 6.8 },
+    { function: 'Engineering', count: 2450, percentage: 17.3 },
+    { function: 'Human Resources', count: 890, percentage: 6.3 },
+    { function: 'Community and Social Services', count: 1200, percentage: 8.5 },
+    { function: 'Arts and Design', count: 1450, percentage: 10.2 },
+    { function: 'Purchasing', count: 650, percentage: 4.6 },
+    { function: 'Administrative', count: 1780, percentage: 12.6 },
+    { function: 'Product Management', count: 2100, percentage: 14.8 },
+    { function: 'Marketing', count: 1960, percentage: 13.8 },
+  ], [])
+
+  const seniorityDistribution = useMemo(() => [
+    { level: 'Entry', count: 3200, percentage: 22.6 },
+    { level: 'Senior', count: 2800, percentage: 19.8 },
+    { level: 'CXO', count: 450, percentage: 3.2 },
+    { level: 'VP', count: 680, percentage: 4.8 },
+    { level: 'Director', count: 920, percentage: 6.5 },
+    { level: 'Unpaid', count: 1200, percentage: 8.5 },
+    { level: 'Partner', count: 580, percentage: 4.1 },
+    { level: 'Manager', count: 4250, percentage: 30.0 },
+  ], [])
+
   const topPosts: TopPost[] = [
     {
       id: 't1',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
       caption: 'Our newest watermelon flavor is simply hypnotic! #JuscoSmoothies 🍉',
-      imgUrl: 'https://media2.giphy.com/media/l0ExuOAGoJ9MdBeTe/giphy.gif',
-      video: true,
-      date: 'May 18, 2025',
-      impressions: 9770,
-      engagement: 886,
-      plays: 0,
-      reacts: 118,
-      comments: 221,
-      shares: 55,
+      status: 'published',
+      format: 'image',
+      publish_date: '2025-05-18T10:00:00Z',
+      platforms: ['instagram', 'facebook'],
+      pages: ['page1', 'page2'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: ['#JuscoSmoothies'],
+      blocks: [
+        {
+          "id": "7bc0670e-18cd-42d1-8ac5-de5101538774",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Ed",
+              "id": "8ab2518f-d1fe-4e53-a628-1c16f1a4f64d",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-07875a3b-c675-4ee8-a695-f7fcaddd99c1/board-d8bf567c-854c-466f-8847-e9acc27611c4/post-e8e22fb2-f2b4-4e7c-abcb-d841026e9509/ed9c8f77-3c5b-4836-b2ae-4707ee2c4724-lemlist-•-Ed-s-first-campaign-Copy (1).png",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-08-25T17:32:56.597Z"
+            }
+          ],
+          "currentVersionId": "8ab2518f-d1fe-4e53-a628-1c16f1a4f64d"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-17T09:00:00Z',
+      updated_at: '2025-05-18T10:00:00Z',
+      platform_post_ids: { instagram: 'post_123', facebook: 'post_456' },
+      // Analytics fields
+      analytics_impressions: 9770,
+      analytics_engagement: 886,
+      analytics_comments: 0,
+      analytics_reacts: 118,
+      analytics_shares: 55,
     },
     {
       id: 't2',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
       caption: 'Open. 🍋  Sip. 🍊 Smile. 😀  Repeat.',
-      imgUrl: 'https://farm3.staticflickr.com/2220/1572613671_7311098b76_z_d.jpg',
-      video: false,
-      date: 'May 18, 2025',
-      impressions: 8240,
-      engagement: 1630,
-      plays: 0,
-      reacts: 164,
-      comments: 932,
-      shares: 45,
+      status: 'published',
+      format: 'image',
+      publish_date: '2025-05-18T11:00:00Z',
+      platforms: ['tiktok', 'instagram'],
+      pages: ['page3'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: [],
+      blocks: [
+        {
+          "id": "7bd2eb41-d517-4728-a5fc-8b7ab4de45a3",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Juraj",
+              "id": "ec60674f-836b-4199-92a5-2a626475525b",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-513b9aef-a02b-47d5-9fe5-b1ffa200de46/board-72a01c85-3ecd-4015-a3e3-37e66f6ab3ac/post-45096bd4-f0c3-4262-9318-1d90b73e682f/05adcfb8-2a87-4042-8534-2ea6301db426-2.jpg",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-09-02T12:31:35.879Z"
+            }
+          ],
+          "currentVersionId": "ec60674f-836b-4199-92a5-2a626475525b"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-17T10:00:00Z',
+      updated_at: '2025-05-18T11:00:00Z',
+      platform_post_ids: { tiktok: 'video_789', instagram: 'post_101' },
+      // Analytics fields
+      analytics_impressions: 8240,
+      analytics_engagement: 1630,
+      analytics_comments: 0,
+      analytics_reacts: 164,
+      analytics_shares: 45,
     },
     {
       id: 't3',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
       caption: 'Jusco Pineapple Queen 🍍 - #DrinkTheSummer',
-      imgUrl: 'https://farm2.staticflickr.com/1090/4595137268_0e3f2b9aa7_z_d.jpg',
-      video: false,
-      date: 'May 18, 2025',
-      impressions: 5150,
-      engagement: 1160,
-      plays: 0,
-      reacts: 170,
-      comments: 403,
-      shares: 58,
+      status: 'published',
+      format: 'image',
+      publish_date: '2025-05-18T12:00:00Z',
+      platforms: ['instagram'],
+      pages: ['page1'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: ['#DrinkTheSummer'],
+      blocks: [
+        {
+          "id": "2f081e2a-d147-4dab-9de5-6f01186aa5aa",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Juraj",
+              "id": "cb004764-84fd-435e-948b-8d4d79787679",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-513b9aef-a02b-47d5-9fe5-b1ffa200de46/board-72a01c85-3ecd-4015-a3e3-37e66f6ab3ac/post-eb6075e5-a3e4-4735-bcaa-9a3d3b5b00c4/11b1d03b-3844-49b6-a625-89cd7b599082-2.jpg",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-09-02T12:44:10.088Z"
+            }
+          ],
+          "currentVersionId": "cb004764-84fd-435e-948b-8d4d79787679"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-17T11:00:00Z',
+      updated_at: '2025-05-18T12:00:00Z',
+      platform_post_ids: { instagram: 'post_112' },
+      // Analytics fields
+      analytics_impressions: 5150,
+      analytics_engagement: 1160,
+      analytics_comments: 0,
+      analytics_reacts: 170,
+      analytics_shares: 58,
+    },
+    {
+      id: 't4',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
+      caption: 'Fresh mango madness! 🌴 Nothing beats the taste of summer in a glass.',
+      status: 'published',
+      format: 'video',
+      publish_date: '2025-05-19T09:00:00Z',
+      platforms: ['tiktok', 'instagram'],
+      pages: ['page2', 'page3'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: [],
+      blocks: [
+        {
+          "id": "9927bf07-c114-45e2-a06e-39d007f838ec",
+          "kind": "video",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Juraj",
+              "id": "e56436fd-8894-4293-bbff-5fe5db5661ad",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-513b9aef-a02b-47d5-9fe5-b1ffa200de46/board-72a01c85-3ecd-4015-a3e3-37e66f6ab3ac/post-2e810ffc-24ad-41f8-86a1-4a82bc0beef6/e1d62162-cf10-4c9d-a294-a64633c73e65-Apodaca 1.mp4",
+                "kind": "video"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-08-12T17:03:16.658Z"
+            }
+          ],
+          "currentVersionId": "e56436fd-8894-4293-bbff-5fe5db5661ad"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-18T08:00:00Z',
+      updated_at: '2025-05-19T09:00:00Z',
+      platform_post_ids: { tiktok: 'video_113', instagram: 'post_114' },
+      // Analytics fields
+      analytics_impressions: 6240,
+      analytics_engagement: 890,
+      analytics_comments: 1200,
+      analytics_reacts: 145,
+      analytics_shares: 42,
+    },
+    {
+      id: 't5',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
+      caption: 'Berry explosion! Mix of blueberries, strawberries, and raspberries 🫐🍓',
+      status: 'published',
+      format: 'image',
+      publish_date: '2025-05-20T10:00:00Z',
+      platforms: ['instagram', 'facebook'],
+      pages: ['page1', 'page2'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: [],
+      blocks: [
+        {
+          "id": "6a7f2d5f-2e01-4620-88f2-0f07b93236a8",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Juraj",
+              "id": "7e55678a-6ccf-4caf-87c2-d44abfd78cb9",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-513b9aef-a02b-47d5-9fe5-b1ffa200de46/board-72a01c85-3ecd-4015-a3e3-37e66f6ab3ac/post-731cadc1-bde4-4f30-8147-e87d1fe0322c/ae518644-7341-488b-9752-2e2a579f3bb0-2.jpg",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-09-02T12:44:39.397Z"
+            }
+          ],
+          "currentVersionId": "7e55678a-6ccf-4caf-87c2-d44abfd78cb9"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-19T09:00:00Z',
+      updated_at: '2025-05-20T10:00:00Z',
+      platform_post_ids: { instagram: 'post_115', facebook: 'post_116' },
+      // Analytics fields
+      analytics_impressions: 7430,
+      analytics_engagement: 980,
+      analytics_comments: 0,
+      analytics_reacts: 145,
+      analytics_shares: 42,
     },
   ]
 
   const allPosts: TopPost[] = [
     {
       id: 'p1',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
       caption: 'Our newest watermelon flavor is simply hypnotic! 🍉',
-      imgUrl: 'https://media2.giphy.com/media/l0ExuOAGoJ9MdBeTe/giphy.gif',
-      video: true,
-      date: 'May 18, 2025',
-      impressions: 9770,
-      engagement: 886,
-      plays: 0,
-      reacts: 118,
-      comments: 221,
-      shares: 55,
+      status: 'published',
+      format: 'video',
+      publish_date: '2025-05-18T10:00:00Z',
+      platforms: ['instagram', 'tiktok'],
+      pages: ['page1'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: [],
+      blocks: [
+        {
+          "id": "7bc0670e-18cd-42d1-8ac5-de5101538774",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Ed",
+              "id": "8ab2518f-d1fe-4e53-a628-1c16f1a4f64d",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-07875a3b-c675-4ee8-a695-f7fcaddd99c1/board-d8bf567c-854c-466f-8847-e9acc27611c4/post-e8e22fb2-f2b4-4e7c-abcb-d841026e9509/ed9c8f77-3c5b-4836-b2ae-4707ee2c4724-lemlist-•-Ed-s-first-campaign-Copy (1).png",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-08-25T17:32:56.597Z"
+            }
+          ],
+          "currentVersionId": "8ab2518f-d1fe-4e53-a628-1c16f1a4f64d"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-17T09:00:00Z',
+      updated_at: '2025-05-18T10:00:00Z',
+      platform_post_ids: { instagram: 'post_123', tiktok: 'video_124' },
+      // Analytics fields
+      analytics_impressions: 9770,
+      analytics_engagement: 886,
+      analytics_comments: 1500,
+      analytics_reacts: 118,
+      analytics_shares: 55,
     },
     {
       id: 'p2',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
       caption: 'Open. 🍋 Sip. 🍊 Smile. 😀  Repeat.',
-      imgUrl: 'https://farm2.staticflickr.com/1090/4595137268_0e3f2b9aa7_z_d.jpg',
-      video: false,
-      date: 'May 18, 2025',
-      impressions: 8240,
-      engagement: 1630,
-      plays: 0,
-      reacts: 164,
-      comments: 932,
-      shares: 45,
+      status: 'published',
+      format: 'image',
+      publish_date: '2025-05-18T11:00:00Z',
+      platforms: ['facebook'],
+      pages: ['page2'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: [],
+      blocks: [
+        {
+          "id": "7bd2eb41-d517-4728-a5fc-8b7ab4de45a3",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Juraj",
+              "id": "ec60674f-836b-4199-92a5-2a626475525b",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-513b9aef-a02b-47d5-9fe5-b1ffa200de46/board-72a01c85-3ecd-4015-a3e3-37e66f6ab3ac/post-45096bd4-f0c3-4262-9318-1d90b73e682f/05adcfb8-2a87-4042-8534-2ea6301db426-2.jpg",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-09-02T12:31:35.879Z"
+            }
+          ],
+          "currentVersionId": "ec60674f-836b-4199-92a5-2a626475525b"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-17T10:00:00Z',
+      updated_at: '2025-05-18T11:00:00Z',
+      platform_post_ids: { facebook: 'post_125' },
+      // Analytics fields
+      analytics_impressions: 8240,
+      analytics_engagement: 1630,
+      analytics_comments: 0,
+      analytics_reacts: 164,
+      analytics_shares: 45,
     },
     {
       id: 'p3',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
       caption: 'Jusco Pineapple Queen 🍍 - 100% juice. 100% magic.',
-      imgUrl: 'https://farm4.staticflickr.com/3075/3168662394_7d7103de7d_z_d.jpg',
-      video: false,
-      date: 'May 18, 2025',
-      impressions: 5150,
-      engagement: 1160,
-      plays: 0,
-      reacts: 170,
-      comments: 403,
-      shares: 58,
+      status: 'published',
+      format: 'image',
+      publish_date: '2025-05-18T12:00:00Z',
+      platforms: ['instagram'],
+      pages: ['page1'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: [],
+      blocks: [
+        {
+          "id": "2f081e2a-d147-4dab-9de5-6f01186aa5aa",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Juraj",
+              "id": "cb004764-84fd-435e-948b-8d4d79787679",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-513b9aef-a02b-47d5-9fe5-b1ffa200de46/board-72a01c85-3ecd-4015-a3e3-37e66f6ab3ac/post-eb6075e5-a3e4-4735-bcaa-9a3d3b5b00c4/11b1d03b-3844-49b6-a625-89cd7b599082-2.jpg",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-09-02T12:44:10.088Z"
+            }
+          ],
+          "currentVersionId": "cb004764-84fd-435e-948b-8d4d79787679"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-17T11:00:00Z',
+      updated_at: '2025-05-18T12:00:00Z',
+      platform_post_ids: { instagram: 'post_126' },
+      // Analytics fields
+      analytics_impressions: 5150,
+      analytics_engagement: 1160,
+      analytics_comments: 0,
+      analytics_reacts: 170,
+      analytics_shares: 58,
     },
     {
       id: 'p4',
+      workspace_id: 'ws-123',
+      board_id: 'board-123',
       caption: 'Check out our new reel for summer drinks!',
-      imgUrl: 'https://farm9.staticflickr.com/8505/8441256181_4e98d8bff5_z_d.jpg',
-      video: false,
-      date: 'May 20, 2025',
-      impressions: 7680,
-      engagement: 920,
-      plays: 2100,
-      reacts: 320,
-      comments: 80,
-      shares: 12,
+      status: 'published',
+      format: 'video',
+      publish_date: '2025-05-20T14:00:00Z',
+      platforms: ['tiktok', 'instagram'],
+      pages: ['page2', 'page3'],
+      billing_month: '2025-05',
+      month: 5,
+      settings: {},
+      hashtags: [],
+      blocks: [
+        {
+          "id": "6a7f2d5f-2e01-4620-88f2-0f07b93236a8",
+          "kind": "image",
+          "comments": [],
+          "versions": [
+            {
+              "by": "Juraj",
+              "id": "7e55678a-6ccf-4caf-87c2-d44abfd78cb9",
+              "file": {
+                "url": "https://pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev/workspace-513b9aef-a02b-47d5-9fe5-b1ffa200de46/board-72a01c85-3ecd-4015-a3e3-37e66f6ab3ac/post-731cadc1-bde4-4f30-8147-e87d1fe0322c/ae518644-7341-488b-9752-2e2a579f3bb0-2.jpg",
+                "kind": "image"
+              },
+              "caption": "",
+              "comments": [],
+              "createdAt": "2025-09-02T12:44:39.397Z"
+            }
+          ],
+          "currentVersionId": "7e55678a-6ccf-4caf-87c2-d44abfd78cb9"
+        }
+      ],
+      comments: [],
+      activities: [],
+      user_columns: [],
+      created_at: '2025-05-19T13:00:00Z',
+      updated_at: '2025-05-20T14:00:00Z',
+      platform_post_ids: { tiktok: 'video_127', instagram: 'post_128' },
+      // Analytics fields
+      analytics_impressions: 7680,
+      analytics_engagement: 920,
+      analytics_comments: 2100,
+      analytics_reacts: 320,
+      analytics_shares: 12,
     },
   ]
+
+  const historicalStatsData: HistoricalStatsData[] = useMemo(() => [
+    {
+      id: 'hs1',
+      publish_date: '2025-01-15T10:00:00Z',
+      followers_count: 45230,
+      followers_rate: 2.5,
+      following_count: 1200,
+      media_count: 15,
+      engagement_rate: 4.8,
+      caption: 'Winter smoothie special! ❄️🍓',
+      format: 'image',
+    },
+    {
+      id: 'hs2',
+      publish_date: '2025-01-20T14:30:00Z',
+      followers_count: 45890,
+      followers_rate: 1.4,
+      following_count: 1180,
+      media_count: 22,
+      engagement_rate: 3.2,
+      caption: 'New year, new flavors! 🌟🥤',
+      format: 'video',
+    },
+    {
+      id: 'hs3',
+      publish_date: '2025-02-01T09:15:00Z',
+      followers_count: 46250,
+      followers_rate: 0.8,
+      following_count: 1150,
+      media_count: 18,
+      engagement_rate: 5.1,
+      caption: 'Valentine\'s Day special ❤️🍓',
+      format: 'carousel',
+    },
+    {
+      id: 'hs4',
+      publish_date: '2025-02-10T16:45:00Z',
+      followers_count: 46500,
+      followers_rate: 0.5,
+      following_count: 1120,
+      media_count: 25,
+      engagement_rate: 3.7,
+      caption: 'Spring collection preview 🌸🥭',
+      format: 'video',
+    },
+    {
+      id: 'hs5',
+      publish_date: '2025-02-18T11:20:00Z',
+      followers_count: 46780,
+      followers_rate: 0.6,
+      following_count: 1100,
+      media_count: 12,
+      engagement_rate: 4.3,
+      caption: 'Behind the scenes: Making the perfect smoothie 🎥🍊',
+      format: 'story',
+    },
+  ], [])
 
   const handlePeriodChange = (newPeriod: Period, range?: { from: Date; to: Date }) => {
     setPeriod(newPeriod)
@@ -361,7 +820,7 @@ export default function AnalyticsPage() {
             {/* Connected Social Accounts Overview */}
             <div className="bg-white rounded-sm border border-strokeElement">
               <h3 className="text-base font-semibold text-black p-4">Connected Social Accounts Overview</h3>
-              <SocialAccountsTable data={socialAccounts} />
+              <SocialAccountsTable data={socialPages} />
             </div>
 
             {/* Chart card */}
@@ -396,9 +855,41 @@ export default function AnalyticsPage() {
                   <div className="flex-shrink-0 self-start space-y-4 rounded-sm border border-strokeElement px-4 py-10">
                     {/* Pie chart */}
                     <div className="h-[120px]">
-                      <CircleChart
-                        data={circleChartData}
-                      />
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={circleChartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={28}
+                            outerRadius={56}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {circleChartData.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={entry.color}
+                                className="transition-opacity hover:opacity-80 cursor-pointer"
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0]
+                                return (
+                                  <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
+                                    <p className="font-medium text-sm">{data.name}</p>
+                                    <p className="text-blue-600 font-semibold">{data.value ? data.value.toLocaleString() : '0'}</p>
+                                  </div>
+                                )
+                              }
+                              return null
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
 
                     {/* Accounts reached section */}
@@ -418,33 +909,33 @@ export default function AnalyticsPage() {
                     {/* Header with title and switch */}
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-black">Reach</h3>
-                      <div className="inline-flex border border-gray-200 rounded-md overflow-hidden">
+                      <div className="flex items-center gap-[4px] p-[2px] bg-[#F4F5F6] rounded-[6px] h-full">
                         <button
                           onClick={() => setReachContentType('posts')}
-                          className={`px-3 py-1 text-sm font-medium border-r border-gray-200 ${
+                          className={`px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer ${
                             reachContentType === 'posts'
-                              ? 'bg-blue-50 text-blue-600'
-                              : 'bg-white text-gray-700'
+                              ? 'bg-white shadow'
+                              : ''
                           }`}
                         >
                           Posts
                         </button>
                         <button
                           onClick={() => setReachContentType('reels')}
-                          className={`px-3 py-1 text-sm font-medium border-r border-gray-200 ${
+                          className={`px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer ${
                             reachContentType === 'reels'
-                              ? 'bg-blue-50 text-blue-600'
-                              : 'bg-white text-gray-700'
+                              ? 'bg-white shadow'
+                              : ''
                           }`}
                         >
                           Reels
                         </button>
                         <button
                           onClick={() => setReachContentType('stories')}
-                          className={`px-3 py-1 text-sm font-medium ${
+                          className={`px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer ${
                             reachContentType === 'stories'
-                              ? 'bg-blue-50 text-blue-600'
-                              : 'bg-white text-gray-700'
+                              ? 'bg-white shadow'
+                              : ''
                           }`}
                         >
                           Stories
@@ -472,16 +963,15 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Top performing content */}
-            <div className="bg-white rounded-xl p-4 shadow">
+            <div className="pt-3">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-medium text-black">Top performing content</h4>
-                <div className="inline-flex border border-gray-200 rounded-md overflow-hidden">
+                <h4 className="text-base font-semibold text-black">Top performing content</h4>
+                <div className="flex items-center gap-[4px] p-[2px] bg-[#F4F5F6] rounded-[6px] h-full">
                   <button
                     onClick={() => setTopMode('impressions')}
                     className={cn(
-                      'px-3 py-1 text-sm font-medium',
-                      topMode === 'impressions' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-700',
-                      'border-r border-gray-200'
+                      'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
+                      topMode === 'impressions' ? 'bg-white shadow' : '',
                     )}
                   >
                     Impressions
@@ -489,26 +979,297 @@ export default function AnalyticsPage() {
                   <button
                     onClick={() => setTopMode('engagement')}
                     className={cn(
-                      'px-3 py-1 text-sm font-medium',
-                      topMode === 'engagement' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-700',
-                      'border-l border-gray-200'
+                      'px-[8px] gap-[6px] text-black rounded-[6px] font-medium text-sm h-[24px] cursor-pointer',
+                      topMode === 'engagement' ? 'bg-white shadow' : '',
                     )}
                   >
                     Engagement
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {topPosts.map((p) => (
                   <TopPostCard key={p.id} post={p} highlightMode={topMode} />
                 ))}
               </div>
             </div>
 
-            {/* Content table */}
-            <div className="bg-white rounded-xl p-4 shadow">
-              <h4 className="text-sm font-medium text-black">Content</h4>
+            {/* Top Countries and Cities */}
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Top Countries */}
+                <div className="rounded-sm border border-strokeElement p-4">
+                  <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
+                    Top Countries
+                    <Info className="w-4 h-4 text-grey" />
+                  </h4>
+                  <div className="space-y-5">
+                    {topCountries.map((country, index) => (
+                      <div key={index} className="grid grid-cols-[20px_120px_1fr_40px] items-center gap-2">
+                        <div className="w-4 h-4 rounded-full overflow-hidden flex-shrink-0">
+                          <Image
+                            src={`https://flagcdn.com/w20/${country.code}.png`}
+                            alt={`${country.country} flag`}
+                            width={20}
+                            height={15}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-black">{country.country}</span>
+                        <div className="w-full bg-backgroundHover rounded-full h-1.5">
+                          <div
+                            className="bg-[#4096FF] h-1.5 rounded-full"
+                            style={{ width: `${country.percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm text-[#4096FF] font-medium text-right">{country.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Top Cities */}
+                <div className="rounded-sm border border-strokeElement p-4">
+                  <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
+                    Top Cities
+                    <Info className="w-4 h-4 text-grey" />
+                  </h4>
+                  <div className="space-y-5">
+                    {topCities.map((city, index) => (
+                      <div key={index} className="grid grid-cols-[120px_1fr_40px] items-center gap-3">
+                        <span className="text-sm font-medium text-black">{city.city}</span>
+                        <div className="w-full bg-backgroundHover rounded-full h-1.5">
+                          <div
+                            className="bg-[#4096FF] h-1.5 rounded-full"
+                            style={{ width: `${city.percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm text-[#4096FF] font-medium text-right">{city.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gender and Age Distribution */}
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Gender Distribution */}
+                <div className="rounded-sm border border-strokeElement py-4 pr-6 pl-4">
+                  <h4 className="text-base font-semibold text-black mb-14 flex items-center gap-2">
+                    Gender distribution
+                    <Info className="w-4 h-4 text-grey" />
+                  </h4>
+                  <div className="flex gap-8 px-6">
+                    {/* Pie chart on the left */}
+                    <div className="flex-shrink-0">
+                      <div className="h-40 w-40">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={genderDistribution}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={45}
+                              outerRadius={80}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {genderDistribution.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={entry.color}
+                                  className="transition-opacity hover:opacity-80 cursor-pointer"
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0]
+                                return (
+                                  <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
+                                    <p className="font-medium text-sm">{data.name}</p>
+                                    <p className="text-blue-600 font-semibold">{data.value || 0}%</p>
+                                  </div>
+                                )
+                              }
+                              return null
+                            }}
+                          />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Legend on the right */}
+                    <div className="flex-1 flex flex-col justify-center space-y-3">
+                      {genderDistribution.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span className="text-sm font-normal text-black">{item.name}</span>
+                          </div>
+                          <span className="text-sm text-[#4096FF] font-medium">{item.value}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Age Distribution */}
+                <div className="rounded-sm border border-strokeElement p-4">
+                  <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
+                    Age distribution
+                    <Info className="w-4 h-4 text-grey" />
+                  </h4>
+                  <div className="h-[252px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={ageDistribution}
+                          margin={{ top: 0, right: -20, left: 0, bottom: 5 }}
+                          barGap={8}
+                          barSize={8}
+                        >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                        <XAxis
+                          dataKey="age"
+                          axisLine={false}
+                          tickLine={false}
+                          fontSize={13}
+                          stroke="#5C5E63"
+                        />
+                        <YAxis
+                          orientation="right"
+                          axisLine={false}
+                          tickLine={false}
+                          fontSize={13}
+                          stroke="#5C5E63"
+                          ticks={[0, 20, 40, 60, 80]}
+                          domain={[0, 80]}
+                          tickFormatter={(value) => `${value}%`}
+                        />
+                        <Bar dataKey="women" fill="#4096FF" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="men" fill="#91CAFF" radius={[8, 8, 0, 0]} />
+                                                  <Legend
+                          content={({ payload }: any) => (
+                            <div className="flex items-center justify-center gap-6">
+                              {payload?.map((entry: any, index: number) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <div
+                                    className="w-[6px] h-[6px] rounded-full"
+                                    style={{ backgroundColor: entry.color }}
+                                  />
+                                  <span className="text-xs text-gray-600 font-medium">
+                                    {entry.value === 'women' ? 'Women' : entry.value === 'men' ? 'Men' : entry.value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Job Function and Seniority Distribution */}
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Job Function Distribution */}
+                <div className="rounded-sm border border-strokeElement p-4">
+                  <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
+                    Job Function
+                    <Info className="w-4 h-4 text-grey" />
+                  </h4>
+                  <div className="space-y-4">
+                    {jobFunctionDistribution.map((item, index) => (
+                      <div key={index}>
+                        <div className="flex items-center text-sm font-normal">
+                          <span className="text-black">
+                            {item.function} 
+                          </span>
+                          <span className="text-grey">
+                            &nbsp;- {item.count.toLocaleString()} ({item.percentage}%)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-full bg-backgroundHover rounded-full h-1.5">
+                            <div
+                              className="bg-[#4096FF] h-1.5 rounded-full transition-all duration-300"
+                              style={{ width: `${item.percentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-[#4096FF] font-medium whitespace-nowrap">
+                            {item.percentage}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Seniority Level Distribution */}
+                <div className="rounded-sm border border-strokeElement p-4">
+                  <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
+                    Seniority level
+                    <Info className="w-4 h-4 text-grey" />
+                  </h4>
+                  <div className="space-y-4">
+                    {seniorityDistribution.map((item, index) => (
+                      <div key={index}>
+                        <div className="flex items-center text-sm font-normal">
+                          <span className="text-black">
+                            {item.level}
+                          </span>
+                          <span className="text-grey">
+                            &nbsp;- {item.count.toLocaleString()} ({item.percentage}%)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-full bg-backgroundHover rounded-full h-1.5">
+                            <div
+                              className="bg-[#4096FF] h-1.5 rounded-full transition-all duration-300"
+                              style={{ width: `${item.percentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-[#4096FF] font-medium whitespace-nowrap">
+                            {item.percentage}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Followers Location Distribution */}
+            <FollowersLocationMap />
+
+            {/* All Posts */}
+            <div className="bg-white rounded-sm border border-strokeElement">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-strokeElement">
+                <h3 className="text-base font-semibold text-black">All Posts</h3>
+                <PeriodSelector
+                  value={period}
+                  onChange={handlePeriodChange}
+                  customRange={customRange}
+                />
+              </div>
               <ContentTable data={allPosts} />
+            </div>
+
+            {/* Historical Stats */}
+            <div className="bg-white rounded-sm border border-strokeElement">
+              <h3 className="text-base font-semibold text-black p-4">Historical Stats</h3>
+              <HistoricalStatsTable data={historicalStatsData} />
             </div>
           </div>
         </div>

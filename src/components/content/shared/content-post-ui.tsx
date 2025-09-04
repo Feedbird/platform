@@ -243,7 +243,7 @@ export function FormatBadge({
         borderRadius: "100px",
         border: "1px solid rgba(28, 29, 31, 0.05)",
         background: config.background,
-        boxShadow: config.hasBoxShadow ? "0px 1px 2px -1px rgba(7, 10, 22, 0.02)" : undefined,
+        boxShadow: config.hasBoxShadow ? "0px 1px 2px -1px rgba(48, 51, 63, 0.02)" : undefined,
         width: widthFull ? "100%" : "auto",
         justifyContent: 'center',
       }}
