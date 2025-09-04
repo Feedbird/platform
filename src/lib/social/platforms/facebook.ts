@@ -1224,12 +1224,8 @@ export class FacebookPlatform extends BasePlatform {
 
       const analyticsData = {
         views: metrics.post_impressions || 0,
-        engagement: totalReactions || 0, // Use total reactions as base engagement
         likes: totalReactions || 0, // Total of all reactions
         clicks: metrics.post_clicks || 0,
-        reach: 0, // post_reach not included in basic metrics
-        comments: 0, // Need to fetch separately
-        shares: 0, // Need to fetch separately
         
         // Additional Facebook-specific metadata
         metadata: {
