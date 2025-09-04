@@ -6,7 +6,13 @@ import { FormFieldsArray } from "@/lib/forms/fields";
 import { Button } from "../ui/button";
 import { DraggableFieldType } from "./content/DraggableFieldType";
 
-export default function FormEditorSideBar() {
+type FormEditorSideBarProps = {
+  onAddField?: (fieldType: string) => void;
+};
+
+export default function FormEditorSideBar({
+  onAddField,
+}: FormEditorSideBarProps) {
   const formFields = React.useMemo(
     () =>
       FormFieldsArray.map((field) => ({
@@ -38,7 +44,11 @@ export default function FormEditorSideBar() {
         <div className="space-y-6 flex-1">
           <div className="space-y-2">
             {formFields.map((field) => (
-              <DraggableFieldType key={field.type} {...field} />
+              <DraggableFieldType
+                key={field.type}
+                {...field}
+                onAddField={onAddField}
+              />
             ))}
           </div>
         </div>
