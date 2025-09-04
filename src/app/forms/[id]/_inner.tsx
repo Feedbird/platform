@@ -122,6 +122,7 @@ export default function FormInnerVisualizer() {
   };
 
   const addNewField = (fieldType: string) => {
+    console.log("🎯 addNewField called with fieldType:", fieldType);
     // Generate a more unique ID using timestamp and random number
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
@@ -227,7 +228,7 @@ export default function FormInnerVisualizer() {
             }}
           />
         </div>
-        <FormEditorSideBar />
+        <FormEditorSideBar onAddField={addNewField} />
         <FormTypeConfig
           setVisible={setSelectedField}
           isVisible={selectedField !== null}
