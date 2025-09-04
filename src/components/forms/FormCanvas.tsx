@@ -87,7 +87,7 @@ export default function FormCanvas({
                   alt="form_cover_image"
                   width={920}
                   height={160}
-                  className="w-full h-full object-cover z-10"
+                  className="w-full h-full object-cover object-top z-10"
                 />
                 <div
                   onClick={handleCoverImageClick}
@@ -270,7 +270,13 @@ function SimpleFormField({
 
       {/* Delete Button */}
       <button
-        onClick={() => onDelete(field.id)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete(field.id);
+          if (isSelected && onFieldSelect) {
+            onFieldSelect(null);
+          }
+        }}
         className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
       >
         <svg
