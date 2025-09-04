@@ -1,4 +1,5 @@
 import {
+  FieldTypeEntitlementDefinition,
   FormFieldTypeConfiguration,
   getFieldTypeInitialConfiguration,
 } from "./field.config";
@@ -18,7 +19,7 @@ export interface UIFormField {
   type: FormFieldType;
   label: string;
   iconPath: string;
-  config: FormFieldTypeConfiguration;
+  config: FieldTypeEntitlementDefinition;
 }
 
 export const UIFormFieldDefaults: Record<FormFieldType, UIFormField> = {

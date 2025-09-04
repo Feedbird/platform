@@ -57,7 +57,6 @@ CREATE TABLE form_fields (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     form_id UUID NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
     position INTEGER NOT NULL,
-    title TEXT NOT NULL,
     type TEXT NOT NULL,
     label TEXT,
     required BOOLEAN NOT NULL DEFAULT false,

@@ -213,7 +213,7 @@ export default function FormInnerVisualizer() {
       collisionDetection={pointerWithin}
     >
       <div className="w-full h-full flex bg-[#FBFBFB]">
-        <div className="flex-1 min-w-0 overflow-aut relative">
+        <div className="flex-1 min-w-0 overflow-auto relative pb-10">
           <ServiceSelector />
           <FormCanvas
             formFields={formFields}
@@ -229,8 +229,9 @@ export default function FormInnerVisualizer() {
         </div>
         <FormEditorSideBar />
         <FormTypeConfig
+          setVisible={setSelectedField}
           isVisible={selectedField !== null}
-          type={selectedField?.type!}
+          type={selectedField?.type || ""}
         />
       </div>
 

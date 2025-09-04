@@ -4,8 +4,8 @@ import { FormFieldType } from "./fields";
 
 export interface FieldTypeConfigEntitlements {
   title: boolean; //
-  description: boolean; //
   placeholder: boolean; //
+  description: boolean; //
   isRequired: boolean; //
   allowMultipleSelection: boolean; //
   defaultOption: boolean; //
@@ -24,8 +24,8 @@ function createEntitlements(
 ): FieldTypeConfigEntitlements {
   const allProperties: FieldTypeConfigEntitlements = {
     title: false,
-    description: false,
     placeholder: false,
+    description: false,
     isRequired: false,
     allowMultipleSelection: false,
     defaultOption: false,
@@ -70,12 +70,14 @@ interface FieldTypeComplexSetup
   complexType: ComplexType;
 }
 
-type FieldTypeEntitlementNativeDefinition = Omit<
+export type FieldTypeEntitlementNativeDefinition = Omit<
   FieldTypeEntitlementGeneralDefinition,
   "complexType"
 > & {
   nativeType: NativeType;
+  value: string | boolean | number;
   isComplex: false;
+  isTextArea?: boolean;
 };
 
 type FieldTypeEntitlementSelectionDefinition = FieldTypeComplexSetup & {
@@ -200,6 +202,7 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       isComplex: false,
       nativeType: "string",
       isOptional: false,
+      value: "",
     },
   ],
   [
@@ -208,6 +211,7 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       isComplex: false,
       nativeType: "string",
       isOptional: true,
+      value: "",
     },
   ],
   [
@@ -216,6 +220,7 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       isComplex: false,
       nativeType: "string",
       isOptional: false,
+      value: "",
     },
   ],
   [
@@ -225,6 +230,7 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       isComplex: false,
       isOptional: false,
       defaultValue: false,
+      value: false,
     },
   ],
   [
@@ -234,6 +240,7 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       isComplex: false,
       isOptional: false,
       defaultValue: false,
+      value: false,
     },
   ],
   [
@@ -287,6 +294,25 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       ],
     },
   ],
+  [
+    "allowedRows",
+    {
+      isComplex: false,
+      nativeType: "number",
+      isOptional: false,
+      defaultValue: 2,
+      value: 2,
+    },
+  ],
+  [
+    "helpText",
+    {
+      isComplex: false,
+      nativeType: "string",
+      isOptional: true,
+      value: "",
+    },
+  ],
 ]);
 
 export type FormFieldTypeConfiguration = Record<
@@ -296,7 +322,7 @@ export type FormFieldTypeConfiguration = Record<
 
 export function getFieldTypeInitialConfiguration(
   fieldType: FormFieldType
-): FormFieldTypeConfiguration {
+): FieldTypeEntitlementDefinition {
   const entitlements = ENTITLEMENTS_FIELD_MAP.get(fieldType);
   if (!entitlements) {
     throw new Error(`No entitlements found for field type: ${fieldType}`);
@@ -321,5 +347,5 @@ export function getFieldTypeInitialConfiguration(
     }
   }
 
-  return mappedEntitlementDefs as FormFieldTypeConfiguration;
+  return mappedEntitlementDefs as FieldTypeEntitlementDefinition;
 }
