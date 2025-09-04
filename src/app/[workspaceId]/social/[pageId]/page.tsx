@@ -4,7 +4,7 @@
 import { useParams }  from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Image          from 'next/image';
-import { Trash2 }     from 'lucide-react';
+import { Trash2, Eye, Heart, MousePointer } from 'lucide-react';
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
 import type { PostHistory } from '@/lib/social/platforms/platform-types';
 import { Button } from '@/components/ui/button';
@@ -399,6 +399,44 @@ function PostCard({
       <p className="text-sm text-gray-800 mb-3 whitespace-pre-wrap">
         {post.content || "(no text)"}
       </p>
+
+      {/* analytics ----------------------------------------------------- */}
+      {post.analytics && post.analytics.metadata?.platform === 'facebook' && (
+        <div className="mb-3 p-3 bg-gray-50 rounded-md">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-gray-700">Analytics</h4>
+            <span className="text-xs text-gray-500">
+              {post.analytics.metadata?.lastUpdated && 
+                `Updated ${new Date(post.analytics.metadata.lastUpdated).toLocaleString()}`
+              }
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <Eye className="h-3 w-3 text-gray-500" />
+                <span className="text-gray-600">Views</span>
+              </div>
+              <span className="font-medium">{post.analytics.views?.toLocaleString() || 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <Heart className="h-3 w-3 text-red-500" />
+                <span className="text-gray-600">Likes</span>
+              </div>
+              <span className="font-medium">{post.analytics.likes?.toLocaleString() || 0}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <MousePointer className="h-3 w-3 text-purple-500" />
+                <span className="text-gray-600">Clicks</span>
+              </div>
+              <span className="font-medium">{post.analytics.clicks?.toLocaleString() || 0}</span>
+            </div>
+          </div>
+      
+        </div>
+      )}
 
       {/* meta --------------------------------------------------------- */}
       <div className="text-xs text-gray-500 space-y-1">
