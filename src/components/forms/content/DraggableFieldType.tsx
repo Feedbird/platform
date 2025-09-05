@@ -1,14 +1,15 @@
 import { Card } from "@/components/ui/card";
+import { FormFieldType } from "@/lib/forms/fields";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import React from "react";
 
 type DraggableFieldTypeProps = {
-  type: string;
+  type: FormFieldType;
   label: string;
   icon: React.ReactNode;
-  onAddField?: (fieldType: string) => void;
+  onAddField?: (fieldType: FormFieldType) => void;
 };
 
 export function BaseContent({
@@ -17,8 +18,8 @@ export function BaseContent({
   onAddField,
   type,
 }: Omit<DraggableFieldTypeProps, "type"> & {
-  onAddField?: (fieldType: string) => void;
-  type?: string;
+  onAddField?: (fieldType: FormFieldType) => void;
+  type?: FormFieldType;
 }) {
   return (
     <div className="flex items-center gap-3 justify-center">

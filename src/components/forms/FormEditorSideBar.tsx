@@ -2,12 +2,12 @@
 
 import React from "react";
 import Image from "next/image";
-import { FormFieldsArray } from "@/lib/forms/fields";
+import { FormFieldsArray, FormFieldType } from "@/lib/forms/fields";
 import { Button } from "../ui/button";
 import { DraggableFieldType } from "./content/DraggableFieldType";
 
 type FormEditorSideBarProps = {
-  onAddField?: (fieldType: string) => void;
+  onAddField?: (fieldType: FormFieldType) => void;
 };
 
 export default function FormEditorSideBar({

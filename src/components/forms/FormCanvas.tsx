@@ -11,11 +11,17 @@ import Image from "next/image";
 import React from "react";
 import { Input } from "../ui/input";
 import { useImageUploader } from "@/hooks/use-image-uploader";
+import { Textarea } from "../ui/textarea";
+import { Checkbox } from "../ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
+import { ComplexObjectType } from "@/lib/forms/field.config";
+import MultiSelectPlaceholder from "./content/MultiSelectPlaceholder";
 
 export interface FormField {
   id: string;
   type: string;
-  label: string;
+  title: string;
+  description: string;
   position: number;
   config?: any;
 }
@@ -73,7 +79,7 @@ export default function FormCanvas({
         isOver ? "bg-blue-50" : "bg-transparent"
       }`}
     >
-      <div className="mx-auto max-w-[820px] p-4">
+      <div className="mx-auto max-w-[900px] p-4">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div
             className={`w-full relative h-[160px] ${
@@ -159,7 +165,7 @@ export default function FormCanvas({
                 items={fieldIds}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {formFields.map((field, index) => (
                     <React.Fragment key={field.id}>
                       {/* Insertion indicator */}
@@ -243,30 +249,19 @@ function SimpleFormField({
       ref={setNodeRef}
       style={style}
       onClick={handleFieldClick}
-      className={`group rounded-lg p-4 bg-white hover:border-blue-300 border-1 relative cursor-pointer transition-all ${
+      className={`group rounded-[6px] p-3 bg-white hover:border-blue-300 border-1 relative cursor-pointer transition-all ${
         isDragging ? "opacity-50" : "opacity-100"
       } ${isSelected ? "border-2 border-blue-500 shadow-md" : "border-white"}`}
     >
-      {/* Drag Handle */}
-      <div
+      <Image
         {...attributes}
         {...listeners}
-        className="absolute right-8 top-2 opacity-0 group-hover:opacity-100 cursor-grab hover:cursor-grabbing transition-opacity"
-      >
-        <svg
-          className="h-4 w-4 text-gray-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 9l4-4 4 4m0 6l-4 4-4-4"
-          />
-        </svg>
-      </div>
+        className="absolute -left-5 opacity-0 group-hover:opacity-80 cursor-grab hover:cursor-grabbing transition-opacity "
+        alt="drag_handle_icon"
+        width={16}
+        height={16}
+        src="/images/forms/dragdots.svg"
+      />
 
       {/* Delete Button */}
       <button
@@ -295,69 +290,124 @@ function SimpleFormField({
       </button>
 
       {/* Field Content */}
-      <div className="mr-12">
+      <div className="">
         {field.type === "text" && (
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
-              {field.label}
+          <div className="flex flex-col gap-2">
+            <label className="block text-base text-[#1C1D1F]">
+              {field.title}
             </label>
-            <input
-              type="text"
-              placeholder="Type your answer here..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            {field.description && (
+              <p className="text-sm text-[#838488] font-normal">
+                {field.description}
+              </p>
+            )}
+            <Input
+              onClick={(e) => e.stopPropagation()}
+              className="w-full rounded-[6px] border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         )}
 
         {field.type === "textarea" && (
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
-              {field.label}
+          <div className="flex flex-col gap-2">
+            <label className="block text-base text-[#1C1D1F]">
+              {field.title}
             </label>
-            <textarea
-              placeholder="Type your answer here..."
+            {field.description && (
+              <p className="text-sm text-[#838488] font-normal">
+                {field.description}
+              </p>
+            )}
+            <Textarea
               rows={3}
+              onClick={(e) => e.stopPropagation()}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         )}
 
         {field.type === "dropdown" && (
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
-              {field.label}
+          <div className="flex flex-col gap-2">
+            <label className="block text-base text-[#1C1D1F]">
+              {field.title}
             </label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option>Select an option...</option>
-              <option>Option 1</option>
-              <option>Option 2</option>
-              <option>Option 3</option>
-            </select>
+            {!field.config?.allowMultipleSelection?.value ? (
+              <Select>
+                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] cursor-pointer">
+                  Select option
+                </SelectTrigger>
+                <SelectContent avoidCollisions>
+                  {field.config?.dropdownItems?.dropdownValues?.length ? (
+                    field.config.dropdownItems.dropdownValues
+                      .sort((i: ComplexObjectType) => i.order)
+                      .map((item: ComplexObjectType) => (
+                        <SelectItem key={item.order} value={item.value}>
+                          {item.value}
+                        </SelectItem>
+                      ))
+                  ) : (
+                    <SelectItem value="no-value">No values</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            ) : (
+              <MultiSelectPlaceholder
+                values={
+                  field.config?.dropdownItems?.dropdownValues?.length
+                    ? field.config.dropdownItems.dropdownValues.sort(
+                        (i: ComplexObjectType) => i.order
+                      )
+                    : []
+                }
+              />
+            )}
           </div>
         )}
 
         {field.type === "checkbox" && (
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
-              {field.label}
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center">
-                <input type="checkbox" className="mr-2" />
-                <span className="text-sm">Option 1</span>
+          <div className="flex flex-row gap-3">
+            <Checkbox
+              className="size-5"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            />
+            <div className="flex flex-col gap-0.5">
+              <label className="block text-base text-[#1C1D1F]">
+                {field.title}
               </label>
-              <label className="flex items-center">
-                <input type="checkbox" className="mr-2" />
-                <span className="text-sm">Option 2</span>
-              </label>
+              {field.description && (
+                <p className="text-sm text-[#838488] font-normal">
+                  {field.description}
+                </p>
+              )}
             </div>
           </div>
         )}
 
-        {!["text", "textarea", "dropdown", "checkbox"].includes(field.type) && (
+        {field.type === "section-break" && (
+          <div className="flex flex-col gap-1.5">
+            <label className="block text-base text-[#1C1D1F]">
+              {field.title}
+            </label>
+            {field.description && (
+              <p className="text-sm text-[#838488] font-normal">
+                {field.description}
+              </p>
+            )}
+          </div>
+        )}
+
+        {![
+          "text",
+          "textarea",
+          "dropdown",
+          "checkbox",
+          "section-break",
+        ].includes(field.type) && (
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">
-              {field.label}
+              {field.title}
             </label>
             <div className="text-gray-500 italic">
               {field.type} field (not implemented yet)
