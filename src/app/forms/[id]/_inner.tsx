@@ -14,13 +14,18 @@ import React from "react";
 import { useForms } from "@/contexts/FormsContext";
 import ServiceSelector from "@/components/forms/content/ServiceSelector";
 import { Form } from "@/lib/supabase/client";
-import { FormFieldsArray } from "@/lib/forms/fields";
+import {
+  FormFieldsArray,
+  FormFieldType,
+  UIFormFieldDefaults,
+} from "@/lib/forms/fields";
 import { BaseContent } from "@/components/forms/content/DraggableFieldType";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
 import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
+import { randomUUID } from "crypto";
 
 type SelectedField = {
   id: string;
@@ -42,6 +47,8 @@ export default function FormInnerVisualizer() {
   const [overId, setOverId] = React.useState<string | null>(null);
   const [selectedField, setSelectedField] =
     React.useState<SelectedField | null>(null); // For field settings/editing
+
+  const fieldDefs = React.useMemo(() => UIFormFieldDefaults, []);
 
   const retrieveForm = async (formId: string) => {
     try {
@@ -91,8 +98,8 @@ export default function FormInnerVisualizer() {
     // Check if dragging from sidebar (template) to form area
     if (active.data.current?.type === "template") {
       if (over.id === "form-canvas") {
-        console.log("✅ Adding new field from template to end");
-        addNewField(active.id as string);
+        console.log("✅ Adding new field from template to end: ", active);
+        addNewField(active.id as FormFieldType);
       } else if (formFields.find((f) => f.id === over.id)) {
         // Dropping over an existing field - insert before it
         console.log("✅ Adding new field from template at position");
@@ -121,36 +128,37 @@ export default function FormInnerVisualizer() {
     setOverId(null);
   };
 
-  const addNewField = (fieldType: string) => {
-    console.log("🎯 addNewField called with fieldType:", fieldType);
-    // Generate a more unique ID using timestamp and random number
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
+  const addNewField = (fieldType: FormFieldType) => {
+    const fieldDef = fieldDefs[fieldType];
+
     const newField: FormField = {
-      id: `field_${fieldType}_${timestamp}_${random}`,
+      id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      label: `New ${fieldType} Field`,
+      description: (fieldDef.config.description?.value as string) || "",
+      title:
+        (fieldDef.config.title?.value as string) || `New ${fieldType} Field`,
       position: formFields.length,
+      config: fieldDef.config,
     };
 
-    console.log("🎯 Creating field:", newField);
-    console.log("📊 Current form fields count:", formFields.length);
     setFormFields((prev) => {
       const updated = [...prev, newField];
-      console.log("📊 Updated form fields count:", updated.length);
       return updated;
     });
   };
 
   const addNewFieldAtPosition = (fieldType: string, insertIndex: number) => {
-    // Generate a more unique ID using timestamp and random number
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
+    const fieldDef =
+      fieldDefs[fieldType.toLowerCase() as keyof typeof fieldDefs];
+
     const newField: FormField = {
-      id: `field_${fieldType}_${timestamp}_${random}`,
+      id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      label: `New ${fieldType} Field`,
+      description: (fieldDef.config.description?.value as string) || "",
+      title:
+        (fieldDef.config.title?.value as string) || `New ${fieldType} Field`,
       position: insertIndex,
+      config: fieldDef.config,
     };
 
     console.log("🎯 Creating field at position:", insertIndex, newField);
@@ -189,7 +197,7 @@ export default function FormInnerVisualizer() {
 
   const displayField = activeTemplateField || activePlacedFieldTemplate;
   const displayLabel =
-    activeTemplateField?.label || activePlacedField?.label || "Field";
+    activeTemplateField?.label || activePlacedField?.title || "Field";
 
   if (loading) {
     return <Loading />;
@@ -213,7 +221,7 @@ export default function FormInnerVisualizer() {
       onDragOver={handleDragOver}
       collisionDetection={pointerWithin}
     >
-      <div className="w-full h-full flex bg-[#FBFBFB]">
+      <div className="w-full h-full flex bg-[#FBFBFB] overflow-hidden relative">
         <div className="flex-1 min-w-0 overflow-auto relative pb-10">
           <ServiceSelector />
           <FormCanvas
