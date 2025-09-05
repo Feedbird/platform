@@ -1,6 +1,6 @@
 // import { FormFieldType } from "./fields";
 
-import { FormFieldType } from "./fields";
+import { FormFieldType, UIFormFieldDefaults } from "./fields";
 
 export interface FieldTypeConfigEntitlements {
   title: boolean; //
@@ -53,7 +53,7 @@ interface FieldTypeFlagBaseDefinition {
   defaultValue?: any;
 }
 
-type ComplexObjectType = {
+export type ComplexObjectType = {
   order: number;
   value: string;
 };
@@ -88,13 +88,11 @@ type FieldTypeEntitlementSelectionDefinition = FieldTypeComplexSetup & {
 type FieldTypeEntitlementOptionsDefinition = FieldTypeComplexSetup & {
   complexType: "options";
   optionValues: (ComplexObjectType & { image?: string })[];
-  defaultValue: (ComplexObjectType & { image?: string })[];
 };
 
 type FieldTypeEntitlementDDDefinition = FieldTypeComplexSetup & {
   complexType: "dropdown";
   dropdownValues: ComplexObjectType[];
-  defaultValue: ComplexObjectType[];
 };
 
 type FieldTypeEntitlementSpreadsheetDefinition = FieldTypeComplexSetup & {
@@ -110,11 +108,14 @@ export type FieldTypeEntitlementDefinition =
   | FieldTypeEntitlementOptionsDefinition
   | FieldTypeEntitlementSpreadsheetDefinition;
 
+export type FieldTypeEntitlements = Partial<EntitlementsConfigMap>;
+
 type NativeFieldKeys =
   | "title"
-  | "description"
   | "placeholder"
+  | "description"
   | "isRequired"
+  | "helpText"
   | "allowMultipleSelection"
   | "allowedRows";
 
@@ -270,12 +271,11 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
     {
       isComplex: true,
       complexType: "dropdown",
-      dropdownValues: [], // Editable in UI
+      dropdownValues: [
+        { value: "Label 1", order: 0 },
+        { value: "Label 2", order: 1 },
+      ], // Editable in UI
       isOptional: false,
-      defaultValue: [
-        { value: "Label 1", order: 1 },
-        { value: "Label 2", order: 2 },
-      ],
     },
   ],
   [
@@ -321,8 +321,9 @@ export type FormFieldTypeConfiguration = Record<
 >;
 
 export function getFieldTypeInitialConfiguration(
-  fieldType: FormFieldType
-): FieldTypeEntitlementDefinition {
+  fieldType: FormFieldType,
+  label: string
+): FieldTypeEntitlements {
   const entitlements = ENTITLEMENTS_FIELD_MAP.get(fieldType);
   if (!entitlements) {
     throw new Error(`No entitlements found for field type: ${fieldType}`);
@@ -341,11 +342,35 @@ export function getFieldTypeInitialConfiguration(
         entitlement as FieldTypeConfigOptionsKey
       );
       if (definition) {
-        mappedEntitlementDefs[entitlement as FieldTypeConfigOptionsKey] =
-          definition;
+        mappedEntitlementDefs[entitlement as FieldTypeConfigOptionsKey] = {
+          ...definition,
+        };
+
+        if (entitlement === "title") {
+          (
+            mappedEntitlementDefs[
+              entitlement
+            ] as FieldTypeEntitlementNativeDefinition
+          ).value = label;
+        } else if (fieldType === "checkbox" && entitlement === "description") {
+          (
+            mappedEntitlementDefs[
+              entitlement
+            ] as FieldTypeEntitlementNativeDefinition
+          ).value = "Make sure to check this box if you agree";
+        } else if (
+          fieldType === "section-break" &&
+          entitlement === "description"
+        ) {
+          (
+            mappedEntitlementDefs[
+              entitlement
+            ] as FieldTypeEntitlementNativeDefinition
+          ).value = "Describe the section bellow or leave empty";
+        }
       }
     }
   }
 
-  return mappedEntitlementDefs as FieldTypeEntitlementDefinition;
+  return mappedEntitlementDefs as FieldTypeEntitlements;
 }
