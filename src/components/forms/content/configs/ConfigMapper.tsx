@@ -91,6 +91,13 @@ export function configInputMapper(
           </div>
         ));
         break;
+      case "dropdownItems":
+        elements.push(() => (
+          <div className="flex flex-col gap-1 w-full">
+            <label className="text-[#5C5E63] text-sm font-normal ">Items</label>
+            <p>...Under construction</p>
+          </div>
+        ));
       case "optionItems":
         elements.push(() => (
           <div className="flex flex-col gap-1 w-full">
