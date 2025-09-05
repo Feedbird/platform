@@ -96,9 +96,9 @@ export default function MessageItem({
 		<div>
 			{showDay && formatDayLabel && (
 				<div className="flex items-center gap-2">
-					<div className="flex-1 border-t border-strokeElement" />
+					<div className="flex-1 border-t border-elementStroke" />
 					<span className="text-xs text-grey whitespace-nowrap">{formatDayLabel(showDaySeparatorDate)}</span>
-					<div className="flex-1 border-t border-strokeElement" />
+					<div className="flex-1 border-t border-elementStroke" />
 				</div>
 			)}
 			<div className="flex items-start p-3 gap-2 group relative hover:bg-[#F4F5F6] rounded-md transition-colors duration-100">
@@ -246,7 +246,7 @@ export default function MessageItem({
 								<Button
 									variant="ghost"
 									size="icon"
-									className="size-[20px] p-0 bg-white border border-strokeElement hover:bg-gray-200 rounded-full"
+									className="size-[20px] p-0 bg-white border border-elementStroke hover:bg-gray-200 rounded-full"
 									onClick={() => setOpenEmoticonsEmojiId(openEmoticonsEmojiId === message.id ? null : message.id)}
 									title="Add reaction"
 								>

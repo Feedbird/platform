@@ -47,9 +47,10 @@ function getRandomInt(max = 50) {
 interface TopPostCardProps {
   post: TopPost
   highlightMode: 'impressions' | 'engagement'
+  onClick?: (post: TopPost) => void
 }
 
-export function TopPostCard({ post, highlightMode }: TopPostCardProps) {
+export function TopPostCard({ post, highlightMode, onClick }: TopPostCardProps) {
   const laugh = useMemo(() => getRandomInt(60), [])
   const angry = useMemo(() => getRandomInt(20), [])
 
@@ -76,7 +77,10 @@ export function TopPostCard({ post, highlightMode }: TopPostCardProps) {
   const isVideo = currentVer?.file?.kind === 'video'
 
   return (
-    <div className="bg-white rounded-lg border border-strokeElement flex flex-col text-sm p-2 space-y-2">
+    <div
+      className="bg-white rounded-lg border border-elementStroke flex flex-col text-sm p-2 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={() => onClick?.(post)}
+    >
       {/* Blocks Preview */}
       <div className="relative aspect-square overflow-hidden rounded-sm">
         {hasBlocks && firstBlock && currentVer ? (
@@ -154,7 +158,7 @@ export function TopPostCard({ post, highlightMode }: TopPostCardProps) {
 
         <div
           className={cn(
-            'px-2 py-1 flex items-center justify-between rounded-[5px] border border-strokeElement',
+            'px-2 py-1 flex items-center justify-between rounded-[5px] border border-elementStroke',
           )}
         >
           <div className="flex items-center text-darkGrey gap-1">

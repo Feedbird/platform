@@ -127,7 +127,7 @@ export function HistoricalStatsTable({ data }: HistoricalStatsTableProps) {
                 return (
                   <th
                     key={header.id}
-                    className={`px-3 py-2 ${isPostColumn ? 'text-left' : 'text-right'} text-xs font-medium text-darkGrey tracking-wider border-y ${!isLastColumn ? 'border-r border-strokeElement' : ''}`}
+                    className={`px-3 py-2 ${isPostColumn ? 'text-left' : 'text-right'} text-xs font-medium text-darkGrey tracking-wider border-y ${!isLastColumn ? 'border-r border-elementStroke' : ''}`}
                   >
                     <div className={`flex ${isPostColumn ? 'justify-start' : 'justify-end'}`}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -138,13 +138,13 @@ export function HistoricalStatsTable({ data }: HistoricalStatsTableProps) {
             </tr>
           ))}
         </thead>
-        <tbody className="bg-white divide-y divide-strokeElement">
+        <tbody className="bg-white divide-y divide-elementStroke">
           {table.getRowModel().rows.map((row) => (
             <tr key={row.id} className="hover:bg-gray-50">
               {row.getVisibleCells().map((cell, index) => {
                 const isLastColumn = index === row.getVisibleCells().length - 1
                 return (
-                  <td key={cell.id} className={`px-3 py-2 whitespace-nowrap ${!isLastColumn ? 'border-r border-strokeElement' : ''}`}>
+                  <td key={cell.id} className={`px-3 py-2 whitespace-nowrap ${!isLastColumn ? 'border-r border-elementStroke' : ''}`}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 )

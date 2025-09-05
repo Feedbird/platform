@@ -88,7 +88,7 @@ const colorScale = scaleLinear<string>()
 
 export function FollowersLocationMap() {
   return (
-    <div className="rounded-sm border border-strokeElement p-4">
+    <div className="rounded-sm border border-elementStroke p-4">
       <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
         Followers location distribution
         <Info className="w-4 h-4 text-grey" />

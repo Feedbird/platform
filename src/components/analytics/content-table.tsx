@@ -173,7 +173,7 @@ export function ContentTable({ data }: ContentTableProps) {
                 return (
                   <th
                     key={header.id}
-                    className={`px-3 py-2 text-xs font-medium text-darkGrey tracking-wider border-y ${!isLastColumn ? 'border-r border-strokeElement' : ''} ${isPostColumn || isFormatColumn ? 'text-left' : 'text-right'}`}
+                    className={`px-3 py-2 text-xs font-medium text-darkGrey tracking-wider border-y ${!isLastColumn ? 'border-r border-elementStroke' : ''} ${isPostColumn || isFormatColumn ? 'text-left' : 'text-right'}`}
                     style={{
                       width: isPostColumn ? '296px' :
                              header.id === 'format' ? '100px' :
@@ -196,7 +196,7 @@ export function ContentTable({ data }: ContentTableProps) {
             </tr>
           ))}
         </thead>
-        <tbody className="bg-white divide-y divide-strokeElement">
+        <tbody className="bg-white divide-y divide-elementStroke">
           {table.getRowModel().rows.map((row) => (
             <tr key={row.id} className="hover:bg-gray-50">
               {row.getVisibleCells().map((cell, index) => {
@@ -206,7 +206,7 @@ export function ContentTable({ data }: ContentTableProps) {
                 return (
                   <td
                     key={cell.id}
-                    className={`px-3 py-3 whitespace-nowrap ${!isLastColumn ? 'border-r border-strokeElement' : ''}`}
+                    className={`px-3 py-3 whitespace-nowrap ${!isLastColumn ? 'border-r border-elementStroke' : ''}`}
                     style={{
                       width: isPostCell ? '296px' :
                              cell.column.id === 'format' ? '100px' :

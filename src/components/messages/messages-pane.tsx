@@ -1702,7 +1702,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 												return (
 													<div
 														key={board_id}
-														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-strokeElement"
+														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-elementStroke"
 													>
 														{/* Board Icon with Color Background */}
 														<div
@@ -2011,9 +2011,9 @@ export default function MessagesPane({ channelName, channelDescription, members:
 											<div key={m.id}>
 												{showDay && (
 													<div className="flex items-center gap-2">
-														<div className="flex-1 border-t border-strokeElement" />
+														<div className="flex-1 border-t border-elementStroke" />
 														<span className="text-xs text-grey whitespace-nowrap">{formatDayLabel(m.createdAt)}</span>
-														<div className="flex-1 border-t border-strokeElement" />
+														<div className="flex-1 border-t border-elementStroke" />
 													</div>
 												)}
 
@@ -2151,7 +2151,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 												return (
 													<div
 														key={board_id}
-														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-strokeElement"
+														className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-elementStroke"
 													>
 														{/* Board Icon with Color Background */}
 														<div
@@ -2419,7 +2419,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 						{activeSidebarTab === 'info' && (
 							<div>
 								{/* Channel status */}
-								<div className="flex flex-col gap-2 border-b border-strokeElement p-3">
+								<div className="flex flex-col gap-2 border-b border-elementStroke p-3">
 									<div className="flex items-center justify-between">
 										<span className="text-sm font-normal text-grey">Status</span>
 										<div
@@ -2493,7 +2493,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 											{boardData.map((board) => (
 												<div
 													key={board.id}
-													className="bg-white border border-strokeElement rounded-[4px] overflow-hidden w-[246px]"
+													className="bg-white border border-elementStroke rounded-[4px] overflow-hidden w-[246px]"
 												>
 													{/* Board Card Header */}
 													<div
@@ -2626,7 +2626,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 													{sortedPosts.map((post) => (
 														<div
 															key={post.id}
-															className="bg-white border border-strokeElement overflow-hidden cursor-pointer hover:border-gray-300 transition-colors w-[90px] h-[120px]"
+															className="bg-white border border-elementStroke overflow-hidden cursor-pointer hover:border-gray-300 transition-colors w-[90px] h-[120px]"
 														>
 															<div className="w-[90px] h-[120px] bg-gray-100 flex items-center justify-center overflow-hidden relative">
 																{post.isVideo ? (

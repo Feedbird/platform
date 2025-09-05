@@ -1,16 +1,18 @@
 'use client'
 
 import { useState, useMemo, Suspense } from 'react'
-import { Share, Info } from 'lucide-react'
+import { Share, Info, Mail, Inbox, Download } from 'lucide-react'
 import { format, addDays, startOfDay } from 'date-fns'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MetricCard, MetricData, formatNumber } from '@/components/analytics/metric-card'
 import { MetricChart } from '@/components/analytics/metric-chart'
 import { TopPostCard, TopPost } from '@/components/analytics/top-post-card'
 import { ContentTable } from '@/components/analytics/content-table'
+import { PostDetailSidebar } from '@/components/analytics/post-detail-sidebar'
 import { PeriodSelector, Period } from '@/components/analytics/period-selector'
 import { SocialAccountsTable, SocialAccount } from '@/components/analytics/social-accounts-table'
 import { SocialSelector, SocialAccountOption } from '@/components/analytics/social-selector'
@@ -29,6 +31,11 @@ export default function AnalyticsPage() {
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>()
   const [selectedSocialAccount, setSelectedSocialAccount] = useState<string>('account1')
   const [reachContentType, setReachContentType] = useState<'posts' | 'reels' | 'stories'>('posts')
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
+  const [selectedShareOption, setSelectedShareOption] = useState<string>('channels')
+  const [selectedInterval, setSelectedInterval] = useState<string>('week')
+  const [selectedPost, setSelectedPost] = useState<TopPost | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // Helper function to get metric title
   const getMetricTitle = (metric: Metric): string => {
@@ -773,6 +780,16 @@ export default function AnalyticsPage() {
     }
   }
 
+  const handlePostClick = (post: TopPost) => {
+    setSelectedPost(post)
+    setIsSidebarOpen(true)
+  }
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false)
+    setSelectedPost(null)
+  }
+
   return (
     <>
       <DynamicTitle />
@@ -794,7 +811,12 @@ export default function AnalyticsPage() {
                 onChange={handlePeriodChange}
                 customRange={customRange}
               />
-              <Button variant="default" size="sm" className="flex items-center gap-2 bg-main text-sm font-medium text-white hover:bg-main/90 rounded-sm">
+              <Button
+                variant="default"
+                size="sm"
+                className="flex items-center gap-2 bg-main text-sm font-medium text-white hover:bg-main/90 rounded-sm"
+                onClick={() => setIsShareDialogOpen(true)}
+              >
                 <Share style={{ width: '14px', height: '14px' }} />
                 Share
               </Button>
@@ -818,14 +840,14 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Connected Social Accounts Overview */}
-            <div className="bg-white rounded-sm border border-strokeElement">
+            <div className="bg-white rounded-sm border border-elementStroke">
               <h3 className="text-base font-semibold text-black p-4">Connected Social Accounts Overview</h3>
               <SocialAccountsTable data={socialPages} />
             </div>
 
             {/* Chart card */}
-            <div className="bg-white rounded-sm border border-strokeElement">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-strokeElement">
+            <div className="bg-white rounded-sm border border-elementStroke">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-elementStroke">
                 <SocialSelector
                   accounts={socialAccountOptions}
                   selected={selectedSocialAccount}
@@ -852,7 +874,7 @@ export default function AnalyticsPage() {
               {activeMetric === 'reach' && (
                 <div className="flex gap-6">
                   {/* Left side - Pie chart area */}
-                  <div className="flex-shrink-0 self-start space-y-4 rounded-sm border border-strokeElement px-4 py-10">
+                  <div className="flex-shrink-0 self-start space-y-4 rounded-sm border border-elementStroke px-4 py-10">
                     {/* Pie chart */}
                     <div className="h-[120px]">
                       <ResponsiveContainer width="100%" height="100%">
@@ -989,7 +1011,12 @@ export default function AnalyticsPage() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {topPosts.map((p) => (
-                  <TopPostCard key={p.id} post={p} highlightMode={topMode} />
+                  <TopPostCard
+                    key={p.id}
+                    post={p}
+                    highlightMode={topMode}
+                    onClick={handlePostClick}
+                  />
                 ))}
               </div>
             </div>
@@ -998,7 +1025,7 @@ export default function AnalyticsPage() {
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Top Countries */}
-                <div className="rounded-sm border border-strokeElement p-4">
+                <div className="rounded-sm border border-elementStroke p-4">
                   <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
                     Top Countries
                     <Info className="w-4 h-4 text-grey" />
@@ -1029,7 +1056,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Top Cities */}
-                <div className="rounded-sm border border-strokeElement p-4">
+                <div className="rounded-sm border border-elementStroke p-4">
                   <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
                     Top Cities
                     <Info className="w-4 h-4 text-grey" />
@@ -1056,7 +1083,7 @@ export default function AnalyticsPage() {
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Gender Distribution */}
-                <div className="rounded-sm border border-strokeElement py-4 pr-6 pl-4">
+                <div className="rounded-sm border border-elementStroke py-4 pr-6 pl-4">
                   <h4 className="text-base font-semibold text-black mb-14 flex items-center gap-2">
                     Gender distribution
                     <Info className="w-4 h-4 text-grey" />
@@ -1122,7 +1149,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Age Distribution */}
-                <div className="rounded-sm border border-strokeElement p-4">
+                <div className="rounded-sm border border-elementStroke p-4">
                   <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
                     Age distribution
                     <Info className="w-4 h-4 text-grey" />
@@ -1183,7 +1210,7 @@ export default function AnalyticsPage() {
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Job Function Distribution */}
-                <div className="rounded-sm border border-strokeElement p-4">
+                <div className="rounded-sm border border-elementStroke p-4">
                   <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
                     Job Function
                     <Info className="w-4 h-4 text-grey" />
@@ -1216,7 +1243,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Seniority Level Distribution */}
-                <div className="rounded-sm border border-strokeElement p-4">
+                <div className="rounded-sm border border-elementStroke p-4">
                   <h4 className="text-base font-semibold text-black mb-5 flex items-center gap-2">
                     Seniority level
                     <Info className="w-4 h-4 text-grey" />
@@ -1254,8 +1281,8 @@ export default function AnalyticsPage() {
             <FollowersLocationMap />
 
             {/* All Posts */}
-            <div className="bg-white rounded-sm border border-strokeElement">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-strokeElement">
+            <div className="bg-white rounded-sm border border-elementStroke">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-elementStroke">
                 <h3 className="text-base font-semibold text-black">All Posts</h3>
                 <PeriodSelector
                   value={period}
@@ -1267,12 +1294,159 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Historical Stats */}
-            <div className="bg-white rounded-sm border border-strokeElement">
+            <div className="bg-white rounded-sm border border-elementStroke">
               <h3 className="text-base font-semibold text-black p-4">Historical Stats</h3>
               <HistoricalStatsTable data={historicalStatsData} />
             </div>
           </div>
         </div>
+
+        {/* Share Analytics Dialog */}
+        <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+          <DialogContent className="sm:max-w-[530px]">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-black">Share analytics report</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-5">
+              {/* Share to section */}
+              <div>
+                <h3 className="text-sm font-normal text-grey mb-3">Share to</h3>
+                <div className="flex gap-4">
+                  {/* Share to channels card */}
+                  <div
+                    className={`w-[232px] border rounded-md p-3 transition-colors cursor-pointer ${
+                      selectedShareOption === 'channels'
+                        ? 'border-main bg-main/5'
+                        : 'border-buttonStroke hover:border-main'
+                    }`}
+                    onClick={() => setSelectedShareOption('channels')}
+                  >
+                    <input
+                      type="radio"
+                      name="shareOption"
+                      value="channels"
+                      checked={selectedShareOption === 'channels'}
+                      onChange={() => setSelectedShareOption('channels')}
+                      className="sr-only"
+                    />
+                    <div className="flex items-start justify-between mb-3">
+                      <Inbox className="w-4 h-4 text-black" />
+                      <div className={`w-4 h-4 rounded-full border-1 flex items-center justify-center ${
+                        selectedShareOption === 'channels'
+                          ? 'border-main'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedShareOption === 'channels' && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-main"></div>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium whitespace-nowrap text-black">
+                      Share to channels "All Message"
+                    </p>
+                  </div>
+
+                  {/* Share to email card */}
+                  <div
+                    className={`w-[232px] border rounded-md p-3 transition-colors cursor-pointer ${
+                      selectedShareOption === 'email'
+                        ? 'border-main bg-main/5'
+                        : 'border-buttonStroke hover:border-main'
+                    }`}
+                    onClick={() => setSelectedShareOption('email')}
+                  >
+                    <input
+                      type="radio"
+                      name="shareOption"
+                      value="email"
+                      checked={selectedShareOption === 'email'}
+                      onChange={() => setSelectedShareOption('email')}
+                      className="sr-only"
+                    />
+                    <div className="flex items-start justify-between mb-3">
+                      <Mail className="w-4 h-4 text-black" />
+                      <div className={`w-4 h-4 rounded-full border-1 flex items-center justify-center ${
+                        selectedShareOption === 'email'
+                          ? 'border-main'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedShareOption === 'email' && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-main"></div>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium whitespace-nowrap text-black">
+                      Share to Email
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Automatic forwarding text */}
+              <p className="text-sm text-grey font-normal">
+                Automatically forward the analytics report to client to 'All Message' channels.
+              </p>
+
+              {/* Interval selection */}
+              <div>
+                <div className="space-y-2">
+                  {[
+                    { id: 'week', mainText: 'Every week', subText: '(on Monday)' },
+                    { id: 'two-weeks', mainText: 'Every 2 weeks', subText: '(on Monday)' },
+                    { id: 'month', mainText: 'Every month', subText: '(on Monday)' },
+                    { id: 'quarter', mainText: 'Every quarter', subText: '(on Monday)' }
+                  ].map((interval) => (
+                    <div key={interval.id} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id={interval.id}
+                        name="interval"
+                        value={interval.id}
+                        checked={selectedInterval === interval.id}
+                        onChange={(e) => setSelectedInterval(e.target.value)}
+                        className="w-4 h-4 text-main border-buttonStroke focus:ring-main"
+                      />
+                      <label htmlFor={interval.id} className="text-sm cursor-pointer">
+                        <span className="text-black font-medium">{interval.mainText}</span>
+                        <span className="text-grey font-normal"> {interval.subText}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsShareDialogOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-black"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Handle download/share logic here
+                    setIsShareDialogOpen(false)
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-black"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Post Detail Sidebar */}
+        <PostDetailSidebar
+          post={selectedPost}
+          isOpen={isSidebarOpen}
+          onClose={handleCloseSidebar}
+        />
       </Suspense>
     </>
   )

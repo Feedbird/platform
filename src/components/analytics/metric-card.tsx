@@ -47,7 +47,7 @@ export function MetricCard({ data, diff, active, onClick }: MetricCardProps) {
       }}
       className={cn(
         'relative flex flex-col rounded-sm p-4 w-full min-w-[160px] transition-all duration-200 cursor-pointer bg-white gap-2',
-        active ? 'ring-1 ring-main border-main' : 'hover:shadow border border-strokeElement'
+        active ? 'ring-1 ring-main border-main' : 'hover:shadow border border-elementStroke'
       )}
     >
       <div className="flex justify-between items-center">
