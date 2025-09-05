@@ -367,6 +367,30 @@ export function ManageSocialsDialog(props: {
             </section>
           </div>
         </div>
+        
+        {/* Privacy Policy and Terms Agreement */}
+        <div className="px-5 pt-4 border-t border-gray-200">
+          <p className="text-xs text-gray-500 text-center leading-relaxed">
+            By connecting your social accounts, you agree to our{" "}
+            <a 
+              href="https://feedbird.com/privacy-policy" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              Privacy Policy
+            </a>{" "}
+            and{" "}
+            <a 
+              href="https://feedbird.com/terms-conditions" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              Terms & Conditions
+            </a>
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );
