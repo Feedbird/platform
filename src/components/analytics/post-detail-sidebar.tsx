@@ -130,7 +130,7 @@ export function PostDetailSidebar({ post, isOpen, onClose }: PostDetailSidebarPr
           <div className="rounded-sm p-3 flex-1 border border-elementStroke">
             <div className="flex flex-col gap-2">
               <div className="flex justify-start">
-                <Play className="w-4 h-4 text-blue-600" />
+                <Play className="w-4 h-4 text-main" />
               </div>
               <div className="flex justify-start">
                 <p className="text-xs font-normal text-darkGrey">Plays</p>
@@ -153,7 +153,7 @@ export function PostDetailSidebar({ post, isOpen, onClose }: PostDetailSidebarPr
           <div className="rounded-sm p-3 flex-1 border border-elementStroke">
             <div className="flex flex-col gap-2">
               <div className="flex justify-start">
-                <Eye className="w-4 h-4 text-purple-600" />
+                <Eye className="w-4 h-4 text-main" />
               </div>
               <div className="flex justify-start">
                 <p className="text-xs font-normal text-darkGrey">Impressions</p>
@@ -176,7 +176,7 @@ export function PostDetailSidebar({ post, isOpen, onClose }: PostDetailSidebarPr
           <div className="rounded-sm p-3 flex-1 border border-elementStroke">
             <div className="flex flex-col gap-2">
               <div className="flex justify-start">
-                <Zap className="w-4 h-4 text-orange-600" />
+                <Zap className="w-4 h-4 text-main" />
               </div>
               <div className="flex justify-start">
                 <p className="text-xs font-normal text-darkGrey">Engagements</p>

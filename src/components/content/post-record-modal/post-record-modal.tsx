@@ -33,6 +33,7 @@ import { ActivityPanel } from "@/components/post/activity-panel";
 import { ContentModal } from "@/components/content/content-modal/content-modal";
 import ScheduleDialog from "@/components/post/schedule-dialog";
 import { VersionPanel } from "./version-panel";
+import { AnalyticsPanel } from "./analytics-panel";
 
 /* simpler inline "clones" for status, channels, format, date */
 import { InlineStatusEditor, InlineDateEditor, ApproveCell } from "./inlines";
@@ -1153,7 +1154,7 @@ export function PostRecordModal({ selectedPost, open, onClose }:{
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setPane('version')}
+                      onClick={() => setPane('analytics')}
                       className={cn(
                         'px-2 text-grey rounded-[6px] h-[24px] cursor-pointer has-[>svg]:!px-2',
                         pane === 'analytics' ? 'bg-white shadow' : ''
@@ -1179,7 +1180,8 @@ export function PostRecordModal({ selectedPost, open, onClose }:{
               <div className="flex-1 overflow-auto">
                 {pane==="version"
                   ? <VersionPanel post={post} onPreviewVersion={handlePreviewVersion} />
-                  // : <ActivityFeed activities={post.activities}/>
+                  : pane==="analytics"
+                  ? <AnalyticsPanel post={post} />
                   : <ActivityPanel key={cKey} post={post} showHeader allowCommenting={allowCommenting} onSwitchToVersion={() => setPane('version')}/>
                 }
               </div>
