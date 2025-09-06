@@ -336,16 +336,3 @@ export function DropdownItemsInput({
     </div>
   );
 }
-
-// TODO is this relevant ? Ask to UX
-// export function DefaultValueInput({
-//   fieldConfig,
-//   setFieldConfig,
-// }: {
-//   fieldConfig: any;
-//   setFieldConfig: (config: any) => void;
-// }) {
-//   const values = React.useMemo(() => fieldConfig.defaultValue?.value, [fieldConfig]);
-//   const [value, setValue] = React.useState()
-//   return ()
-// }

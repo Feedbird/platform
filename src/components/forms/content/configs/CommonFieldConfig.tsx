@@ -39,6 +39,18 @@ export default function FieldConfigWrapper({ field }: Props) {
           setFieldConfig={setFieldConfig}
         />
       )}
+      {fieldConfig.helpText && (
+        <HelpTextInput
+          setFieldConfig={setFieldConfig}
+          fieldConfig={fieldConfig}
+        />
+      )}
+      {fieldConfig.dropdownItems && (
+        <DropdownItemsInput
+          fieldConfig={fieldConfig}
+          setFieldConfig={setFieldConfig}
+        />
+      )}
       {fieldConfig.isRequired && (
         <RequiredInput
           fieldConfig={fieldConfig}
@@ -49,18 +61,6 @@ export default function FieldConfigWrapper({ field }: Props) {
         <AllowMultipleSelectionInput
           fieldConfig={fieldConfig}
           setFieldConfig={setFieldConfig}
-        />
-      )}
-      {fieldConfig.dropdownItems && (
-        <DropdownItemsInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
-        />
-      )}
-      {fieldConfig.helpText && (
-        <HelpTextInput
-          setFieldConfig={setFieldConfig}
-          fieldConfig={fieldConfig}
         />
       )}
       <Button

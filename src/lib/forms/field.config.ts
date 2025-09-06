@@ -50,7 +50,6 @@ type ComplexType = "selection" | "options" | "dropdown" | "spreadsheet";
 interface FieldTypeFlagBaseDefinition {
   isOptional: boolean;
   isComplex: boolean;
-  defaultValue?: any;
 }
 
 export type ComplexObjectType = {
@@ -95,11 +94,11 @@ type FieldTypeEntitlementDDDefinition = FieldTypeComplexSetup & {
   dropdownValues: ComplexObjectType[];
 };
 
-type FieldTypeEntitlementSpreadsheetDefinition = FieldTypeComplexSetup & {
-  complexType: "spreadsheet";
-  columns: ComplexObjectType[];
-  defaultValue: ComplexObjectType[];
-};
+export type FieldTypeEntitlementSpreadsheetDefinition =
+  FieldTypeComplexSetup & {
+    complexType: "spreadsheet";
+    columns: ComplexObjectType[];
+  };
 
 export type FieldTypeEntitlementDefinition =
   | FieldTypeEntitlementNativeDefinition
@@ -230,7 +229,6 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       nativeType: "boolean",
       isComplex: false,
       isOptional: false,
-      defaultValue: false,
       value: false,
     },
   ],
@@ -240,7 +238,6 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       nativeType: "boolean",
       isComplex: false,
       isOptional: false,
-      defaultValue: false,
       value: false,
     },
   ],
@@ -258,12 +255,12 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
     {
       isComplex: true,
       complexType: "options",
-      optionValues: [], // Editable in UI
-      isOptional: false,
-      defaultValue: [
-        { value: "Option 1", order: 1 },
+      optionValues: [
+        { value: "Option 1", order: 0 },
+        { value: "Option 2", order: 1 },
         { value: "Option 2", order: 2 },
-      ],
+      ], // Editable in UI
+      isOptional: false,
     },
   ],
   [
@@ -283,15 +280,14 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
     {
       isComplex: true,
       complexType: "spreadsheet",
-      columns: [], // Editable in UI
-      isOptional: false,
-      defaultValue: [
+      columns: [
         {
           value: "Column 1",
           order: 1,
         },
         { value: "Column 2", order: 2 },
-      ],
+      ], // Editable in UI
+      isOptional: false,
     },
   ],
   [
@@ -300,8 +296,7 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       isComplex: false,
       nativeType: "number",
       isOptional: false,
-      defaultValue: 2,
-      value: 2,
+      value: 3,
     },
   ],
   [

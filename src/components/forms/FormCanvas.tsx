@@ -10,12 +10,14 @@ import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import React from "react";
 import { Input } from "../ui/input";
-import { useImageUploader } from "@/hooks/use-image-uploader";
 import { Textarea } from "../ui/textarea";
 import { Checkbox } from "../ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
 import { ComplexObjectType } from "@/lib/forms/field.config";
 import MultiSelectPlaceholder from "./content/MultiSelectPlaceholder";
+import SpreadSheetTablePlaceholder from "./content/SpreadSheetTablePlaceholder";
+import OptionsPlaceholder from "./content/OptionsPlaceholder";
+import { Button } from "../ui/button";
 
 export interface FormField {
   id: string;
@@ -154,7 +156,7 @@ export default function FormCanvas({
             </div>
             {formFields.length === 0 ? (
               <div className="p-3 w-full h-[60px]">
-                <div className="bg-[#EDF6FF] w-full h-full border-[#4670F9] border-1 border-dashed">
+                <div className="bg-[#EDF6FF] w-full h-full border-[#4670F9] border-1 border-dashed rounded-[6px]">
                   <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
                     +Add Components
                   </span>
@@ -173,7 +175,7 @@ export default function FormCanvas({
                         overId === field.id &&
                         activeId !== field.id &&
                         !formFields.find((f) => f.id === activeId) && (
-                          <div className="h-1 bg-blue-400 rounded-full mx-4 transition-all duration-200" />
+                          <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200" />
                         )}
                       <SimpleFormField
                         field={field}
@@ -249,9 +251,13 @@ function SimpleFormField({
       ref={setNodeRef}
       style={style}
       onClick={handleFieldClick}
-      className={`group rounded-[6px] p-3 bg-white hover:border-blue-300 border-1 relative cursor-pointer transition-all ${
+      className={`group rounded-[6px] p-3 hover:border-blue-300 border-1 relative cursor-pointer transition-all ${
         isDragging ? "opacity-50" : "opacity-100"
-      } ${isSelected ? "border-2 border-blue-500 shadow-md" : "border-white"}`}
+      } ${
+        isSelected
+          ? "border-1.5 border-[#4670F9] shadow-md bg-[#EDF6FF]"
+          : "border-white bg-white"
+      }`}
     >
       <Image
         {...attributes}
@@ -319,9 +325,9 @@ function SimpleFormField({
               </p>
             )}
             <Textarea
-              rows={3}
+              rows={5}
               onClick={(e) => e.stopPropagation()}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border bg-white border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         )}
@@ -333,7 +339,7 @@ function SimpleFormField({
             </label>
             {!field.config?.allowMultipleSelection?.value ? (
               <Select>
-                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] cursor-pointer">
+                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] cursor-pointer text-[#1C1D1F]">
                   Select option
                 </SelectTrigger>
                 <SelectContent avoidCollisions>
@@ -397,21 +403,84 @@ function SimpleFormField({
             )}
           </div>
         )}
-
-        {![
-          "text",
-          "textarea",
-          "dropdown",
-          "checkbox",
-          "section-break",
-        ].includes(field.type) && (
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">
+        {field.type === "attachment" && (
+          <div className="flex flex-col gap-1.5">
+            <label className="block text-base text-[#1C1D1F]">
               {field.title}
             </label>
-            <div className="text-gray-500 italic">
-              {field.type} field (not implemented yet)
+            <div className="w-full rounded-[6px] border-1 border-[#D3D3D3] p-4.5 border-dashed flex justify-center bg-white">
+              <div className="flex flex-col items-center gap-1">
+                <div className="p-2 rounded-full h-9 w-9 border-1 border-[#D3D3D3] flex items-center justify-center">
+                  <Image
+                    src="/images/forms/upload.svg"
+                    alt="upload_icon"
+                    width={16}
+                    height={16}
+                  />
+                </div>
+                <div className="flex flex-row gap-1">
+                  <span className="text-[#4670F9] font-semibold text-sm hover:underline">
+                    Click to upload
+                  </span>
+                  <p className="text-[#5C5E63] font-normal text-sm">
+                    or drag and drop
+                  </p>
+                </div>
+                <p className="text-[#5C5E63] font-normal text-sm">
+                  SVG, PNG, JPG
+                </p>
+              </div>
             </div>
+          </div>
+        )}
+
+        {field.type === "spreadsheet" && (
+          <div className="flex flex-col gap-3">
+            <label className="block text-base text-[#1C1D1F]">
+              {field.title}
+            </label>
+            {field.description && (
+              <p className="text-sm text-[#838488] font-normal">
+                {field.description}
+              </p>
+            )}
+            <SpreadSheetTablePlaceholder config={field.config} />
+          </div>
+        )}
+
+        {field.type === "option" && (
+          <div className="flex flex-col gap-3">
+            <label className="block text-base text-[#1C1D1F]">
+              {field.title}
+            </label>
+            {field.description && (
+              <p className="text-sm text-[#838488] font-normal">
+                {field.description}
+              </p>
+            )}
+            <OptionsPlaceholder config={field.config} />
+          </div>
+        )}
+
+        {field.type === "page-break" && (
+          <div className="flex flex-row items-center justify-between gap-3">
+            <div className="flex flex-col">
+              {field.description && (
+                <p className="text-sm text-[#838488] font-normal">
+                  {field.description}
+                </p>
+              )}
+              <label className="block text-base text-[#1C1D1F]">
+                {field.title}
+              </label>
+            </div>
+            <Button
+              variant="default"
+              onClick={(e) => e.stopPropagation()}
+              className="mr-4 shadow-lg bg-[#4670F9] rounded-[6px] text-white cursor-pointer px-3 py-1.5"
+            >
+              Next
+            </Button>
           </div>
         )}
       </div>

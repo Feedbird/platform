@@ -131,6 +131,7 @@ export default function FormInnerVisualizer() {
   const addNewField = (fieldType: FormFieldType) => {
     const fieldDef = fieldDefs[fieldType];
 
+    console.log("Add new field:", fieldType, fieldDef);
     const newField: FormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
@@ -151,6 +152,7 @@ export default function FormInnerVisualizer() {
     const fieldDef =
       fieldDefs[fieldType.toLowerCase() as keyof typeof fieldDefs];
 
+    console.log("Add new field at position:", fieldType, fieldDef);
     const newField: FormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
