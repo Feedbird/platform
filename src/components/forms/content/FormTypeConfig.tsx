@@ -9,15 +9,25 @@ type Props = {
     React.SetStateAction<{ id: string; type: string } | null>
   >;
   type: string;
+  fieldId: string;
+  updateFieldConfig: (fieldId: string, newConfig: any) => void;
 };
 
 export default function FormTypeConfig({
   isVisible = true,
   type,
+  updateFieldConfig,
+  fieldId,
   setVisible,
 }: Props) {
   const defaultFieldDefinition =
     UIFormFieldDefaults[type as keyof typeof UIFormFieldDefaults] || null;
+
+  const updateConfig = (newConfig: any) => {
+    if (fieldId) {
+      updateFieldConfig(fieldId, newConfig);
+    }
+  };
 
   // Always render the container for smooth animations, but conditionally render content
   return (
@@ -45,7 +55,10 @@ export default function FormTypeConfig({
             </div>
           </header>
           <div>
-            <FieldConfigWrapper field={defaultFieldDefinition} />
+            <FieldConfigWrapper
+              updateConfig={updateConfig}
+              field={defaultFieldDefinition}
+            />
           </div>
         </>
       )}

@@ -52,7 +52,6 @@ export default function OptionsPlaceholder({ config }: Props) {
     [config]
   );
 
-  console.log(options);
   return (
     <div className="flex flex-wrap gap-3">
       {options.map((opt) => (

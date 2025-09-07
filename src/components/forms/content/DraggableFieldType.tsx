@@ -35,11 +35,9 @@ export function BaseContent({
       </div>
       <div
         onClick={(e) => {
-          console.log("Plus icon clicked!", { type, onAddField: !!onAddField });
           e.stopPropagation(); // Prevent event bubbling
           e.preventDefault(); // Prevent default behavior
           if (onAddField && type) {
-            console.log("Calling onAddField with type:", type);
             onAddField(type);
           } else {
             console.log("Missing onAddField or type:", {

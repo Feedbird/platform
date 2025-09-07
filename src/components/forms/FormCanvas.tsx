@@ -22,8 +22,8 @@ import { Button } from "../ui/button";
 export interface FormField {
   id: string;
   type: string;
-  title: string;
-  description: string;
+  // title: string;
+  // description: string;
   position: number;
   config?: any;
 }
@@ -68,7 +68,6 @@ export default function FormCanvas({
       setFormCover(previewUrl);
 
       // TODO: Implement actual upload using the useImageUploader hook
-      console.log("File selected:", file);
     }
   };
 
@@ -300,11 +299,11 @@ function SimpleFormField({
         {field.type === "text" && (
           <div className="flex flex-col gap-2">
             <label className="block text-base text-[#1C1D1F]">
-              {field.title}
+              {field.config.title.value}
             </label>
-            {field.description && (
+            {field.config.description && (
               <p className="text-sm text-[#838488] font-normal">
-                {field.description}
+                {field.config.description.value}
               </p>
             )}
             <Input
@@ -317,11 +316,11 @@ function SimpleFormField({
         {field.type === "textarea" && (
           <div className="flex flex-col gap-2">
             <label className="block text-base text-[#1C1D1F]">
-              {field.title}
+              {field.config.title.value}
             </label>
-            {field.description && (
+            {field.config.description && (
               <p className="text-sm text-[#838488] font-normal">
-                {field.description}
+                {field.config.description.value}
               </p>
             )}
             <Textarea
@@ -335,7 +334,7 @@ function SimpleFormField({
         {field.type === "dropdown" && (
           <div className="flex flex-col gap-2">
             <label className="block text-base text-[#1C1D1F]">
-              {field.title}
+              {field.config.title.value}
             </label>
             {!field.config?.allowMultipleSelection?.value ? (
               <Select>
@@ -380,11 +379,11 @@ function SimpleFormField({
             />
             <div className="flex flex-col gap-0.5">
               <label className="block text-base text-[#1C1D1F]">
-                {field.title}
+                {field.config.title.value}
               </label>
-              {field.description && (
+              {field.config.description && (
                 <p className="text-sm text-[#838488] font-normal">
-                  {field.description}
+                  {field.config.description.value}
                 </p>
               )}
             </div>
@@ -394,11 +393,11 @@ function SimpleFormField({
         {field.type === "section-break" && (
           <div className="flex flex-col gap-1.5">
             <label className="block text-base text-[#1C1D1F]">
-              {field.title}
+              {field.config.title.value}
             </label>
-            {field.description && (
+            {field.config.description && (
               <p className="text-sm text-[#838488] font-normal">
-                {field.description}
+                {field.config.description.value}
               </p>
             )}
           </div>
@@ -406,7 +405,7 @@ function SimpleFormField({
         {field.type === "attachment" && (
           <div className="flex flex-col gap-1.5">
             <label className="block text-base text-[#1C1D1F]">
-              {field.title}
+              {field.config.title.value}
             </label>
             <div className="w-full rounded-[6px] border-1 border-[#D3D3D3] p-4.5 border-dashed flex justify-center bg-white">
               <div className="flex flex-col items-center gap-1">
@@ -437,11 +436,11 @@ function SimpleFormField({
         {field.type === "spreadsheet" && (
           <div className="flex flex-col gap-3">
             <label className="block text-base text-[#1C1D1F]">
-              {field.title}
+              {field.config.title.value}
             </label>
-            {field.description && (
+            {field.config.description && (
               <p className="text-sm text-[#838488] font-normal">
-                {field.description}
+                {field.config.description.value}
               </p>
             )}
             <SpreadSheetTablePlaceholder config={field.config} />
@@ -451,11 +450,11 @@ function SimpleFormField({
         {field.type === "option" && (
           <div className="flex flex-col gap-3">
             <label className="block text-base text-[#1C1D1F]">
-              {field.title}
+              {field.config.title.value}
             </label>
-            {field.description && (
+            {field.config.description && (
               <p className="text-sm text-[#838488] font-normal">
-                {field.description}
+                {field.config.description.value}
               </p>
             )}
             <OptionsPlaceholder config={field.config} />
@@ -465,13 +464,13 @@ function SimpleFormField({
         {field.type === "page-break" && (
           <div className="flex flex-row items-center justify-between gap-3">
             <div className="flex flex-col">
-              {field.description && (
+              {field.config.description && (
                 <p className="text-sm text-[#838488] font-normal">
-                  {field.description}
+                  {field.config.description.value}
                 </p>
               )}
               <label className="block text-base text-[#1C1D1F]">
-                {field.title}
+                {field.config.title.value}
               </label>
             </div>
             <Button

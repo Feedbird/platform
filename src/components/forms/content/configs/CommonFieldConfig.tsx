@@ -3,19 +3,23 @@ import { UIFormField } from "@/lib/forms/fields";
 import { Button } from "@/components/ui/button";
 import {
   AllowMultipleSelectionInput,
+  ColumnSelectInput,
   DescriptionInput,
   DropdownItemsInput,
   HelpTextInput,
+  OptionSelectInput,
   PlaceholderInput,
   RequiredInput,
+  RowsSelectInput,
   TitleInput,
 } from "./Inputs";
 
 type Props = {
   field: UIFormField;
+  updateConfig: (newConfig: any) => void;
 };
 
-export default function FieldConfigWrapper({ field }: Props) {
+export default function FieldConfigWrapper({ field, updateConfig }: Props) {
   const [fieldConfig, setFieldConfig] = React.useState(field.config);
 
   React.useEffect(() => {
@@ -29,6 +33,18 @@ export default function FieldConfigWrapper({ field }: Props) {
       )}
       {fieldConfig.placeholder && (
         <PlaceholderInput
+          fieldConfig={fieldConfig}
+          setFieldConfig={setFieldConfig}
+        />
+      )}
+      {fieldConfig.spreadsheetColumns && (
+        <ColumnSelectInput
+          fieldConfig={fieldConfig}
+          setFieldConfig={setFieldConfig}
+        />
+      )}
+      {fieldConfig.allowedRows && (
+        <RowsSelectInput
           fieldConfig={fieldConfig}
           setFieldConfig={setFieldConfig}
         />
@@ -51,6 +67,12 @@ export default function FieldConfigWrapper({ field }: Props) {
           setFieldConfig={setFieldConfig}
         />
       )}
+      {fieldConfig.optionItems && (
+        <OptionSelectInput
+          fieldConfig={fieldConfig}
+          setFieldConfig={setFieldConfig}
+        />
+      )}
       {fieldConfig.isRequired && (
         <RequiredInput
           fieldConfig={fieldConfig}
@@ -65,6 +87,7 @@ export default function FieldConfigWrapper({ field }: Props) {
       )}
       <Button
         variant="default"
+        onClick={() => updateConfig(fieldConfig)}
         className="w-full hover:cursor-pointer shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
       >
         Save

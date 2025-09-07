@@ -7,7 +7,7 @@ import { CSS } from "@dnd-kit/utilities";
 type Props = {
   value: string;
   order: number;
-  setValue: (order: number, value: string) => void;
+  setValue: (order: number, value: string, image?: string) => void;
   handleDelete: (order: number) => void;
 };
 
@@ -55,6 +55,7 @@ export default function ItemCard({
       />
       <Image
         src="/images/boards/delete.svg"
+        className="hover:cursor-pointer"
         alt="delete_icon"
         onClick={() => handleDelete(order)}
         width={16}

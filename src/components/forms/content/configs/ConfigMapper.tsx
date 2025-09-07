@@ -14,7 +14,6 @@ export function configInputMapper(
 ): (() => React.JSX.Element)[] {
   if (!field || !field.config) return [];
 
-  console.log(field);
   const keys = Object.keys(field.config);
   const elements: (() => React.JSX.Element)[] = [];
 

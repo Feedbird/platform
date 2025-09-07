@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/sortable";
 import React from "react";
 import ItemCard from "./ItemCard";
+import DraggableItems, { DraggableItemType } from "./DraggableItems";
 
 export function TitleInput({
   fieldConfig,
@@ -188,6 +189,13 @@ export function HelpTextInput({
   );
 }
 
+const normalizeItemOrders = (itemsArray: ComplexObjectType[]) => {
+  return itemsArray.map((item, index) => ({
+    ...item,
+    order: index,
+  }));
+};
+
 export function DropdownItemsInput({
   fieldConfig,
   setFieldConfig,
@@ -198,14 +206,6 @@ export function DropdownItemsInput({
   const [items, setItems] = React.useState<ComplexObjectType[]>(
     fieldConfig.dropdownItems?.dropdownValues || []
   );
-
-  // Helper function to normalize order values based on array index
-  const normalizeItemOrders = (itemsArray: ComplexObjectType[]) => {
-    return itemsArray.map((item, index) => ({
-      ...item,
-      order: index,
-    }));
-  };
 
   // Normalize orders when component initializes to fix any existing gaps
   React.useEffect(() => {
@@ -246,8 +246,6 @@ export function DropdownItemsInput({
       },
     });
   };
-
-  const itemsIds = items.map((item) => item.value);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -291,8 +289,19 @@ export function DropdownItemsInput({
   };
 
   const handleCreateItem = () => {
+    // Find the next available option number to avoid duplicates
+    const existingNumbers = items
+      .map((item) => {
+        const match = item.value.match(/^Option (\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((num) => num > 0);
+
+    const nextNumber =
+      existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+
     const newItem: ComplexObjectType = {
-      value: `Option ${items.length + 1}`,
+      value: `Option ${nextNumber}`,
       order: items.length,
     };
     const newItems = [...items, newItem];
@@ -307,32 +316,310 @@ export function DropdownItemsInput({
   };
 
   return (
+    <DraggableItems
+      items={items}
+      addText="+Add Option"
+      handleCreateItem={handleCreateItem}
+      handleDragEnd={handleDragEnd}
+      handleItemDeletion={handleItemDeletion}
+      handleSingleItemValueChange={handleSingleItemValueChange}
+    />
+  );
+}
+
+export function RowsSelectInput({
+  fieldConfig,
+  setFieldConfig,
+}: {
+  fieldConfig: any;
+  setFieldConfig: (config: any) => void;
+}) {
+  return (
     <div className="flex flex-col gap-1 w-full">
-      <label className="text-[#5C5E63] text-sm font-normal ">Items</label>
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext
-          items={itemsIds}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="flex flex-col gap-2">
-            {items.map((item, index) => (
-              <ItemCard
-                handleDelete={handleItemDeletion}
-                key={item.order + 1}
-                order={index}
-                setValue={handleSingleItemValueChange}
-                value={item.value}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-      <span
-        className="text-[#4670F9] font-medium text-sm mt-1 hover:underline cursor-pointer"
-        onClick={handleCreateItem}
-      >
-        +Add Option
-      </span>
+      <div className="flex flex-row gap-1 items-center">
+        <label className="text-[#5C5E63] text-sm font-normal ">
+          How many rows to allow?
+        </label>
+      </div>
+      <Input
+        value={fieldConfig.allowedRows?.value || 0}
+        onChange={(e) =>
+          setFieldConfig({
+            ...fieldConfig,
+            allowedRows: {
+              ...(fieldConfig.allowedRows || {}),
+              value: parseInt(e.target.value, 10) || 0,
+            },
+          })
+        }
+        type="number"
+        className="bg-white rounded-[6px] border-1 border-[#D3D3D3]"
+      />
+      <p className="text-xs font-normal text-[#838488]">
+        Initial number of rows matches purchased quantity, user can add more
+        rows if needed.
+      </p>
     </div>
+  );
+}
+
+export function ColumnSelectInput({
+  fieldConfig,
+  setFieldConfig,
+}: {
+  fieldConfig: any;
+  setFieldConfig: (config: any) => void;
+}) {
+  const [items, setItems] = React.useState<DraggableItemType[]>(
+    fieldConfig.spreadsheetColumns?.columns || []
+  );
+
+  React.useEffect(() => {
+    const initialItems: DraggableItemType[] =
+      fieldConfig.spreadsheetColumns?.columns || [];
+    if (initialItems.length > 0) {
+      const normalizedItems = normalizeItemOrders(initialItems);
+
+      const hasGaps = initialItems.some(
+        (item: DraggableItemType, index: number) => item.order !== index
+      );
+      if (hasGaps) {
+        setItems(normalizedItems);
+        setFieldConfig({
+          ...fieldConfig,
+          spreadsheetColumns: {
+            ...(fieldConfig.spreadsheetColumns || {}),
+            columns: normalizedItems,
+          },
+        });
+      } else {
+        setItems(initialItems);
+      }
+    }
+  }, []);
+
+  const handleItemDeletion = (order: number) => {
+    const filteredItems = items.filter((item, index) => index !== order);
+    const reindexedItems = normalizeItemOrders(filteredItems);
+
+    setItems(reindexedItems);
+    setFieldConfig({
+      ...fieldConfig,
+      spreadsheetColumns: {
+        ...(fieldConfig.spreadsheetColumns || {}),
+        columns: reindexedItems,
+      },
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = items.findIndex((item) => item.value === active.id);
+    const newIndex = items.findIndex((item) => item.value === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reorderedItems = arrayMove(items, oldIndex, newIndex);
+      const normalizedItems = normalizeItemOrders(reorderedItems);
+
+      setItems(normalizedItems);
+      setFieldConfig({
+        ...fieldConfig,
+        spreadsheetColumns: {
+          ...(fieldConfig.spreadsheetColumns || {}),
+          columns: normalizedItems,
+        },
+      });
+    }
+  };
+
+  const handleSingleItemValueChange = (order: number, val: string) => {
+    const newItems = items.map((item, index) =>
+      index === order ? { ...item, value: val } : item
+    );
+    setItems(newItems);
+    setFieldConfig({
+      ...fieldConfig,
+      spreadsheetColumns: {
+        ...(fieldConfig.spreadsheetColumns || {}),
+        columns: newItems,
+      },
+    });
+  };
+
+  const handleCreateItem = () => {
+    // Find the next available option number to avoid duplicates
+    const existingNumbers = items
+      .map((item) => {
+        const match = item.value.match(/^Option (\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((num) => num > 0);
+
+    const nextNumber =
+      existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+
+    const newItem: ComplexObjectType = {
+      value: `Option ${nextNumber}`,
+      order: items.length,
+    };
+    const newItems = [...items, newItem];
+    setItems(newItems);
+    setFieldConfig({
+      ...fieldConfig,
+      spreadsheetColumns: {
+        ...(fieldConfig.spreadsheetColumns || {}),
+        columns: newItems,
+      },
+    });
+  };
+
+  return (
+    <DraggableItems
+      addText="+Add Column"
+      items={items}
+      handleCreateItem={handleCreateItem}
+      handleDragEnd={handleDragEnd}
+      handleItemDeletion={handleItemDeletion}
+      handleSingleItemValueChange={handleSingleItemValueChange}
+    />
+  );
+}
+
+export function OptionSelectInput({
+  fieldConfig,
+  setFieldConfig,
+}: {
+  fieldConfig: any;
+  setFieldConfig: (config: any) => void;
+}) {
+  const [items, setItems] = React.useState<DraggableItemType[]>(
+    fieldConfig.optionItems?.optionValues || []
+  );
+
+  React.useEffect(() => {
+    const initialItems: DraggableItemType[] =
+      fieldConfig.optionItems?.optionValues || [];
+    if (initialItems.length > 0) {
+      const normalizedItems = normalizeItemOrders(initialItems);
+
+      const hasGaps = initialItems.some(
+        (item: DraggableItemType, index: number) => item.order !== index
+      );
+      if (hasGaps) {
+        setItems(normalizedItems);
+        setFieldConfig({
+          ...fieldConfig,
+          optionItems: {
+            ...(fieldConfig.optionItems || {}),
+            optionValues: normalizedItems,
+          },
+        });
+      } else {
+        setItems(initialItems);
+      }
+    }
+  }, []);
+
+  const handleItemDeletion = (order: number) => {
+    const filteredItems = items.filter((item, index) => index !== order);
+    const reindexedItems = normalizeItemOrders(filteredItems);
+
+    setItems(reindexedItems);
+    setFieldConfig({
+      ...fieldConfig,
+      optionItems: {
+        ...(fieldConfig.optionItems || {}),
+        optionValues: reindexedItems,
+      },
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = items.findIndex((item) => item.value === active.id);
+    const newIndex = items.findIndex((item) => item.value === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reorderedItems = arrayMove(items, oldIndex, newIndex);
+      const normalizedItems = normalizeItemOrders(reorderedItems);
+
+      setItems(normalizedItems);
+      setFieldConfig({
+        ...fieldConfig,
+        optionItems: {
+          ...(fieldConfig.optionItems || {}),
+          optionValues: normalizedItems,
+        },
+      });
+    }
+  };
+
+  const handleCreateItem = () => {
+    // Find the next available option number to avoid duplicates
+    const existingNumbers = items
+      .map((item) => {
+        const match = item.value.match(/^Option (\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((num) => num > 0);
+
+    const nextNumber =
+      existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+
+    const newItem: DraggableItemType = {
+      value: `Option ${nextNumber}`,
+      order: items.length,
+      image: "",
+    };
+    const newItems = [...items, newItem];
+    setItems(newItems);
+    setFieldConfig({
+      ...fieldConfig,
+      optionItems: {
+        ...(fieldConfig.optionItems || {}),
+        optionValues: newItems,
+      },
+    });
+  };
+
+  const handleSingleItemValueChange = (
+    order: number,
+    val: string,
+    image?: string
+  ) => {
+    const newItems = items.map((item, index) =>
+      index === order
+        ? { ...item, value: val, ...(image !== undefined ? { image } : {}) }
+        : item
+    );
+    setItems(newItems);
+    setFieldConfig({
+      ...fieldConfig,
+      optionItems: {
+        ...(fieldConfig.optionItems || {}),
+        optionValues: newItems,
+      },
+    });
+  };
+  return (
+    <DraggableItems
+      items={items}
+      isOptionConfig={true}
+      addText="+Add Option"
+      handleCreateItem={handleCreateItem}
+      handleDragEnd={handleDragEnd}
+      handleItemDeletion={handleItemDeletion}
+      handleSingleItemValueChange={handleSingleItemValueChange}
+    />
   );
 }

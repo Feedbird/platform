@@ -258,7 +258,6 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       optionValues: [
         { value: "Option 1", order: 0 },
         { value: "Option 2", order: 1 },
-        { value: "Option 2", order: 2 },
       ], // Editable in UI
       isOptional: false,
     },
@@ -283,9 +282,9 @@ export const ENTITLEMENTS_DEFINITIONS_MAP = new Map<
       columns: [
         {
           value: "Column 1",
-          order: 1,
+          order: 0,
         },
-        { value: "Column 2", order: 2 },
+        { value: "Column 2", order: 1 },
       ], // Editable in UI
       isOptional: false,
     },

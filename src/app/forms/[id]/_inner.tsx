@@ -50,6 +50,14 @@ export default function FormInnerVisualizer() {
 
   const fieldDefs = React.useMemo(() => UIFormFieldDefaults, []);
 
+  const updateFieldConfig = (fieldId: string, newConfig: any) => {
+    setFormFields((prevFields) =>
+      prevFields.map((field) =>
+        field.id === fieldId ? { ...field, config: newConfig } : field
+      )
+    );
+  };
+
   const retrieveForm = async (formId: string) => {
     try {
       setLoading(true);
@@ -81,16 +89,7 @@ export default function FormInnerVisualizer() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    console.log("🚀 Drag ended:", {
-      activeId: active.id,
-      overId: over?.id,
-      activeData: active.data.current,
-      overData: over?.data.current,
-      currentFieldsCount: formFields.length,
-    });
-
     if (!over) {
-      console.log("❌ No drop target found");
       setActiveId(null);
       return;
     }
@@ -98,11 +97,9 @@ export default function FormInnerVisualizer() {
     // Check if dragging from sidebar (template) to form area
     if (active.data.current?.type === "template") {
       if (over.id === "form-canvas") {
-        console.log("✅ Adding new field from template to end: ", active);
         addNewField(active.id as FormFieldType);
       } else if (formFields.find((f) => f.id === over.id)) {
         // Dropping over an existing field - insert before it
-        console.log("✅ Adding new field from template at position");
         const targetIndex = formFields.findIndex((f) => f.id === over.id);
         addNewFieldAtPosition(active.id as string, targetIndex);
       }
@@ -110,7 +107,6 @@ export default function FormInnerVisualizer() {
 
     // Handle field reordering within the form
     if (active.id !== over.id && formFields.find((f) => f.id === active.id)) {
-      console.log("🔄 Reordering existing fields");
       setFormFields((fields) => {
         const oldIndex = fields.findIndex((f) => f.id === active.id);
         const newIndex = fields.findIndex((f) => f.id === over.id);
@@ -131,13 +127,9 @@ export default function FormInnerVisualizer() {
   const addNewField = (fieldType: FormFieldType) => {
     const fieldDef = fieldDefs[fieldType];
 
-    console.log("Add new field:", fieldType, fieldDef);
     const newField: FormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      description: (fieldDef.config.description?.value as string) || "",
-      title:
-        (fieldDef.config.title?.value as string) || `New ${fieldType} Field`,
       position: formFields.length,
       config: fieldDef.config,
     };
@@ -152,18 +144,13 @@ export default function FormInnerVisualizer() {
     const fieldDef =
       fieldDefs[fieldType.toLowerCase() as keyof typeof fieldDefs];
 
-    console.log("Add new field at position:", fieldType, fieldDef);
     const newField: FormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      description: (fieldDef.config.description?.value as string) || "",
-      title:
-        (fieldDef.config.title?.value as string) || `New ${fieldType} Field`,
       position: insertIndex,
       config: fieldDef.config,
     };
 
-    console.log("🎯 Creating field at position:", insertIndex, newField);
     setFormFields((prev) => {
       const updated = [...prev];
       updated.splice(insertIndex, 0, newField);
@@ -176,7 +163,6 @@ export default function FormInnerVisualizer() {
   };
 
   const handleDragStart = (event: any) => {
-    console.log("🚀 Drag started:", event.active.id);
     setActiveId(event.active.id as string);
   };
 
@@ -199,7 +185,9 @@ export default function FormInnerVisualizer() {
 
   const displayField = activeTemplateField || activePlacedFieldTemplate;
   const displayLabel =
-    activeTemplateField?.label || activePlacedField?.title || "Field";
+    activeTemplateField?.label ||
+    activePlacedField?.config.title.value ||
+    "Field";
 
   if (loading) {
     return <Loading />;
@@ -240,6 +228,8 @@ export default function FormInnerVisualizer() {
         </div>
         <FormEditorSideBar onAddField={addNewField} />
         <FormTypeConfig
+          fieldId={selectedField?.id || ""}
+          updateFieldConfig={updateFieldConfig}
           setVisible={setSelectedField}
           isVisible={selectedField !== null}
           type={selectedField?.type || ""}
