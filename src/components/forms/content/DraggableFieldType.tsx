@@ -39,11 +39,6 @@ export function BaseContent({
           e.preventDefault(); // Prevent default behavior
           if (onAddField && type) {
             onAddField(type);
-          } else {
-            console.log("Missing onAddField or type:", {
-              onAddField: !!onAddField,
-              type,
-            });
           }
         }}
         onPointerDown={(e) => {

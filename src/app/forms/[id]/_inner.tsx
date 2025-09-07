@@ -6,7 +6,6 @@ import {
   DragEndEvent,
   DragOverEvent,
   DragOverlay,
-  closestCenter,
   pointerWithin,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -25,7 +24,6 @@ import { useParams } from "next/navigation";
 import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
 import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
-import { randomUUID } from "crypto";
 
 type SelectedField = {
   id: string;
@@ -33,7 +31,7 @@ type SelectedField = {
 };
 
 export default function FormInnerVisualizer() {
-  const { setIsEditing } = useForms();
+  const { setIsEditing, setActiveForm } = useForms();
   const params = useParams();
   const formId = params.id as string;
 
@@ -64,6 +62,14 @@ export default function FormInnerVisualizer() {
       setError(null);
       const { data } = await formsApi.getFormById(formId);
       setForm(data);
+      // Convert Form to TableForm and update the FormsContext with the active form
+      const tableForm = {
+        ...data,
+        services: data.services || [],
+        submissions_count: 0, // Default values for table-specific properties
+        fields_count: 0,
+      };
+      setActiveForm(tableForm);
     } catch (err) {
       console.error("Error fetching form:", err);
       setError(err instanceof Error ? err.message : "Failed to load form");
@@ -81,10 +87,11 @@ export default function FormInnerVisualizer() {
   React.useEffect(() => {
     setIsEditing(true);
     return () => {
-      // Clean up edit mode when leaving
+      // Clean up edit mode and active form when leaving
       setIsEditing(false);
+      setActiveForm(null);
     };
-  }, [setIsEditing]);
+  }, [setIsEditing, setActiveForm]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -213,7 +220,7 @@ export default function FormInnerVisualizer() {
     >
       <div className="w-full h-full flex bg-[#FBFBFB] overflow-hidden relative">
         <div className="flex-1 min-w-0 overflow-auto relative pb-10">
-          <ServiceSelector />
+          <ServiceSelector formServices={form.services || []} />
           <FormCanvas
             formFields={formFields}
             setFormFields={setFormFields}

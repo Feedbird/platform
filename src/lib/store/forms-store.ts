@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { Form } from "../supabase/client";
-import { ApiResponse, formsApi } from "../api/api-service";
+import { Form, Service } from "../supabase/client";
+import { ApiResponse, formsApi, servicesApi } from "../api/api-service";
 
 interface FormStoreState {
   getFormsByWorkspaceId: (workspaceId: string) => Promise<ApiResponse<Form[]>>;
@@ -9,6 +9,8 @@ interface FormStoreState {
     creatorEmail: string,
     workspaceId: string
   ) => Promise<Form>;
+  services: Service[];
+  fetchServices: (workspaceId: string) => void;
 }
 
 export const useFormStore = create<FormStoreState>((set, get) => ({
@@ -30,6 +32,16 @@ export const useFormStore = create<FormStoreState>((set, get) => ({
     } catch (error) {
       console.error("❌ Failed to create initial form:", error);
       throw error;
+    }
+  },
+  services: [],
+  fetchServices: async (workspaceId: string) => {
+    try {
+      const services = await servicesApi.fetchAllServices(workspaceId);
+      console.log(`✅ Services fetched successfully`);
+      set({ services: services.data || [] });
+    } catch (e) {
+      throw e;
     }
   },
 }));

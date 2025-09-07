@@ -2,10 +2,27 @@
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import React from "react";
 import { ServicesMultiSelect } from "../ServicesMultiSelect";
+import { Service } from "@/lib/supabase/client";
+import { ModalMultiSelect } from "./ModalMultiSelect";
+import { useFormStore } from "@/lib/store/forms-store";
 
-export default function ServiceSelector() {
-  const { activeWorkspaceId } = useFeedbirdStore();
-  const [selectedServices, onSelectionChange] = React.useState<string[]>([]);
+type ServiceSelectorProps = {
+  formServices: Service[];
+};
+
+export default function ServiceSelector({
+  formServices,
+}: ServiceSelectorProps) {
+  const { services } = useFormStore();
+  const [selectedServices, setSelectedServices] = React.useState<Service[]>(
+    formServices || []
+  );
+
+  const handleServicesChange = (selectedIds: string[]) => {
+    setSelectedServices(
+      services.filter((service) => selectedIds.includes(service.id.toString()))
+    );
+  };
 
   return (
     <header className="flex flex-col gap-5 p-6 max-w-[900px] mx-auto">
@@ -24,11 +41,13 @@ export default function ServiceSelector() {
             Choose Services
           </span>
           <div className="flex flex-row justify-between w-full">
-            <ServicesMultiSelect
+            <ModalMultiSelect
+              options={services}
+              selectedValues={selectedServices.map((s) => s.id.toString())}
+              onSelectionChange={handleServicesChange}
               className="w-full"
-              workspaceId={activeWorkspaceId || ""}
-              selectedServices={selectedServices}
-              onSelectionChange={onSelectionChange}
+              placeholder="Select services..."
+              maxDisplayTags={3}
             />
           </div>
         </div>
