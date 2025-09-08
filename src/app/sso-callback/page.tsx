@@ -1,28 +1,28 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSignUp, useAuth } from '@clerk/nextjs'
+import { useAuth, useSignIn, useSignUp } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 export default function SSOCallbackPage() {
-  const { signUp, isLoaded } = useSignUp()
-  const { getToken } = useAuth()
+  const { isSignedIn, isLoaded: authLoaded } = useAuth()
+  const { signIn, isLoaded: signInLoaded } = useSignIn()
+  const { signUp, isLoaded: signUpLoaded } = useSignUp()
   const router = useRouter()
 
   useEffect(() => {
     const handleCallback = async () => {
-      if (!isLoaded) return
+      // Wait for all auth resources to be loaded
+      if (!authLoaded || !signInLoaded || !signUpLoaded) return
 
       try {
-        // Handle the OAuth callback
-        const signUpAttempt = await signUp.handleRedirectCallback()
-
-        if (signUpAttempt.status === 'complete') {
-          // Set the active session
-          await signUp.setActive({ session: signUpAttempt.createdSessionId })
+        // Check if user is signed in after OAuth redirect
+        if (isSignedIn) {
+          // User successfully authenticated, redirect to home
           router.push('/')
         } else {
-          console.error('OAuth callback failed')
+          // Authentication failed, redirect to signup
+          console.error('OAuth authentication failed')
           router.push('/signup')
         }
       } catch (err) {
@@ -32,7 +32,7 @@ export default function SSOCallbackPage() {
     }
 
     handleCallback()
-  }, [isLoaded, signUp, router])
+  }, [authLoaded, signInLoaded, signUpLoaded, isSignedIn, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
