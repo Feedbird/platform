@@ -19,9 +19,7 @@ const cfg: SocialPlatformConfig = {
   icon   : "/images/platforms/google-business.svg",
   authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
   scopes : [
-    /* one umbrella scope that covers reading + posting: */
-    "https://www.googleapis.com/auth/business.manage",
-    "https://www.googleapis.com/auth/business.location.readonly"
+    "https://www.googleapis.com/auth/business.manage"
   ],
   /* we need two base URLs – keep them separate */
   apiVersion      : "v1",
@@ -76,7 +74,6 @@ export class GoogleBusinessPlatform extends BasePlatform {
     u.searchParams.set("scope",         cfg.scopes.join(" "));
     u.searchParams.set("access_type",   "offline");  // refresh_token
     u.searchParams.set("prompt",        "consent");  // force refresh_token
-    u.searchParams.set("state",         crypto.randomUUID());
     return u.toString();
   }
 
@@ -98,92 +95,135 @@ export class GoogleBusinessPlatform extends BasePlatform {
         grant_type: 'authorization_code'
       })
     });
-
-    // Get account info
-    const accountInfo = await this.fetchWithAuth<{
-      name: string;
-      accountName: string;
-      type: string;
-      role: string;
-      state: string;
-    }>(`${cfg.baseUrlAccounts}/v1/accounts/primary`, {
+    // Get account info - extract only essential fields
+    // https://developers.google.com/my-business/reference/accountmanagement/rest/v1/accounts/list
+    const accountsResponse = await this.fetchWithAuth<{
+      accounts: Array<{
+        name: string;
+        accountName: string;
+        type: string;
+        verificationState: string;
+        role: string;
+        permissionLevel: string;
+      }>;
+    }>(`${cfg.baseUrlAccounts}/v1/accounts`, {
       token: tokenResponse.access_token
     });
 
+    const accountInfo = accountsResponse.accounts[0];
+    
     return {
       id: crypto.randomUUID(),
       platform: 'google',
-      name: accountInfo.accountName,
+      name: accountInfo.accountName || '',
       accountId: accountInfo.name.split('/').pop()!,
       authToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,
       accessTokenExpiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
       connected: true,
-      status: accountInfo.state.toLowerCase() === 'verified' ? 'active' : 'pending',
+      status: accountInfo.verificationState === 'VERIFIED' ? 'active' : 'pending',
       metadata: {
         type: accountInfo.type,
         role: accountInfo.role,
-        state: accountInfo.state
+        permissionLevel: accountInfo.permissionLevel,
+        verificationState: accountInfo.verificationState
       }
     };
   }
 
-  /* 3 ─ every verified LOCATION becomes one "page" */
+  /* 3 ─ every verified LOCATION becomes one "page" with proper pagination */
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
+    // Fetch all pages by implementing proper pagination
+    let allPages: SocialPage[] = [];
+    let nextPageToken: string | undefined;
+    
+    do {
+      const result = await this.listPagesWithPagination(acc, 1, nextPageToken);
+      allPages.push(...result.pages);
+      nextPageToken = result.nextPage;
+    } while (nextPageToken);
+    
+    return allPages;
+  }
+
+  /* Helper method for paginated location listing - can be used for progressive loading */
+  async listPagesWithPagination(acc: SocialAccount, limit = 50, nextPage?: string): Promise<{pages: SocialPage[], nextPage?: string}> {
+    // Build query parameters
+    const queryParams = new URLSearchParams({
+      pageSize: Math.min(limit, 100).toString(), // Max 100 per Google API
+      // https://developers.google.com/my-business/reference/businessinformation/rest/v1/accounts.locations#Location
+      readMask: 'name,title,storeCode,phoneNumbers.primaryPhone,storefrontAddress,profile.description,metadata.mapsUri,metadata.newReviewUri,metadata.canOperateLocalPost,metadata.canDelete,metadata.placeId'
+    });
+
+    // Add pagination token if provided
+    if (nextPage) {
+      queryParams.set('pageToken', nextPage);
+    }
+
+    // https://developers.google.com/my-business/reference/businessinformation/rest/v1/accounts.locations/list
     const response = await this.fetchWithAuth<{
       locations: Array<{
         name: string;
-        locationName: string;
+        title: string;
         storeCode?: string;
-        primaryPhone?: string;
-        address: {
+        phoneNumbers?: {
+          primaryPhone?: string;
+        };
+        storefrontAddress?: {
           regionCode: string;
           languageCode: string;
           postalCode?: string;
           locality?: string;
           administrativeArea?: string;
+          addressLines?: string[];
         };
-        profile: {
+        profile?: {
           description?: string;
         };
-        metadata: {
-          mapsUrl?: string;
-          newReviewUrl?: string;
-        };
-        state: {
-          isVerified: boolean;
-          isPublished: boolean;
-          canUpdate: boolean;
-          canDelete: boolean;
+        metadata?: {
+          mapsUri?: string;
+          newReviewUri?: string;
+          canOperateLocalPost?: boolean;
+          canDelete?: boolean;
+          placeId?: string;
         };
       }>;
-    }>(`${cfg.baseUrl}/v1/accounts/${acc.accountId}/locations`, {
+      nextPageToken?: string;
+      totalSize?: number;
+    }>(`${cfg.baseUrl}/v1/accounts/${acc.accountId}/locations?${queryParams.toString()}`, {
       token: acc.authToken || ''
     });
 
-    return response.locations.map(location => ({
-      id: crypto.randomUUID(),
-      platform: 'google',
-      entityType: 'page',
-      name: location.locationName,
-      pageId: location.name.split('/').pop()!,
-      authToken: acc.authToken || '',
-      connected: true,
-      status: location.state.isVerified ? 'active' : 'pending',
-      accountId: acc.id,
-      statusUpdatedAt: new Date(),
-      metadata: {
-        storeCode: location.storeCode,
-        phone: location.primaryPhone,
-        address: location.address,
-        description: location.profile.description,
-        mapsUrl: location.metadata.mapsUrl,
-        reviewUrl: location.metadata.newReviewUrl,
-        isPublished: location.state.isPublished,
-        canUpdate: location.state.canUpdate,
-        canDelete: location.state.canDelete
-      }
-    }));
+    const pages: SocialPage[] = response.locations
+      .filter(location => location.metadata?.placeId) // Only include locations with placeId
+      .map(location => ({
+        id: crypto.randomUUID(),
+        platform: 'google' as const,
+        entityType: 'page' as const,
+        name: location.title,
+        pageId: location.name.split('/').pop()!,
+        authToken: acc.authToken || '',
+        connected: true,
+        status: 'active' as const, // Assume active if returned by API
+        accountId: acc.id,
+        statusUpdatedAt: new Date(),
+        metadata: {
+          storeCode: location.storeCode,
+          phone: location.phoneNumbers?.primaryPhone,
+          address: location.storefrontAddress,
+          description: location.profile?.description,
+          mapsUrl: location.metadata?.mapsUri,
+          reviewUrl: location.metadata?.newReviewUri,
+          canOperateLocalPost: location.metadata?.canOperateLocalPost,
+          canDelete: location.metadata?.canDelete,
+          placeId: location.metadata?.placeId
+        }
+      }));
+
+    return {
+      pages,
+      nextPage: response.nextPageToken
+    };
   }
 
   async connectPage(acc: SocialAccount, pageId: string): Promise<SocialPage> {
