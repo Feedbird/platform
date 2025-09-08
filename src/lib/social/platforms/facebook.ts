@@ -36,7 +36,7 @@ const config: SocialPlatformConfig = {
     'email',
     'public_profile',
     'business_management',
-    'pages_manage_engagement',
+    // 'pages_manage_engagement',
     'pages_manage_posts',
     'pages_read_engagement',
     'publish_video',
