@@ -2087,20 +2087,29 @@ export function PostTable({
           const isSorted = (table.getState().sorting ?? []).length > 0;
           return (
             <div className="flex items-center justify-center">
-              <div
-                className={cn(
-                  "transition-opacity",
-                  !isSorted ? "cursor-grab opacity-0 group-hover:opacity-100" : "cursor-not-allowed opacity-40"
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      "transition-opacity",
+                      !isSorted ? "cursor-grab opacity-0 group-hover:opacity-100" : "cursor-not-allowed opacity-40"
+                    )}
+                    draggable={!isSorted}
+                    data-row-drag-handle="true"
+                    onDragStart={(e) => {
+                      if (isSorted) { e.preventDefault(); return; }
+                      handleRowDragStart(e, row.index);
+                    }}
+                  >
+                    <GripVertical size={18} />
+                  </div>
+                </TooltipTrigger>
+                {isSorted && (
+                  <TooltipContent className="bg-white text-black text-xs font-normal border border-strokeElement">
+                    <p>Row reordering is disabled when sorting is active</p>
+                  </TooltipContent>
                 )}
-                draggable={!isSorted}
-                data-row-drag-handle="true"
-                onDragStart={(e) => {
-                  if (isSorted) { e.preventDefault(); return; }
-                  handleRowDragStart(e, row.index);
-                }}
-              >
-                <GripVertical size={18} />
-              </div>
+              </Tooltip>
             </div>
           );
         },
