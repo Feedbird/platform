@@ -13,16 +13,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     console.log('AuthGuard state:', { isLoaded, isSignedIn, userId: user?.id, pathname })
-    
+
     if (isLoaded) {
-      // If user is signed in and trying to access landing page, redirect to home
-      if (isSignedIn && pathname === '/landing') {
-        console.log('AuthGuard: Redirecting signed-in user from landing to home');
+      // If user is signed in and trying to access landing, signup, signin, verify-email, or sso-callback page, redirect to home
+      if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email' || pathname === '/sso-callback')) {
+        console.log('AuthGuard: Redirecting signed-in user from landing/signup/signin/verify-email/sso-callback to home');
         router.replace('/');
         return;
       }
       // If user is not signed in and trying to access protected routes, redirect to landing
-      else if (!isSignedIn && pathname !== '/landing') {
+      else if (!isSignedIn && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback') {
         console.log('AuthGuard: Redirecting unsigned user to landing');
         router.replace('/landing');
         return;
@@ -42,21 +42,41 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If user is not signed in, show landing page
+  // If user is not signed in, show appropriate page
   if (!isSignedIn) {
-    console.log('AuthGuard: User not signed in, showing landing page');
+    console.log('AuthGuard: User not signed in, showing page for', pathname);
+    if (pathname === '/signup') {
+      // Import the signup page dynamically to avoid circular imports
+      const SignUpPage = require('@/app/signup/page').default;
+      return <SignUpPage />;
+    }
+    if (pathname === '/signin') {
+      // Import the signin page dynamically to avoid circular imports
+      const SignInPage = require('@/app/signin/page').default;
+      return <SignInPage />;
+    }
+    if (pathname === '/verify-email') {
+      // Import the verify-email page dynamically to avoid circular imports
+      const VerifyEmailPage = require('@/app/verify-email/page').default;
+      return <VerifyEmailPage />;
+    }
+    if (pathname === '/sso-callback') {
+      // Import the sso-callback page dynamically to avoid circular imports
+      const SSOCallbackPage = require('@/app/sso-callback/page').default;
+      return <SSOCallbackPage />;
+    }
     return <LandingPage />;
   }
 
   // If user is signed in, show the main app with authenticated layout
   // Only render authenticated layout if we have a user object and are on a protected route
-  if (isSignedIn && user && pathname !== '/landing') {
+  if (isSignedIn && user && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback') {
     console.log('AuthGuard: User signed in, showing authenticated layout');
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }
-  
-  // If user is signed in but we're on landing page, show loading until redirect completes
-  if (isSignedIn && pathname === '/landing') {
+
+  // If user is signed in but we're on landing, signup, signin, verify-email, or sso-callback page, show loading until redirect completes
+  if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email' || pathname === '/sso-callback')) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="flex flex-col items-center space-y-4">

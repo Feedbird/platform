@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react'
 import { useClerk, useAuth } from '@clerk/nextjs'
-import { SignInButton, SignUpButton } from '@clerk/nextjs'
+import { SignUpButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
@@ -13,6 +14,7 @@ export default function LandingPage() {
   const { openSignUp } = useClerk()
   const { isSignedIn } = useAuth()
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   // Determine if we landed here from an invitation link
   const hasTicket = searchParams.get('__clerk_ticket') !== null
@@ -100,16 +102,21 @@ export default function LandingPage() {
         {/* CTA Section */}
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <SignUpButton mode="modal">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg">
-                Get Started Free
-              </Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button size="lg" variant="outline" className="border-2 border-gray-300 hover:border-gray-400 px-8 py-3 text-lg">
-                Sign In
-              </Button>
-            </SignInButton>
+            <Button
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+              onClick={() => router.push('/signup')}
+            >
+              Get Started Free
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-2 border-gray-300 hover:border-gray-400 px-8 py-3 text-lg"
+              onClick={() => router.push('/signin')}
+            >
+              Sign In
+            </Button>
           </div>
           <p className="text-sm text-gray-500">No credit card required • 14-day free trial</p>
         </div>
