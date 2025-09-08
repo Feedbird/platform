@@ -3423,6 +3423,20 @@ export function PostTable({
                         <div
                           className="flex select-none items-center justify-between gap-2 h-full"
                           draggable={canDrag}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            // Use the same trigger element as the chevron down for consistent positioning
+                            const triggerEl = e.currentTarget.querySelector('[data-col-menu-trigger]') as HTMLElement || e.currentTarget as HTMLElement;
+                            const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
+                            if (!th) return;
+                            const colRect = th.getBoundingClientRect();
+                            const trigRect = triggerEl.getBoundingClientRect();
+                            const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
+                            setHeaderMenuAlign('start');
+                            setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
+                            setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
+                            setHeaderMenuOpenFor(h.id);
+                          }}
                           onMouseDown={(e) => {
                             if (!canDrag) return;
                             if (e.button !== 0) return; // left click only
@@ -3435,12 +3449,6 @@ export function PostTable({
                           <div className="flex items-center gap-1 text-black w-full">
                             {headerContent}
                           </div>
-                          {sortStatus === 'asc' && (
-                            <ChevronUpIcon size={16} className="text-blue-600" />
-                          )}
-                          {sortStatus === 'desc' && (
-                            <ChevronDownIcon size={16} className="text-blue-600" />
-                          )}
                           <DropdownMenu open={headerMenuOpenFor === h.id} onOpenChange={(o) => setHeaderMenuOpenFor(o ? h.id : null)}>
                             <DropdownMenuTrigger asChild>
                               <div
@@ -4279,6 +4287,20 @@ export function PostTable({
                     >
                         <div
                           className="flex cursor-pointer items-center justify-between gap-2 h-full w-full"
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            // Use the same trigger element as the chevron down for consistent positioning
+                            const triggerEl = e.currentTarget.querySelector('[data-col-menu-trigger]') as HTMLElement || e.currentTarget as HTMLElement;
+                            const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
+                            if (!th) return;
+                            const colRect = th.getBoundingClientRect();
+                            const trigRect = triggerEl.getBoundingClientRect();
+                            const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
+                            setHeaderMenuAlign('start');
+                            setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
+                            setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
+                            setHeaderMenuOpenFor(header.id);
+                          }}
                           onDoubleClick={() => {
                             setRenameColumnId(header.id);
                             // For user columns, use the label; for default columns, use columnNames
@@ -4305,12 +4327,6 @@ export function PostTable({
                               header.getContext()
                             )}
                           </div>
-                          {sortStatus === "asc" && (
-                            <ChevronUpIcon size={16} className="text-blue-600" />
-                          )}
-                          {sortStatus === "desc" && (
-                            <ChevronDownIcon size={16} className="text-blue-600" />
-                          )}
                           <DropdownMenu open={headerMenuOpenFor === header.id} onOpenChange={(o) => setHeaderMenuOpenFor(o ? header.id : null)}>
                             <DropdownMenuTrigger asChild>
                               <div
