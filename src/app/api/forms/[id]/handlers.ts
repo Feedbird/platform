@@ -1,0 +1,126 @@
+import { Form, supabase } from "@/lib/supabase/client";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { ApiHandlerError } from "../../shared";
+import { ServicesHandler } from "../../services/handler";
+
+export class FormHandler {
+  supabase: SupabaseClient;
+  constructor() {
+    this.supabase = supabase;
+  }
+
+  static async deleteForm(formId: string): Promise<void> {
+    try {
+      const formExists = await supabase
+        .from("forms")
+        .select("id")
+        .eq("id", formId)
+        .single();
+      if (formExists.error || !formExists.data) {
+        throw new ApiHandlerError("Form ID was not found", 404);
+      }
+
+      const { error } = await supabase.from("forms").delete().eq("id", formId);
+
+      if (error) {
+        throw new ApiHandlerError("Database error: " + error.message);
+      }
+    } catch (e) {
+      if (e instanceof ApiHandlerError) {
+        throw e;
+      }
+      throw new ApiHandlerError("Internal server error: " + e);
+    }
+  }
+
+  static async fetchFormById(formId: string): Promise<Form> {
+    try {
+      const { data, error } = await supabase
+        .from("forms")
+        .select(`*, services:services(id, name)`)
+        .eq("id", formId)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          throw new ApiHandlerError("Form not found", 404);
+        }
+        throw new ApiHandlerError("Database error: " + error.message);
+      }
+
+      if (!data) {
+        throw new ApiHandlerError("Form not found", 404);
+      }
+
+      return data;
+    } catch (e) {
+      if (e instanceof ApiHandlerError) {
+        throw e;
+      }
+      throw new ApiHandlerError("Internal server error: " + e);
+    }
+  }
+
+  static async updateForm(
+    formId: string,
+    updates: Partial<Form>
+  ): Promise<Form> {
+    try {
+      const form = await supabase
+        .from("forms")
+        .select("id, workspace_id")
+        .eq("id", formId)
+        .single();
+
+      if (form.error || !form.data) {
+        throw new ApiHandlerError("Form ID was not found", 404);
+      }
+
+      if (updates.services) {
+        const currentServices = await ServicesHandler.verifyServicesExists(
+          updates.services,
+          form.data.workspace_id
+        );
+
+        const removedServices = currentServices.filter(
+          (s) => !updates.services!.includes(s.id)
+        );
+
+        if (removedServices.length) {
+          console.log(`Removing services:`, removedServices);
+          await ServicesHandler.assignFormToServices(
+            null,
+            removedServices.map((s) => s.id)
+          );
+        }
+
+        if (updates.services.length) {
+          await ServicesHandler.assignFormToServices(formId, updates.services);
+        }
+
+        delete updates.services;
+      }
+
+      const { data, error } = await supabase
+        .from("forms")
+        .update(updates)
+        .eq("id", formId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new ApiHandlerError("Database error: " + error.message);
+      }
+      if (!data) {
+        throw new ApiHandlerError("Failed to update form", 500);
+      }
+
+      return data;
+    } catch (e) {
+      if (e instanceof ApiHandlerError) {
+        throw e;
+      }
+      throw new ApiHandlerError("Internal server error: " + e);
+    }
+  }
+}

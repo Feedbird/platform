@@ -163,7 +163,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         minSize: 120,
         size: 150,
         cell: ({ row }) => (
-          <span className="text-xs font-medium text-[#1C1D1F]">
+          <span className="text-sm font-medium text-[#1C1D1F]">
             {row.original.services.length
               ? row.original.services[0].name
               : "N/A"}

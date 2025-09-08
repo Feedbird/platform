@@ -55,11 +55,11 @@ CREATE TABLE forms (
 -- Create form_fields table
 CREATE TABLE form_fields (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    description TEXT,
     form_id UUID NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
     position INTEGER NOT NULL,
-    title TEXT NOT NULL,
     type TEXT NOT NULL,
-    label TEXT,
     required BOOLEAN NOT NULL DEFAULT false,
     config JSON NOT NULL DEFAULT '{}',
     

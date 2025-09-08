@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 import { NextRequest, NextResponse } from "next/server";
+import { FormHandler } from "./handlers";
+import { ApiHandlerError } from "../../shared";
 
 export async function GET(
   req: NextRequest,
@@ -16,34 +18,17 @@ export async function GET(
       );
     }
 
-    const { data, error } = await supabase
-      .from("forms")
-      .select("*")
-      .eq("id", formId)
-      .single();
-
-    if (error) {
-      console.error("Error fetching form:", error);
-      return NextResponse.json(
-        { success: false, error: "Failed to fetch form" },
-        { status: 500 }
-      );
-    }
-
-    if (!data) {
-      return NextResponse.json(
-        { success: false, error: "Form not found" },
-        { status: 404 }
-      );
-    }
+    const data = await FormHandler.fetchFormById(formId);
 
     return NextResponse.json({ data });
   } catch (error) {
+    const uiMessage =
+      "We are unable to retrieve this form now. Please try again later.";
     console.error("Error in GET /api/form:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    if (error instanceof ApiHandlerError) {
+      return NextResponse.json({ error: uiMessage }, { status: error.status });
+    }
+    return NextResponse.json({ error: uiMessage }, { status: 500 });
   }
 }
 
@@ -63,21 +48,38 @@ export async function DELETE(
       );
     }
 
-    const { data, error } = await supabase
-      .from("forms")
-      .delete()
-      .eq("id", formId)
-      .single();
+    await FormHandler.deleteForm(formId);
 
-    if (error) {
-      console.error("Error fetching form:", error);
+    return NextResponse.json({ data: "Deleted" });
+  } catch (error) {
+    const uiMessage = "Unable to delete form. Please try again later.";
+    console.error("Error in DELETE /api/form:", error);
+    if (error instanceof ApiHandlerError) {
+      return NextResponse.json({ error: uiMessage }, { status: error.status });
+    }
+    return NextResponse.json({ error: uiMessage }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const extractedParams = await params;
+    const formId = extractedParams.id;
+    const body = await req.json();
+
+    if (!formId) {
       return NextResponse.json(
-        { success: false, error: "Failed to fetch form" },
-        { status: 500 }
+        { success: false, error: "Form ID is required" },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({ data: "Deleted" });
+    const updatedForm = await FormHandler.updateForm(formId, body);
+
+    return NextResponse.json({ data: updatedForm });
   } catch (error) {
     console.error("Error in DELETE /api/form:", error);
     return NextResponse.json(
