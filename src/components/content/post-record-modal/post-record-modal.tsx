@@ -756,10 +756,11 @@ function HashtagsEditor({ post }: { post: Post }) {
   );
 }
 
-export function PostRecordModal({ selectedPost, open, onClose }:{
+export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
   selectedPost: Post;
   open: boolean;
   onClose(): void;
+  onPostSelect?: (postId: string) => void;
 }) {
   const { updatePost, brand, activeWorkspace } = useStoreWithEqualityFn(
     useFeedbirdStore,
@@ -867,10 +868,50 @@ export function PostRecordModal({ selectedPost, open, onClose }:{
     : <span className="text-grey">Unscheduled</span>;
 
   function switchPost(dir:"prev"|"next"){
-    // ...
+    if (!posts || posts.length === 0 || !post) return;
+
+    const currentIndex = posts.findIndex(p => p.id === post.id);
+    if (currentIndex === -1) return;
+
+    let newIndex;
+    if (dir === "prev") {
+      newIndex = Math.max(0, currentIndex - 1);
+    } else {
+      newIndex = Math.min(posts.length - 1, currentIndex + 1);
+    }
+
+    // Only switch if we're actually moving to a different post
+    if (newIndex !== currentIndex) {
+      const newPost = posts[newIndex];
+
+      // If onPostSelect is provided, use it for smooth navigation
+      if (onPostSelect) {
+        onPostSelect(newPost.id);
+      } else {
+        // Fallback: close modal and assume parent handles navigation
+        onClose();
+        // Note: Parent component should handle opening modal with new post
+      }
+    }
   }
 
   const cKey = post.comments.length;
+
+  // Helper functions to determine button states
+  const getCurrentPostIndex = () => {
+    if (!posts || posts.length === 0) return -1;
+    return posts.findIndex(p => p.id === post.id);
+  };
+
+  const isFirstPost = () => {
+    const index = getCurrentPostIndex();
+    return index <= 0;
+  };
+
+  const isLastPost = () => {
+    const index = getCurrentPostIndex();
+    return index === -1 || !posts || (posts && index >= posts.length - 1);
+  };
 
   return (
     <>
@@ -904,11 +945,29 @@ export function PostRecordModal({ selectedPost, open, onClose }:{
                     </Button>
                     <div className="w-0 h-2.5 outline outline-1 outline-offset-[-0.50px] outline-gray-100"></div>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10" onClick={()=>switchPost("prev")}>
-                        <ChevronUp className="w-4 h-4 text-black" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"
+                        onClick={()=>switchPost("prev")}
+                        disabled={isFirstPost()}
+                      >
+                        <ChevronUp className={cn(
+                          "w-4 h-4",
+                          isFirstPost() ? "text-grey" : "text-black"
+                        )} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10" onClick={()=>switchPost("next")}>
-                        <ChevronDown className="w-4 h-4 text-black" width={24} height={24}/>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 cursor-pointer rounded-sm border border-buttonStroke hover:bg-grey/10"
+                        onClick={()=>switchPost("next")}
+                        disabled={isLastPost()}
+                      >
+                        <ChevronDown className={cn(
+                          "w-4 h-4",
+                          isLastPost() ? "text-grey" : "text-black"
+                        )} width={24} height={24}/>
                       </Button>
                     </div>
                     {/* Group Information Display */}

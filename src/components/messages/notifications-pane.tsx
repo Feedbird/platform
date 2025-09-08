@@ -928,6 +928,14 @@ export default function NotificationsPane() {
 					selectedPost={openPost}
 					open
 					onClose={() => setOpenPost(null)}
+					onPostSelect={(postId) => {
+						// Find the post by ID from all posts in the workspace
+						const allPosts = useFeedbirdStore.getState().getAllPosts();
+						const post = allPosts.find(p => p.id === postId);
+						if (post) {
+							setOpenPost(post);
+						}
+					}}
 				/>
 			)}
 

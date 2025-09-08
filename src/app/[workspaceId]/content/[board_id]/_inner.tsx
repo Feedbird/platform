@@ -78,6 +78,7 @@ export function BoardInner() {
           selectedPost={posts.find(p => p.id === openPostId)!}
           open
           onClose={() => setOpenPostId(null)}
+          onPostSelect={(postId) => setOpenPostId(postId)}
         />
       )}
     </>

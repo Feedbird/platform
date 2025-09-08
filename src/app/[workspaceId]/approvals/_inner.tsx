@@ -62,6 +62,7 @@ export function ApprovalsInner() {
           selectedPost={posts.find(p => p.id === openPostId)!}
           open
           onClose={() => setOpenPostId(null)}
+          onPostSelect={(postId) => setOpenPostId(postId)}
         />
       )}
     </>
