@@ -41,7 +41,7 @@ const config: SocialPlatformConfig = {
     'pages_read_engagement',
     'publish_video',
     'pages_show_list',
-    'pages_manage_metadata',
+    // 'pages_manage_metadata',
     'pages_read_user_content',
     'read_insights' // for analytics
   ],
