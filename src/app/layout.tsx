@@ -1,7 +1,6 @@
 // app/layout.tsx
 import './globals.css'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
+import { Inter } from 'next/font/google'
 import "nprogress/nprogress.css";
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
@@ -33,7 +32,12 @@ export const metadata: Metadata = {
   },
 }
 
-// Fonts expose preconfigured className/variable via the Geist package
+// Configure Inter font
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  weight: ['400', '500', '600', '700']
+})
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -45,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <link rel="apple-touch-icon" href="/images/logo/logo.svg" />
           <link rel="manifest" href="/manifest.json" />
         </head>
-        <body className={`${GeistSans.variable} ${GeistMono.variable} h-screen overflow-hidden tracking-[-0.26px]`}>
+        <body className={`${inter.variable} h-screen overflow-hidden tracking-[-0.26px]`}>
           <ClerkUserSync />
           <AuthGuard>
             {children}

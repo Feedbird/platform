@@ -7,19 +7,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global default font: Geist Sans */
+/* Global default font: Inter */
 html, body {
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 /* Default monospace for code blocks */
 code, kbd, samp, pre {
-  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-/* Use Geist Sans specifically for the sidebar like shadcn dashboard */
+/* Use Inter specifically for the sidebar like shadcn dashboard */
 [data-sidebar="sidebar"] {
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 @keyframes fadeIn {
@@ -83,7 +83,7 @@ code, kbd, samp, pre {
 
 /* styles/grid.css */
 .gdgrid-root {
-  --font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
   --border-radius: 8px;
   --header-bg: #f8fafc;
   position: relative;
@@ -105,8 +105,8 @@ code, kbd, samp, pre {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: ui-monospace;
   --color-feedbird: var(--feedbird);
   --color-grey: var(--grey);
   --color-darkGrey: var(--darkGrey);

@@ -33,6 +33,7 @@ module.exports = {
         DEFAULT: theme('colors.border'),
       }),
       fontFamily: {
+        sans: ['var(--font-inter)', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
         rubik: ['Inter', 'sans-serif'],
       },
     },
