@@ -141,7 +141,8 @@ type FinalGroup = {
 
 function getFinalGroupRows(
   rows: Row<Post>[],
-  currentValues: Record<string, any> = {}
+  currentValues: Record<string, any> = {},
+  comparator?: (a: Row<Post>, b: Row<Post>) => number
 ): FinalGroup[] {
   const finalGroups: FinalGroup[] = [];
 
@@ -155,13 +156,14 @@ function getFinalGroupRows(
 
       // If row.subRows are STILL grouped further, keep going:
       if (row.subRows.some((r) => r.getIsGrouped())) {
-        const deeper = getFinalGroupRows(row.subRows as unknown as Row<Post>[], newValues);
+        const deeper = getFinalGroupRows(row.subRows as unknown as Row<Post>[], newValues, comparator);
         finalGroups.push(...deeper);
       } else {
         // If subRows are leaves, we have found a "lowest-level" group
+        const leafRows = row.subRows as unknown as Row<Post>[];
         finalGroups.push({
           groupValues: newValues,
-          leafRows: row.subRows as unknown as Row<Post>[],
+          leafRows: comparator ? [...leafRows].sort(comparator) : leafRows,
           rowCount: row.subRows.length,
           groupingColumns: Object.keys(newValues), // for convenience
         });
@@ -1271,7 +1273,7 @@ export function PostTable({
 
     if (grouping.length > 0) {
       // For grouped tables, only allow reordering within the same group
-      const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+      const groups = getFinalGroupRows(table.getGroupedRowModel().rows, {}, rowComparator);
       const allLeafRows = groups.flatMap(group => group.leafRows);
 
       // Find the source and target rows
@@ -3042,6 +3044,61 @@ export function PostTable({
   const table = useReactTable<Post>(tableConfig);
   tableRef.current = table;
 
+  // Build a comparator from the current sorting state that can sort Row<Post> instances
+  const rowComparator = React.useMemo<((a: Row<Post>, b: Row<Post>) => number) | undefined>(() => {
+    if (!sorting.length) return undefined;
+
+    const sorters = sorting
+      .map((rule) => {
+        const col = table.getColumn(rule.id as string);
+        const sortingFn = (col?.columnDef as any)?.sortingFn as (rowA: Row<Post>, rowB: Row<Post>, columnId: string) => number | undefined;
+        return {
+          id: rule.id as string,
+          desc: !!rule.desc,
+          fn: sortingFn,
+        };
+      })
+      .filter(Boolean) as Array<{ id: string; desc: boolean; fn?: (rowA: Row<Post>, rowB: Row<Post>, columnId: string) => number }>;
+
+    const fallbackCompare = (va: any, vb: any): number => {
+      const norm = (v: any): any => {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string') return v.toLowerCase();
+        if (v instanceof Date) return v.getTime();
+        if (typeof v === 'boolean') return v ? 1 : 0;
+        if (Array.isArray(v)) return v.join(',');
+        return String(v);
+      };
+      const a = norm(va);
+      const b = norm(vb);
+      if (a < b) return -1;
+      if (a > b) return 1;
+      return 0;
+    };
+
+    return (a: Row<Post>, b: Row<Post>) => {
+      for (const s of sorters) {
+        let res = 0;
+        if (typeof s.fn === 'function') {
+          try {
+            res = s.fn(a, b, s.id) ?? 0;
+          } catch {
+            const va = a.getValue<any>(s.id);
+            const vb = b.getValue<any>(s.id);
+            res = fallbackCompare(va, vb);
+          }
+        } else {
+          const va = a.getValue<any>(s.id);
+          const vb = b.getValue<any>(s.id);
+          res = fallbackCompare(va, vb);
+        }
+        if (res !== 0) return s.desc ? -res : res;
+      }
+      try { return a.id.localeCompare(b.id); } catch { return 0; }
+    };
+  }, [sorting, table]);
+
   // Track where to insert newly added user columns from header menu
   const [pendingInsertRef, setPendingInsertRef] = React.useState<{ targetId: string; side: 'left' | 'right' } | null>(null);
 
@@ -3688,7 +3745,7 @@ export function PostTable({
 
             // Prevent dropping on group headers when dragging from different group
             if (grouping.length > 0) {
-              const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+              const groups = getFinalGroupRows(table.getGroupedRowModel().rows, {}, rowComparator);
               const allLeafRows = groups.flatMap(group => group.leafRows);
 
               // Get the source row from drag data
@@ -3922,7 +3979,7 @@ export function PostTable({
    *  3)  The grouped table itself
    *  ------------------------------------------------------------*/
   function renderGroupedTable() {
-    const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+    const groups = getFinalGroupRows(table.getGroupedRowModel().rows, {}, rowComparator);
     const colSpan = table.getVisibleLeafColumns().length;
 
     // Reorder groups so that the one with empty socials/format appears last
@@ -4048,7 +4105,7 @@ export function PostTable({
                             e.preventDefault();
 
                             if (grouping.length > 0) {
-                              const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+                              const groups = getFinalGroupRows(table.getGroupedRowModel().rows, {}, rowComparator);
                               const allLeafRows = groups.flatMap(group => group.leafRows);
 
                               // Get the source row from drag data
@@ -4638,7 +4695,7 @@ export function PostTable({
 
         if (grouping.length > 0) {
           // For grouped tables, get all leaf rows from all groups
-          const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+          const groups = getFinalGroupRows(table.getGroupedRowModel().rows, {}, rowComparator);
           allRows = groups.flatMap(group => group.leafRows);
         } else {
           // For ungrouped tables, use the regular row model
@@ -4701,7 +4758,7 @@ export function PostTable({
 
     if (grouping.length > 0) {
       // For grouped tables, get all leaf rows from all groups
-      const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+      const groups = getFinalGroupRows(table.getGroupedRowModel().rows, {}, rowComparator);
       allRows = groups.flatMap(group => group.leafRows);
     } else {
       // For ungrouped tables, use the regular row model
@@ -5022,7 +5079,7 @@ export function PostTable({
                 let row: Row<Post> | null = null;
                 if (grouping.length > 0) {
                   // For grouped tables, get the row from the grouped model
-                  const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+                  const groups = getFinalGroupRows(table.getGroupedRowModel().rows, {}, rowComparator);
                   const allLeafRows = groups.flatMap(group => group.leafRows);
                   row = allLeafRows[rowDragIndex] || null;
                 } else {
