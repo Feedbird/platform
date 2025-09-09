@@ -4841,7 +4841,7 @@ export function PostTable({
                 userColumns={userColumns}
               />
               <RowHeightMenu rowHeight={rowHeight} setRowHeight={setRowHeight} />
-              <ColumnVisibilityMenu
+              {/* <ColumnVisibilityMenu
                 table={table}
                 hiddenCount={
                   Object.values(columnVisibility).filter((v) => v === false).length
@@ -4850,7 +4850,7 @@ export function PostTable({
                 setColVisOpen={setColVisOpen}
                 columnNames={columnNames}
                 userColumns={userColumns}
-              />
+              /> */}
             </div>
           </div>
           <div className="pr-3">
