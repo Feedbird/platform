@@ -70,7 +70,8 @@ import {
   PlusCircle,
   CheckSquare,
   User,
-  Clock
+  Clock,
+  Maximize2
 } from "lucide-react";
 
 import { nanoid } from "nanoid";
@@ -348,7 +349,7 @@ const MemoizedRow = React.memo(
       // Re-render if row enters/leaves a fill range
       const isPrevInRange = prevProps.fillDragRange && prevProps.row.index >= prevProps.fillDragRange[0] && prevProps.row.index <= prevProps.fillDragRange[1];
       const isNextInRange = nextProps.fillDragRange && nextProps.row.index >= nextProps.fillDragRange[0] && nextProps.row.index <= nextProps.fillDragRange[1];
-      if(isPrevInRange !== isNextInRange) return false;
+      if (isPrevInRange !== isNextInRange) return false;
     }
     // Re-render when column order changes so the cells re-align
     if (prevProps.columnOrder !== nextProps.columnOrder) return false;
@@ -363,7 +364,7 @@ type FocusCellContext<T> = CellContext<T, unknown> & {
   isFocused?: boolean;
   isEditing?: boolean;
   enterEdit?: () => void;
-  exitEdit?:  () => void;
+  exitEdit?: () => void;
 };
 
 /** ---------- Utility ---------- **/
@@ -401,7 +402,7 @@ async function importFromCSV(file: File): Promise<Post[]> {
     Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
-      complete: (results : any) => {
+      complete: (results: any) => {
         if (results.errors?.length) {
           reject(results.errors[0]);
           return;
@@ -485,16 +486,16 @@ export function PostTable({
   const [showUndoMessage, setShowUndoMessage] = React.useState(false);
   const [lastTrashedCount, setLastTrashedCount] = React.useState(0);
   const undoTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  
+
   const [duplicatedPosts, setDuplicatedPosts] = React.useState<Post[]>([]);
   const [showDuplicateUndoMessage, setShowDuplicateUndoMessage] = React.useState(false);
   const [lastDuplicatedCount, setLastDuplicatedCount] = React.useState(0);
   const duplicateUndoTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  
+
   // Group feedback sidebar state
   const [groupFeedbackSidebarOpen, setGroupFeedbackSidebarOpen] = React.useState(false);
   const [selectedGroupData, setSelectedGroupData] = React.useState<{ month: number; comments: GroupComment[] } | null>(null);
-  
+
   const store = useFeedbirdStore();
   const updatePost = useFeedbirdStore((s) => s.updatePost);
   const updateBoard = useFeedbirdStore((s) => s.updateBoard);
@@ -506,12 +507,12 @@ export function PostTable({
   const deleteGroupCommentAiSummaryItem = useFeedbirdStore((s) => s.deleteGroupCommentAiSummaryItem);
   const requestChanges = useFeedbirdStore((s) => s.requestChanges);
   const approvePost = useFeedbirdStore((s) => s.approvePost);
-  
+
   // Store subscriptions - subscribe to the actual data that changes
   const workspaces = useFeedbirdStore(s => s.workspaces);
   const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId);
   const activeBoardId = useFeedbirdStore(s => s.activeBoardId);
-  
+
   // Subscribe directly to posts data from the store to ensure re-renders on updates
   const posts = useFeedbirdStore(s => {
     if (!activeBoardId) return initialPosts;
@@ -519,26 +520,26 @@ export function PostTable({
     const activeBoard = activeWorkspace?.boards.find(b => b.id === activeBoardId);
     return activeBoard?.posts || initialPosts;
   });
-  
+
   // Compute activeWorkspace from the actual data that changes
   const activeWorkspace = React.useMemo(() => {
     return workspaces.find(w => w.id === activeWorkspaceId);
   }, [workspaces, activeWorkspaceId]);
-  
+
   const currentBoard = React.useMemo(() => activeWorkspace?.boards.find(b => b.id === activeBoardId), [activeWorkspace, activeBoardId]);
   const boardRules = currentBoard?.rules;
-  
-  
+
+
   /* -----------------------------------------------------------
    *  Determine default content format based on current route
    * -----------------------------------------------------------*/
   const pathname = usePathname();
   const defaultFormat: ContentFormat = React.useMemo(() => {
     if (pathname?.includes("/short-form-videos")) return "video";
-    if (pathname?.includes("/email-design"))      return "email";
+    if (pathname?.includes("/email-design")) return "email";
     return "image"; // static posts or fallback
   }, [pathname]);
-  
+
   /* -----------------------------------------------------------
    *  Auto-creation of draft posts has been disabled
    * -----------------------------------------------------------*/
@@ -651,14 +652,14 @@ export function PostTable({
     if (selectedGroupData && activeBoardId) {
       const updatedBoard = activeWorkspace?.boards.find(b => b.id === activeBoardId);
       const updatedGroupData = updatedBoard?.groupData?.find(gd => gd.month === selectedGroupData.month);
-      
+
       if (updatedGroupData) {
         const currentStoreData = JSON.stringify(updatedGroupData.comments);
-        
+
         // Only update if store data has actually changed
         if (currentStoreData !== prevStoreDataRef.current) {
           prevStoreDataRef.current = currentStoreData;
-          
+
           setSelectedGroupData({
             month: selectedGroupData.month,
             comments: updatedGroupData.comments
@@ -681,7 +682,7 @@ export function PostTable({
   const buildUpdatedUserColumnsArr = React.useCallback((post: Post, columnId: string, value: string): Array<{ id: string; value: string }> => {
     const arr = [...(post.user_columns || [])];
     const idx = arr.findIndex((x) => x.id === columnId);
-    
+
     if (idx >= 0) arr[idx] = { id: columnId, value };
     else arr.push({ id: columnId, value });
     return arr;
@@ -777,9 +778,9 @@ export function PostTable({
   const [addColumnOpen, setAddColumnOpen] = React.useState(false);
   const STICKY_COLUMNS = ["drag", "rowIndex", "status"] as const;
   const STICKY_OFFSETS: Record<string, number> = {
-    "drag":     0,
+    "drag": 0,
     "rowIndex": 24,        // 0 + 40 from "drag"
-    "status":   24 + 80,   // 120, because rowIndex is 80 wide
+    "status": 24 + 80,   // 120, because rowIndex is 80 wide
   };
 
   function isSticky(colId: string): colId is (typeof STICKY_COLUMNS)[number] {
@@ -788,7 +789,7 @@ export function PostTable({
 
   function stickyStyles(colId: string, zIndex = 10): React.CSSProperties | undefined {
     if (!isSticky(colId)) return;
-  
+
     const styles: React.CSSProperties = {
       position: "sticky",
       left: STICKY_OFFSETS[colId],
@@ -801,7 +802,7 @@ export function PostTable({
       // the scroll container has `.scrolling-horiz` class.
       styles.transition = 'box-shadow 0.2s ease-in-out';
     }
-  
+
     return styles;
   }
 
@@ -879,13 +880,13 @@ export function PostTable({
       } else {
         setSorting([]);
       }
-      
+
       if (boardRules.groupBy) {
         setGrouping([boardRules.groupBy]);
       } else {
         setGrouping([]);
       }
-      
+
       if (boardRules.rowHeight) {
         setRowHeight(boardRules.rowHeight);
       }
@@ -895,7 +896,7 @@ export function PostTable({
   /* --- Persist board rule changes on user actions --- */
   React.useEffect(() => {
     if (!currentBoard || !activeBoardId || !userInitiatedChangeRef.current) return;
-    
+
     // Only persist if we're still on the same board where the change was initiated
     if (lastBoardIdRef.current !== activeBoardId) return;
 
@@ -965,7 +966,7 @@ export function PostTable({
   // Function to check if scrolling is needed
   const checkIfScrollable = React.useCallback(() => {
     if (!scrollContainerRef.current) return;
-    
+
     const container = scrollContainerRef.current;
     const isScrollableNow = container.scrollHeight > container.clientHeight;
     setIsScrollable(isScrollableNow);
@@ -1002,9 +1003,9 @@ export function PostTable({
     children: [],
   });
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>(
-    {'platforms': 'Socials', 'publish_date': 'Post Time', 'updated_at': 'Updated'}
+    { 'platforms': 'Socials', 'publish_date': 'Post Time', 'updated_at': 'Updated' }
   );
-  
+
   const [renameColumnId, setRenameColumnId] = React.useState<string | null>(
     null
   );
@@ -1148,24 +1149,24 @@ export function PostTable({
   // Build the flatten filter from filterTree
   React.useEffect(() => {
     const flat: ColumnFiltersState = [];
-    
+
     // Convert each condition to the format expected by the respective filter functions
     filterTree.children.forEach((condition) => {
       // Only add filters if there are selected values
       if (condition.selectedValues && condition.selectedValues.length > 0) {
-          flat.push({
+        flat.push({
           id: condition.field,
           value: condition.selectedValues, // Pass the array of selected values directly
-          });
-        }
-      });
-    
+        });
+      }
+    });
+
     setColumnFilters(flat);
   }, [filterTree]);
 
   const hasActiveFilters = React.useMemo(() => {
     // Check if any condition has selected values
-    return filterTree.children.some((condition) => 
+    return filterTree.children.some((condition) =>
       condition.selectedValues && condition.selectedValues.length > 0
     );
   }, [filterTree]);
@@ -1179,12 +1180,12 @@ export function PostTable({
       const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
       const newExpandedState: Record<string, boolean> = {};
       groups.forEach(group => {
-          const key = JSON.stringify(group.groupValues);
-          newExpandedState[key] = true;
+        const key = JSON.stringify(group.groupValues);
+        newExpandedState[key] = true;
       });
       setFlatGroupExpanded(newExpandedState);
     } else {
-        setFlatGroupExpanded({});
+      setFlatGroupExpanded({});
     }
   }, [grouping, tableData]);
 
@@ -1225,16 +1226,16 @@ export function PostTable({
         shim.style.left = '0';
         document.body.appendChild(shim);
         e.dataTransfer.setDragImage(shim, 0, 0);
-        setTimeout(() => { try { shim.remove(); } catch {} }, 0);
-      } catch {}
+        setTimeout(() => { try { shim.remove(); } catch { } }, 0);
+      } catch { }
       try {
         document.body.style.userSelect = 'none';
         document.body.classList.add('fbp-dragging-cursor');
         document.documentElement.classList.add('fbp-dragging-cursor');
         document.body.style.cursor = 'grabbing';
         (document.documentElement as HTMLElement).style.cursor = 'grabbing';
-      } catch {}
-      try { e.dataTransfer.effectAllowed = 'move'; } catch {}
+      } catch { }
+      try { e.dataTransfer.effectAllowed = 'move'; } catch { }
       setIsRowDragging(true);
       setRowDragIndex(fromIndex);
       setRowDragPos({ x: (e as any).clientX ?? 0, y: (e as any).clientY ?? 0 });
@@ -1264,7 +1265,7 @@ export function PostTable({
       if (typeof clientY === 'number') {
         insertAfter = clientY > midpoint;
       }
-    } catch {}
+    } catch { }
     const desiredIndex = insertAfter ? targetIndex + 1 : targetIndex;
     const insertIndex = fromIndex < desiredIndex ? desiredIndex - 1 : desiredIndex;
 
@@ -1272,44 +1273,44 @@ export function PostTable({
       // For grouped tables, only allow reordering within the same group
       const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
       const allLeafRows = groups.flatMap(group => group.leafRows);
-      
+
       // Find the source and target rows
       const sourceRow = allLeafRows[fromIndex];
       const targetRow = allLeafRows[targetIndex];
-      
+
       if (!sourceRow || !targetRow) return;
-      
+
       // Check if we're moving within the same group
-      const sourceGroup = groups.find(group => 
+      const sourceGroup = groups.find(group =>
         group.leafRows.some(row => row.id === sourceRow.id)
       );
-      const targetGroup = groups.find(group => 
+      const targetGroup = groups.find(group =>
         group.leafRows.some(row => row.id === targetRow.id)
       );
-      
+
       if (sourceGroup && targetGroup && sourceGroup === targetGroup) {
         // Moving within the same group - reorder within that group
         const groupIndex = groups.indexOf(sourceGroup);
         const groupRows = [...sourceGroup.leafRows];
         const sourceGroupIndex = groupRows.findIndex(row => row.id === sourceRow.id);
         const targetGroupIndex = groupRows.findIndex(row => row.id === targetRow.id);
-        
+
         if (sourceGroupIndex !== -1 && targetGroupIndex !== -1) {
           const [moved] = groupRows.splice(sourceGroupIndex, 1);
-          
+
           // Calculate the correct insertion index based on insertAfter flag
           let finalTargetIndex = targetGroupIndex;
           if (insertAfter) {
             finalTargetIndex = targetGroupIndex + 1;
           }
-          
+
           // Adjust for the fact that we removed the source row
           if (sourceGroupIndex < targetGroupIndex) {
             finalTargetIndex -= 1;
           }
-          
+
           groupRows.splice(Math.max(0, Math.min(finalTargetIndex, groupRows.length)), 0, moved);
-          
+
           // Update the table data by reconstructing it from the modified groups
           const newTableData: Post[] = [];
           groups.forEach((group, idx) => {
@@ -1319,7 +1320,7 @@ export function PostTable({
               newTableData.push(...group.leafRows.map(row => row.original));
             }
           });
-          
+
           setTableData(newTableData);
           // Update the store with the new order
           store.setActivePosts(newTableData);
@@ -1340,7 +1341,7 @@ export function PostTable({
         return newArr;
       });
     }
-    
+
     // end overlay on successful drop
     endRowDragOverlay();
   }
@@ -1357,7 +1358,7 @@ export function PostTable({
       document.documentElement.classList.remove('fbp-dragging-cursor');
       document.body.style.cursor = '';
       (document.documentElement as HTMLElement).style.cursor = '';
-    } catch {}
+    } catch { }
   }
 
   React.useEffect(() => {
@@ -1367,12 +1368,12 @@ export function PostTable({
         // Force move cursor icon and prevent default browser cursor overrides
         ev.preventDefault();
         if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
-      } catch {}
+      } catch { }
       // Force grabbing cursor throughout drag (same as column drag)
       try {
         document.body.style.cursor = 'grabbing';
         (document.documentElement as HTMLElement).style.cursor = 'grabbing';
-      } catch {}
+      } catch { }
       // Follow mouse cursor; position will be converted relative to container in render
       setRowDragPos({ x: ev.clientX, y: ev.clientY });
       // Update row gap indicator to nearest row edge for better feedback when not over a row
@@ -1411,11 +1412,11 @@ export function PostTable({
     document.addEventListener('dragenter', onAnyDrag, true);
     window.addEventListener('dragend', onEnd, true);
     return () => {
-      try { window.removeEventListener('dragover', onAnyDrag, true); } catch {}
-      try { window.removeEventListener('drag', onAnyDrag, true); } catch {}
-      try { document.removeEventListener('dragover', onAnyDrag, true); } catch {}
-      try { document.removeEventListener('dragenter', onAnyDrag, true); } catch {}
-      try { window.removeEventListener('dragend', onEnd, true); } catch {}
+      try { window.removeEventListener('dragover', onAnyDrag, true); } catch { }
+      try { window.removeEventListener('drag', onAnyDrag, true); } catch { }
+      try { document.removeEventListener('dragover', onAnyDrag, true); } catch { }
+      try { document.removeEventListener('dragenter', onAnyDrag, true); } catch { }
+      try { window.removeEventListener('dragend', onEnd, true); } catch { }
     };
   }, [isRowDragging]);
 
@@ -1460,8 +1461,8 @@ export function PostTable({
       if (key === 'publish_date') {
         const dt = parse(String(value), "MMM, yyyy", new Date());
         if (!isNaN(dt.getTime())) {
-            dt.setDate(15);
-            newPost.publish_date = dt;
+          dt.setDate(15);
+          newPost.publish_date = dt;
         }
       }
       // Add other properties as needed based on your grouping columns
@@ -1478,7 +1479,7 @@ export function PostTable({
     }
 
     const duplicatedPosts: Post[] = [];
-    
+
     if (posts.length > 1) {
       // For multiple posts, use bulkAddPosts for better performance
       const postsData = posts.map(orig => ({
@@ -1532,30 +1533,30 @@ export function PostTable({
     const postsToRemove = duplicatedPosts.slice(-lastDuplicatedCount);
     setDuplicatedPosts(prev => prev.slice(0, -lastDuplicatedCount));
     setTableData(prev => prev.filter(p => !postsToRemove.map(dp => dp.id).includes(p.id)));
-    
+
     // Use bulk delete for better performance
     const postIdsToRemove = postsToRemove.map(post => post.id);
     if (postIdsToRemove.length > 0) {
       await store.bulkDeletePosts(postIdsToRemove);
     }
-    
+
     setShowDuplicateUndoMessage(false);
   }
 
   // "Caption Editor" states
   const [captionOpen, setCaptionOpen] = React.useState(false);
-  const [editingPost, setEditingPost] = React.useState<Post|null>(null);
+  const [editingPost, setEditingPost] = React.useState<Post | null>(null);
   const [selectedPlatform, setSelectedPlatform] = React.useState<Platform | null>(null);
   const [captionLocked, setCaptionLocked] = React.useState<boolean>(true);
   // Long text editor state
   const [userTextOpen, setUserTextOpen] = React.useState(false);
   const [editingUserText, setEditingUserText] = React.useState<{ postId: string; colId: string } | null>(null);
 
-  React.useEffect(()=>{
-    if(captionLocked){
+  React.useEffect(() => {
+    if (captionLocked) {
       setSelectedPlatform(null);
     }
-  },[captionLocked]);
+  }, [captionLocked]);
 
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
 
@@ -1593,7 +1594,7 @@ export function PostTable({
 
   const availablePlatforms = React.useMemo(() => {
     if (!brand) return [];
-    
+
     // Gather all page IDs from the table's posts
     const allPageIds = new Set<string>();
     for (const post of tableData) {
@@ -1613,8 +1614,8 @@ export function PostTable({
 
     return Array.from(platformSet);
   }, [tableData, brand]);
-    
-  const togglePlatform = (e : any, platform: Platform) => {
+
+  const togglePlatform = (e: any, platform: Platform) => {
     e.stopPropagation();
     e.preventDefault();
     setSelectedPlatform(prev => (prev === platform ? null : platform));
@@ -1725,20 +1726,20 @@ export function PostTable({
       dragMouseUpHandlerRef.current = onUp;
       document.addEventListener('mouseup', onUp, true);
     }
-    try { document.body.style.userSelect = 'none'; } catch {}
+    try { document.body.style.userSelect = 'none'; } catch { }
     try {
       document.body.classList.add('fbp-dragging-cursor');
       document.documentElement.classList.add('fbp-dragging-cursor');
       document.body.style.cursor = 'grabbing';
       (document.documentElement as HTMLElement).style.cursor = 'grabbing';
-    } catch {}
+    } catch { }
 
     // Attach native dragover/drop listeners to ensure events are captured
     const container = scrollContainerRef.current;
     if (container && !nativeDragBindingsRef.current.attached) {
       const containerOver = (ev: DragEvent) => {
         ev.preventDefault();
-        try { if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'; } catch {}
+        try { if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'; } catch { }
         if (typeof ev.clientX === 'number') updateOverlayForMouseX(ev.clientX);
       };
       const containerDrop = (ev: DragEvent) => {
@@ -1775,7 +1776,7 @@ export function PostTable({
         if (!el) continue;
         const over = (ev: DragEvent) => {
           ev.preventDefault();
-          try { if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'; } catch {}
+          try { if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'; } catch { }
         };
         const drop = (ev: DragEvent) => {
           ev.preventDefault();
@@ -1817,11 +1818,11 @@ export function PostTable({
     setDragOverlayLeft(null);
     setDragOverlayWidth(null);
     if (dragMouseMoveHandlerRef.current) {
-      try { document.removeEventListener('mousemove', dragMouseMoveHandlerRef.current as any, true); } catch {}
+      try { document.removeEventListener('mousemove', dragMouseMoveHandlerRef.current as any, true); } catch { }
       dragMouseMoveHandlerRef.current = null;
     }
     if (dragMouseUpHandlerRef.current) {
-      try { document.removeEventListener('mouseup', dragMouseUpHandlerRef.current as any, true); } catch {}
+      try { document.removeEventListener('mouseup', dragMouseUpHandlerRef.current as any, true); } catch { }
       dragMouseUpHandlerRef.current = null;
     }
     // detach native listeners
@@ -1834,14 +1835,14 @@ export function PostTable({
           b.el.removeEventListener('dragover', b.over as any, true);
           b.el.removeEventListener('drop', b.drop as any, true);
         }
-      } catch {}
+      } catch { }
       nativeDragBindingsRef.current = { attached: false, perHeader: [] } as any;
     }
     if (dragEndHandlerRef.current) {
       try {
         window.removeEventListener('dragend', dragEndHandlerRef.current as any, true);
         window.removeEventListener('drop', dragEndHandlerRef.current as any, true);
-      } catch {}
+      } catch { }
       dragEndHandlerRef.current = null;
     }
     try {
@@ -1850,8 +1851,8 @@ export function PostTable({
       document.documentElement.classList.remove('fbp-dragging-cursor');
       document.body.style.cursor = '';
       (document.documentElement as HTMLElement).style.cursor = '';
-    } catch {}
-    try { document.body.classList.remove('fbp-dragging-cursor'); } catch {}
+    } catch { }
+    try { document.body.classList.remove('fbp-dragging-cursor'); } catch { }
   }
 
   // Finalize column reorder on drag end or global drop if needed
@@ -1906,14 +1907,14 @@ export function PostTable({
       let insertIndex = newOrder.indexOf(toId!);
       if (insertAfterAtEnd) insertIndex += 1;
       newOrder.splice(insertIndex, 0, moved);
-      try { table.setColumnOrder(normalizeOrder(newOrder)); } catch {}
+      try { table.setColumnOrder(normalizeOrder(newOrder)); } catch { }
       // Persist board columns order
       try {
         if (activeBoardId) {
           const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder));
           updateBoard(activeBoardId, { columns: payload as any });
         }
-      } catch {}
+      } catch { }
       return normalizeOrder(newOrder);
     });
     endColumnDrag();
@@ -1934,10 +1935,10 @@ export function PostTable({
     document.addEventListener('dragenter', onAnyDrag, { capture: true });
     // Note: per-drag global end listeners are attached in handleColumnDragStart
     return () => {
-      try { window.removeEventListener('dragover', onAnyDrag, { capture: true } as any); } catch {}
-      try { window.removeEventListener('drag', onAnyDrag, { capture: true } as any); } catch {}
-      try { document.removeEventListener('dragover', onAnyDrag, { capture: true } as any); } catch {}
-      try { document.removeEventListener('dragenter', onAnyDrag, { capture: true } as any); } catch {}
+      try { window.removeEventListener('dragover', onAnyDrag, { capture: true } as any); } catch { }
+      try { window.removeEventListener('drag', onAnyDrag, { capture: true } as any); } catch { }
+      try { document.removeEventListener('dragover', onAnyDrag, { capture: true } as any); } catch { }
+      try { document.removeEventListener('dragenter', onAnyDrag, { capture: true } as any); } catch { }
     };
   }, [draggingColumnId]);
 
@@ -2146,11 +2147,8 @@ export function PostTable({
           const commentCount = getCommentCount(post);
 
           const CommentBadge = () => (
-            <div 
+            <div
               className="relative w-[22px] h-[22px] cursor-pointer transition-opacity hover:opacity-80 active:opacity-60"
-              onClick={(e) => {
-                onOpen?.(post.id);
-              }}
             >
               <Image
                 src={`/images/platforms/comment.svg`}
@@ -2170,20 +2168,30 @@ export function PostTable({
               <div
                 className={cn(
                   "absolute inset-0 flex items-center pl-2 gap-[8px] transition-opacity",
-                  isSelected ? "opacity-0" : "group-hover:opacity-0 opacity-100"
                 )}
               >
-                <span className="text-[12px] text-[#475467] w-4 text-center">
+                <span className={cn("text-[12px] text-[#475467] w-4 text-center", isSelected ? "opacity-0" : "group-hover:opacity-0 opacity-100")}>
                   {row.index + 1}
                 </span>
-                <CommentBadge />
+                <div
+                  className="relative w-[22px] h-[22px] cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 group-hover:opacity-0"
+                >
+                  <Image
+                    src={`/images/platforms/comment.svg`}
+                    alt={"comments"}
+                    width={22}
+                    height={22}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center mt-[-2px] text-[10px] text-[#125AFF] leading-none font-semibold">
+                    {commentCount}
+                  </span>
+                </div>
               </div>
 
-              {/* Hover/selected: checkbox + comment */}
+              {/* Hover/selected: checkbox + expand icon */}
               <div
                 className={cn(
                   "absolute inset-0 flex items-center gap-2 pl-2 transition-opacity",
-                  isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                 )}
               >
                 <Checkbox
@@ -2201,10 +2209,20 @@ export function PostTable({
                     // when it's checked
                     "data-[state=checked]:bg-[#2183FF]",                 // Airtable blue fill
                     "data-[state=checked]:border-[#2183FF]",             // Airtable blue stroke
-                    "data-[state=checked]:text-white"                    // << this makes the ✓ white
+                    "data-[state=checked]:text-white",                    // << this makes the ✓ white
+                    isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   )}
                 />
-                <CommentBadge />
+                <div
+                  className="w-6 h-6 bg-white rounded-[4px] border border-elementStroke cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 flex items-center justify-center group-hover:opacity-100 opacity-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('ExpandIcon clicked', post);
+                    onOpen?.(post.id);
+                  }}
+                >
+                  <Maximize2 className="text-black" style={{ width: '14px', height: '14px' }} />
+                </div>
               </div>
 
               {/* prevent layout jump */}
@@ -2217,8 +2235,8 @@ export function PostTable({
         },
       },
       // Status
-    {
-      id: "status",
+      {
+        id: "status",
         accessorKey: "status",
         filterFn: statusFilterFn,
         sortingFn: statusSortingFn,
@@ -2230,7 +2248,7 @@ export function PostTable({
         ),
         minSize: 80,
         size: 170,
-        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit } : FocusCellContext<Post>) => {
+        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit }: FocusCellContext<Post>) => {
           const post = row.original;
           return (
             <StatusEditCell
@@ -2266,11 +2284,11 @@ export function PostTable({
         enableSorting: false,
         cell: ({ row }) => {
           const post = row.original;
-          
+
           const handleFilesSelected = React.useCallback((files: File[]) => {
             // In a real implementation, you'd upload to your API and update the post
             console.log('Files selected for post:', post.id, files);
-            
+
             // TODO: Implement actual file upload
             // 1. Upload files to /api/media/upload
             // 2. Create blocks from uploaded files
@@ -2319,7 +2337,7 @@ export function PostTable({
         ),
         minSize: 200,
         size: 220,
-        cell: ({ row, isFocused, isEditing, exitEdit, enterEdit } : FocusCellContext<Post>) => {
+        cell: ({ row, isFocused, isEditing, exitEdit, enterEdit }: FocusCellContext<Post>) => {
           const post = row.original;
           return (
             <CaptionCell
@@ -2344,23 +2362,23 @@ export function PostTable({
                 const platform = selectedPlatform ?? post.platforms[0];
                 if (captionLocked || post.caption.synced) {
                   newCaptionData.default = newCaptionText;
-                } else if(platform) {
+                } else if (platform) {
                   if (!newCaptionData.perPlatform) newCaptionData.perPlatform = {};
                   newCaptionData.perPlatform[platform] = newCaptionText;
                 }
-                
+
                 // Prepare updates object
                 const updates: Partial<Post> = { caption: newCaptionData };
-                
+
                 // Auto-set status to "Pending Approval" if non-empty caption is set on post with blocks
                 const hasNonEmptyCaption = newCaptionText && newCaptionText.trim() !== "";
                 const hasBlocks = post.blocks.length > 0;
                 const isDraftStatus = post.status === "Draft";
-                
+
                 if (hasNonEmptyCaption && hasBlocks && isDraftStatus) {
                   updates.status = "Pending Approval";
                 }
-                
+
                 // Apply all updates in a single call
                 updatePost(post.id, updates);
               }}
@@ -2381,7 +2399,7 @@ export function PostTable({
           </div>
         ),
         minSize: 80,
-        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit } : FocusCellContext<Post>) => {
+        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit }: FocusCellContext<Post>) => {
           const post = row.original;
           return (
             <ChannelsEditCell
@@ -2418,7 +2436,7 @@ export function PostTable({
           </div>
         ),
         minSize: 90,
-        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit } : FocusCellContext<Post>) => {
+        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit }: FocusCellContext<Post>) => {
           const post = row.original;
           return (
             <FormatEditCell
@@ -2488,17 +2506,17 @@ export function PostTable({
         enableSorting: false,
         cell: ({ row }) => {
           const post = row.original;
-          
+
           // Define which statuses allow revision actions
           const allowedStatusesForRevision = [
             "Pending Approval",
-            "Revised", 
+            "Revised",
             "Needs Revisions",
             "Approved"
           ];
-          
+
           const canPerformRevisionAction = allowedStatusesForRevision.includes(post.status);
-          
+
           return (
             <div className={cn(
               "inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
@@ -2560,10 +2578,10 @@ export function PostTable({
           </div>
         ),
         minSize: 90,
-        size   : 150,
-        enableSorting : false,
+        size: 150,
+        enableSorting: false,
         enableGrouping: false,
-        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit } : FocusCellContext<Post>) => {
+        cell: ({ row, isFocused, isEditing, enterEdit, exitEdit }: FocusCellContext<Post>) => {
           const post = row.original;
           return (
             <SettingsEditCell
@@ -2628,7 +2646,7 @@ export function PostTable({
         ),
         minSize: 110,
         size: 230,
-        enableSorting : false,
+        enableSorting: false,
         enableGrouping: true,
         getGroupingValue: (row) => {
           return formatYearMonth(row.publish_date || undefined);
@@ -2802,7 +2820,7 @@ export function PostTable({
                         const payload = buildColumnsPayloadForOrder(order, nextCols);
                         updateBoard(activeBoardId, { columns: payload as any });
                       }
-                    } catch {}
+                    } catch { }
                   }}
                 />
               );
@@ -2832,7 +2850,7 @@ export function PostTable({
               const selectedIds = Array.isArray(existingVal)
                 ? existingVal
                 : String(existingVal || "").split(",").map(s => s.trim()).filter(Boolean);
-              
+
               return (
                 <MultiSelectCell
                   value={selectedIds}
@@ -2869,7 +2887,7 @@ export function PostTable({
                         const payload = buildColumnsPayloadForOrder(order, nextCols);
                         updateBoard(activeBoardId, { columns: payload as any });
                       }
-                    } catch {}
+                    } catch { }
                   }}
                 />
               );
@@ -2887,7 +2905,7 @@ export function PostTable({
                 console.error('Failed to parse attachments:', error);
                 attachments = [];
               }
-              
+
               return (
                 <MemoAttachmentCell
                   attachments={attachments}
@@ -2941,14 +2959,14 @@ export function PostTable({
   const filterableColumns = React.useMemo(() => {
     // Only allow filtering on: Status, Month, Socials (platforms), Format
     const ALLOWED_FILTER_COLUMNS = new Set(["status", "month", "platforms", "format"]);
-    
+
     const iconMap: Record<string, React.JSX.Element> = {
       status: <FolderOpen className="mr-1 h-3 w-3" />,
       month: <CalendarIcon className="mr-1 h-3 w-3" />,
       platforms: <ListPlus className="mr-1 h-3 w-3" />,
       format: <Film className="mr-1 h-3 w-3" />,
     };
-    
+
     return columns
       .filter((c) => ALLOWED_FILTER_COLUMNS.has(c.id as string))
       .map((col) => ({
@@ -3030,7 +3048,7 @@ export function PostTable({
   // Check if a column is a default/system column
   const isDefaultColumn = React.useCallback((columnId: string): boolean => {
     const defaultColumnIds = [
-      'drag', 'rowIndex', 'status', 'preview', 'caption', 'platforms', 
+      'drag', 'rowIndex', 'status', 'preview', 'caption', 'platforms',
       'format', 'month', 'revision', 'approve', 'settings', 'publish_date', 'updated_at'
     ];
     return defaultColumnIds.includes(columnId);
@@ -3043,14 +3061,14 @@ export function PostTable({
         if (isDefaultColumn(columnId)) {
           break;
         }
-        
+
         setEditFieldColumnId(columnId);
-        
+
         // Set the field type based on the existing column type
         const existingColumn = userColumns.find(col => col.id === columnId);
         if (existingColumn) {
           setEditFieldType(mapColumnTypeToEditFieldType(existingColumn.type));
-          
+
           // Load existing options for select types
           if (existingColumn.type === 'singleSelect' || existingColumn.type === 'multiSelect') {
             if (existingColumn.options && Array.isArray(existingColumn.options)) {
@@ -3071,11 +3089,11 @@ export function PostTable({
               } else {
                 // Convert old {value, color} format to new format with IDs
                 setEditFieldOptions(
-                                  (existingColumn.options as any[]).map((opt, index) => ({
-                  id: `opt_${index + 1}`,
-                  value: opt.value,
-                  color: opt.color
-                }))
+                  (existingColumn.options as any[]).map((opt, index) => ({
+                    id: `opt_${index + 1}`,
+                    value: opt.value,
+                    color: opt.color
+                  }))
                 );
               }
             } else {
@@ -3088,7 +3106,7 @@ export function PostTable({
             }
           }
         }
-        
+
         // Compute anchored position relative to header
         const headerEl = headerRefs.current[columnId];
         const container = scrollContainerRef.current;
@@ -3124,7 +3142,7 @@ export function PostTable({
           const isUserCol = prev.some(c => c.id === columnId);
           if (!isUserCol) return prev; // Only duplicate user-defined for now
           const orig = prev.find(c => c.id === columnId)!;
-          
+
           // Generate a unique ID for the duplicated column
           const generateUniqueId = (baseLabel: string) => {
             let counter = 1;
@@ -3135,10 +3153,10 @@ export function PostTable({
             }
             return newId;
           };
-          
+
           const newId = generateUniqueId(orig.label);
           const copy = { ...orig, id: newId, label: `${orig.label} copy` };
-          
+
           // insert right after
           setColumnOrder((orderPrev) => {
             const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
@@ -3146,7 +3164,7 @@ export function PostTable({
             if (idx === -1) return orderPrev;
             const newOrder = normalizeOrder([...order]);
             newOrder.splice(idx + 1, 0, newId);
-            try { table.setColumnOrder(normalizeOrder(newOrder)); } catch {}
+            try { table.setColumnOrder(normalizeOrder(newOrder)); } catch { }
             // Persist after duplicate - pass the updated userColumns that includes the new column
             try {
               if (activeBoardId) {
@@ -3154,7 +3172,7 @@ export function PostTable({
                 const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder), nextUserColumns);
                 updateBoard(activeBoardId, { columns: payload as any });
               }
-            } catch {}
+            } catch { }
             return normalizeOrder(newOrder);
           });
           return [...prev, copy];
@@ -3199,8 +3217,8 @@ export function PostTable({
         const nextUserColumns: UserColumn[] = userColumns.filter(c => c.id !== columnId);
         setUserColumns((prev) => prev.filter(c => c.id !== columnId));
         setColumnOrder((prev) => normalizeOrder(prev.filter(id => id !== columnId)));
-        try { table.getColumn(columnId)?.toggleVisibility(false); } catch {}
-        
+        try { table.getColumn(columnId)?.toggleVisibility(false); } catch { }
+
         // Handle column deletion from posts
         const deletedColumn = userColumns.find(c => c.id === columnId);
         if (deletedColumn) {
@@ -3214,10 +3232,10 @@ export function PostTable({
             // Update each post to remove the column value
             postsToUpdate.forEach((post) => {
               const updatedUserColumns = post.user_columns?.filter(uc => uc.id !== deletedColumn.id) || [];
-              
+
               // Update local state immediately for better UX
-              setTableData(prev => prev.map(p => 
-                p.id === post.id 
+              setTableData(prev => prev.map(p =>
+                p.id === post.id
                   ? { ...p, user_columns: updatedUserColumns }
                   : p
               ));
@@ -3226,7 +3244,7 @@ export function PostTable({
               updatePost(post.id, { user_columns: updatedUserColumns } as any).catch(error => {
                 console.error(`Failed to update post ${post.id} after column deletion:`, error);
                 // Revert local state on error
-                setTableData(prev => prev.map(p => 
+                setTableData(prev => prev.map(p =>
                   p.id === post.id ? post : p
                 ));
               });
@@ -3234,7 +3252,7 @@ export function PostTable({
 
           }
         }
-        
+
         // Persist after delete
         try {
           if (activeBoardId) {
@@ -3243,7 +3261,7 @@ export function PostTable({
             console.log("columns after deletetion", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
-        } catch {}
+        } catch { }
         break;
       }
     }
@@ -3253,7 +3271,7 @@ export function PostTable({
   function handleAddColumn(label: string, type: ColumnType, options?: Array<{ id: string; value: string; color: string }> | string[]) {
     const nextUserColumns: UserColumn[] = [
       ...userColumns,
-              { id: nanoid(), label, type, options: type === 'singleSelect' || type === 'multiSelect' ? (options as Array<{ id: string; value: string; color: string }>) : undefined },
+      { id: nanoid(), label, type, options: type === 'singleSelect' || type === 'multiSelect' ? (options as Array<{ id: string; value: string; color: string }>) : undefined },
     ];
     console.log("Adding new column:", { label, type, nextUserColumns });
     setUserColumns(nextUserColumns);
@@ -3272,7 +3290,7 @@ export function PostTable({
         // Use the new column's ID instead of label for the order
         const newColumnId = nextUserColumns[nextUserColumns.length - 1].id;
         newOrder.splice(insertIndex, 0, newColumnId);
-        try { table.setColumnOrder(newOrder) } catch {}
+        try { table.setColumnOrder(newOrder) } catch { }
         // Persist board columns with the newly added user column
         try {
           console.log("activeBoardId", activeBoardId)
@@ -3281,7 +3299,7 @@ export function PostTable({
             console.log("add payload", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
-        } catch {}
+        } catch { }
         return newOrder;
       });
       setPendingInsertRef(null);
@@ -3292,15 +3310,15 @@ export function PostTable({
         const newOrder = normalizeOrder([...order]);
         const newColumnId = nextUserColumns[nextUserColumns.length - 1].id;
         newOrder.push(newColumnId);
-        
-        console.log("Updating column order (no pendingInsertRef):", { 
-          orderPrev, 
-          order, 
-          newOrder, 
+
+        console.log("Updating column order (no pendingInsertRef):", {
+          orderPrev,
+          order,
+          newOrder,
           newColumnId,
-          nextUserColumns 
+          nextUserColumns
         });
-        
+
         // Persist board columns with the newly added user column
         try {
           if (activeBoardId) {
@@ -3308,8 +3326,8 @@ export function PostTable({
             console.log("add payload (no pendingInsertRef)", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
-        } catch {}
-        
+        } catch { }
+
         return newOrder;
       });
     }
@@ -3370,7 +3388,7 @@ export function PostTable({
         return <FormatBadge kind={fmt as ContentFormat} widthFull={false} />;
       }
       case "publish_date":
-        if(!val) return <span className="text-base text-muted-foreground font-semibold">No time is set yet</span>;
+        if (!val) return <span className="text-base text-muted-foreground font-semibold">No time is set yet</span>;
         return <span className="text-base font-semibold">{String(val)}</span>;
       case "month":
         return <span className="text-base font-semibold">Month {val}</span>;
@@ -3397,7 +3415,7 @@ export function PostTable({
             className="bg-[#FBFBFB]"
           >
             {/* ◀ phantom on the left */}
-            <TableHead className="border-b border-[#E6E4E2] bg-[#FBFBFB]" style={{ width: 14, padding: 0}} />
+            <TableHead className="border-b border-[#E6E4E2] bg-[#FBFBFB]" style={{ width: 14, padding: 0 }} />
 
             {hg.headers.map((h, index) =>
               h.isPlaceholder ? null : (
@@ -3411,7 +3429,7 @@ export function PostTable({
                     h.id === 'status' && 'sticky-status-shadow'
                   )}
                   ref={(el) => { headerRefs.current[h.column.id] = el as HTMLElement; }}
-                  style={{ width: h.getSize(), ...stickyStyles(h.column.id, 10)}}
+                  style={{ width: h.getSize(), ...stickyStyles(h.column.id, 10) }}
                 >
                   {(() => {
                     const canDrag = h.column.id !== "rowIndex" && h.column.id !== "drag";
@@ -3471,16 +3489,16 @@ export function PostTable({
                               </div>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="bottom" align={headerMenuAlign} sideOffset={headerMenuSideOffset} alignOffset={headerMenuAlignOffset} className="w-40 text-sm">
-                              <DropdownMenuItem 
-                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('edit', h.id)} 
+                              <DropdownMenuItem
+                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('edit', h.id)}
                                 className={`text-sm font-medium ${isDefaultColumn(h.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
                                 disabled={isDefaultColumn(h.id)}
                               >
                                 <img src="/images/boards/rename.svg" alt="Edit field" className="h-4 w-4" />
                                 Edit field
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('duplicate', h.id)} 
+                              <DropdownMenuItem
+                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('duplicate', h.id)}
                                 className={`text-sm font-medium ${isDefaultColumn(h.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
                                 disabled={isDefaultColumn(h.id)}
                               >
@@ -3503,13 +3521,13 @@ export function PostTable({
                                 <img src="/images/boards/sort-up.svg" alt="Sort Z - A" className="h-4 w-4" />
                                 Sort Z - A
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-elementStroke mx-2"/>
+                              <DropdownMenuSeparator className="bg-elementStroke mx-2" />
                               <DropdownMenuItem onClick={() => handleHeaderMenuAction('hide', h.id)} className="text-black text-sm font-medium cursor-pointer">
                                 <img src="/images/boards/hide.svg" alt="Hide field" className="h-4 w-4" />
                                 Hide field
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('delete', h.id)} 
+                              <DropdownMenuItem
+                                onClick={() => !isDefaultColumn(h.id) && handleHeaderMenuAction('delete', h.id)}
                                 className={`text-sm font-medium ${isDefaultColumn(h.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
                                 disabled={isDefaultColumn(h.id)}
                               >
@@ -3586,11 +3604,11 @@ export function PostTable({
     const stickyCols = visibleLeafColumns.filter(c => isSticky(c.id));
     const nonStickyCols = visibleLeafColumns.filter(c => !isSticky(c.id));
     const { state } = useSidebar();
-    
+
     // Calculate available width based on sidebar state
     const sidebarWidth = state === "expanded" ? 256 : 56; // 16rem = 256px, 3.5rem = 56px
     const availableWidth = typeof window !== 'undefined' ? window.innerWidth - sidebarWidth : 1200; // fallback width
-    
+
     // Calculate approval status and deadline information
     const approvalInfo = React.useMemo(() => {
       if (!groupPosts || groupPosts.length === 0) return null;
@@ -3604,7 +3622,7 @@ export function PostTable({
             const postDate = post.updatedAt instanceof Date ? post.updatedAt : new Date(post.updatedAt!);
             return postDate > latest ? postDate : latest;
           }, new Date(0));
-        
+
         return {
           type: 'approved' as const,
           date: latestApprovalDate,
@@ -3621,7 +3639,7 @@ export function PostTable({
           }, new Date(0));
         if (latestUpdatedAt.getTime() == 0)
           latestUpdatedAt = new Date();
-          // Calculate days left
+        // Calculate days left
         const now = new Date();
         const deadlineDate = new Date(latestUpdatedAt.getTime() + (boardRules.approvalDays * 24 * 60 * 60 * 1000));
         const daysLeft = Math.ceil((deadlineDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
@@ -3632,10 +3650,10 @@ export function PostTable({
           };
         }
       }
-      
+
       return null;
     }, [groupPosts, boardRules]);
-    
+
     // Cursor-following tooltip state for the entire group divider row
     const [isHoveringDivider, setIsHoveringDivider] = React.useState(false);
     const [cursorPos, setCursorPos] = React.useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -3643,81 +3661,81 @@ export function PostTable({
 
     return (
       <>
-      <tr          
-        onMouseEnter={(e) => {
-          const target = e.target as HTMLElement;
-          if (!target.closest('.no-divider-tooltip')) {
-            setIsHoveringDivider(true);
-          }
-        }}
-        onMouseMove={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('.no-divider-tooltip')) {
-            if (isHoveringDivider) setIsHoveringDivider(false);
-            return;
-          }
-          setCursorPos({ x: e.clientX, y: e.clientY });
-          if (!isHoveringDivider) setIsHoveringDivider(true);
-        }}
-        onMouseLeave={() => setIsHoveringDivider(false)}
-        onDragOver={(e) => {
-          // Prevent dropping on group headers when group is collapsed
-          if (!isExpanded) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'none';
-            return;
-          }
-          
-          // Prevent dropping on group headers when dragging from different group
-          if (grouping.length > 0) {
-            const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
-            const allLeafRows = groups.flatMap(group => group.leafRows);
-            
-            // Get the source row from drag data
-            const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
-            if (!Number.isNaN(fromIndex)) {
-              const sourceRow = allLeafRows[fromIndex];
-              
-              if (sourceRow) {
-                // Find source group
-                const sourceGroup = groups.find(group => 
-                  group.leafRows.some(r => r.id === sourceRow.id)
-                );
-                
-                // Check if source group is different from current group
-                const currentGroup = groups.find(g => g.groupValues.month === month);
-                if (sourceGroup && currentGroup && sourceGroup !== currentGroup) {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'none';
-                  return;
+        <tr
+          onMouseEnter={(e) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('.no-divider-tooltip')) {
+              setIsHoveringDivider(true);
+            }
+          }}
+          onMouseMove={(e) => {
+            const target = e.target as HTMLElement;
+            if (target.closest('.no-divider-tooltip')) {
+              if (isHoveringDivider) setIsHoveringDivider(false);
+              return;
+            }
+            setCursorPos({ x: e.clientX, y: e.clientY });
+            if (!isHoveringDivider) setIsHoveringDivider(true);
+          }}
+          onMouseLeave={() => setIsHoveringDivider(false)}
+          onDragOver={(e) => {
+            // Prevent dropping on group headers when group is collapsed
+            if (!isExpanded) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'none';
+              return;
+            }
+
+            // Prevent dropping on group headers when dragging from different group
+            if (grouping.length > 0) {
+              const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+              const allLeafRows = groups.flatMap(group => group.leafRows);
+
+              // Get the source row from drag data
+              const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+              if (!Number.isNaN(fromIndex)) {
+                const sourceRow = allLeafRows[fromIndex];
+
+                if (sourceRow) {
+                  // Find source group
+                  const sourceGroup = groups.find(group =>
+                    group.leafRows.some(r => r.id === sourceRow.id)
+                  );
+
+                  // Check if source group is different from current group
+                  const currentGroup = groups.find(g => g.groupValues.month === month);
+                  if (sourceGroup && currentGroup && sourceGroup !== currentGroup) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                  }
                 }
               }
             }
-          }
-        }}>
-        {/* ◀ left phantom sticky */}
-        <td
-          style={{
-            position: 'sticky',
-            left: 0,
-            width: 20,
-            background: "#F8F8F8",
-          }}
-        />
-        
-        <td
-          className="bg-white border-t border-l border-b border-[#E6E4E2]"
-          colSpan={5}
-          style={{
-            borderRadius: "4px 0px 0px 0px",
-            ...stickyStyles("drag", 0), // Lower than cell zIndex to avoid covering borders
-          }}
-        >
-              <div className="no-divider-tooltip inline-flex items-center gap-2 px-[12px] py-[10px] font-medium text-sm">
-                {children}
-                {isGroupedByMonth && groupPosts && groupPosts.length > 0 && (
-                  <div className="flex items-center gap-2">
-                {/* {!isExpanded && (
+          }}>
+          {/* ◀ left phantom sticky */}
+          <td
+            style={{
+              position: 'sticky',
+              left: 0,
+              width: 20,
+              background: "#F8F8F8",
+            }}
+          />
+
+          <td
+            className="bg-white border-t border-l border-b border-[#E6E4E2]"
+            colSpan={5}
+            style={{
+              borderRadius: "4px 0px 0px 0px",
+              ...stickyStyles("drag", 0), // Lower than cell zIndex to avoid covering borders
+            }}
+          >
+            <div className="no-divider-tooltip inline-flex items-center gap-2 px-[12px] py-[10px] font-medium text-sm">
+              {children}
+              {isGroupedByMonth && groupPosts && groupPosts.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {/* {!isExpanded && (
                   <>
                     <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#F2F4F7] text-[#475467] text-xs leading-none text-center text-nowrap">
                       {rowCount}
@@ -3726,176 +3744,176 @@ export function PostTable({
                   </>        
                   )
                 } */}
-                <div className="no-divider-tooltip">
-                  <StatusChip 
-                    status={groupPosts.every(post => post.status === "Approved") ? "Approved" : "Pending Approval"} 
-                    widthFull={false} 
-                  />
+                  <div className="no-divider-tooltip">
+                    <StatusChip
+                      status={groupPosts.every(post => post.status === "Approved") ? "Approved" : "Pending Approval"}
+                      widthFull={false}
+                    />
+                  </div>
+                  {/* Revision Rules Display */}
+                  {boardRules?.revisionRules && boardRules.firstMonth && (
+                    <>
+                      {boardRules.firstMonth === -1 ? (
+                        <div className="px-2 py-[2px] bg-White flex justify-center items-center gap-1 overflow-hidde">
+                          <img
+                            src="/images/boards/unlimited.svg"
+                            alt="Unlimited Revisions"
+                            className="w-4 h-4"
+                          />
+                          <span className="text-xs font-medium">Unlimited Revisions</span>
+                        </div>
+                      ) : boardRules.firstMonth > 0 ? (
+                        <div className="px-2 py-[2px] bg-White flex justify-center items-center gap-1 overflow-hidde">
+                          <CircleArrowOutDownRight className="w-4 h-4 text-[#2183FF]" />
+                          <span className="text-xs font-medium">
+                            {boardRules.firstMonth} Revision Round{boardRules.firstMonth > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+
+
+                  {/* Right action area moved to right scrollable cell */}
                 </div>
-                {/* Revision Rules Display */}
-                {boardRules?.revisionRules && boardRules.firstMonth && (
-                  <>
-                    {boardRules.firstMonth === -1 ? (
-                      <div className="px-2 py-[2px] bg-White flex justify-center items-center gap-1 overflow-hidde">
+              )}
+            </div>
+          </td>
+
+          <td
+            colSpan={visibleLeafColumns.length - 6}
+            className="bg-white border-t border-b border-[#E6E4E2]"
+            style={{
+              borderRadius: "0px 0px 0px 0px",
+            }}
+          />
+
+          {/* ▶ right sticky actions cell */}
+          <td
+            className="no-divider-tooltip bg-white border-t border-b border-r border-[#E6E4E2]"
+            style={{
+              position: 'sticky',
+              right: 0,
+              zIndex: 30,
+              background: 'white',
+              borderTopRightRadius: 4,
+            }}
+          >
+            <div className="flex items-center justify-end gap-2 px-2 py-[10px] whitespace-nowrap overflow-visible">
+              {isGroupedByMonth && approvalInfo && (
+                <>
+                  <div className="flex items-center">
+                    {approvalInfo.type === 'approved' ? (
+                      <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-emerald-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
                         <img
-                          src="/images/boards/unlimited.svg"
-                          alt="Unlimited Revisions"
-                          className="w-4 h-4"
+                          src="/images/publish/check-circle.svg"
+                          alt="approved"
+                          className="w-4 h-4 flex-shrink-0"
                         />
-                        <span className="text-xs font-medium">Unlimited Revisions</span>
+                        <span className="text-xs font-semibold leading-none">
+                          {approvalInfo.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                        <span className="text-xs text-emerald-600 font-medium truncate">
+                          APPROVED
+                        </span>
                       </div>
-                    ) : boardRules.firstMonth > 0 ? (
-                      <div className="px-2 py-[2px] bg-White flex justify-center items-center gap-1 overflow-hidde">
-                        <CircleArrowOutDownRight className="w-4 h-4 text-[#2183FF]" />
-                        <span className="text-xs font-medium">
-                          {boardRules.firstMonth} Revision Round{boardRules.firstMonth > 1 ? "s" : ""}
+                    ) : approvalInfo.type === 'deadline' ? (
+                      <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-orange-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
+                        <img
+                          src="/images/publish/clock-fast-forward.svg"
+                          alt="deadline"
+                          className="w-4 h-4 flex-shrink-0"
+                        />
+                        <span className="text-xs font-medium truncate">
+                          {approvalInfo.daysLeft} DAYS LEFT TO REVIEW
                         </span>
                       </div>
                     ) : null}
-                  </>
-                )}
-
-
-          {/* Right action area moved to right scrollable cell */}
                   </div>
-                )}
-              </div>
-        </td>
-  
-        <td
-          colSpan={visibleLeafColumns.length - 6}
-          className="bg-white border-t border-b border-[#E6E4E2]"
-          style={{
-            borderRadius: "0px 0px 0px 0px",
-          }}
-        />
 
-        {/* ▶ right sticky actions cell */}
-        <td
-          className="no-divider-tooltip bg-white border-t border-b border-r border-[#E6E4E2]"
-          style={{
-            position: 'sticky',
-            right: 0,
-            zIndex: 30,
-            background: 'white',
-            borderTopRightRadius: 4,
-          }}
-        >
-          <div className="flex items-center justify-end gap-2 px-2 py-[10px] whitespace-nowrap overflow-visible">
-            {isGroupedByMonth && approvalInfo && (
-              <>
-              <div className="flex items-center">
-                {approvalInfo.type === 'approved' ? (
-                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-emerald-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
-                    <img 
-                      src="/images/publish/check-circle.svg" 
-                      alt="approved" 
-                      className="w-4 h-4 flex-shrink-0"
-                    />
-                    <span className="text-xs font-semibold leading-none">
-                      {approvalInfo.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                    <span className="text-xs text-emerald-600 font-medium truncate">
-                      APPROVED
-                    </span>
-                  </div>
-                ) : approvalInfo.type === 'deadline' ? (
-                  <div className="px-2 py-[2px] bg-White rounded border-1 outline outline-1 outline-offset-[-1px] outline-orange-100 flex justify-center items-center gap-1 overflow-x-auto whitespace-nowrap">
-                    <img 
-                      src="/images/publish/clock-fast-forward.svg" 
-                      alt="deadline" 
-                      className="w-4 h-4 flex-shrink-0"
-                    />
-                    <span className="text-xs font-medium truncate">
-                      {approvalInfo.daysLeft} DAYS LEFT TO REVIEW
-                    </span>
-                  </div>
-                ) : null}
-              </div>
+                  {/* Group Comments Button */}
+                  {(() => {
+                    const groupComments: GroupComment[] = groupData?.comments || [];
+                    let unreadedCount = 0;
+                    let totalCount = 0;
+                    let latestUnreaded: GroupComment | null = null;
 
-            {/* Group Comments Button */}
-            {(() => {
-              const groupComments: GroupComment[] = groupData?.comments || [];
-              let unreadedCount = 0;
-              let totalCount = 0;
-              let latestUnreaded: GroupComment | null = null;
-              
-              totalCount = groupComments.length;
-              const email = useFeedbirdStore.getState().user?.email;
-              const unreaded = groupComments.filter((c: GroupComment) => !c.resolved && (!email || !(c.readBy || []).includes(email)));
-              unreadedCount = unreaded.length;
-              if (unreadedCount > 0) {
-                latestUnreaded = unreaded
-                  .sort((a: GroupComment, b: GroupComment) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-              }
+                    totalCount = groupComments.length;
+                    const email = useFeedbirdStore.getState().user?.email;
+                    const unreaded = groupComments.filter((c: GroupComment) => !c.resolved && (!email || !(c.readBy || []).includes(email)));
+                    unreadedCount = unreaded.length;
+                    if (unreadedCount > 0) {
+                      latestUnreaded = unreaded
+                        .sort((a: GroupComment, b: GroupComment) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                    }
 
-              function timeAgo(date: Date | string) {
-                const now = new Date();
-                const d = typeof date === "string" ? new Date(date) : date;
-                const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-                if (diff < 60) return `${diff}s ago`;
-                if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-                if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-                return `${Math.floor(diff / 86400)}d ago`;
-              }
+                    function timeAgo(date: Date | string) {
+                      const now = new Date();
+                      const d = typeof date === "string" ? new Date(date) : date;
+                      const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+                      if (diff < 60) return `${diff}s ago`;
+                      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                      return `${Math.floor(diff / 86400)}d ago`;
+                    }
 
-              if (unreadedCount > 0 && latestUnreaded) {
-                return (
-                  <div 
-                    className="flex items-center gap-1 pl-1 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main flex-shrink-0 cursor-pointer"
-                    onClick={() => onOpenGroupFeedback?.((groupData ?? { month, comments: [] }) as BoardGroupData, month)}
-                    >
-                    <img
-                      src="/images/icons/message-notification-active.svg"
-                      alt="Unresolved Group Comment"
-                      className="w-4 h-4"
-                      />
-                    <span className="text-xs font-medium text-main" title={`${latestUnreaded.author} left group comments ${timeAgo(latestUnreaded.createdAt)}`}>
-                      {latestUnreaded.author} left group comments {timeAgo(latestUnreaded.createdAt)}
-                    </span>
-                  </div>
-                );
-              } else {
-                return (
-                  <div 
-                    className="flex items-center gap-1 pl-1 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main flex-shrink-0 cursor-pointer"
-                    onClick={() => onOpenGroupFeedback?.((groupData ?? { month, comments: [] }) as BoardGroupData, month)}
-                  >
+                    if (unreadedCount > 0 && latestUnreaded) {
+                      return (
+                        <div
+                          className="flex items-center gap-1 pl-1 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main flex-shrink-0 cursor-pointer"
+                          onClick={() => onOpenGroupFeedback?.((groupData ?? { month, comments: [] }) as BoardGroupData, month)}
+                        >
+                          <img
+                            src="/images/icons/message-notification-active.svg"
+                            alt="Unresolved Group Comment"
+                            className="w-4 h-4"
+                          />
+                          <span className="text-xs font-medium text-main" title={`${latestUnreaded.author} left group comments ${timeAgo(latestUnreaded.createdAt)}`}>
+                            {latestUnreaded.author} left group comments {timeAgo(latestUnreaded.createdAt)}
+                          </span>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div
+                          className="flex items-center gap-1 pl-1 pr-1 py-[2px] bg-white rounded border-1 outline outline-1 outline-offset-[-1px] outline-main flex-shrink-0 cursor-pointer"
+                          onClick={() => onOpenGroupFeedback?.((groupData ?? { month, comments: [] }) as BoardGroupData, month)}
+                        >
 
-                    <img
-                      src="/images/icons/message-notification.svg"
-                      alt="Group Comments"
-                      className="w-4 h-4"
-                      />
-                    <span className="text-xs font-medium">
-                      Group Comments
-                    </span>
-                  </div>
-                );
-              }
-            })()}
-            </>
-          )}
-          </div>
-        </td>
-  
-        {/* ▶ right phantom */}
-        <th
-          style={{
-            width: 0,
-            background: "#F8F8F8",
-          }}
-        />
-      </tr>
-      {isHoveringDivider && typeof window !== 'undefined' && createPortal(
-        <div
-          className="pointer-events-none bg-white text-black border border-elementStroke rounded-md text-xs font-medium px-3 py-1 shadow-md z-[1000]"
-          style={{ position: 'fixed', left: cursorPos.x, top: cursorPos.y - 10, transform: 'translate(-50%, -100%)' }}
-        >
-          {recordCountForTooltip} {recordCountForTooltip === 1 ? 'record' : 'records'}
-        </div>,
-        document.body
-      )}
+                          <img
+                            src="/images/icons/message-notification.svg"
+                            alt="Group Comments"
+                            className="w-4 h-4"
+                          />
+                          <span className="text-xs font-medium">
+                            Group Comments
+                          </span>
+                        </div>
+                      );
+                    }
+                  })()}
+                </>
+              )}
+            </div>
+          </td>
+
+          {/* ▶ right phantom */}
+          <th
+            style={{
+              width: 0,
+              background: "#F8F8F8",
+            }}
+          />
+        </tr>
+        {isHoveringDivider && typeof window !== 'undefined' && createPortal(
+          <div
+            className="pointer-events-none bg-white text-black border border-elementStroke rounded-md text-xs font-medium px-3 py-1 shadow-md z-[1000]"
+            style={{ position: 'fixed', left: cursorPos.x, top: cursorPos.y - 10, transform: 'translate(-50%, -100%)' }}
+          >
+            {recordCountForTooltip} {recordCountForTooltip === 1 ? 'record' : 'records'}
+          </div>,
+          document.body
+        )}
       </>
     );
   }
@@ -3950,246 +3968,246 @@ export function PostTable({
 
           {groups.length > 0 && (
             <>
-          {/* ─── Gap row between header and first group ─────────── */}
-          <tbody>
-            <tr>
-              <td
-                colSpan={colSpan + 2}
-                style={{ height: 10, background: "#F8F8F8", border: "none" }}
-              />
-            </tr>
-          </tbody>
+              {/* ─── Gap row between header and first group ─────────── */}
+              <tbody>
+                <tr>
+                  <td
+                    colSpan={colSpan + 2}
+                    style={{ height: 10, background: "#F8F8F8", border: "none" }}
+                  />
+                </tr>
+              </tbody>
 
-          {/* ─── One <tbody> per final group ────────────────────── */}
-          {groups.map((group, idx) => {
-            const key = JSON.stringify(group.groupValues);
-            const isExpanded = !!flatGroupExpanded[key];
+              {/* ─── One <tbody> per final group ────────────────────── */}
+              {groups.map((group, idx) => {
+                const key = JSON.stringify(group.groupValues);
+                const isExpanded = !!flatGroupExpanded[key];
 
-            return (
-              <tbody key={key}>
-                {/* (optional) gap before every group except the first */}
-                {idx > 0 && (
-                  <tr>
-                    <td
-                      colSpan={colSpan + 2}
-                      className="h-[10px] bg-[#F8F8F8]"
-                      style={{ border: "none" }}
-                    />
-                  </tr>
-                )}
+                return (
+                  <tbody key={key}>
+                    {/* (optional) gap before every group except the first */}
+                    {idx > 0 && (
+                      <tr>
+                        <td
+                          colSpan={colSpan + 2}
+                          className="h-[10px] bg-[#F8F8F8]"
+                          style={{ border: "none" }}
+                        />
+                      </tr>
+                    )}
 
-                {/* Group-header row */}
-                <GroupDivider 
-                  rowCount={group.rowCount} 
-                  groupPosts={group.leafRows.map(row => row.original)} 
-                  groupData={currentBoard?.groupData?.find(gd => gd.month === group.groupValues.month) as BoardGroupData}
-                  boardRules={boardRules}
-                  isGroupedByMonth={grouping.includes("month")}
-                  onOpenGroupFeedback={(groupData) => handleOpenGroupFeedback(groupData, group.groupValues.month)}
-                  month={group.groupValues.month}
-                  isExpanded={isExpanded}
-                >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="px-1 py-0 w-6 h-6"
-                      onClick={() =>
-                        setFlatGroupExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
+                    {/* Group-header row */}
+                    <GroupDivider
+                      rowCount={group.rowCount}
+                      groupPosts={group.leafRows.map(row => row.original)}
+                      groupData={currentBoard?.groupData?.find(gd => gd.month === group.groupValues.month) as BoardGroupData}
+                      boardRules={boardRules}
+                      isGroupedByMonth={grouping.includes("month")}
+                      onOpenGroupFeedback={(groupData) => handleOpenGroupFeedback(groupData, group.groupValues.month)}
+                      month={group.groupValues.month}
+                      isExpanded={isExpanded}
                     >
-                      {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="px-1 py-0 w-6 h-6"
+                        onClick={() =>
+                          setFlatGroupExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
+                      >
+                        {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                      </Button>
 
-                    {/* labels */}
-                    <span className="flex items-center gap-2">
-                      {group.groupingColumns.map((c, i) => (
-                        <React.Fragment key={c}>
-                          {renderGroupValue(c, group.groupValues[c])}
-                          {i < group.groupingColumns.length - 1 && (
-                            <span className="px-1 text-gray-400">|</span>
+                      {/* labels */}
+                      <span className="flex items-center gap-2">
+                        {group.groupingColumns.map((c, i) => (
+                          <React.Fragment key={c}>
+                            {renderGroupValue(c, group.groupValues[c])}
+                            {i < group.groupingColumns.length - 1 && (
+                              <span className="px-1 text-gray-400">|</span>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </span>
+                    </GroupDivider>
+
+                    {/* Leaf rows */}
+                    {isExpanded &&
+                      group.leafRows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-rowkey={row.index}
+                          style={{ height: getRowHeightPixels(rowHeight) }}
+                          className={cn(
+                            "group hover:bg-[#F9FAFB]",
+                            row.getIsSelected() && "bg-[#EBF5FF]"
                           )}
-                        </React.Fragment>
-                      ))}
-                    </span>
-                </GroupDivider>
+                          onMouseDownCapture={(e) => handleRowClick(e, row)}
+                          onContextMenu={(e) => handleContextMenu(e, row)}
+                          onDragStart={(e) => handleRowDragStart(e, row.index)}
+                          onDragOver={(e) => {
+                            e.preventDefault();
 
-                {/* Leaf rows */}
-                {isExpanded &&
-                  group.leafRows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-rowkey={row.index}
-                      style={{ height: getRowHeightPixels(rowHeight) }}
-                      className={cn(
-                        "group hover:bg-[#F9FAFB]",
-                        row.getIsSelected() && "bg-[#EBF5FF]"
-                      )}
-                      onMouseDownCapture={(e) => handleRowClick(e, row)}
-                      onContextMenu={(e) => handleContextMenu(e, row)}
-                      onDragStart={(e) => handleRowDragStart(e, row.index)}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        
-                        if (grouping.length > 0) {
-                          const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
-                          const allLeafRows = groups.flatMap(group => group.leafRows);
-                          
-                          // Get the source row from drag data
-                          const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
-                          if (!Number.isNaN(fromIndex) && fromIndex !== row.index) {
-                            const sourceRow = allLeafRows[fromIndex];
-                            const targetRow = row;
-                            
-                            if (sourceRow && targetRow) {
-                              // Find source and target groups
-                              const sourceGroup = groups.find(group => 
-                                group.leafRows.some(r => r.id === sourceRow.id)
-                              );
-                              const targetGroup = groups.find(group => 
-                                group.leafRows.some(r => r.id === targetRow.id)
-                              );
-                              
-                              // Check if groups are different
-                              if (sourceGroup && targetGroup && sourceGroup !== targetGroup) {
-                                // Different groups - prevent dropping
-                                e.dataTransfer.dropEffect = 'none';
-                                return;
-                              }
-                              
-                              // Check if target group is collapsed
-                              if (targetGroup) {
-                                const groupKey = JSON.stringify(targetGroup.groupValues);
-                                const isGroupExpanded = !!flatGroupExpanded[groupKey];
-                                if (!isGroupExpanded) {
-                                  e.dataTransfer.dropEffect = 'none';
-                                  return; // Don't allow dropping in collapsed groups
+                            if (grouping.length > 0) {
+                              const groups = getFinalGroupRows(table.getGroupedRowModel().rows);
+                              const allLeafRows = groups.flatMap(group => group.leafRows);
+
+                              // Get the source row from drag data
+                              const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                              if (!Number.isNaN(fromIndex) && fromIndex !== row.index) {
+                                const sourceRow = allLeafRows[fromIndex];
+                                const targetRow = row;
+
+                                if (sourceRow && targetRow) {
+                                  // Find source and target groups
+                                  const sourceGroup = groups.find(group =>
+                                    group.leafRows.some(r => r.id === sourceRow.id)
+                                  );
+                                  const targetGroup = groups.find(group =>
+                                    group.leafRows.some(r => r.id === targetRow.id)
+                                  );
+
+                                  // Check if groups are different
+                                  if (sourceGroup && targetGroup && sourceGroup !== targetGroup) {
+                                    // Different groups - prevent dropping
+                                    e.dataTransfer.dropEffect = 'none';
+                                    return;
+                                  }
+
+                                  // Check if target group is collapsed
+                                  if (targetGroup) {
+                                    const groupKey = JSON.stringify(targetGroup.groupValues);
+                                    const isGroupExpanded = !!flatGroupExpanded[groupKey];
+                                    if (!isGroupExpanded) {
+                                      e.dataTransfer.dropEffect = 'none';
+                                      return; // Don't allow dropping in collapsed groups
+                                    }
+                                  }
                                 }
                               }
                             }
-                          }
-                        }
-                        
-                        setDragOverIndex(row.index);
-                      }}
-                      onDrop={(e) => {
-                        handleRowDrop(e);
-                      }}
-                    >
-                      {/* ◀ left phantom */}
-                      <TableCell
-                        style={{ width: 20, padding: 0, border: "none", backgroundColor: "#F8F8F8" }}
-                      />
 
-                      {row.getVisibleCells().map((cell, index) => (
-                        <FocusCell
-                          key={cell.id}
-                          rowId={row.id}
-                          colId={cell.id}
-                          singleClickEdit={cell.column.id === "platforms" || cell.column.id === "format"}
-                          className={cn(
-                            "text-left",
-                            // Grey while dragging this column
-                            draggingColumnId === cell.column.id
-                              ? "bg-[#F3F4F6]"
-                              : (isSticky(cell.column.id) && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]")),
-                            cell.column.id === "caption"
-                              ? "align-top"
-                              : "align-middle",
-                            "px-0 py-0",
-                            index === 0 ? "border-l" : "border-l-0",
-                            cell.column.id === "status" && "sticky-status-shadow",
-                            fillDragRange && fillDragColumn && cell.column.id === fillDragColumn && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
-                          )}
-                          style={{
-                            height: "inherit",
-                            width: cell.column.getSize(),
-                            borderRight: "1px solid #EAE9E9",
-                            borderBottom: "1px solid #EAE9E9",
-                            ...stickyStyles(
-                              cell.column.id,
-                              10
-                            ),
+                            setDragOverIndex(row.index);
+                          }}
+                          onDrop={(e) => {
+                            handleRowDrop(e);
                           }}
                         >
-                          {({ isFocused, isEditing, exitEdit, enterEdit }) =>
-                            flexRender(cell.column.columnDef.cell, {
-                              ...cell.getContext(),
-                              isFocused,
-                              isEditing,
-                              exitEdit,
-                              enterEdit,
-                            })
-                          }
-                        </FocusCell>
+                          {/* ◀ left phantom */}
+                          <TableCell
+                            style={{ width: 20, padding: 0, border: "none", backgroundColor: "#F8F8F8" }}
+                          />
+
+                          {row.getVisibleCells().map((cell, index) => (
+                            <FocusCell
+                              key={cell.id}
+                              rowId={row.id}
+                              colId={cell.id}
+                              singleClickEdit={cell.column.id === "platforms" || cell.column.id === "format"}
+                              className={cn(
+                                "text-left",
+                                // Grey while dragging this column
+                                draggingColumnId === cell.column.id
+                                  ? "bg-[#F3F4F6]"
+                                  : (isSticky(cell.column.id) && (row.getIsSelected() ? "bg-[#EBF5FF]" : "bg-white group-hover:bg-[#F9FAFB]")),
+                                cell.column.id === "caption"
+                                  ? "align-top"
+                                  : "align-middle",
+                                "px-0 py-0",
+                                index === 0 ? "border-l" : "border-l-0",
+                                cell.column.id === "status" && "sticky-status-shadow",
+                                fillDragRange && fillDragColumn && cell.column.id === fillDragColumn && row.index >= fillDragRange[0] && row.index <= fillDragRange[1] && "bg-[#EBF5FF]"
+                              )}
+                              style={{
+                                height: "inherit",
+                                width: cell.column.getSize(),
+                                borderRight: "1px solid #EAE9E9",
+                                borderBottom: "1px solid #EAE9E9",
+                                ...stickyStyles(
+                                  cell.column.id,
+                                  10
+                                ),
+                              }}
+                            >
+                              {({ isFocused, isEditing, exitEdit, enterEdit }) =>
+                                flexRender(cell.column.columnDef.cell, {
+                                  ...cell.getContext(),
+                                  isFocused,
+                                  isEditing,
+                                  exitEdit,
+                                  enterEdit,
+                                })
+                              }
+                            </FocusCell>
+                          ))}
+
+                          {/* ▶ right phantom */}
+                          <TableCell
+                            style={{ width: 20, padding: 0, border: "none", backgroundColor: "#F8F8F8" }}
+                          />
+                        </TableRow>
                       ))}
 
-                      {/* ▶ right phantom */}
-                      <TableCell
-                        style={{ width: 20, padding: 0, border: "none", backgroundColor: "#F8F8F8" }}
-                      />
-                    </TableRow>
-                  ))}
+                    {/* "Add new record" row (still inside tbody) */}
+                    {isExpanded && (
+                      <tr>
+                        {/* ◀ left phantom sticky */}
+                        <TableCell
+                          style={{ width: 20, padding: 0, border: "none", backgroundColor: "#F8F8F8" }}
+                        />
 
-                {/* "Add new record" row (still inside tbody) */}
-                {isExpanded && (
-                  <tr>
-                    {/* ◀ left phantom sticky */}
-                    <TableCell
-                        style={{ width: 20, padding: 0, border: "none", backgroundColor: "#F8F8F8" }}
-                      />
+                        {(() => {
+                          const stickyCols = table.getVisibleLeafColumns().filter(c => isSticky(c.id));
+                          const nonStickyCols = table.getVisibleLeafColumns().filter(c => !isSticky(c.id));
+                          const stickyWidth = stickyCols.reduce((sum, col) => sum + col.getSize(), 0);
 
-                    {(() => {
-                      const stickyCols = table.getVisibleLeafColumns().filter(c => isSticky(c.id));
-                      const nonStickyCols = table.getVisibleLeafColumns().filter(c => !isSticky(c.id));
-                      const stickyWidth = stickyCols.reduce((sum, col) => sum + col.getSize(), 0);
+                          return (
+                            <>
+                              <TableCell
+                                colSpan={stickyCols.length}
+                                className="px-3 py-3 bg-white border-l border-t-0 border-r-0 border-b border-[#E6E4E2] rounded-b-[2px]"
+                                style={{
+                                  ...stickyStyles("drag", 3), // Use first sticky col ID
+                                  borderRadius: "0px 0px 0px 4px",
+                                  width: stickyWidth,
+                                }}
+                              >
+                                <button
+                                  className="p-0 m-0 font-semibold text-sm flex items-center gap-2 leading-[16px] cursor-pointer"
+                                  onClick={() =>
+                                    handleAddRowForGroup(
+                                      group.groupValues
+                                    )
+                                  }
+                                >
+                                  <PlusIcon size={16} />
+                                  Add new record
+                                </button>
+                              </TableCell>
+                              <TableCell
+                                colSpan={nonStickyCols.length}
+                                className="bg-white border border-l-0 border-t-0 border-[#E6E4E2] rounded-b-[2px]"
+                                style={{
+                                  borderRadius: "0px 0px 4px 0px",
+                                }}
+                              />
+                            </>
+                          );
+                        })()}
 
-                      return (
-                        <>
-                          <TableCell
-                            colSpan={stickyCols.length}
-                            className="px-3 py-3 bg-white border-l border-t-0 border-r-0 border-b border-[#E6E4E2] rounded-b-[2px]"
-                            style={{
-                              ...stickyStyles("drag", 3), // Use first sticky col ID
-                              borderRadius: "0px 0px 0px 4px",
-                              width: stickyWidth,
-                            }}
-                          >
-                            <button
-                              className="p-0 m-0 font-semibold text-sm flex items-center gap-2 leading-[16px] cursor-pointer"
-                              onClick={() =>
-                                handleAddRowForGroup(
-                                  group.groupValues
-                                )
-                              }
-                            >
-                              <PlusIcon size={16} />
-                              Add new record
-                            </button>
-                          </TableCell>
-                          <TableCell
-                            colSpan={nonStickyCols.length}
-                            className="bg-white border border-l-0 border-t-0 border-[#E6E4E2] rounded-b-[2px]"
-                            style={{
-                              borderRadius: "0px 0px 4px 0px",
-                            }}
-                          />
-                        </>
-                      );
-                    })()}
-
-                    {/* ▶ right phantom */}
-                    <td
-                      style={{
-                          width: 20,
-                          background: "#F8F8F8",
-                          border: "none",
-                      }}
-                    />
-                  </tr>
-                )}
-              </tbody>
-            );
-          })}
-          </>
+                        {/* ▶ right phantom */}
+                        <td
+                          style={{
+                            width: 20,
+                            background: "#F8F8F8",
+                            border: "none",
+                          }}
+                        />
+                      </tr>
+                    )}
+                  </tbody>
+                );
+              })}
+            </>
           )}
           {
             groups.length == 0 && (
@@ -4285,118 +4303,118 @@ export function PostTable({
                       ref={(el) => { headerRefs.current[header.id] = el as HTMLElement; }}
                       colSpan={header.colSpan}
                     >
-                        <div
-                          className="flex cursor-pointer items-center justify-between gap-2 h-full w-full"
-                          onContextMenu={(e) => {
-                            e.preventDefault();
-                            // Use the same trigger element as the chevron down for consistent positioning
-                            const triggerEl = e.currentTarget.querySelector('[data-col-menu-trigger]') as HTMLElement || e.currentTarget as HTMLElement;
-                            const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
-                            if (!th) return;
-                            const colRect = th.getBoundingClientRect();
-                            const trigRect = triggerEl.getBoundingClientRect();
-                            const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
-                            setHeaderMenuAlign('start');
-                            setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
-                            setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
-                            setHeaderMenuOpenFor(header.id);
-                          }}
-                          onDoubleClick={() => {
-                            setRenameColumnId(header.id);
-                            // For user columns, use the label; for default columns, use columnNames
-                            const userColumn = userColumns.find(col => col.id === header.id);
-                            if (userColumn) {
-                              setRenameValue(userColumn.label);
-                            } else {
-                              setRenameValue(columnNames[header.id] || header.id);
-                            }
-                          }}
-                          draggable={canDrag}
-                          onMouseDown={(e) => {
-                            if (!canDrag) return;
-                            if (e.button !== 0) return; // left click only
-                            if ((e as any).detail >= 2) return; // ignore double-clicks
-                            const target = e.target as HTMLElement;
-                            if (target.closest('[data-col-menu-trigger]')) return; // avoid drag when clicking chevron
-                            startColumnMouseDrag(e, header.column.id);
-                          }}
-                        >
-                          <div className="flex items-center gap-1 text-black w-full">
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                          </div>
-                          <DropdownMenu open={headerMenuOpenFor === header.id} onOpenChange={(o) => setHeaderMenuOpenFor(o ? header.id : null)}>
-                            <DropdownMenuTrigger asChild>
-                              <div
-                                data-col-menu-trigger
-                                className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                aria-label="Column options"
-                                onPointerDown={(e) => {
-                                  const triggerEl = e.currentTarget as HTMLElement;
-                                  const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
-                                  if (!th) return;
-                                  const colRect = th.getBoundingClientRect();
-                                  const trigRect = triggerEl.getBoundingClientRect();
-                                  const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
-                                  setHeaderMenuAlign('start');
-                                  setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
-                                  setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
-                                }}
-                              >
-                                <ChevronDown className="h-4 w-4 text-[#475467]" />
-                              </div>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent side="bottom" align={headerMenuAlign} sideOffset={headerMenuSideOffset} alignOffset={headerMenuAlignOffset} className="w-40 text-sm">
-                              <DropdownMenuItem 
-                                onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('edit', header.id)} 
-                                className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
-                                disabled={isDefaultColumn(header.id)}
-                              >
-                                <img src="/images/boards/rename.svg" alt="Edit field" className="h-4 w-4" />
-                                Edit field
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('duplicate', header.id)} 
-                                className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
-                                disabled={isDefaultColumn(header.id)}
-                              >
-                                <img src="/images/boards/duplicate.svg" alt="Duplicate field" className="h-4 w-4" />
-                                Duplicate field
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-left', header.id)} className="text-black text-sm font-medium cursor-pointer">
-                                <img src="/images/boards/arrow-left.svg" alt="Insert left" className="h-4 w-4" />
-                                Insert left
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-right', header.id)} className="text-black text-sm font-medium cursor-pointer">
-                                <img src="/images/boards/arrow-right.svg" alt="Insert right" className="h-4 w-4" />
-                                Insert right
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-asc', header.id)} className="text-black text-sm font-medium cursor-pointer">
-                                <img src="/images/boards/sort-down.svg" alt="Sort A - Z" className="h-4 w-4" />
-                                Sort A - Z
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-desc', header.id)} className="text-black text-sm font-medium cursor-pointer">
-                                <img src="/images/boards/sort-up.svg" alt="Sort Z - A" className="h-4 w-4" />
-                                Sort Z - A
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-elementStroke mx-2"/>
-                              <DropdownMenuItem onClick={() => handleHeaderMenuAction('hide', header.id)} className="text-black text-sm font-medium cursor-pointer">
-                                <img src="/images/boards/hide.svg" alt="Hide field" className="h-4 w-4" />
-                                Hide field
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('delete', header.id)} 
-                                className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
-                                disabled={isDefaultColumn(header.id)}
-                              >
-                                <img src="/images/boards/delete.svg" alt="Delete field" className="h-4 w-4" />
-                                Delete field
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                      <div
+                        className="flex cursor-pointer items-center justify-between gap-2 h-full w-full"
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          // Use the same trigger element as the chevron down for consistent positioning
+                          const triggerEl = e.currentTarget.querySelector('[data-col-menu-trigger]') as HTMLElement || e.currentTarget as HTMLElement;
+                          const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
+                          if (!th) return;
+                          const colRect = th.getBoundingClientRect();
+                          const trigRect = triggerEl.getBoundingClientRect();
+                          const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
+                          setHeaderMenuAlign('start');
+                          setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
+                          setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
+                          setHeaderMenuOpenFor(header.id);
+                        }}
+                        onDoubleClick={() => {
+                          setRenameColumnId(header.id);
+                          // For user columns, use the label; for default columns, use columnNames
+                          const userColumn = userColumns.find(col => col.id === header.id);
+                          if (userColumn) {
+                            setRenameValue(userColumn.label);
+                          } else {
+                            setRenameValue(columnNames[header.id] || header.id);
+                          }
+                        }}
+                        draggable={canDrag}
+                        onMouseDown={(e) => {
+                          if (!canDrag) return;
+                          if (e.button !== 0) return; // left click only
+                          if ((e as any).detail >= 2) return; // ignore double-clicks
+                          const target = e.target as HTMLElement;
+                          if (target.closest('[data-col-menu-trigger]')) return; // avoid drag when clicking chevron
+                          startColumnMouseDrag(e, header.column.id);
+                        }}
+                      >
+                        <div className="flex items-center gap-1 text-black w-full">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                         </div>
+                        <DropdownMenu open={headerMenuOpenFor === header.id} onOpenChange={(o) => setHeaderMenuOpenFor(o ? header.id : null)}>
+                          <DropdownMenuTrigger asChild>
+                            <div
+                              data-col-menu-trigger
+                              className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                              aria-label="Column options"
+                              onPointerDown={(e) => {
+                                const triggerEl = e.currentTarget as HTMLElement;
+                                const th = (triggerEl.closest('th') || triggerEl.closest('div[role="columnheader"]')) as HTMLElement | null;
+                                if (!th) return;
+                                const colRect = th.getBoundingClientRect();
+                                const trigRect = triggerEl.getBoundingClientRect();
+                                const desiredLeft = colRect.width <= HEADER_MENU_WIDTH_PX ? colRect.left : colRect.right - HEADER_MENU_WIDTH_PX;
+                                setHeaderMenuAlign('start');
+                                setHeaderMenuAlignOffset(Math.round(desiredLeft - trigRect.left));
+                                setHeaderMenuSideOffset(Math.round(colRect.bottom - trigRect.bottom));
+                              }}
+                            >
+                              <ChevronDown className="h-4 w-4 text-[#475467]" />
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="bottom" align={headerMenuAlign} sideOffset={headerMenuSideOffset} alignOffset={headerMenuAlignOffset} className="w-40 text-sm">
+                            <DropdownMenuItem
+                              onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('edit', header.id)}
+                              className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                              disabled={isDefaultColumn(header.id)}
+                            >
+                              <img src="/images/boards/rename.svg" alt="Edit field" className="h-4 w-4" />
+                              Edit field
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('duplicate', header.id)}
+                              className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                              disabled={isDefaultColumn(header.id)}
+                            >
+                              <img src="/images/boards/duplicate.svg" alt="Duplicate field" className="h-4 w-4" />
+                              Duplicate field
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-left', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <img src="/images/boards/arrow-left.svg" alt="Insert left" className="h-4 w-4" />
+                              Insert left
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleHeaderMenuAction('insert-right', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <img src="/images/boards/arrow-right.svg" alt="Insert right" className="h-4 w-4" />
+                              Insert right
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-asc', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <img src="/images/boards/sort-down.svg" alt="Sort A - Z" className="h-4 w-4" />
+                              Sort A - Z
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleHeaderMenuAction('sort-desc', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <img src="/images/boards/sort-up.svg" alt="Sort Z - A" className="h-4 w-4" />
+                              Sort Z - A
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-elementStroke mx-2" />
+                            <DropdownMenuItem onClick={() => handleHeaderMenuAction('hide', header.id)} className="text-black text-sm font-medium cursor-pointer">
+                              <img src="/images/boards/hide.svg" alt="Hide field" className="h-4 w-4" />
+                              Hide field
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => !isDefaultColumn(header.id) && handleHeaderMenuAction('delete', header.id)}
+                              className={`text-sm font-medium ${isDefaultColumn(header.id) ? 'text-gray-400 cursor-not-allowed' : 'text-black cursor-pointer'}`}
+                              disabled={isDefaultColumn(header.id)}
+                            >
+                              <img src="/images/boards/delete.svg" alt="Delete field" className="h-4 w-4" />
+                              Delete field
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
 
                       {/* resize handle */}
                       {header.column.getCanResize() && (
@@ -4431,29 +4449,29 @@ export function PostTable({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length > 0 && table.getRowModel().rows.map((row) => (
-                <MemoizedRow
-                  key={`${row.id}-${columnOrder.join('-')}`}
-                  row={row}
-                  isSelected={row.getIsSelected()}
-                  isFillTarget={isFillTarget}
-                  isFillSource={isFillSource}
-                  handleRowClick={handleRowClick}
-                  handleContextMenu={handleContextMenu}
-                  handleRowDragStart={handleRowDragStart}
-                  setDragOverIndex={setDragOverIndex}
-                  handleRowDrop={handleRowDrop}
-                  isSticky={isSticky}
-                  stickyStyles={stickyStyles}
-                  table={table}
-                  fillDragColumn={fillDragColumn}
-                  fillDragRange={fillDragRange}
-                  rowHeight={rowHeight}
-                  columnOrder={columnOrder}
-                  draggingColumnId={draggingColumnId}
-                  isRowDragging={isRowDragging}
-                  scrollContainerRef={scrollContainerRef}
-                  setRowIndicatorTop={setRowIndicatorTop}
-                />
+              <MemoizedRow
+                key={`${row.id}-${columnOrder.join('-')}`}
+                row={row}
+                isSelected={row.getIsSelected()}
+                isFillTarget={isFillTarget}
+                isFillSource={isFillSource}
+                handleRowClick={handleRowClick}
+                handleContextMenu={handleContextMenu}
+                handleRowDragStart={handleRowDragStart}
+                setDragOverIndex={setDragOverIndex}
+                handleRowDrop={handleRowDrop}
+                isSticky={isSticky}
+                stickyStyles={stickyStyles}
+                table={table}
+                fillDragColumn={fillDragColumn}
+                fillDragRange={fillDragRange}
+                rowHeight={rowHeight}
+                columnOrder={columnOrder}
+                draggingColumnId={draggingColumnId}
+                isRowDragging={isRowDragging}
+                scrollContainerRef={scrollContainerRef}
+                setRowIndicatorTop={setRowIndicatorTop}
+              />
             ))}
 
             {/* "Add new record" row - only show when not scrollable */}
@@ -4561,10 +4579,10 @@ export function PostTable({
     const postsToRestore = trashedPosts.slice(-lastTrashedCount);
     setTrashedPosts(prev => prev.slice(0, -lastTrashedCount));
     setTableData(prev => [...prev, ...postsToRestore]);
-    
+
     // The posts are already in the store (they were just moved to trash locally)
     // No need to update the store - just restore them to the table display
-    
+
     setShowUndoMessage(false);
   }
 
@@ -4613,7 +4631,7 @@ export function PostTable({
         // Prevent browser text-selection artefacts
         e.preventDefault();
         window.getSelection?.()?.removeAllRanges();
-        
+
         let anchorIndex = -1;
         let currentIndex = -1;
         let allRows: Row<Post>[] = [];
@@ -4636,7 +4654,7 @@ export function PostTable({
         }
 
         const start = Math.min(anchorIndex, currentIndex);
-        const end   = Math.max(anchorIndex, currentIndex);
+        const end = Math.max(anchorIndex, currentIndex);
 
         // Build selection map in one pass for better perf
         const newSelection: Record<string, boolean> = {};
@@ -4729,7 +4747,7 @@ export function PostTable({
     // Find all posts that have the removed option ID as a value for this column
     const postsToUpdate = tableData.filter(post => {
       if (!post.user_columns) return false;
-      
+
       const userColumn = post.user_columns.find(uc => uc.id === columnId);
       return userColumn && userColumn.value === removedOptionId;
     });
@@ -4738,13 +4756,13 @@ export function PostTable({
 
     // Update each post to remove the option value
     const updatePromises = postsToUpdate.map(async (post) => {
-      const updatedUserColumns = post.user_columns?.map(uc => 
+      const updatedUserColumns = post.user_columns?.map(uc =>
         uc.id === columnId ? { ...uc, value: '' } : uc
       ) || [];
 
       // Update local state immediately for better UX
-      setTableData(prev => prev.map(p => 
-        p.id === post.id 
+      setTableData(prev => prev.map(p =>
+        p.id === post.id
           ? { ...p, user_columns: updatedUserColumns }
           : p
       ));
@@ -4755,7 +4773,7 @@ export function PostTable({
       } catch (error) {
         console.error(`Failed to update post ${post.id} after option removal:`, error);
         // Revert local state on error
-        setTableData(prev => prev.map(p => 
+        setTableData(prev => prev.map(p =>
           p.id === post.id ? post : p
         ));
       }
@@ -4798,7 +4816,7 @@ export function PostTable({
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-2 p-2 bg-white">
               <div className="flex items-center gap-2">
-                
+
                 <FilterPopover
                   open={filterOpen}
                   onOpenChange={setFilterOpen}
@@ -4861,7 +4879,7 @@ export function PostTable({
         {/* Table region */}
         <CellFocusProvider>
           <div className="flex-1 bg-[#F8F8F8] relative">
-            <div 
+            <div
               ref={scrollContainerRef}
               className="absolute inset-0 overflow-auto"
               style={{
@@ -5057,8 +5075,8 @@ export function PostTable({
                             ...(cell.getContext() as any),
                             isFocused: false,
                             isEditing: false,
-                            enterEdit: () => {},
-                            exitEdit: () => {},
+                            enterEdit: () => { },
+                            exitEdit: () => { },
                           } as any)}
                         </div>
                       ))}
@@ -5103,7 +5121,7 @@ export function PostTable({
                               // For user columns, update the label in userColumns
                               const userColumn = userColumns.find(col => col.id === editFieldColumnId);
                               if (userColumn) {
-                                setUserColumns(prev => prev.map(col => 
+                                setUserColumns(prev => prev.map(col =>
                                   col.id === editFieldColumnId ? { ...col, label: newLabel } : col
                                 ));
                               } else {
@@ -5128,8 +5146,8 @@ export function PostTable({
                         <Select open={editFieldTypeOpen} onOpenChange={setEditFieldTypeOpen} value={editFieldType} onValueChange={(v) => {
                           setEditFieldType(v);
                           // Clear options if changing from select type to non-select type
-                          if ((editFieldType === "Single select" || editFieldType === "Multiple select") && 
-                              (v !== "Single select" && v !== "Multiple select")) {
+                          if ((editFieldType === "Single select" || editFieldType === "Multiple select") &&
+                            (v !== "Single select" && v !== "Multiple select")) {
                             setEditFieldOptions([
                               { id: "opt_1", value: "Option A", color: "#3B82F6" },
                               { id: "opt_2", value: "Option B", color: "#10B981" },
@@ -5143,7 +5161,7 @@ export function PostTable({
                           <SelectContent>
                             <SelectItem value="single line text">
                               <div className="flex items-center gap-2 text-sm font-medium text-black">
-                              <img src="/images/columns/single-line-text.svg" alt="Edit field" className="w-4 h-4" />
+                                <img src="/images/columns/single-line-text.svg" alt="Edit field" className="w-4 h-4" />
                                 <span>Single line text</span>
                               </div>
                             </SelectItem>
@@ -5219,7 +5237,7 @@ export function PostTable({
                             {editFieldOptions.map((option, index) => (
                               <div key={index} className="flex items-center gap-2">
                                 <div className="flex-1 flex items-center gap-2">
-                                  <div 
+                                  <div
                                     className="w-4 h-4 rounded border border-gray-300 cursor-pointer"
                                     style={{ backgroundColor: option.color }}
                                     onClick={() => {
@@ -5253,7 +5271,7 @@ export function PostTable({
                                     const optionToRemove = editFieldOptions[index];
                                     const newOptions = editFieldOptions.filter((_, i) => i !== index);
                                     setEditFieldOptions(newOptions);
-                                    
+
                                     // Handle option removal from posts if we have a column ID
                                     if (editFieldColumnId && optionToRemove) {
                                       await handleOptionRemoval(editFieldColumnId, optionToRemove.id);
@@ -5294,13 +5312,13 @@ export function PostTable({
                                 toast.error('Please enter a column name');
                                 return; // keep panel open
                               }
-                              
+
                               // Include options for select types
                               let options;
                               if (inferredType === 'singleSelect' || inferredType === 'multiSelect') {
                                 options = editFieldOptions;
                               }
-                              
+
                               handleAddColumn(trimmed, inferredType, options);
                               setNewFieldLabel('');
                             } else {
@@ -5309,55 +5327,55 @@ export function PostTable({
                               // For user columns, use the label; for default columns, use columnNames
                               const userColumn = userColumns.find(col => col.id === editFieldColumnId);
                               const trimmed = userColumn ? userColumn.label : (columnNames[editFieldColumnId] || editFieldColumnId);
-                              
+
                               // Find removed options by comparing with existing column options
                               const existingColumn = userColumns.find(col => col.id === editFieldColumnId);
                               const removedOptions: string[] = [];
-                              
+
                               if (existingColumn && existingColumn.options && Array.isArray(existingColumn.options)) {
-                                const existingOptionIds = existingColumn.options.map((opt: any) => 
+                                const existingOptionIds = existingColumn.options.map((opt: any) =>
                                   typeof opt === 'string' ? opt : opt.id
                                 );
                                 const newOptionIds = editFieldOptions.map(opt => opt.id);
-                                
+
                                 removedOptions.push(...existingOptionIds.filter(id => !newOptionIds.includes(id)));
                               }
-                              
+
                               // Update the column in userColumns
-                              setUserColumns(prev => prev.map(col => 
-                                col.id === editFieldColumnId 
-                                  ? { 
-                                      ...col, 
-                                      label: trimmed, 
-                                      type: inferredType,
-                                      options: (inferredType === 'singleSelect' || inferredType === 'multiSelect') 
-                                        ? editFieldOptions 
-                                        : undefined
-                                    }
+                              setUserColumns(prev => prev.map(col =>
+                                col.id === editFieldColumnId
+                                  ? {
+                                    ...col,
+                                    label: trimmed,
+                                    type: inferredType,
+                                    options: (inferredType === 'singleSelect' || inferredType === 'multiSelect')
+                                      ? editFieldOptions
+                                      : undefined
+                                  }
                                   : col
                               ));
-                              
+
                               // Update column names
                               setColumnNames(prev => ({ ...prev, [editFieldColumnId]: trimmed }));
-                              
+
                               // Persist changes to the board
                               if (activeBoardId) {
                                 const currentOrder = table.getAllLeafColumns().map(c => c.id);
-                                const updatedUserColumns = userColumns.map(col => 
-                                  col.id === editFieldColumnId 
-                                    ? { 
-                                        ...col, 
-                                        label: trimmed, 
-                                        type: inferredType,
-                                        options: (inferredType === 'singleSelect' || inferredType === 'multiSelect') 
-                                          ? editFieldOptions 
-                                          : undefined
-                                      }
+                                const updatedUserColumns = userColumns.map(col =>
+                                  col.id === editFieldColumnId
+                                    ? {
+                                      ...col,
+                                      label: trimmed,
+                                      type: inferredType,
+                                      options: (inferredType === 'singleSelect' || inferredType === 'multiSelect')
+                                        ? editFieldOptions
+                                        : undefined
+                                    }
                                     : col
                                 );
                                 const payload = buildColumnsPayloadForOrder(currentOrder, updatedUserColumns);
                                 updateBoard(activeBoardId, { columns: payload as any });
-                                
+
                                 // Handle removed options after board update
                                 if (removedOptions.length > 0) {
                                   removedOptions.forEach(removedOptionId => {
@@ -5376,7 +5394,7 @@ export function PostTable({
                   </div>
                 )}
               </div>
-              
+
               {/* Empty state displayed below table when no posts */}
               {table.getRowModel().rows.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-40">
@@ -5400,7 +5418,7 @@ export function PostTable({
                         border: '1px solid rgb(212, 214, 216)',
                       }}
                     >
-                      <PlusIcon size={12} className="text-darkGrey"/>
+                      <PlusIcon size={12} className="text-darkGrey" />
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
@@ -5412,10 +5430,10 @@ export function PostTable({
               )}
             </div>
 
-            
+
             {/* Fixed "Add new record" button for ungrouped view - only when scrollable */}
             {grouping.length === 0 && isScrollable && (
-              <div 
+              <div
                 className="absolute bottom-2 px-3 py-3 left-1 right-0 bg-white border-t border-[#EAE9E9] z-20"
               >
                 <div className="flex items-center h-full">
@@ -5427,9 +5445,9 @@ export function PostTable({
                     Add new record
                   </button>
                 </div>
-                
+
               </div>
-              
+
             )}
           </div>
         </CellFocusProvider>
@@ -5440,7 +5458,7 @@ export function PostTable({
           onAddColumn={handleAddColumn}
         />
 
-        
+
 
         {editingPost && (
           <CaptionEditor
@@ -5497,8 +5515,8 @@ export function PostTable({
           "
         >
           {/* how many rows? */}
-          <div 
-            className="py-2 px-3 rounded-md outline outline-1 outline-offset-[-1px] outline-white/20 inline-flex justify-start items-center gap-1 cursor-pointer" 
+          <div
+            className="py-2 px-3 rounded-md outline outline-1 outline-offset-[-1px] outline-white/20 inline-flex justify-start items-center gap-1 cursor-pointer"
             onClick={() => table.resetRowSelection()}
           >
             <span className="text-sm font-medium whitespace-nowrap">
@@ -5515,11 +5533,11 @@ export function PostTable({
                 // Define which statuses allow approval actions
                 const allowedStatusesForApproval = [
                   "Pending Approval",
-                  "Revised", 
+                  "Revised",
                   "Needs Revisions",
                   "Approved"
                 ];
-                
+
                 selectedPosts.forEach(post => {
                   // Only approve if the status allows it
                   if (allowedStatusesForApproval.includes(post.status)) {
