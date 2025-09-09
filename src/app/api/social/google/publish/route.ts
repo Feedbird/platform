@@ -6,25 +6,17 @@ const ops = getPlatformOperations("google")!;
 
 const Body = z.object({
   page: z.any(),
-  post: z.object({
-    content     : z.string().min(1),
-    mediaUrls   : z.array(z.string().url()).optional(),
-    scheduledTime: z.coerce.date().optional(),
-  }),
+  content: z.any(),
+  options: z.any().optional()
 });
 
-export async function POST(req:NextRequest){
-  try{
-    const { page, post } = Body.parse(await req.json());
-    const res = await ops.publishPost(page, {
-      text: post.content,
-      media: post.mediaUrls ? {
-        type: "image",
-        urls: post.mediaUrls
-      } : undefined
-    });
-    return Response.json(res);
-  }catch(e:any){
+export async function POST(req: NextRequest) {
+  try {
+    const { page, content, options } = Body.parse(await req.json());
+
+    const result = await ops.publishPost(page, content, options);
+    return Response.json(result);
+  } catch (e: any) {
     console.error("[Google Business publish]", e);
     return new Response(e.message ?? "Google Business error",{ status:500 });
   }

@@ -11,6 +11,9 @@ import type {
   PostContent,
   PublishOptions,
 } from './platform-types';
+import { supabase } from '@/lib/supabase/client';
+import { SocialAPIError } from '@/lib/utils/error-handler';
+import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
 /*── static meta ───────────────────────────────────────────────*/
 const cfg: SocialPlatformConfig = {
@@ -67,6 +70,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
   /* 1 ─ popup URL */
   getAuthUrl() {
+    // https://developers.google.com/identity/protocols/oauth2/web-server#obtainingaccesstokens
     const u = new URL(cfg.authUrl);
     u.searchParams.set("response_type", "code");
     u.searchParams.set("client_id",     this.env.clientId);
@@ -80,6 +84,8 @@ export class GoogleBusinessPlatform extends BasePlatform {
   /* 2 ─ code ➜ tokens ➜ first business-profile account */
   async connectAccount(code: string): Promise<SocialAccount> {
     // Exchange code for access token
+    // https://developers.google.com/identity/protocols/oauth2/web-server#handlingresponse
+    // https://developers.google.com/identity/protocols/oauth2/web-server#exchange-authorization-code
     const tokenResponse = await this.fetchWithAuth<{
       access_token: string;
       refresh_token: string;
@@ -249,10 +255,27 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
   async createPost(
     page: SocialPage,
-    content: PostContent
+    content: PostContent,
+    options?: PublishOptions
   ): Promise<PostHistory> {
-    // For Google Business, createPost is the same as publishPost
-    return this.publishPost(page, content);
+    try {
+      // Validate content
+      if (!content.text || content.text.trim().length === 0) {
+        throw new SocialAPIError('Post content cannot be empty', 'VALIDATION_ERROR');
+      }
+
+      if (content.text.length > cfg.features.characterLimits.content) {
+        throw new SocialAPIError(`Content exceeds maximum length of ${cfg.features.characterLimits.content} characters`, 'VALIDATION_ERROR');
+      }
+
+      // For Google Business, createPost is the same as publishPost
+      return await this.publishPost(page, content, options);
+    } catch (error) {
+      if (error instanceof SocialAPIError) {
+        throw error;
+      }
+      throw new SocialAPIError(`Failed to create post: ${error instanceof Error ? error.message : 'Unknown error'}`, 'API_ERROR');
+    }
   }
 
   async checkPageStatus(page: SocialPage): Promise<SocialPage> {
@@ -276,25 +299,45 @@ export class GoogleBusinessPlatform extends BasePlatform {
     }
   }
 
-  async refreshToken(acc: SocialAccount): Promise<SocialAccount> {
-    if (!acc.refreshToken) {
+  async refreshToken(acc: any): Promise<SocialAccount> {
+
+    if (!acc.refresh_token) {
       throw new Error('No refresh token available');
     }
 
-    const response = await this.fetchWithAuth<{
-      access_token: string;
-      refresh_token: string;
-      expires_in: number;
-    }>(TOKEN_URL, {
-      method: 'POST',
-      token: '',
-      body: JSON.stringify({
-        refresh_token: acc.refreshToken,
-        client_id: this.env.clientId,
-        client_secret: this.env.clientSecret,
-        grant_type: 'refresh_token'
-      })
+    // Use simple fetch with www-form-urlencoded data for refresh token access
+    // https://developers.google.com/identity/protocols/oauth2/web-server#offline
+    const params = new URLSearchParams({
+      refresh_token: acc.refresh_token,
+      client_id: this.env.clientId,
+      client_secret: this.env.clientSecret,
+      grant_type: 'refresh_token'
     });
+
+    const fetchResp = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
+    }).catch(error => {
+      console.log('error', error);
+      throw new Error('Failed to refresh token');
+    });
+
+    if (!fetchResp.ok) {
+      throw new SocialAPIError(`Failed to refresh token: ${fetchResp.statusText}`, 'TOKEN_ERROR');
+    }
+
+    const response = await fetchResp.json();
+
+    // update the acc with the new token in the supabase table
+    await supabase.from('social_accounts').update({
+      auth_token: response.access_token,
+      refresh_token: response.refresh_token,
+      access_token_expires_at: new Date(Date.now() + response.expires_in * 1000)
+    }).eq('id', acc.id);
+
 
     return {
       ...acc,
@@ -304,40 +347,162 @@ export class GoogleBusinessPlatform extends BasePlatform {
     };
   }
 
+  // Secure token fetching method with automatic refresh
+  async getToken(pageId: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('social_pages')
+      .select('account_id, auth_token, auth_token_expires_at, account:social_accounts(refresh_token, access_token_expires_at)')
+      .eq('id', pageId)
+      .single();
+
+    if (error) {
+      throw new SocialAPIError('Failed to get Google Business token. Please reconnect your account.', 'TOKEN_ERROR');
+    }
+
+    if (!data?.auth_token) {
+      throw new SocialAPIError('No auth token available', 'TOKEN_ERROR');
+    }
+
+    // Check if token needs refresh (5 minutes buffer)
+    const now = new Date();
+    const expiresAt = data.auth_token_expires_at ? new Date(data.auth_token_expires_at) : null;
+    
+    if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
+      return data.auth_token;
+    }
+
+    // Token needs refresh - get account data and refresh
+    const accountData = Array.isArray(data.account) ? data.account[0] : data.account;
+    if (!accountData?.refresh_token) {
+      throw new SocialAPIError('No refresh token available. Please reconnect your account.', 'TOKEN_ERROR');
+    }
+
+    try {
+      const refreshedAccount = await this.refreshToken(accountData);
+      return refreshedAccount.authToken || '';
+      
+    } catch (error) {
+      throw new SocialAPIError('Failed to refresh token. Please reconnect your account.', 'TOKEN_REFRESH_ERROR');
+    }
+  }
+
   /* 4 ─ create "Local Post" */
   async publishPost(
     page: SocialPage,
     content: PostContent,
     options?: PublishOptions
   ): Promise<PostHistory> {
-    const postData = {
+    // Prevent browser calls - route to API endpoint (like Facebook)
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/google/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          content,
+          options,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    // For now, only support text posts
+    if (content.media && content.media.urls.length > 0) {
+      throw new SocialAPIError('Media posts are not yet supported for Google Business Profile', 'FEATURE_NOT_SUPPORTED');
+    }
+
+    return await this.publishTextPost(page, content, options);
+  }
+
+  // Text-only post for Google Business Profile
+  private async publishTextPost(
+    page: SocialPage,
+    content: PostContent,
+    options?: PublishOptions
+  ): Promise<PostHistory> {
+    // Get secure token from database with automatic refresh
+    const token = await this.getToken(page.id);
+    console.log('token', token);
+
+    if (!token) {
+      throw new SocialAPIError('Failed to get Google Business token. Please reconnect your account.', 'TOKEN_ERROR');
+    }
+
+
+    // Get the location ID from page metadata
+    const locationId = page.pageId;
+    if (!locationId) {
+      throw new SocialAPIError('Location ID not found. Please reconnect your Google Business account.', 'LOCATION_ERROR');
+    }
+
+    // Get account ID from page
+    const { data: pageData } = await supabase
+      .from('social_accounts')
+      .select('account_id')
+      .eq('id', page.accountId)
+      .single();
+
+    if (!pageData?.account_id) {
+      throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
+    }
+
+    const postData: any = {
       languageCode: "en-US",
       summary: content.text,
-      callToAction: {
-        actionType: "LEARN_MORE",
-        url: content.link?.url
-      },
-      media: content.media ? content.media.urls.map(url => ({
-        mediaFormat: content.media?.type === "video" ? "VIDEO" : "PHOTO",
-        sourceUrl: url
-      })) : undefined
+      topicType: "STANDARD"
     };
 
-    const response = await this.fetchWithAuth<{ name: string }>(`${POST_URL}/${page.pageId}/localPosts`, {
-      method: "POST",
-      token: page.authToken || '',
-      body: JSON.stringify(postData)
-    });
+    // Add call to action if link is provided
+    if (content.link?.url) {
+      postData.callToAction = {
+        actionType: "LEARN_MORE",
+        url: content.link.url
+      };
+    }
+
+    // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts#LocalPost
+    const response = await this.fetchWithAuth<{ name: string }>(
+      `${POST_URL}/accounts/${pageData.account_id}/locations/${locationId}/localPosts`, 
+      {
+        method: "POST",
+        token: token,
+        body: JSON.stringify(postData)
+      }
+    );
+
+    // Save the published post ID to the platform_post_ids column
+    try {
+      console.log('Saving Google Business post ID:', response.name);
+      await updatePlatformPostId(content.id!, 'google', response.name, page.id);
+    } catch (error) {
+      console.warn('Failed to save Google Business post ID:', error);
+      // Don't fail the publish if saving the ID fails
+    }
 
     return {
       id: crypto.randomUUID(),
       pageId: page.id,
       postId: response.name,
       content: content.text,
-      mediaUrls: content.media?.urls ?? [],
+      mediaUrls: [],
       status: "published",
       publishedAt: new Date(),
-      analytics: {}
+      analytics: {
+        views: 0,
+        engagement: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        clicks: 0,
+        reach: 0,
+        metadata: {
+          platform: 'google',
+          postId: response.name,
+          locationId: locationId,
+          lastUpdated: new Date().toISOString()
+        }
+      }
     };
   }
 
@@ -361,9 +526,4 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
   async getPostAnalytics() { return {}; }      // not exposed
   async deletePost()       { /* deletion not in API yet */ }
-}
-
-/* util */
-function toYMD(d: Date) {
-  return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
 }
