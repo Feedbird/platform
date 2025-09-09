@@ -39,7 +39,7 @@ const config: SocialPlatformConfig = {
     // 'pages_manage_engagement',
     'pages_manage_posts',
     'pages_read_engagement',
-    'publish_video',
+    // 'publish_video', // not needed for now, use case is for live video
     'pages_show_list',
     // 'pages_manage_metadata',
     'pages_read_user_content',
