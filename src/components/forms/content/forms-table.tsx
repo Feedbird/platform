@@ -101,11 +101,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
       {
         id: "rowIndex",
         header: () => <Checkbox checked={false} />,
-        size: 24,
-        minSize: 20,
+        size: 30,
+        maxSize: 32,
+        minSize: 30,
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
+
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
             <span className="text-xs text-[#5C5E63] font-extralight">
@@ -118,15 +120,15 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "name",
         accessorKey: "formName",
         header: () => (
-          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
+          <div className="flex items-center text-[#1C1D1F] text-sm font-medium">
             Name
           </div>
         ),
-        minSize: 250,
-        size: 350,
+        minSize: 275,
+        // size: 350,
         cell: ({ row }) => (
           <div
-            className="group flex items-center gap-3 py-1 hover:cursor-pointer"
+            className="group flex items-center py-1 hover:cursor-pointer"
             onClick={() => handleEditClick(row.original)}
           >
             {/* <span className="text-lg">{row.original.icon}</span> */}
@@ -157,7 +159,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         accessorKey: "services",
         header: () => (
           <div className="flex items-center text-[#1C1D1F] text-sm font-medium">
-            Type
+            Services
           </div>
         ),
         minSize: 120,
@@ -178,8 +180,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
             Submissions
           </div>
         ),
-        minSize: 100,
-        size: 120,
+        minSize: 70,
+        size: 110,
         cell: ({ row }) => (
           <span className="text-xs font-medium text-[#1C1D1F]">
             {row.original.submissions_count || 0}
@@ -194,8 +196,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
             Status
           </div>
         ),
-        minSize: 100,
-        size: 120,
+        size: 80,
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             {row.original.status === "published" ? (
@@ -234,8 +235,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
             Last updated
           </div>
         ),
-        minSize: 120,
-        size: 150,
+        size: 100,
         cell: ({ row }) => (
           <span className="text-sm text-gray-500">
             {humanizeDate(row.original.updated_at)}
@@ -354,6 +354,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
       columnOrder,
     },
     onColumnOrderChange: setColumnOrder,
+    enableColumnResizing: true,
+    columnResizeMode: "onChange",
     debugTable: true,
     getCoreRowModel: getCoreRowModel(),
   });
@@ -410,10 +412,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                 <TableHead
                   key={h.id}
                   className={cn(
-                    "relative text-left border-b border-r border-gray-200 px-2 py-2 h-8",
-                    "last:border-r-0",
-                    h.id === "rowIndex" && "border-l border-gray-200",
-                    h.id === "status" && "sticky-status-shadow"
+                    "relative text-left border-b border-r border-gray-200 px-2 py-2 h-8"
                   )}
                   style={{ width: h.getSize(), ...stickyStyles(h.id, 10) }}
                 >
@@ -530,29 +529,18 @@ export default function FormsTable({ forms }: FormsTableProps) {
                 key={row.id}
                 className="group hover:bg-[#FBFBFB] border-b border-gray-200"
               >
-                {row.getVisibleCells().map((cell, cellIndex) => (
+                {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
                     className={cn(
-                      "py-1.5 pr-4 pl-2 text-sm border-r border-gray-200 bg-white group-hover:bg-[#FBFBFB]",
-                      "last:border-r-0",
-                      cell.column.id === "rowIndex" &&
-                        "border-l border-gray-200"
+                      "py-1.5 px-2 text-sm border-r border-gray-200 bg-white group-hover:bg-[#FBFBFB]"
                     )}
                     style={{
                       width: cell.column.getSize(),
                       ...stickyStyles(cell.column.id),
                     }}
                   >
-                    {cell.column.id === "rowIndex" ? (
-                      <div className="flex px-2">
-                        <span className="text-[#5C5E63] text-xs font-light">
-                          {rowIndex + 1}
-                        </span>
-                      </div>
-                    ) : (
-                      flexRender(cell.column.columnDef.cell, cell.getContext())
-                    )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
               </tr>
@@ -560,7 +548,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
           </tbody>
         </table>
       </div>
-      {forms.length === 0 && <EmptyFormsComponent />}
+      {tabledData.length === 0 && <EmptyFormsComponent />}
       <FormDeleteModal
         open={deleteModalOpen}
         onClose={setDeleteModalOpen}

@@ -28,6 +28,7 @@ import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
 type SelectedField = {
   id: string;
   type: string;
+  config: any;
 };
 
 export default function FormInnerVisualizer() {
@@ -108,7 +109,7 @@ export default function FormInnerVisualizer() {
       } else if (formFields.find((f) => f.id === over.id)) {
         // Dropping over an existing field - insert before it
         const targetIndex = formFields.findIndex((f) => f.id === over.id);
-        addNewFieldAtPosition(active.id as string, targetIndex);
+        addNewFieldAtPosition(active.id as FormFieldType, targetIndex);
       }
     }
 
@@ -138,7 +139,7 @@ export default function FormInnerVisualizer() {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
       position: formFields.length,
-      config: fieldDef.config,
+      config: UIFormFieldDefaults[fieldType].config,
     };
 
     setFormFields((prev) => {
@@ -147,15 +148,17 @@ export default function FormInnerVisualizer() {
     });
   };
 
-  const addNewFieldAtPosition = (fieldType: string, insertIndex: number) => {
-    const fieldDef =
-      fieldDefs[fieldType.toLowerCase() as keyof typeof fieldDefs];
+  const addNewFieldAtPosition = (
+    fieldType: FormFieldType,
+    insertIndex: number
+  ) => {
+    const fieldDef = fieldDefs[fieldType];
 
     const newField: FormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
       position: insertIndex,
-      config: fieldDef.config,
+      config: UIFormFieldDefaults[fieldType].config,
     };
 
     setFormFields((prev) => {
@@ -228,7 +231,9 @@ export default function FormInnerVisualizer() {
             activeId={activeId}
             overId={overId}
             selectedFieldId={selectedField?.id || null}
-            onFieldSelect={(val: { id: string; type: string } | null) => {
+            onFieldSelect={(
+              val: { id: string; type: string; config: any } | null
+            ) => {
               setSelectedField(val);
             }}
           />
@@ -239,7 +244,7 @@ export default function FormInnerVisualizer() {
           updateFieldConfig={updateFieldConfig}
           setVisible={setSelectedField}
           isVisible={selectedField !== null}
-          type={selectedField?.type || ""}
+          config={selectedField?.config}
         />
       </div>
 

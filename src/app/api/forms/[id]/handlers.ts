@@ -20,6 +20,7 @@ export class FormHandler {
         throw new ApiHandlerError("Form ID was not found", 404);
       }
 
+      await supabase.from("services").update({ form_id: null }).eq("form_id", formId);
       const { error } = await supabase.from("forms").delete().eq("id", formId);
 
       if (error) {

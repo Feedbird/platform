@@ -1,5 +1,4 @@
 import React from "react";
-import { UIFormField } from "@/lib/forms/fields";
 import { Button } from "@/components/ui/button";
 import {
   AllowMultipleSelectionInput,
@@ -13,18 +12,19 @@ import {
   RowsSelectInput,
   TitleInput,
 } from "./Inputs";
+import { FieldTypeEntitlements } from "@/lib/forms/field.config";
 
 type Props = {
-  field: UIFormField;
+  config: FieldTypeEntitlements;
   updateConfig: (newConfig: any) => void;
 };
 
-export default function FieldConfigWrapper({ field, updateConfig }: Props) {
-  const [fieldConfig, setFieldConfig] = React.useState(field.config);
+export default function FieldConfigWrapper({ config, updateConfig }: Props) {
+  const [fieldConfig, setFieldConfig] = React.useState(config);
 
   React.useEffect(() => {
-    setFieldConfig(field.config);
-  }, [field]);
+    setFieldConfig(config);
+  }, [config]);
 
   return (
     <div className="p-4 flex flex-col gap-6">

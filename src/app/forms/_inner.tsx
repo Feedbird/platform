@@ -36,7 +36,7 @@ export default function FormsInner() {
   }
 
   return (
-    <div>
+    <div className="h-full">
       <FormsTable forms={forms} />
     </div>
   );

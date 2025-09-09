@@ -22,8 +22,6 @@ import { Button } from "../ui/button";
 export interface FormField {
   id: string;
   type: string;
-  // title: string;
-  // description: string;
   position: number;
   config?: any;
 }
@@ -35,7 +33,9 @@ interface FormCanvasProps {
   activeId?: string | null;
   overId?: string | null;
   selectedFieldId?: string | null;
-  onFieldSelect?: (val: { id: string; type: string } | null) => void;
+  onFieldSelect?: (
+    val: { id: string; type: string; config: any } | null
+  ) => void;
 }
 
 export default function FormCanvas({
@@ -219,7 +219,9 @@ function SimpleFormField({
 }: {
   field: FormField;
   selectedFieldId?: string | null;
-  onFieldSelect?: (val: { id: string; type: string } | null) => void;
+  onFieldSelect?: (
+    val: { id: string; type: string; config: any } | null
+  ) => void;
   onDelete: (id: string) => void;
 }) {
   const {
@@ -240,7 +242,9 @@ function SimpleFormField({
 
   const handleFieldClick = () => {
     if (onFieldSelect) {
-      const newValue = isSelected ? null : { id: field.id, type: field.type };
+      const newValue = isSelected
+        ? null
+        : { id: field.id, type: field.type, config: field.config };
       onFieldSelect(newValue);
     }
   };

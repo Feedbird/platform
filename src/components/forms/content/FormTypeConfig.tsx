@@ -2,27 +2,25 @@ import { UIFormFieldDefaults } from "@/lib/forms/fields";
 import React from "react";
 import FieldConfigWrapper from "./configs/CommonFieldConfig";
 import Image from "next/image";
+import { FieldTypeEntitlements } from "@/lib/forms/field.config";
 
 type Props = {
   isVisible?: boolean;
   setVisible: React.Dispatch<
-    React.SetStateAction<{ id: string; type: string } | null>
+    React.SetStateAction<{ id: string; type: string; config: any } | null>
   >;
-  type: string;
   fieldId: string;
+  config: Partial<FieldTypeEntitlements>;
   updateFieldConfig: (fieldId: string, newConfig: any) => void;
 };
 
 export default function FormTypeConfig({
   isVisible = true,
-  type,
   updateFieldConfig,
   fieldId,
+  config,
   setVisible,
 }: Props) {
-  const defaultFieldDefinition =
-    UIFormFieldDefaults[type as keyof typeof UIFormFieldDefaults] || null;
-
   const updateConfig = (newConfig: any) => {
     if (fieldId) {
       updateFieldConfig(fieldId, newConfig);
@@ -36,7 +34,7 @@ export default function FormTypeConfig({
         isVisible ? "transform translate-x-0" : "transform translate-x-full"
       }`}
     >
-      {defaultFieldDefinition && (
+      {config && (
         <>
           <header className="border-border-primary border-b-1 w-full p-3 text-black font-medium flex gap-2">
             <Image
@@ -50,15 +48,12 @@ export default function FormTypeConfig({
             <div className="flex flex-row gap-1">
               <span>Edit Field</span>
               <p className="text-[#838488] font-normal">
-                ({Object.keys(defaultFieldDefinition.config).length})
+                ({Object.keys(config).length})
               </p>
             </div>
           </header>
           <div>
-            <FieldConfigWrapper
-              updateConfig={updateConfig}
-              field={defaultFieldDefinition}
-            />
+            <FieldConfigWrapper updateConfig={updateConfig} config={config} />
           </div>
         </>
       )}
