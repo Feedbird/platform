@@ -4172,7 +4172,7 @@ export function PostTable({
                                 }}
                               >
                                 <button
-                                  className="p-0 m-0 font-semibold text-sm flex items-center gap-2 leading-[16px] cursor-pointer"
+                                  className="p-0 m-0 font-medium text-sm flex items-center gap-2 leading-[16px] cursor-pointer"
                                   onClick={() =>
                                     handleAddRowForGroup(
                                       group.groupValues
@@ -4233,7 +4233,7 @@ export function PostTable({
                           }}
                         >
                           <button
-                            className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
+                            className="p-0 m-0 font-medium text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
                             onClick={handleAddRowUngrouped}
                           >
                             <PlusIcon size={16} />
@@ -4497,7 +4497,7 @@ export function PostTable({
                         }}
                       >
                         <button
-                          className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
+                          className="p-0 m-0 font-medium text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
                           onClick={handleAddRowUngrouped}
                         >
                           <PlusIcon size={16} />
@@ -5438,7 +5438,7 @@ export function PostTable({
               >
                 <div className="flex items-center h-full">
                   <button
-                    className="p-0 m-0 font-semibold text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
+                    className="p-0 m-0 font-medium text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
                     onClick={handleAddRowUngrouped}
                   >
                     <PlusIcon size={16} />
