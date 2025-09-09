@@ -1,3 +1,4 @@
+import { TableForm } from "@/components/forms/content/forms-table";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 export interface ApiResponse<T> {
@@ -260,6 +261,15 @@ export const formsApi = {
   deleteForm: async (id: string) => {
     return apiRequest<{ message: string }>(`/forms/${id}`, {
       method: "DELETE",
+    });
+  },
+  updateForm: async (
+    id: string,
+    updates: Partial<TableForm>
+  ): Promise<ApiResponse<TableForm>> => {
+    return apiRequest<{ data: TableForm }>(`/forms/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
     });
   },
 };

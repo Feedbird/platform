@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { ColumnDef } from "@tanstack/table-core";
 import { ChevronDownIcon, ChevronUpIcon, ListPlus } from "lucide-react";
-import React, { Dispatch, SetStateAction } from "react";
+import React from "react";
 import FormsFiltersPopover from "./FormsFiltersPopover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ import FormSettingsModal from "./FormSettingsModal";
 export interface TableForm extends Form {
   submissions_count?: number;
   fields_count?: number;
-  services: { id: number; name: string }[];
+  services: { id: string; name: string }[];
 }
 
 export type FormsTableProps = {
@@ -556,6 +556,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         formId={activeForm?.id || ""}
       />
       <FormSettingsModal
+        setForm={setActiveForm}
         open={settingsModalOpen && !!activeForm}
         onClose={setSettingsModalOpen}
         form={activeForm!}

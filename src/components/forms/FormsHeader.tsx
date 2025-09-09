@@ -24,7 +24,7 @@ function FormsHeaderContent() {
   const router = useRouter();
   const { user, activeWorkspaceId } = useFeedbirdStore();
   const { createInitialForm } = useFormStore();
-  const { activeForm, isEditing } = useForms();
+  const { activeForm, setActiveForm, isEditing } = useForms();
 
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
 
@@ -122,6 +122,7 @@ function FormsHeaderContent() {
       </header>
       {activeForm && isEditing && (
         <FormSettingsModal
+          setForm={setActiveForm}
           open={settingsModalOpen}
           onClose={setSettingsModalOpen}
           form={activeForm}

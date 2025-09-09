@@ -1,4 +1,3 @@
-import { UIFormFieldDefaults } from "@/lib/forms/fields";
 import React from "react";
 import FieldConfigWrapper from "./configs/CommonFieldConfig";
 import Image from "next/image";

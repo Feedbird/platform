@@ -2,6 +2,7 @@ import { Form, supabase } from "@/lib/supabase/client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { ApiHandlerError } from "../../shared";
 import { ServicesHandler } from "../../services/handler";
+import { plainArrayEqual } from "@/lib/utils/transformers";
 
 export class FormHandler {
   supabase: SupabaseClient;
@@ -20,7 +21,10 @@ export class FormHandler {
         throw new ApiHandlerError("Form ID was not found", 404);
       }
 
-      await supabase.from("services").update({ form_id: null }).eq("form_id", formId);
+      await supabase
+        .from("services")
+        .update({ form_id: null })
+        .eq("form_id", formId);
       const { error } = await supabase.from("forms").delete().eq("id", formId);
 
       if (error) {
@@ -78,25 +82,34 @@ export class FormHandler {
       }
 
       if (updates.services) {
-        const currentServices = await ServicesHandler.verifyServicesExists(
-          updates.services,
-          form.data.workspace_id
+        const currentServices = await ServicesHandler.getServicesByFormId(
+          formId
         );
+        const currentServiceIds = currentServices.map((s) => s.id.toString());
 
-        const removedServices = currentServices.filter(
-          (s) => !updates.services!.includes(s.id)
-        );
-
-        if (removedServices.length) {
-          console.log(`Removing services:`, removedServices);
-          await ServicesHandler.assignFormToServices(
-            null,
-            removedServices.map((s) => s.id)
+        if (!plainArrayEqual(currentServiceIds, updates.services)) {
+          const additionalServiceIds: string[] = updates.services.filter(
+            (id) => !currentServiceIds.includes(id)
           );
-        }
 
-        if (updates.services.length) {
-          await ServicesHandler.assignFormToServices(formId, updates.services);
+          const removedServiceIds: string[] = currentServiceIds.filter(
+            (id) => !updates.services!.includes(id)
+          );
+
+          if (removedServiceIds.length) {
+            await ServicesHandler.assignFormToServices(null, removedServiceIds);
+          }
+
+          if (additionalServiceIds.length) {
+            await ServicesHandler.verifyServicesExists(
+              additionalServiceIds,
+              form.data.workspace_id
+            );
+            await ServicesHandler.assignFormToServices(
+              formId,
+              additionalServiceIds
+            );
+          }
         }
 
         delete updates.services;
@@ -106,7 +119,7 @@ export class FormHandler {
         .from("forms")
         .update(updates)
         .eq("id", formId)
-        .select()
+        .select("*, services:services(id, name)")
         .single();
 
       if (error) {

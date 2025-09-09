@@ -32,7 +32,7 @@ type SelectedField = {
 };
 
 export default function FormInnerVisualizer() {
-  const { setIsEditing, setActiveForm } = useForms();
+  const { setIsEditing, setActiveForm, activeForm } = useForms();
   const params = useParams();
   const formId = params.id as string;
 
@@ -80,10 +80,12 @@ export default function FormInnerVisualizer() {
   };
 
   React.useEffect(() => {
-    if (formId) {
+    if (formId && !activeForm) {
       retrieveForm(formId);
+    } else {
+      setForm(activeForm);
     }
-  }, [formId]);
+  }, [formId, activeForm]);
   // Set edit mode when this layout mounts
   React.useEffect(() => {
     setIsEditing(true);
@@ -223,7 +225,7 @@ export default function FormInnerVisualizer() {
     >
       <div className="w-full h-full flex bg-[#FBFBFB] overflow-hidden relative">
         <div className="flex-1 min-w-0 overflow-auto relative pb-10">
-          <ServiceSelector formServices={form.services || []} />
+          <ServiceSelector formServices={activeForm!.services || []} />
           <FormCanvas
             formFields={formFields}
             setFormFields={setFormFields}

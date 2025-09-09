@@ -2,19 +2,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ComplexObjectType } from "@/lib/forms/field.config";
-import {
-  DndContext,
-  DragEndEvent,
-  DragStartEvent,
-  closestCenter,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
+import { DragEndEvent } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import React from "react";
-import ItemCard from "./ItemCard";
 import DraggableItems, { DraggableItemType } from "./DraggableItems";
 
 export function TitleInput({

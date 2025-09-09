@@ -11,9 +11,11 @@ import React, { SetStateAction, Dispatch } from "react";
 import { TableForm } from "./forms-table";
 import { ModalMultiSelect } from "./ModalMultiSelect";
 import { useFormStore } from "@/lib/store/forms-store";
+import { formsApi } from "@/lib/api/api-service";
 
 type FormSettingsModalProps = {
   open: boolean;
+  setForm: Dispatch<SetStateAction<TableForm | null>>;
   form: TableForm;
   onClose: Dispatch<SetStateAction<boolean>>;
 };
@@ -27,6 +29,7 @@ type FormSettingsOptions = {
 export default function FormSettingsModal({
   open,
   onClose,
+  setForm,
   form,
 }: FormSettingsModalProps) {
   const [loading, isLoading] = React.useState(false);
@@ -61,6 +64,23 @@ export default function FormSettingsModal({
       ...prev,
       serviceIds: selectedIds,
     }));
+  };
+
+  const handleSave = async () => {
+    isLoading(true);
+    try {
+      const { data } = await formsApi.updateForm(form.id, {
+        title: settings.title,
+        description: settings.description,
+        services: settings.serviceIds as any,
+      });
+
+      isLoading(false);
+      setForm(data);
+      onClose(false);
+    } catch (error) {
+      console.error("Error updating form:", error);
+    }
   };
 
   return (
@@ -122,6 +142,7 @@ export default function FormSettingsModal({
             <Button
               variant="default"
               className="rounded-[6px] bg-[#4670F9] text-white text-[13px] font-medium hover:cursor-pointer"
+              onClick={handleSave}
             >
               Save
             </Button>

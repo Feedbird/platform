@@ -53,6 +53,7 @@ export default function FormCanvas({
       type: "form-area",
     },
   });
+
   const [formCover, setFormCover] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -312,7 +313,8 @@ function SimpleFormField({
             )}
             <Input
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded-[6px] border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder={field.config?.placeholder?.value || ""}
+              className="w-full rounded-[6px] border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#1C1D1F] focus:border-transparent"
             />
           </div>
         )}
@@ -330,7 +332,8 @@ function SimpleFormField({
             <Textarea
               rows={5}
               onClick={(e) => e.stopPropagation()}
-              className="w-full border bg-white border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder={field.config?.placeholder?.value || ""}
+              className="w-full border bg-white border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 text-[#1C1D1F] focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         )}
@@ -341,9 +344,9 @@ function SimpleFormField({
               {field.config.title.value}
             </label>
             {!field.config?.allowMultipleSelection?.value ? (
-              <Select>
-                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] cursor-pointer text-[#1C1D1F]">
-                  Select option
+              <Select value="" onValueChange={() => {}}>
+                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F]">
+                  {field.config?.placeholder?.value || "Select an option"}
                 </SelectTrigger>
                 <SelectContent avoidCollisions>
                   {field.config?.dropdownItems?.dropdownValues?.length ? (
@@ -361,6 +364,7 @@ function SimpleFormField({
               </Select>
             ) : (
               <MultiSelectPlaceholder
+                placeholder={field.config?.placeholder?.value}
                 values={
                   field.config?.dropdownItems?.dropdownValues?.length
                     ? field.config.dropdownItems.dropdownValues.sort(
@@ -376,7 +380,7 @@ function SimpleFormField({
         {field.type === "checkbox" && (
           <div className="flex flex-row gap-3">
             <Checkbox
-              className="size-5"
+              className="size-5 bg-white"
               onClick={(e) => {
                 e.stopPropagation();
               }}
@@ -411,6 +415,11 @@ function SimpleFormField({
             <label className="block text-base text-[#1C1D1F]">
               {field.config.title.value}
             </label>
+            {field.config.description && (
+              <p className="text-sm text-[#838488] font-normal">
+                {field.config.description.value}
+              </p>
+            )}
             <div className="w-full rounded-[6px] border-1 border-[#D3D3D3] p-4.5 border-dashed flex justify-center bg-white">
               <div className="flex flex-col items-center gap-1">
                 <div className="p-2 rounded-full h-9 w-9 border-1 border-[#D3D3D3] flex items-center justify-center">
@@ -430,7 +439,7 @@ function SimpleFormField({
                   </p>
                 </div>
                 <p className="text-[#5C5E63] font-normal text-sm">
-                  SVG, PNG, JPG
+                  {field.config?.placeholder?.value || "SVG, PNG, JPG"}
                 </p>
               </div>
             </div>

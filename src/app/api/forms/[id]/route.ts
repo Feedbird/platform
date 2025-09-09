@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase/client";
 import { NextRequest, NextResponse } from "next/server";
 import { FormHandler } from "./handlers";
 import { ApiHandlerError } from "../../shared";
