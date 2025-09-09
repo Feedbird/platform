@@ -4291,7 +4291,7 @@ export function PostTable({
                     <TableHead
                       key={header.id}
                       className={cn(
-                        "group relative align-middle text-left border-r border-b border-[#EAE9E9] last:border-r-0 px-2",
+                        "group relative align-middle text-left border-r last:border-r-0 px-2",
                         isSticky(header.id) && "bg-[#FBFBFB]",
                         draggingColumnId === header.id && 'bg-[#F3F4F6]',
                         header.id === "status" && "sticky-status-shadow"
