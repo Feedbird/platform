@@ -181,9 +181,17 @@ function HeaderInner() {
       <div className="ml-auto flex items-center gap-2">
         <div className="flex items-center border border-border-button rounded-[4px]">
           {/* <BrandSwitcher /> */}
-          <span className="text-sm font-medium w-7.5 h-7.5 bg-[#B5B5FF] text-[#43439F] flex items-center justify-center rounded-[4px]">
-            Hi
-          </span>
+          {activeWorkspace?.logo ? (
+            <img
+              src={activeWorkspace.logo}
+              alt={activeWorkspace.name}
+              className="w-8 h-8 rounded-[4px] object-cover"
+            />
+          ) : (
+            <span className="text-sm font-medium w-8 h-8 bg-[#B5B5FF] text-[#43439F] flex items-center justify-center rounded-[4px]">
+              {activeWorkspace?.name?.charAt(0)?.toUpperCase() || 'W'}
+            </span>
+          )}
           {isClient && activeWorkspace ? (
             brand ? (
               <>
