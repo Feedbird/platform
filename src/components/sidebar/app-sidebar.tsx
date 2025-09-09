@@ -74,7 +74,7 @@ import { BorderAll, BorderColor } from "@mui/icons-material";
 const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
   {
     id: "messages",
-    label: "Messages",
+    label: "Inbox",
     image: "/images/sidebar/messages.svg",
     selectedImage: "/images/sidebar/messages-active.svg",
     href: workspaceId ? `/${workspaceId}/messages` : "/messages",
