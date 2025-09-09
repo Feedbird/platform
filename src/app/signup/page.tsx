@@ -401,7 +401,7 @@ export default function SignUpPage() {
                 {/* Platform Preview Image */}
                 <div className="flex-1 flex justify-center">
                     <div className="w-full h-full">
-                        <div className="w-full h-full rounded-tl-lg overflow-hidden border-l-5 border-t-5 border-strokeElement">
+                        <div className="w-full h-full rounded-tl-lg overflow-hidden border-l-5 border-t-5 border-elementStroke">
                             <img
                                 src="/images/logo/preview.png"
                                 alt="FeedBird Dashboard Preview"

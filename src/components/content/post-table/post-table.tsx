@@ -2105,7 +2105,7 @@ export function PostTable({
                   </div>
                 </TooltipTrigger>
                 {isSorted && (
-                  <TooltipContent className="bg-white text-black text-xs font-normal border border-strokeElement">
+                  <TooltipContent className="bg-white text-black text-xs font-normal border border-elementStroke">
                     <p>Row reordering is disabled when sorting is active</p>
                   </TooltipContent>
                 )}

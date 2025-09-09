@@ -119,11 +119,22 @@ export default function WorkspaceSwitcher() {
     setTimeout(hide, 600)
   }
 
-  const handleAdd = async (name: string, logo: string | null) => {
-
+  const handleAdd = async (name: string, logo: string | null, additionalData?: {
+    selectedBoards: string[]
+    boardRules: any
+    inviteEmails: string[]
+  }) => {
     const userEmail = user?.email || 'demo@example.com'
-    
+
     const wsId = await addWorkspace(name, userEmail, logo ?? '')
+
+    // Handle additional data (boards, rules, invitations)
+    if (additionalData) {
+      console.log('Additional workspace data:', additionalData)
+      // TODO: Process selectedBoards, boardRules, and inviteEmails
+      // This would involve API calls to create boards, set rules, and send invitations
+    }
+
     // ensure workspace selected
     select(wsId)
 

@@ -31,7 +31,7 @@ export function SocialSelector({ accounts, selected, onChange }: SocialSelectorP
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 px-2 py-1.5 border border-strokeButton rounded-md bg-white hover:bg-gray-50 transition-colors">
+        <button className="flex items-center gap-2 px-2 py-1.5 border border-buttonStroke rounded-md bg-white hover:bg-gray-50 transition-colors">
           {selectedAccount && (
             <>
               <Image
