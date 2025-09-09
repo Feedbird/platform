@@ -216,7 +216,7 @@ function HeaderInner() {
             )
           ) : null}
         </div>
-        <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] bg-main text-white px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium">
+        <Button variant="ghost" size="sm" className="border border-border-button rounded-[6px] bg-main hover:bg-main/80 text-white hover:text-white px-[8px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium">
           <Image src="/images/header/user-plus.svg" alt="Share" width={16} height={16} />
           Share
         </Button>
