@@ -173,3 +173,11 @@ export interface Form {
   has_branding: boolean;
   services?: any[];
 }
+
+//? Placeholder for forms feature. This is not final entity structure.
+export interface Service {
+  id: string;
+  workspace_id: string;
+  form_id: string | null;
+  name: string;
+}

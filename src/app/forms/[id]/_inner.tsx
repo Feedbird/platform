@@ -6,7 +6,6 @@ import {
   DragEndEvent,
   DragOverEvent,
   DragOverlay,
-  closestCenter,
   pointerWithin,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -14,15 +13,25 @@ import React from "react";
 import { useForms } from "@/contexts/FormsContext";
 import ServiceSelector from "@/components/forms/content/ServiceSelector";
 import { Form } from "@/lib/supabase/client";
-import { FormFieldsArray } from "@/lib/forms/fields";
+import {
+  FormFieldsArray,
+  FormFieldType,
+  UIFormFieldDefaults,
+} from "@/lib/forms/fields";
 import { BaseContent } from "@/components/forms/content/DraggableFieldType";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
+import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
+
+type SelectedField = {
+  id: string;
+  type: string;
+};
 
 export default function FormInnerVisualizer() {
-  const { setIsEditing } = useForms();
+  const { setIsEditing, setActiveForm } = useForms();
   const params = useParams();
   const formId = params.id as string;
 
@@ -32,8 +41,20 @@ export default function FormInnerVisualizer() {
 
   // Form fields state - local to the form editor
   const [formFields, setFormFields] = React.useState<FormField[]>([]);
-  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
+  const [selectedField, setSelectedField] =
+    React.useState<SelectedField | null>(null); // For field settings/editing
+
+  const fieldDefs = React.useMemo(() => UIFormFieldDefaults, []);
+
+  const updateFieldConfig = (fieldId: string, newConfig: any) => {
+    setFormFields((prevFields) =>
+      prevFields.map((field) =>
+        field.id === fieldId ? { ...field, config: newConfig } : field
+      )
+    );
+  };
 
   const retrieveForm = async (formId: string) => {
     try {
@@ -41,6 +62,14 @@ export default function FormInnerVisualizer() {
       setError(null);
       const { data } = await formsApi.getFormById(formId);
       setForm(data);
+      // Convert Form to TableForm and update the FormsContext with the active form
+      const tableForm = {
+        ...data,
+        services: data.services || [],
+        submissions_count: 0, // Default values for table-specific properties
+        fields_count: 0,
+      };
+      setActiveForm(tableForm);
     } catch (err) {
       console.error("Error fetching form:", err);
       setError(err instanceof Error ? err.message : "Failed to load form");
@@ -58,24 +87,16 @@ export default function FormInnerVisualizer() {
   React.useEffect(() => {
     setIsEditing(true);
     return () => {
-      // Clean up edit mode when leaving
+      // Clean up edit mode and active form when leaving
       setIsEditing(false);
+      setActiveForm(null);
     };
-  }, [setIsEditing]);
+  }, [setIsEditing, setActiveForm]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    console.log("🚀 Drag ended:", {
-      activeId: active.id,
-      overId: over?.id,
-      activeData: active.data.current,
-      overData: over?.data.current,
-      currentFieldsCount: formFields.length,
-    });
-
     if (!over) {
-      console.log("❌ No drop target found");
       setActiveId(null);
       return;
     }
@@ -83,11 +104,9 @@ export default function FormInnerVisualizer() {
     // Check if dragging from sidebar (template) to form area
     if (active.data.current?.type === "template") {
       if (over.id === "form-canvas") {
-        console.log("✅ Adding new field from template to end");
-        addNewField(active.id as string);
+        addNewField(active.id as FormFieldType);
       } else if (formFields.find((f) => f.id === over.id)) {
         // Dropping over an existing field - insert before it
-        console.log("✅ Adding new field from template at position");
         const targetIndex = formFields.findIndex((f) => f.id === over.id);
         addNewFieldAtPosition(active.id as string, targetIndex);
       }
@@ -95,7 +114,6 @@ export default function FormInnerVisualizer() {
 
     // Handle field reordering within the form
     if (active.id !== over.id && formFields.find((f) => f.id === active.id)) {
-      console.log("🔄 Reordering existing fields");
       setFormFields((fields) => {
         const oldIndex = fields.findIndex((f) => f.id === active.id);
         const newIndex = fields.findIndex((f) => f.id === over.id);
@@ -113,38 +131,33 @@ export default function FormInnerVisualizer() {
     setOverId(null);
   };
 
-  const addNewField = (fieldType: string) => {
-    // Generate a more unique ID using timestamp and random number
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
+  const addNewField = (fieldType: FormFieldType) => {
+    const fieldDef = fieldDefs[fieldType];
+
     const newField: FormField = {
-      id: `field_${fieldType}_${timestamp}_${random}`,
+      id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      label: `New ${fieldType} Field`,
       position: formFields.length,
+      config: fieldDef.config,
     };
 
-    console.log("🎯 Creating field:", newField);
-    console.log("📊 Current form fields count:", formFields.length);
     setFormFields((prev) => {
       const updated = [...prev, newField];
-      console.log("📊 Updated form fields count:", updated.length);
       return updated;
     });
   };
 
   const addNewFieldAtPosition = (fieldType: string, insertIndex: number) => {
-    // Generate a more unique ID using timestamp and random number
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
+    const fieldDef =
+      fieldDefs[fieldType.toLowerCase() as keyof typeof fieldDefs];
+
     const newField: FormField = {
-      id: `field_${fieldType}_${timestamp}_${random}`,
+      id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      label: `New ${fieldType} Field`,
       position: insertIndex,
+      config: fieldDef.config,
     };
 
-    console.log("🎯 Creating field at position:", insertIndex, newField);
     setFormFields((prev) => {
       const updated = [...prev];
       updated.splice(insertIndex, 0, newField);
@@ -157,7 +170,6 @@ export default function FormInnerVisualizer() {
   };
 
   const handleDragStart = (event: any) => {
-    console.log("🚀 Drag started:", event.active.id);
     setActiveId(event.active.id as string);
   };
 
@@ -180,7 +192,9 @@ export default function FormInnerVisualizer() {
 
   const displayField = activeTemplateField || activePlacedFieldTemplate;
   const displayLabel =
-    activeTemplateField?.label || activePlacedField?.label || "Field";
+    activeTemplateField?.label ||
+    activePlacedField?.config.title.value ||
+    "Field";
 
   if (loading) {
     return <Loading />;
@@ -204,18 +218,29 @@ export default function FormInnerVisualizer() {
       onDragOver={handleDragOver}
       collisionDetection={pointerWithin}
     >
-      <div className="w-full h-full flex bg-[#FBFBFB]">
-        <div className="flex-1 min-w-0 overflow-auto">
-          <ServiceSelector />
+      <div className="w-full h-full flex bg-[#FBFBFB] overflow-hidden relative">
+        <div className="flex-1 min-w-0 overflow-auto relative pb-10">
+          <ServiceSelector formServices={form.services || []} />
           <FormCanvas
             formFields={formFields}
             setFormFields={setFormFields}
             form={form}
             activeId={activeId}
             overId={overId}
+            selectedFieldId={selectedField?.id || null}
+            onFieldSelect={(val: { id: string; type: string } | null) => {
+              setSelectedField(val);
+            }}
           />
         </div>
-        <FormEditorSideBar />
+        <FormEditorSideBar onAddField={addNewField} />
+        <FormTypeConfig
+          fieldId={selectedField?.id || ""}
+          updateFieldConfig={updateFieldConfig}
+          setVisible={setSelectedField}
+          isVisible={selectedField !== null}
+          type={selectedField?.type || ""}
+        />
       </div>
 
       <DragOverlay>

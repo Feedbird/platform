@@ -2,11 +2,17 @@
 
 import React from "react";
 import Image from "next/image";
-import { FormFieldsArray } from "@/lib/forms/fields";
+import { FormFieldsArray, FormFieldType } from "@/lib/forms/fields";
 import { Button } from "../ui/button";
 import { DraggableFieldType } from "./content/DraggableFieldType";
 
-export default function FormEditorSideBar() {
+type FormEditorSideBarProps = {
+  onAddField?: (fieldType: FormFieldType) => void;
+};
+
+export default function FormEditorSideBar({
+  onAddField,
+}: FormEditorSideBarProps) {
   const formFields = React.useMemo(
     () =>
       FormFieldsArray.map((field) => ({
@@ -38,13 +44,17 @@ export default function FormEditorSideBar() {
         <div className="space-y-6 flex-1">
           <div className="space-y-2">
             {formFields.map((field) => (
-              <DraggableFieldType key={field.type} {...field} />
+              <DraggableFieldType
+                key={field.type}
+                {...field}
+                onAddField={onAddField}
+              />
             ))}
           </div>
         </div>
         <Button
           variant="default"
-          className="w-full mt-4 shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
+          className="w-full mt-4 hover:cursor-pointer shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
         >
           Save Form
         </Button>
