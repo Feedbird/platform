@@ -20,9 +20,12 @@ export default function FormTypeConfig({
   config,
   setVisible,
 }: Props) {
+  const [message, setMessage] = React.useState("");
   const updateConfig = (newConfig: any) => {
     if (fieldId) {
       updateFieldConfig(fieldId, newConfig);
+      setMessage("Field configuration updated");
+      setTimeout(() => setMessage(""), 1500);
     }
   };
 
@@ -54,6 +57,13 @@ export default function FormTypeConfig({
           <div>
             <FieldConfigWrapper updateConfig={updateConfig} config={config} />
           </div>
+          <p
+            className={`italic ml-4 text-xs transition-opacity ease-in-out duration-200 ${
+              message.length ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {message}
+          </p>
         </>
       )}
     </div>

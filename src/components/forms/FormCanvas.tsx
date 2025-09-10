@@ -19,17 +19,17 @@ import SpreadSheetTablePlaceholder from "./content/SpreadSheetTablePlaceholder";
 import OptionsPlaceholder from "./content/OptionsPlaceholder";
 import { Button } from "../ui/button";
 
-export interface FormField {
+export interface CanvasFormField {
   id: string;
   type: string;
-  position: number;
+  order: number;
   config?: any;
 }
 
 interface FormCanvasProps {
   form: Form;
-  formFields: FormField[];
-  setFormFields: React.Dispatch<React.SetStateAction<FormField[]>>;
+  formFields: CanvasFormField[];
+  setFormFields: React.Dispatch<React.SetStateAction<CanvasFormField[]>>;
   activeId?: string | null;
   overId?: string | null;
   selectedFieldId?: string | null;
@@ -218,7 +218,7 @@ function SimpleFormField({
   onFieldSelect,
   onDelete,
 }: {
-  field: FormField;
+  field: CanvasFormField;
   selectedFieldId?: string | null;
   onFieldSelect?: (
     val: { id: string; type: string; config: any } | null

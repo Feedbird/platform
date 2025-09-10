@@ -1,6 +1,6 @@
 "use client";
 import FormEditorSideBar from "@/components/forms/FormEditorSideBar";
-import FormCanvas, { FormField } from "@/components/forms/FormCanvas";
+import FormCanvas, { CanvasFormField } from "@/components/forms/FormCanvas";
 import {
   DndContext,
   DragEndEvent,
@@ -41,7 +41,7 @@ export default function FormInnerVisualizer() {
   const [error, setError] = React.useState<string | null>(null);
 
   // Form fields state - local to the form editor
-  const [formFields, setFormFields] = React.useState<FormField[]>([]);
+  const [formFields, setFormFields] = React.useState<CanvasFormField[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
   const [selectedField, setSelectedField] =
@@ -62,6 +62,11 @@ export default function FormInnerVisualizer() {
       setLoading(true);
       setError(null);
       const { data } = await formsApi.getFormById(formId);
+      const { formFields } = await formsApi.getFormFields(formId);
+      setFormFields(
+        formFields.sort((a, b) => (a.order || 0) - (b.order || 0)) // Ensure fields are sorted by order
+      );
+      // Set the retrieved form data to state
       setForm(data);
       // Convert Form to TableForm and update the FormsContext with the active form
       const tableForm = {
@@ -137,10 +142,10 @@ export default function FormInnerVisualizer() {
   const addNewField = (fieldType: FormFieldType) => {
     const fieldDef = fieldDefs[fieldType];
 
-    const newField: FormField = {
+    const newField: CanvasFormField = {
       id: crypto.randomUUID(),
+      order: formFields.length,
       type: fieldType.toLowerCase(),
-      position: formFields.length,
       config: UIFormFieldDefaults[fieldType].config,
     };
 
@@ -154,12 +159,10 @@ export default function FormInnerVisualizer() {
     fieldType: FormFieldType,
     insertIndex: number
   ) => {
-    const fieldDef = fieldDefs[fieldType];
-
-    const newField: FormField = {
+    const newField: CanvasFormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      position: insertIndex,
+      order: insertIndex,
       config: UIFormFieldDefaults[fieldType].config,
     };
 
@@ -169,7 +172,7 @@ export default function FormInnerVisualizer() {
       // Update positions for all fields
       return updated.map((field, index) => ({
         ...field,
-        position: index,
+        order: index,
       }));
     });
   };
@@ -240,7 +243,11 @@ export default function FormInnerVisualizer() {
             }}
           />
         </div>
-        <FormEditorSideBar onAddField={addNewField} />
+        <FormEditorSideBar
+          onAddField={addNewField}
+          formFields={formFields}
+          formId={form.id}
+        />
         <FormTypeConfig
           fieldId={selectedField?.id || ""}
           updateFieldConfig={updateFieldConfig}
