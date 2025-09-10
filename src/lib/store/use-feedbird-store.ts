@@ -604,9 +604,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       boardTemplates: [
           { 
             id: "t1", 
-            name: "Social media management", 
-            image: "/images/boards/templates/t1-social-media-management.svg", 
-            description: "Social media management", 
+            name: "Social Media Posts", 
+            image: "/images/boards/templates/t1-social-media-post.svg", 
+            description: "Social Media Posts", 
             color: "#125AFF",
             rules: {
               autoSchedule: true,
@@ -622,9 +622,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           },
           { 
             id: "t2", 
-            name: "Weekly task manager", 
-            image: "/images/boards/templates/t2-weekly-task-manager.svg", 
-            description: "Weekly task manager", 
+            name: "Short-Form Videos", 
+            image: "/images/boards/templates/t2-short-form-videos.svg", 
+            description: "Short-Form Videos", 
             color: "#125AFF",
             rules: {
               autoSchedule: false,
@@ -637,9 +637,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           },
           { 
             id: "t3", 
-            name: "Content calendar", 
-            image: "/images/boards/templates/t3-content-calendar.svg", 
-            description: "Content calendar", 
+            name: "Email Design", 
+            image: "/images/boards/templates/t3-email-design.svg", 
+            description: "Email Design", 
             color: "#125AFF",
             rules: {
               autoSchedule: true,
@@ -655,9 +655,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           },
           { 
             id: "t4", 
-            name: "Meetings agenda", 
-            image: "/images/boards/templates/t4-meetings-agenda.svg", 
-            description: "Meetings agenda", 
+            name: "Blog Posts", 
+            image: "/images/boards/templates/t4-blog-posts.svg", 
+            description: "Blog Posts", 
             color: "#125AFF",
             rules: {
               autoSchedule: false,
@@ -670,9 +670,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           },
           { 
             id: "t5", 
-            name: "Goals & milestones", 
-            image: "/images/boards/templates/t5-goals-milestones.svg", 
-            description: "Goals & milestones", 
+            name: "Backlinks", 
+            image: "/images/boards/templates/t5-backlinks.svg", 
+            description: "Backlinks", 
             color: "#125AFF",
             rules: {
               autoSchedule: false,
@@ -688,9 +688,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           },
           { 
             id: "t6", 
-            name: "Event planning", 
-            image: "/images/boards/templates/t6-event-planning.svg", 
-            description: "Event planning", 
+            name: "Meta Ads", 
+            image: "/images/boards/templates/t6-meta-ads.svg", 
+            description: "Meta Ads", 
             color: "#125AFF",
             rules: {
               autoSchedule: true,
@@ -706,9 +706,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           },
           { 
             id: "t7", 
-            name: "Editorial calendar", 
-            image: "/images/boards/templates/t7-editorial-calendar.svg", 
-            description: "Editorial calendar", 
+            name: "Static Ads", 
+            image: "/images/boards/templates/t7-static-ads.svg", 
+            description: "Static Ads", 
             color: "#125AFF",
             rules: {
               autoSchedule: true,
@@ -724,9 +724,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           },
           { 
             id: "t8", 
-            name: "Objectives & key results", 
-            image: "/images/boards/templates/t8-objectives-key-results.svg", 
-            description: "Objectives & key results", 
+            name: "Video Ads", 
+            image: "/images/boards/templates/t8-video-ads.svg", 
+            description: "Video Ads", 
             color: "#125AFF",
             rules: {
               autoSchedule: false,
@@ -738,24 +738,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               firstMonth: 3,
               ongoingMonth: 1,
               approvalDays: 30,
-            }
-          },
-          { 
-            id: "t9", 
-            name: "Customer feedback", 
-            image: "/images/boards/templates/t9-social-media-campaign.svg", 
-            description: "Social media campaign", 
-            color: "#125AFF",
-            rules: {
-              autoSchedule: true,
-              revisionRules: true,
-              approvalDeadline: true,
-              groupBy: "month",
-              sortBy: "status",
-              rowHeight: "X-Large",
-              firstMonth: 4,
-              ongoingMonth: 2,
-              approvalDays: 7,
             }
           },
         ],

@@ -461,7 +461,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
           {boardTemplates.map((template) => (
             <div
               key={template.id}
-              className={`py-1 pl-1 pr-3 border-2 rounded-md cursor-pointer transition-all hover:shadow-md ${formData.selectedBoards.includes(template.id)
+              className={`py-1 pl-1 pr-3 border-1 rounded-md cursor-pointer transition-all hover:shadow-md ${formData.selectedBoards.includes(template.id)
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
@@ -481,17 +481,17 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
               <div className="flex items-center gap-2">
                 {/* Icon with Background */}
                 <div
-                  className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: template.color || '#f3f4f6' }}
+                  className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${formData.selectedBoards.includes(template.id) ? '' : 'bg-backgroundHover'}`}
+                  style={formData.selectedBoards.includes(template.id) ? { backgroundColor: template.color || '#f3f4f6' } : undefined}
                 >
                   {template.image ? (
                     <img
                       src={template.image}
                       alt={template.name}
-                      className={`w-3.5 h-3.5 ${template.color ? 'filter brightness-0 invert' : ''}`}
+                      className={`w-3.5 h-3.5 ${formData.selectedBoards.includes(template.id) && template.color ? 'filter brightness-0 invert' : ''}`}
                     />
                   ) : (
-                    <ImageIcon className={`w-3.5 h-3.5 ${template.color ? 'text-white' : 'text-gray-500'}`} />
+                    <ImageIcon className={`w-3.5 h-3.5 ${formData.selectedBoards.includes(template.id) && template.color ? 'text-white' : 'text-gray-500'}`} />
                   )}
                 </div>
 
