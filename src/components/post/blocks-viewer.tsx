@@ -1,15 +1,16 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Block } from "@/lib/store/use-feedbird-store";
-import { Paperclip, Maximize2, MessageCircleMore, ImageIcon } from "lucide-react";
+import { Paperclip, Maximize2, MessageCircleMore, ImageIcon, Trash2 } from "lucide-react";
 import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
 
 interface BlocksViewerProps {
   blocks: Block[];
   onExpandBlock: (b: Block) => void;
+  onRemoveBlock?: (blockId: string) => void;
 }
 
-export function BlocksViewer({ blocks, onExpandBlock }: BlocksViewerProps) {
+export function BlocksViewer({ blocks, onExpandBlock, onRemoveBlock }: BlocksViewerProps) {
   if (!blocks?.length) {
     return (
       <div className="text-sm text-muted-foreground">No blocks</div>
@@ -135,6 +136,22 @@ export function BlocksViewer({ blocks, onExpandBlock }: BlocksViewerProps) {
                 <span className="rounded-full px-3 py-1 bg-[#101828dd] text-white font-bold">V{versions}</span>
                 <span className="rounded-full px-3 py-1 bg-[#101828dd] text-white font-bold flex flex-row justify-center items-center"><MessageCircleMore className="w-4 h-4 mr-1" />{comments}</span>
               </div>
+
+              {/* bottom-right overlay: trash icon */}
+              {onRemoveBlock && (
+                <div className="absolute bottom-[20px] right-[20px] px-2 py-1">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveBlock(block.id);
+                    }}
+                    className="rounded-full px-3 py-1 bg-[#101828dd] text-white font-bold cursor-pointer"
+                    title="Remove block"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

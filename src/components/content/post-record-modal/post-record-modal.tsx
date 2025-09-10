@@ -777,6 +777,13 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
   /* local states */
   const [pane, setPane] = useState<"version"|"activity"|"analytics">("activity");
   const [expanded, setExpanded] = useState(true);
+
+  /* handlers */
+  const handleRemoveBlock = async (blockId: string) => {
+    if (!post) return;
+    const updatedBlocks = post.blocks.filter(block => block.id !== blockId);
+    await updatePost(post.id, { blocks: updatedBlocks });
+  };
   const [slots, setSlots] = useState<ReturnType<typeof getSuggestedSlots>|null>(null);
   const [activeBlock, setActiveBlock] = useState<Block|null>(null);
   const [previewBlock, setPreviewBlock] = useState<{block: Block, versionId: string}|null>(null);
@@ -1144,7 +1151,11 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
 
                 {/* Second row: Blocks viewer */}
                 <div className="pb-4">
-                  <BlocksViewer blocks={post.blocks} onExpandBlock={(b)=>setActiveBlock(b)}/>
+                  <BlocksViewer
+                    blocks={post.blocks}
+                    onExpandBlock={(b)=>setActiveBlock(b)}
+                    onRemoveBlock={handleRemoveBlock}
+                  />
                 </div>
 
                                  {/* Third row: Caption editor and hashtags */}
