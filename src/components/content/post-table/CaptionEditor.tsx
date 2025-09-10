@@ -45,11 +45,10 @@ function SinglePlatformEditor({
 }) {
   const err = checkCaptionQuality(value, platform);
   return (
-    <div>
+    <div className="h-full flex flex-col min-h-0">
       <textarea
-        rows={6}
         className={`
-          w-full rounded-md border px-2 py-1 text-sm
+          w-full flex-1 min-h-0 rounded-md border px-2 py-1 text-sm
           resize-none focus:outline-none
           bg-white
           ${err ? "border-orange-500" : "border-gray-300"}
@@ -160,7 +159,7 @@ export function CaptionEditor({
         dragListener={false}
         dragControls={dragControls}
         dragMomentum={false}
-        className="w-[480px] max-w-[95vw] bg-gray-100 rounded-lg shadow-2xl border border-gray-400"
+        className="w-[480px] h-[420px] max-w-[95vw] max-h-[90vh] min-w-[360px] min-h-[240px] bg-gray-100 rounded-lg shadow-2xl border border-gray-400 resize overflow-hidden flex flex-col"
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
@@ -203,7 +202,7 @@ export function CaptionEditor({
         </div>
 
         {/* body */}
-        <div className="px-3 py-4" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="px-3 py-4 flex-1 overflow-hidden flex flex-col min-h-0" onPointerDown={(e) => e.stopPropagation()}>
           {draft.synced ? (
             <SinglePlatformEditor
               platform={availablePlatforms[0] || "instagram"}
@@ -220,7 +219,7 @@ export function CaptionEditor({
               value={activePlatform}
               onValueChange={(v) => setActivePlatform(v as Platform)}
             >
-              <TabsList className="flex-wrap mb-2">
+              <TabsList className="flex-wrap mb-2 shrink-0">
                 {availablePlatforms.map((platform) => (
                   <TabsTrigger
                     key={platform}
@@ -232,10 +231,11 @@ export function CaptionEditor({
                   </TabsTrigger>
                 ))}
               </TabsList>
+              <div className="flex-1 min-h-0 overflow-hidden">
               {availablePlatforms.map((platform) => {
                 const val = draft.perPlatform?.[platform] ?? "";
                 return (
-                  <TabsContent key={platform} value={platform}>
+                  <TabsContent key={platform} value={platform} className="h-full">
                     <SinglePlatformEditor
                       platform={platform}
                       value={val}
@@ -252,6 +252,7 @@ export function CaptionEditor({
                   </TabsContent>
                 );
               })}
+              </div>
             </Tabs>
           )}
         </div>
