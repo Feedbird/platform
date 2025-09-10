@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Post, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function ApproveCell({
   post,
@@ -59,7 +60,9 @@ export function ApproveCell({
 
   const [isHovering, setIsHovering] = React.useState(false);
 
-  return (
+  const approveTooltip = `Unavailable when status is ${post.status}. Allowed: Pending Approval, Needs Revisions, Revised, Approved.`;
+
+  const content = (
     <div
       className={cn(
         "inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
@@ -86,8 +89,6 @@ export function ApproveCell({
             >
               <Image src="/images/status/approved.svg" alt="approved" width={14} height={14} />
               <span>Approved</span>
-              
-              {/* X icon that appears on hover when approved */}
               {isApproved && (
                 <div 
                   className={cn(
@@ -130,8 +131,6 @@ export function ApproveCell({
             >
               <Image src="/images/status/needs-revision.svg" alt="needs revision" width={14} height={14} />
               <span>Revision</span>
-              
-              {/* Revision button that appears on hover */}
               <div 
                 className={cn(
                   "absolute -top-1 -right-1 w-4 h-4 bg-black rounded-full flex items-center justify-center transition-opacity duration-200 cursor-pointer",
@@ -176,5 +175,16 @@ export function ApproveCell({
         </div>
       </div>
     </div>
+  );
+
+  return canPerformApprovalAction ? (
+    content
+  ) : (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {content}
+      </TooltipTrigger>
+      <TooltipContent sideOffset={4} className="bg-white text-black text-xs font-normal border border-elementStroke">{approveTooltip}</TooltipContent>
+    </Tooltip>
   );
 }

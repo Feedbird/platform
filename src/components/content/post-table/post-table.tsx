@@ -2519,7 +2519,9 @@ export function PostTable({
 
           const canPerformRevisionAction = allowedStatusesForRevision.includes(post.status);
 
-          return (
+          const revisionTooltip = `Unavailable when status is ${post.status}. Allowed: Pending Approval, Needs Revisions, Revised, Approved.`;
+
+          const content = (
             <div className={cn(
               "inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
               canPerformRevisionAction ? "cursor-pointer" : "cursor-not-allowed opacity-50"
@@ -2551,6 +2553,17 @@ export function PostTable({
                 </div>
               </div>
             </div>
+          );
+
+          return canPerformRevisionAction ? (
+            content
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {content}
+              </TooltipTrigger>
+              <TooltipContent sideOffset={4} className="bg-white text-black text-xs font-normal border border-elementStroke">{revisionTooltip}</TooltipContent>
+            </Tooltip>
           );
         },
       },
