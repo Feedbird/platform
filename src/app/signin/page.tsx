@@ -53,11 +53,11 @@ const testimonials = [
 
 export default function SignInPage() {
     const [currentTestimonial, setCurrentTestimonial] = useState(0)
+    const [previousTestimonial, setPreviousTestimonial] = useState(4) // Start with last item as previous
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
-    const [rememberMe, setRememberMe] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const router = useRouter()
 
@@ -65,8 +65,12 @@ export default function SignInPage() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-        }, 4000) // Change testimonial every 4 seconds
+            setCurrentTestimonial((prev) => {
+                const next = (prev + 1) % testimonials.length
+                setPreviousTestimonial(prev)
+                return next
+            })
+        }, 3000) // Change testimonial every 3 seconds
 
         return () => clearInterval(interval)
     }, [])
@@ -206,18 +210,7 @@ export default function SignInPage() {
                             )}
 
                             {/* Remember Me and Forgot Password */}
-                            <div className="flex items-center justify-between pt-2">
-                                <div className="flex items-center text-sm text-darkGrey font-normal">
-                                    <Checkbox
-                                        id="remember"
-                                        checked={rememberMe}
-                                        onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                                        className="mr-2"
-                                    />
-                                    <label htmlFor="remember" className="cursor-pointer">
-                                        Remember for 30 days
-                                    </label>
-                                </div>
+                            <div className="flex items-center justify-end pt-2">
                                 <button
                                     type="button"
                                     onClick={() => router.push('/forgot-password')}
@@ -278,13 +271,15 @@ export default function SignInPage() {
             <div className="flex-[14] flex flex-col pl-12 pt-10 bg-[#F8F8F8]">
                 {/* Testimonials Section */}
                     <div className="pr-12 mb-10">
-                        <div className="relative overflow-hidden">
+                        <div className="relative overflow-hidden min-h-[160px]">
                             {testimonials.map((testimonial, index) => (
                                 <div
                                     key={index}
-                                    className={`transition-all duration-1000 transform ${index === currentTestimonial
-                                            ? 'opacity-100 translate-y-0'
-                                            : 'opacity-0 translate-y-4 absolute inset-0'
+                                    className={`transition-all duration-1000 transform absolute inset-0 ${index === currentTestimonial
+                                            ? 'opacity-100 translate-x-0 z-10'
+                                            : index === previousTestimonial
+                                            ? 'opacity-0 translate-x-full z-0' // Previous testimonial exits to right
+                                            : 'opacity-0 -translate-x-full z-0'   // Other testimonials positioned to left (for entering)
                                         }`}
                                 >
                                     {/* Quote - max 3 lines with ellipsis */}

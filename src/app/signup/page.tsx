@@ -54,6 +54,7 @@ const testimonials = [
 
 export default function SignUpPage() {
     const [currentTestimonial, setCurrentTestimonial] = useState(0)
+    const [previousTestimonial, setPreviousTestimonial] = useState(4) // Start with last item as previous
     const [email, setEmail] = useState('')
     const [firstName, setFirstName] = useState('')
     const [lastName, setLastName] = useState('')
@@ -68,8 +69,12 @@ export default function SignUpPage() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
-        }, 4000) // Change testimonial every 4 seconds
+            setCurrentTestimonial((prev) => {
+                const next = (prev + 1) % testimonials.length
+                setPreviousTestimonial(prev)
+                return next
+            })
+        }, 3000) // Change testimonial every 3 seconds
 
         return () => clearInterval(interval)
     }, [])
@@ -318,13 +323,15 @@ export default function SignUpPage() {
             <div className="flex-[14] flex flex-col pl-12 pt-10 bg-[#F8F8F8]">
                 {/* Testimonials Section */}
                     <div className="pr-12 mb-10">
-                        <div className="relative overflow-hidden">
+                        <div className="relative overflow-hidden min-h-[160px]">
                             {testimonials.map((testimonial, index) => (
                                 <div
                                     key={index}
-                                    className={`transition-all duration-1000 transform ${index === currentTestimonial
-                                            ? 'opacity-100 translate-y-0'
-                                            : 'opacity-0 translate-y-4 absolute inset-0'
+                                    className={`transition-all duration-1000 transform absolute inset-0 ${index === currentTestimonial
+                                            ? 'opacity-100 translate-x-0 z-10'
+                                            : index === previousTestimonial
+                                            ? 'opacity-0 translate-x-full z-0' // Previous testimonial exits to right
+                                            : 'opacity-0 -translate-x-full z-0'   // Other testimonials positioned to left (for entering)
                                         }`}
                                 >
                                     {/* Quote - max 3 lines with ellipsis */}
