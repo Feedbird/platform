@@ -2095,7 +2095,7 @@ export function PostTable({
                   <div
                     className={cn(
                       "transition-opacity",
-                      !isSorted ? "cursor-grab opacity-0 group-hover:opacity-100" : "cursor-not-allowed opacity-40"
+                      !isSorted ? "cursor-grab opacity-0 group-hover:opacity-100" : "cursor-not-allowed opacity-0 group-hover:opacity-40"
                     )}
                     draggable={!isSorted}
                     data-row-drag-handle="true"
@@ -2104,7 +2104,7 @@ export function PostTable({
                       handleRowDragStart(e, row.index);
                     }}
                   >
-                    <GripVertical size={18} />
+                    <GripVertical size={14} />
                   </div>
                 </TooltipTrigger>
                 {isSorted && (
