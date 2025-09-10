@@ -407,28 +407,24 @@ export class GoogleBusinessPlatform extends BasePlatform {
       return res.json();
     }
 
-    // For now, only support text posts
+    // Validate media constraints if present
     if (content.media && content.media.urls.length > 0) {
-      throw new SocialAPIError('Media posts are not yet supported for Google Business Profile', 'FEATURE_NOT_SUPPORTED');
+      // Validate single photo constraint
+      if (content.media.urls.length > 1) {
+        throw new SocialAPIError('Google Business Profile only supports single photo posts', 'MEDIA_LIMIT_EXCEEDED');
+      }
+      
+      if (content.media.type !== 'image') {
+        throw new SocialAPIError('Google Business Profile only supports image posts, not videos', 'UNSUPPORTED_MEDIA_TYPE');
+      }
     }
 
-    return await this.publishTextPost(page, content, options);
-  }
-
-  // Text-only post for Google Business Profile
-  private async publishTextPost(
-    page: SocialPage,
-    content: PostContent,
-    options?: PublishOptions
-  ): Promise<PostHistory> {
     // Get secure token from database with automatic refresh
     const token = await this.getToken(page.id);
-    console.log('token', token);
 
     if (!token) {
       throw new SocialAPIError('Failed to get Google Business token. Please reconnect your account.', 'TOKEN_ERROR');
     }
-
 
     // Get the location ID from page metadata
     const locationId = page.pageId;
@@ -447,11 +443,23 @@ export class GoogleBusinessPlatform extends BasePlatform {
       throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
     }
 
+    // Build post data
     const postData: any = {
       languageCode: "en-US",
       summary: content.text,
       topicType: "STANDARD"
     };
+
+    // Add media if present
+    // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.media#MediaItem
+    if (content.media && content.media.urls.length > 0) {
+        postData.media = [
+          {
+            mediaFormat: "PHOTO",
+            sourceUrl: content.media.urls[0]
+          }
+        ]
+    }
 
     // Add call to action if link is provided
     if (content.link?.url) {
@@ -462,14 +470,24 @@ export class GoogleBusinessPlatform extends BasePlatform {
     }
 
     // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts#LocalPost
-    const response = await this.fetchWithAuth<{ name: string }>(
-      `${POST_URL}/accounts/${pageData.account_id}/locations/${locationId}/localPosts`, 
+    const responseRaw = await fetch(
+      `${POST_URL}/accounts/${pageData.account_id}/locations/${locationId}/localPosts`,
       {
         method: "POST",
-        token: token,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(postData)
       }
     );
+
+    if (!responseRaw.ok) {
+      const responseError = await responseRaw.json();
+      const errorText = responseError?.error?.details[0]?.errorDetails[0]?.message || responseError?.error?.message || 'Unknown error';
+      throw new SocialAPIError(`Failed to publish post: ${errorText}`, 'POST_ERROR');
+    }
+    const response = await responseRaw.json();
 
     // Save the published post ID to the platform_post_ids column
     try {
@@ -485,7 +503,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
       pageId: page.id,
       postId: response.name,
       content: content.text,
-      mediaUrls: [],
+      mediaUrls: content.media?.urls || [],
       status: "published",
       publishedAt: new Date(),
       analytics: {

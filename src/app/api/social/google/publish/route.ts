@@ -13,7 +13,6 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   try {
     const { page, content, options } = Body.parse(await req.json());
-
     const result = await ops.publishPost(page, content, options);
     return Response.json(result);
   } catch (e: any) {
