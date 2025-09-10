@@ -4,7 +4,7 @@
 ──────────────────────────────────────────────────────────────*/
 import type {
   PlatformOperations, SocialAccount, SocialPage,
-  PostHistory, SocialPlatformConfig
+  PostHistory, PostHistoryResponse, PostStatus, SocialPlatformConfig
 } from "./platform-types";
 import { BasePlatform } from './base-platform';
 import type {
@@ -537,22 +537,140 @@ export class GoogleBusinessPlatform extends BasePlatform {
     };
   }
 
-  /* 5 ─ fetch latest LocalPosts */
-  async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
-    const list = await gbFetch<{ localPosts?: any[] }>(
-      `${POST_URL}/${pg.pageId}/localPosts?pageSize=${limit}`,
-      { headers: { Authorization: `Bearer ${pg.authToken || ''}` } }
-    );
+  /* 5 ─ fetch latest LocalPosts with pagination */
+  async getPostHistory(pg: SocialPage, limit = 20, nextPage?: string | number | null | undefined): Promise<PostHistoryResponse<PostHistory>> {
+    // Prevent browser calls - route to API endpoint (same pattern as other platforms)
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/google/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: pg,
+          limit,
+          ...(nextPage && { nextPage }),
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
 
-    return (list.localPosts ?? []).map(lp => ({
-      id         : lp.name.split("/").pop(),
-      postId     : lp.name.split("/").pop(),
-      pageId     : pg.id,
-      content    : lp.summary ?? "",
-      mediaUrls  : lp.media?.length ? [lp.media[0].sourceUrl] : [],
-      status     : "published",
-      publishedAt: new Date(lp.updateTime)
-    }));
+    try {
+      // Get secure token from database
+      const token = await this.getToken(pg.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // Build query parameters for pagination
+      const queryParams = new URLSearchParams({
+        pageSize: limit.toString(),
+        ...(nextPage && { pageToken: nextPage.toString() })
+      });
+
+      // find account id from page
+      const { data: pageData } = await supabase
+        .from('social_accounts')
+        .select('account_id')
+        .eq('id', pg.accountId)
+        .single();
+
+      if (!pageData?.account_id) {
+        throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
+      }
+
+
+      // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts/list
+      const response = await gbFetch<{
+        localPosts?: Array<{
+          name: string;
+          languageCode: string;
+          summary: string;
+          callToAction?: {
+            actionType: string;
+            url: string;
+          };
+          createTime: string;
+          updateTime: string;
+          event?: {
+            title: string;
+            schedule?: {
+              startDate?: { year: number; month: number; day: number };
+              startTime?: { hours: number; minutes: number; seconds?: number; nanos?: number };
+              endDate?: { year: number; month: number; day: number };
+              endTime?: { hours: number; minutes: number; seconds?: number; nanos?: number };
+            };
+          };
+          state: string;
+          media?: Array<{
+            sourceUrl: string;
+          }>;
+          searchUrl?: string;
+          topicType: string;
+          offer?: {
+            couponCode?: string;
+            redeemOnlineUrl?: string;
+            termsConditions?: string;
+          };
+        }>;
+        nextPageToken?: string;
+      }>(`${POST_URL}/accounts/${pageData.account_id}/locations/${pg.pageId}/localPosts?${queryParams}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const posts = (response.localPosts ?? []).map(lp => this.mapGoogleBusinessPostToHistory(lp, pg.id));
+
+      return { 
+        posts, 
+        nextPage: response.nextPageToken || undefined 
+      };
+    } catch (error) {
+      this.handleApiError(error, 'get post history');
+    }
+  }
+
+  /**
+   * Maps Google Business LocalPost to PostHistory format
+   */
+  private mapGoogleBusinessPostToHistory(localPost: any, pageId: string): PostHistory {
+    const postId = localPost.name.split("/").pop();
+    return {
+      id: postId,
+      postId: postId,
+      pageId: pageId,
+      content: localPost.summary || "",
+      mediaUrls: localPost.media?.length ? localPost.media.map((m: any) => m.googleUrl) : [],
+      status: this.mapGoogleBusinessStateToStatus(localPost.state),
+      publishedAt: new Date(localPost.updateTime || localPost.createTime),
+      analytics: {
+        // Google Business doesn't provide detailed analytics in the basic API
+        metadata: {
+          platform: 'google',
+          mediaType: localPost.media?.length ? localPost.media[0].mediaFormat : '',
+          topicType: localPost.topicType,
+          languageCode: localPost.languageCode,
+          searchUrl: localPost.searchUrl,
+          event: localPost.event,
+          offer: localPost.offer,
+          callToAction: localPost.callToAction
+        }
+      }
+    };
+  }
+
+  /**
+   * Maps Google Business post state to our status format
+   */
+  private mapGoogleBusinessStateToStatus(state: string): PostStatus {
+    switch (state) {
+      case 'LIVE':
+        return 'published';
+      case 'PROCESSING':
+        return 'scheduled';
+      case 'REJECTED':
+        return 'failed';
+      default:
+        return 'draft';
+    }
   }
 
   async getPostAnalytics() { return {}; }      // not exposed
