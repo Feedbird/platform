@@ -4,6 +4,8 @@ import { Plus, X, CircleCheck, FileText, FileImage, FileVideo, File } from "luci
 import { cn, getRowHeightPixels, RowHeightType } from "@/lib/utils";
 import { useAttachmentUploader } from "@/lib/hooks/use-attachment-uploader";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import type { FileKind } from "@/lib/store/use-feedbird-store";
+import { AttachmentContentModal } from "@/components/content/content-modal/attachment-content-modal";
 
 export type Attachment = {
   id: string;
@@ -32,6 +34,7 @@ export function AttachmentCell({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [openAttachmentId, setOpenAttachmentId] = useState<string | null>(null);
 
   const { uploads, startUploads } = useAttachmentUploader({ postId, columnId });
 
@@ -60,6 +63,13 @@ export function AttachmentCell({
   };
 
   const sizes = getSizes();
+
+  const mimeToFileKind = (mime: string): FileKind => {
+    if (mime.startsWith('image/')) return "image";
+    if (mime.startsWith('video/')) return "video";
+    if (mime.includes('pdf') || mime.includes('document')) return "document";
+    return "other";
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -324,6 +334,8 @@ export function AttachmentCell({
                 key={attachment.id}
                 className="relative flex-shrink-0 rounded-[2px] bg-gray-100 overflow-hidden aspect-square"
                 style={{ height: `${thumbHeight}px`, width: `${thumbHeight}px`, border: "0.5px solid #D0D5D0" }}
+                data-preview-exempt
+                onClick={(e) => { if (isSelected) { e.stopPropagation(); setOpenAttachmentId(attachment.id); } }}
               >
                 {renderFilePreview(attachment, thumbHeight)}
 
@@ -374,6 +386,15 @@ export function AttachmentCell({
         data-preview-exempt
         onChange={handleFileSelect}
       />
+
+      {openAttachmentId && (
+        <AttachmentContentModal
+          attachments={attachments}
+          initialId={openAttachmentId}
+          onClose={() => setOpenAttachmentId(null)}
+          onRemove={(id) => handleRemoveAttachment(id)}
+        />
+      )}
     </div>
   );
 }
