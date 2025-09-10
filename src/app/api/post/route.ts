@@ -215,11 +215,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json()
-    console.log("body", body)
     const validatedData = UpdatePostSchema.parse(body)
-    console.log('id', id)
-    console.log('validatedData', validatedData)
-    console.log('body', body)
     const { data, error } = await supabase
       .from('posts')
       .update(validatedData)

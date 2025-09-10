@@ -2266,7 +2266,6 @@ export function PostTable({
                   className="w-6 h-6 bg-white rounded-[4px] border border-elementStroke cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 flex items-center justify-center group-hover:opacity-100 opacity-0"
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('ExpandIcon clicked', post);
                     onOpen?.(post.id);
                   }}
                 >
@@ -3346,7 +3345,6 @@ export function PostTable({
           if (activeBoardId) {
             const order = normalizeOrder(table.getAllLeafColumns().map(c => c.id).filter(id => id !== columnId));
             const payload = buildColumnsPayloadForOrder(order, nextUserColumns);
-            console.log("columns after deletetion", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
         } catch { }
@@ -3361,17 +3359,12 @@ export function PostTable({
       ...userColumns,
       { id: nanoid(), label, type, options: type === 'singleSelect' || type === 'multiSelect' ? (options as Array<{ id: string; value: string; color: string }>) : undefined },
     ];
-    console.log("Adding new column:", { label, type, nextUserColumns });
     setUserColumns(nextUserColumns);
-    console.log("pendingInsertRef", pendingInsertRef)
     if (pendingInsertRef) {
       const { targetId, side } = pendingInsertRef;
       setColumnOrder((orderPrev) => {
-        console.log("orderPrev", orderPrev)
         const order = orderPrev.length ? orderPrev : table.getAllLeafColumns().map(c => c.id);
-        console.log("order", order);
         const idx = order.indexOf(targetId);
-        console.log("idx", idx);
         if (idx === -1) return orderPrev;
         const insertIndex = side === 'left' ? idx : idx + 1;
         const newOrder = normalizeOrder([...order]);
@@ -3381,10 +3374,8 @@ export function PostTable({
         try { table.setColumnOrder(newOrder) } catch { }
         // Persist board columns with the newly added user column
         try {
-          console.log("activeBoardId", activeBoardId)
           if (activeBoardId) {
             const payload = buildColumnsPayloadForOrder(newOrder, nextUserColumns)
-            console.log("add payload", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
         } catch { }
@@ -3411,7 +3402,6 @@ export function PostTable({
         try {
           if (activeBoardId) {
             const payload = buildColumnsPayloadForOrder(newOrder, nextUserColumns)
-            console.log("add payload (no pendingInsertRef)", payload)
             updateBoard(activeBoardId, { columns: payload as any });
           }
         } catch { }

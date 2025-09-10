@@ -44,9 +44,6 @@ export async function POST(req: NextRequest) {
       // Remove message ID
       newUnread = currentUnread.filter((id: string) => id !== validated.message_id)
     }
-    console.log('currentUnread', currentUnread);
-    console.log('validated.message_id', validated.message_id);
-    console.log('newUnread', newUnread);
     // Update user's unread messages
     const { error: updateError } = await supabase
       .from('users')

@@ -838,8 +838,6 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
   };
 
   const handlePreviewVersion = (block: Block, versionId: string) => {
-    console.log('Preview version:', versionId);
-    console.log('block:', block);
     setPreviewBlock({ block, versionId });
   };
 

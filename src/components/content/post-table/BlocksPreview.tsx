@@ -118,7 +118,6 @@ export function BlocksPreview({
 
   const handlePlusButtonClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log("Plus clicked");
     fileInputRef.current?.click();
   };
 

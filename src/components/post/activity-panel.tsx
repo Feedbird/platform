@@ -378,7 +378,6 @@ export function ActivityPanel({
   let comments: BaseComment[] = post.comments;
   // activities data
   const activities: Activity[] = post.activities;
-  console.log('#################activities', post);
   // Local state for composer
   const [input, setInput] = useState("");
   const [emoji, setEmoji] = useState(false);

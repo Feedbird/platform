@@ -32,11 +32,9 @@ export function BoardInner() {
   // 1. Grab the slug from the URL.
   const params = useParams();
   const board_id = (params?.board_id as string) ?? "";
-  console.log("@@@@@@@board_id", board_id)
   // 2. Ensure the correct board is active in the global store so that nav etc. update.
   const setActiveBoard = useFeedbirdStore((s) => s.setActiveBoard);
   useEffect(() => {
-    console.log('BoardInner: Setting active board to', board_id);
     if (board_id) setActiveBoard(board_id);
   }, [setActiveBoard, board_id]);
 
@@ -58,7 +56,6 @@ export function BoardInner() {
   // Memo-filter by board so the `posts` array keeps a stable reference unless
   // its members actually change.
   const posts = React.useMemo(() => allPosts.filter((p) => p.board_id === board_id), [allPosts, board_id]);
-  console.log("##########posts", posts)
   // 5. For opening the record modal.
   const [openPostId, setOpenPostId] = useState<string | null>(null);
 

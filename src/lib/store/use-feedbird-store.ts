@@ -2711,7 +2711,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 const updatedPosts = board.posts.map((p) => {
                   const correctStatus = determineCorrectStatus(p.status, p.publish_date);
                   if (correctStatus !== p.status) {
-                    console.log(`Updating post ${p.id}: ${p.status} → ${correctStatus} (publish_date: ${p.publish_date})`);
                     updatedCount++;
                     hasChanges = true;
                     return { ...p, status: correctStatus };
@@ -2728,7 +2727,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             }));
             
             if (updatedCount > 0) {
-              console.log(`Updated ${updatedCount} post statuses based on time`);
               return { workspaces: newWs };
             }
             
@@ -2761,8 +2759,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             const currentUnread = s.user.unread_msg || []
             const newUnread = currentUnread.filter(id => id !== messageId)
             
-            console.log('Removing unread message:', messageId, 'Current unread:', currentUnread, 'New unread:', newUnread);
-            
             return {
               ...s,
               user: {
@@ -2774,7 +2770,6 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
         hasUnreadMessages: () => {
           const hasUnread = (get().user?.unread_msg?.length || 0) > 0;
-          console.log('hasUnreadMessages called:', hasUnread, 'Unread count:', get().user?.unread_msg?.length || 0);
           return hasUnread;
         },
         // Mark all messages in a channel as read
@@ -2875,15 +2870,11 @@ export const usePostStatusTimeUpdater = () => {
   }, [workspaces]);
   
   React.useEffect(() => {
-    console.log("PostStatusTimeUpdater: Initializing...");
-    
     // Update immediately on mount
     updatePostStatusesBasedOnTime();
     
     // Set up interval to check every 60 seconds (increased from 10 seconds for production)
     const interval = setInterval(() => {
-      console.log("PostStatusTimeUpdater: Running periodic update...");
-      
       // Only run the update if there are posts that might need status changes
       if (checkIfUpdatesNeeded()) {
         updatePostStatusesBasedOnTime();
@@ -2893,7 +2884,6 @@ export const usePostStatusTimeUpdater = () => {
     }, 60000); // 60 seconds for production
     
     return () => {
-      console.log("PostStatusTimeUpdater: Cleaning up...");
       clearInterval(interval);
     };
   }, [updatePostStatusesBasedOnTime, checkIfUpdatesNeeded]);

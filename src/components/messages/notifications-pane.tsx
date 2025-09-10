@@ -112,7 +112,6 @@ export default function NotificationsPane() {
 			try {
 				setIsLoading(true)
 				const activitiesData = await activityApi.getWorkspaceActivities(activeWorkspace.id)
-				console.log('###########activitiesData', activitiesData)
 				setActivities(activitiesData || [])
 			} catch (error) {
 				console.error('Failed to fetch activities:', error)
@@ -168,7 +167,6 @@ export default function NotificationsPane() {
 				updateUserNotificationSettings(updatedUser.notification_settings)
 			}
 			
-			console.log('Notification settings saved successfully')
 		} catch (error) {
 			console.error('Failed to save notification settings:', error)
 		} finally {
@@ -398,7 +396,6 @@ export default function NotificationsPane() {
 
 	// Get status icon for post
 	const getStatusIcon = (type?: string) => {
-		console.log('###########type', type)
 		switch (type) {
 			case 'revision_request':
 				return '/images/status/needs-revision.svg'

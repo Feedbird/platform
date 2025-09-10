@@ -196,7 +196,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const validatedData = CreateWorkspaceSchema.parse(body)
-    console.log("validatedData", validatedData);
     // Use the email from request body as the creator
     const workspaceData = {
       name: validatedData.name,

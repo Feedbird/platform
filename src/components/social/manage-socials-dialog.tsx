@@ -77,7 +77,6 @@ export function ManageSocialsDialog(props: {
       
       if (e.data?.success) {
         const { brandId } = e.data;
-        console.log('brandId', brandId);
         
         executeWithLoading(async () => {
           // Load fresh data from database

@@ -572,7 +572,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		if (channelId !== 'all' || selectedChannelForMessage) {
 			notifyTyping()
 		}
-		console.log('handleContentEditableInput:', e.currentTarget.textContent);
 		const editor = e.currentTarget
 		const value = editor.textContent || ''
 
@@ -931,9 +930,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	}
 
 	const handleMentionSelect = (member: WorkspaceMember) => {
-		// console.log('handleMentionSelect called with member:', member)
-		// console.log('Current mentionQuery:', mentionQuery)
-
 		const sel = window.getSelection()
 		if (!sel || sel.rangeCount === 0) return
 
@@ -1013,7 +1009,6 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 		// Update the input state and clear all mention-related state
 		const newText = container.textContent || ''
-		console.log('New text after replacement:', newText)
 		setInput(newText)
 		setShowMentions(false)
 		setMentionQuery('')
