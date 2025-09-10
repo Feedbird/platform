@@ -27,8 +27,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, AtSign, Image as ImageIcon, X, AlertCircle } from "lucide-react";
-import type { PostSettings, Platform, TikTokSettings } from "@/lib/social/platforms/platform-types";
+import type { PostSettings, Platform, TikTokSettings, GoogleBusinessSettings } from "@/lib/social/platforms/platform-types";
 import { TikTokSettingsPanel } from '../post-record-modal/tiktok-settings';
+import { GoogleBusinessSettingsPanel } from '../post-record-modal/google-business-settings';
+import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-settings-mapper';
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 /* ------------------------------------------------------------ */
@@ -40,6 +42,7 @@ type SettingFlags = {
   tagAccounts: boolean;
   thumbnail  : boolean;
   tiktok     : boolean;
+  google     : boolean;
 };
 
 const DEFAULT_FLAGS: SettingFlags = {
@@ -47,6 +50,7 @@ const DEFAULT_FLAGS: SettingFlags = {
   tagAccounts: false,
   thumbnail: false,
   tiktok: false,
+  google: false,
 };
 
 const LABELS: Record<keyof SettingFlags, string> = {
@@ -54,6 +58,7 @@ const LABELS: Record<keyof SettingFlags, string> = {
   tagAccounts: "Tag Accounts",
   thumbnail  : "Custom Thumbnail",
   tiktok     : "TikTok Settings",
+  google     : "Google Business Settings",
 };
 
 const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
@@ -61,6 +66,7 @@ const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
   tagAccounts: <Image src={`/images/settings/at-sign.svg`} alt="Tag Accounts" width={16} height={16} />,
   thumbnail  : <Image src={`/images/settings/image.svg`} alt="Thumbnail" width={16} height={16} />,
   tiktok     : <Image src={`/images/platforms/tiktok.svg`} alt="TikTok" width={16} height={16} />,
+  google     : <Image src={`/images/platforms/google.svg`} alt="Google Business" width={16} height={16} />,
 };
 
 const iconClass = (active: boolean) =>
@@ -99,6 +105,15 @@ export function SettingsEditCell({
     return tiktokPage?.id || null;
   }, [platforms, brand?.socialPages]);
 
+  // Get the first Google Business page ID if Google is selected
+  const googlePageId = React.useMemo(() => {
+    if (!platforms.includes('google') || !brand?.socialPages) return null;
+    const googlePage = brand.socialPages.find(page => 
+      page.platform === 'google' && page.connected
+    );
+    return googlePage?.id || null;
+  }, [platforms, brand?.socialPages]);
+
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
     privacyLevel: 'SELF_ONLY',
@@ -116,17 +131,22 @@ export function SettingsEditCell({
     isAigc: false,
   };
 
+  // Default Google Business settings
+  const defaultGoogleBusinessSettings: GoogleBusinessSettings = getDefaultGoogleBusinessSettings();
+
   const initial = React.useMemo<PostSettings>(() => ({
     locationTags: value?.locationTags ?? [],
     taggedAccounts: value?.taggedAccounts ?? [],
     thumbnail: value?.thumbnail ?? false,
     tiktok: value?.tiktok ?? defaultTikTokSettings,
+    google: value?.google ?? defaultGoogleBusinessSettings,
   }), [value]);
 
   const [local, setLocal] = React.useState<PostSettings>(initial);
 
-  // TikTok validation state
+  // Validation states
   const [tiktokValidation, setTiktokValidation] = React.useState(true);
+  const [googleValidation, setGoogleValidation] = React.useState(true);
 
   /* Helper booleans for UI */
   const activeFlags: SettingFlags = {
@@ -134,6 +154,7 @@ export function SettingsEditCell({
     tagAccounts: local.taggedAccounts.length > 0,
     thumbnail: local.thumbnail,
     tiktok: platforms.includes('tiktok'),
+    google: platforms.includes('google'),
   } as const;
 
   type FlagKey = keyof typeof activeFlags;
@@ -149,6 +170,9 @@ export function SettingsEditCell({
           return { ...prev, taggedAccounts: [] };
         case 'tiktok':
           // TikTok settings are managed by platform selection, not toggleable here
+          return prev;
+        case 'google':
+          // Google Business settings are managed by platform selection, not toggleable here
           return prev;
       }
     });
@@ -183,7 +207,10 @@ export function SettingsEditCell({
               <div className="flex items-center gap-[8px]">
                 <TooltipProvider>
                   {(Object.keys(ICONS) as (keyof SettingFlags)[])
-                    .filter(k => k !== 'tiktok' || platforms.includes('tiktok'))
+                    .filter(k => 
+                      (k !== 'tiktok' || platforms.includes('tiktok')) &&
+                      (k !== 'google' || platforms.includes('google'))
+                    )
                     .map((k) => (
                     <Tooltip key={k}>
                       <TooltipTrigger asChild>
@@ -208,7 +235,10 @@ export function SettingsEditCell({
           <PopoverContent className="pt-[8px] py-[12px] px-[12px] w-50" align="center" side="bottom" sideOffset={6}>
             <p className="text-base font-semibold mb-[6px]">Settings</p>
             {(Object.keys(LABELS) as (keyof SettingFlags)[])
-              .filter(k => k !== 'tiktok' || platforms.includes('tiktok'))
+              .filter(k => 
+                (k !== 'tiktok' || platforms.includes('tiktok')) &&
+                (k !== 'google' || platforms.includes('google'))
+              )
               .map((k) => (
               <label key={k} className="flex items-center justify-between py-[8px] gap-2 cursor-pointer">
                 <div className="flex items-center gap-2">
@@ -217,8 +247,8 @@ export function SettingsEditCell({
                 </div>
                 <Checkbox 
                   checked={activeFlags[k as FlagKey]} 
-                  onCheckedChange={() => k !== 'tiktok' && toggleFlag(k as FlagKey)}
-                  disabled={k === 'tiktok'}
+                  onCheckedChange={() => k !== 'tiktok' && k !== 'google' && toggleFlag(k as FlagKey)}
+                  disabled={k === 'tiktok' || k === 'google'}
                   className={cn(
                     // base
                     "h-4 w-4 rounded-none border border-[#D0D5DD] transition-colors duration-150 ease-in-out rounded-[3px]",
@@ -251,7 +281,10 @@ export function SettingsEditCell({
         <p className="text-sm font-semibold mb-1">Post settings</p>
         <ul className="space-y-1 text-xs">
           {(Object.keys(LABELS) as (keyof SettingFlags)[])
-            .filter(k => k !== 'tiktok' || platforms.includes('tiktok'))
+            .filter(k => 
+              (k !== 'tiktok' || platforms.includes('tiktok')) &&
+              (k !== 'google' || platforms.includes('google'))
+            )
             .map((k) => (
             <li key={k} className="flex items-center gap-2">
               {React.cloneElement(ICONS[k as keyof SettingFlags] as any, { className: iconClass(activeFlags[k as FlagKey]) })}
@@ -269,11 +302,20 @@ export function SettingsEditCell({
             <DialogTitle className="text-lg font-semibold text-black">Settings</DialogTitle>
           </DialogHeader>
 
-          <Tabs defaultValue={platforms.includes('tiktok') ? 'tiktok' : 'location'} className="w-full mt-0 flex flex-col gap-6 flex-1 min-h-0">
+          <Tabs defaultValue={
+            platforms.includes('tiktok') ? 'tiktok' : 
+            platforms.includes('google') ? 'google' : 
+            'location'
+          } className="w-full mt-0 flex flex-col gap-6 flex-1 min-h-0">
             <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
               {platforms.includes('tiktok') && (
                 <TabsTrigger value="tiktok" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
                   {ICONS.tiktok} TikTok
+                </TabsTrigger>
+              )}
+              {platforms.includes('google') && (
+                <TabsTrigger value="google" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                  {ICONS.google} Google
                 </TabsTrigger>
               )}
               <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
@@ -299,6 +341,22 @@ export function SettingsEditCell({
                     }
                     onValidationChange={(isValid) => {
                       setTiktokValidation(isValid);
+                    }}
+                  />
+                </TabsContent>
+              )}
+
+              {/* Google Business Tab */}
+              {platforms.includes('google') && (
+                <TabsContent value="google" className="space-y-4 m-0 h-full">
+                  <GoogleBusinessSettingsPanel
+                    pageId={googlePageId}
+                    settings={local.google!}
+                    onChange={(googleSettings) => 
+                      setLocal(prev => ({ ...prev, google: googleSettings }))
+                    }
+                    onValidationChange={(isValid) => {
+                      setGoogleValidation(isValid);
                     }}
                   />
                 </TabsContent>
@@ -372,12 +430,13 @@ export function SettingsEditCell({
                   locationTags: local.locationTags,
                   taggedAccounts: local.taggedAccounts,
                   thumbnail: local.thumbnail,
-                  ...(platforms.includes('tiktok') && { tiktok: local.tiktok })
+                  ...(platforms.includes('tiktok') && { tiktok: local.tiktok }),
+                  ...(platforms.includes('google') && { google: local.google })
                 };
                 onChange(updatedSettings);
                 setModalOpen(false);
               }}
-              disabled={platforms.includes('tiktok') && !tiktokValidation}
+              disabled={(platforms.includes('tiktok') && !tiktokValidation) || (platforms.includes('google') && !googleValidation)}
               className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Changes
@@ -395,6 +454,16 @@ export function SettingsEditCell({
                   ? "Branded content cannot be set to private. Please change privacy settings."
                   : "TikTok settings validation failed. Please check your configuration."
                 }
+              </span>
+            </div>
+          )}
+
+          {/* Google Business validation error message - positioned below buttons */}
+          {platforms.includes('google') && !googleValidation && (
+            <div className="flex items-center gap-2 text-xs text-red-600 mt-2">
+              <AlertCircle className="h-3 w-3" />
+              <span>
+                Google Business settings validation failed. Please check your configuration.
               </span>
             </div>
           )}

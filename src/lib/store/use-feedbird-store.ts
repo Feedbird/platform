@@ -915,8 +915,11 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   throw new Error(`Platform operations not found for ${page.platform}`);
                 }
 
-                // Prepare base publish options
-                let publishOptions: any = { scheduledTime };
+                // Prepare base publish options with settings
+                let publishOptions: any = { 
+                  scheduledTime,
+                  settings: post.settings // Pass the full settings object
+                };
                 let postContent: any;
 
                 if (['tiktok', 'linkedin', 'facebook', 'instagram', 'google'].includes(page.platform)) {
@@ -927,7 +930,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     publishOptions = { ...publishOptions, ...tiktokOptions };
                   }
 
-                  // Format content for TikTok API
+                  // Format content for platform API
                   postContent = {
                     id: postId,
                     text: post.caption.default,

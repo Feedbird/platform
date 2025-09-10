@@ -11,6 +11,7 @@ import type {
   PostContent,
   PublishOptions,
 } from './platform-types';
+import { formatGoogleBusinessPostData } from '@/lib/utils/google-business-settings-mapper';
 import { supabase } from '@/lib/supabase/client';
 import { SocialAPIError } from '@/lib/utils/error-handler';
 import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
@@ -19,7 +20,7 @@ import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 const cfg: SocialPlatformConfig = {
   name   : "Google Business",
   channel: "google",
-  icon   : "/images/platforms/google-business.svg",
+  icon   : "/images/platforms/google.svg",
   authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
   scopes : [
     "https://www.googleapis.com/auth/business.manage"
@@ -443,30 +444,42 @@ export class GoogleBusinessPlatform extends BasePlatform {
       throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
     }
 
-    // Build post data
-    const postData: any = {
-      languageCode: "en-US",
-      summary: content.text,
-      topicType: "STANDARD"
-    };
+    console.log('content', content);
 
-    // Add media if present
-    // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.media#MediaItem
-    if (content.media && content.media.urls.length > 0) {
+    // Build post data using Google Business settings if available
+    let postData: any;
+    
+    // Check if we have Google Business settings in the options
+    const googleSettings = options?.settings?.google;
+    
+    if (googleSettings) {
+      // Use settings-based approach
+      postData = formatGoogleBusinessPostData(content, googleSettings);
+    } else {
+      // Fallback to legacy approach for backward compatibility
+      postData = {
+        languageCode: "en-US",
+        summary: content.text,
+        topicType: "STANDARD"
+      };
+
+      // Add media if present
+      if (content.media && content.media.urls.length > 0) {
         postData.media = [
           {
             mediaFormat: "PHOTO",
             sourceUrl: content.media.urls[0]
           }
-        ]
-    }
+        ];
+      }
 
-    // Add call to action if link is provided
-    if (content.link?.url) {
-      postData.callToAction = {
-        actionType: "LEARN_MORE",
-        url: content.link.url
-      };
+      // Add call to action if link is provided
+      if (content.link?.url) {
+        postData.callToAction = {
+          actionType: "LEARN_MORE",
+          url: content.link.url
+        };
+      }
     }
 
     // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts#LocalPost
