@@ -645,7 +645,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
         // Google Business doesn't provide detailed analytics in the basic API
         metadata: {
           platform: 'google',
-          mediaType: localPost.media?.length ? localPost.media[0].mediaFormat : '',
+          mediaTypes: localPost.media?.length ? localPost.media.map((m: any) => m.mediaFormat) : [],
           topicType: localPost.topicType,
           languageCode: localPost.languageCode,
           searchUrl: localPost.searchUrl,
@@ -674,5 +674,63 @@ export class GoogleBusinessPlatform extends BasePlatform {
   }
 
   async getPostAnalytics() { return {}; }      // not exposed
-  async deletePost()       { /* deletion not in API yet */ }
+
+  /* 6 ─ delete a Local Post */
+  async deletePost(page: SocialPage, postId: string): Promise<any> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/google/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          postId,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    // Get secure token from database
+    const token = await this.getToken(page.id);
+    if (!token) {
+      throw new Error('No auth token available');
+    }
+
+    // Get account ID from page
+    const { data: pageData } = await supabase
+      .from('social_accounts')
+      .select('account_id')
+      .eq('id', page.accountId)
+      .single();
+
+    if (!pageData?.account_id) {
+      throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
+    }
+
+    // Get the location ID from page metadata
+    const locationId = page.pageId;
+    if (!locationId) {
+      throw new SocialAPIError('Location ID not found. Please reconnect your Google Business account.', 'LOCATION_ERROR');
+    }
+
+    // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts/delete
+    const response = await fetch(
+      `${POST_URL}/accounts/${pageData.account_id}/locations/${locationId}/localPosts/${postId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const responseError = await response.json();
+      const errorText = responseError?.error?.details[0]?.errorDetails[0]?.message || responseError?.error?.message || 'Unknown error';
+      throw new SocialAPIError(`Failed to delete post: ${errorText}`, 'DELETE_ERROR');
+    }
+
+    return { success: true };
+  }
 }

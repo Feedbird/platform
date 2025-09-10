@@ -353,7 +353,7 @@ function PostCard({
           }
 
         // if platfform is instagram then return an image
-        if (post.analytics?.metadata?.platform === 'instagram') {
+        if (post.analytics?.metadata?.platform === 'instagram' || post.analytics?.metadata?.platform === 'google') {
             return (
               <img
                 src={url}
