@@ -184,7 +184,7 @@ export function ApproveCell({
       <TooltipTrigger asChild>
         {content}
       </TooltipTrigger>
-      <TooltipContent sideOffset={4} className="bg-white text-black text-xs font-normal border border-elementStroke">{approveTooltip}</TooltipContent>
+      <TooltipContent sideOffset={4} className="bg-[#151515] text-white border-none text-xs">{approveTooltip}</TooltipContent>
     </Tooltip>
   );
 }

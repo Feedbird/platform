@@ -2108,7 +2108,7 @@ export function PostTable({
                   </div>
                 </TooltipTrigger>
                 {isSorted && (
-                  <TooltipContent className="bg-white text-black text-xs font-normal border border-elementStroke">
+                  <TooltipContent className="bg-[#151515] text-white border-none text-xs">
                     <p>Row reordering is disabled when sorting is active</p>
                   </TooltipContent>
                 )}
@@ -2562,7 +2562,7 @@ export function PostTable({
               <TooltipTrigger asChild>
                 {content}
               </TooltipTrigger>
-              <TooltipContent sideOffset={4} className="bg-white text-black text-xs font-normal border border-elementStroke">{revisionTooltip}</TooltipContent>
+              <TooltipContent sideOffset={4} className="bg-[#151515] text-white border-none text-xs">{revisionTooltip}</TooltipContent>
             </Tooltip>
           );
         },
@@ -3977,7 +3977,7 @@ export function PostTable({
         </tr>
         {isHoveringDivider && typeof window !== 'undefined' && createPortal(
           <div
-            className="pointer-events-none bg-white text-black border border-elementStroke rounded-md text-xs font-medium px-3 py-1 shadow-md z-[1000]"
+            className="pointer-events-none bg-[#151515] text-white border-none rounded-md text-xs font-medium px-3 py-1 shadow-md z-[1000]"
             style={{ position: 'fixed', left: cursorPos.x, top: cursorPos.y - 10, transform: 'translate(-50%, -100%)' }}
           >
             {recordCountForTooltip} {recordCountForTooltip === 1 ? 'record' : 'records'}
