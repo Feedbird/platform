@@ -213,8 +213,9 @@ export function AttachmentCell({
           )}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-           {uploads.map((up: any) => {
-             const thumbHeight = getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight);
+        {/* Upload in progress - shown at the left end */}
+          {uploads.length > 0 && uploads.map((up: any) => {
+            const thumbHeight = getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight);
 
              return (
                <div
@@ -314,48 +315,15 @@ export function AttachmentCell({
             );
           })}
 
-                     {/* Existing attachments */}
-           {attachments.map((attachment) => {
-             const thumbHeight = getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight);
+          {/* Existing attachments */}
+          {attachments.length > 0 && attachments.map((attachment) => {
+            const thumbHeight = getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight);
 
-             return (
-               <div
-                 key={attachment.id}
-                 className="relative flex-shrink-0 rounded-[2px] bg-gray-100 overflow-hidden aspect-square group"
-                 style={{ height: `${thumbHeight}px`, width: `${thumbHeight}px`, border: "0.5px solid #D0D5D0" }}
-               >
-                 {renderFilePreview(attachment, thumbHeight)}
-                 
-                 {/* Fallback icon for non-media files (hidden by default) */}
-                 {!attachment.type.startsWith('image/') && !attachment.type.startsWith('video/') && (
-                   <div className="absolute inset-0 flex flex-col items-center justify-center hidden">
-                     {(() => {
-                       const FileIcon = getFileIcon(attachment.type);
-                       return (
-                         <>
-                           <FileIcon className={`${sizes.icon} text-gray-600`} />
-                           <span className="text-xs text-center px-1 text-gray-700" style={{ fontSize: `${sizes.text}px` }}>
-                             {attachment.name.length > 8 ? attachment.name.substring(0, 8) + '...' : attachment.name}
-                           </span>
-                         </>
-                       );
-                     })()}
-                   </div>
-                 )}
-
-                {/* Remove button - shown on hover */}
-                {isHovered && (
-                  <button
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveAttachment(attachment.id);
-                    }}
-                    data-preview-exempt
-                  >
-                    <X className="w-2 h-2" />
-                  </button>
+            return (
+              <div
                 key={attachment.id}
+                className="relative flex-shrink-0 rounded-[2px] bg-gray-100 overflow-hidden aspect-square"
+                style={{ height: `${thumbHeight}px`, width: `${thumbHeight}px`, border: "0.5px solid #D0D5D0" }}
               >
                 {renderFilePreview(attachment, thumbHeight)}
 
@@ -371,9 +339,10 @@ export function AttachmentCell({
                             {attachment.name.length > 8 ? attachment.name.substring(0, 8) + '...' : attachment.name}
                           </span>
                         </>
+                      );
+                    })()}
+                  </div>
                 )}
-
-
               </div>
             );
           })}
