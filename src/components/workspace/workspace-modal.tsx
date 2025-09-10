@@ -997,7 +997,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
               <div className="flex items-center justify-between flex-shrink-0">
                 <div className="flex-shrink-0">
                   <Image
-                    src="/images/logo/logo.png"
+                    src="/images/logo/logo(1).svg"
                     alt="FeedBird Logo"
                     width={127}
                     height={20}

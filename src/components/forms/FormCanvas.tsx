@@ -193,7 +193,7 @@ export default function FormCanvas({
             )}
             <div className="flex flex-row py-6 px-3 gap-3 items-center">
               <Image
-                src="/images/logo/logo.png"
+                src="/images/logo/logo(1).svg"
                 alt="feedbird_logo"
                 width={87}
                 height={14}
