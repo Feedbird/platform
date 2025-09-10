@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   image_url TEXT,
   unread_msg JSONB DEFAULT '[]',
   unread_notification JSONB DEFAULT '[]',
+  default_board_rules JSONB,
   notification_settings JSONB DEFAULT '[]',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

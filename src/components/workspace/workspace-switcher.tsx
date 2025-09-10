@@ -46,7 +46,7 @@ import {
 import { Toaster } from "@/components/ui/sonner"
 import { useUser } from '@clerk/nextjs';
 
-import { currentUser } from '@clerk/nextjs/server'
+import { storeApi, inviteApi, userApi } from '@/lib/api/api-service'
 
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
@@ -123,22 +123,69 @@ export default function WorkspaceSwitcher() {
     selectedBoards: string[]
     boardRules: any
     inviteEmails: string[]
-  }) => {
+    setAsDefault?: boolean
+  }): Promise<string> => {
     const userEmail = user?.email || 'demo@example.com'
 
     const wsId = await addWorkspace(name, userEmail, logo ?? '')
 
     // Handle additional data (boards, rules, invitations)
     if (additionalData) {
-      console.log('Additional workspace data:', additionalData)
-      // TODO: Process selectedBoards, boardRules, and inviteEmails
-      // This would involve API calls to create boards, set rules, and send invitations
+      const { selectedBoards, boardRules, inviteEmails, setAsDefault } = additionalData
+
+      // 2) Create boards for selected templates with given rules
+      try {
+        const store = useFeedbirdStore.getState()
+        const templates = store.boardTemplates
+        const toCreate = templates.filter(t => selectedBoards.includes(t.id))
+        for (const t of toCreate) {
+          await (storeApi as any).createBoardAndUpdateStore(
+            wsId,
+            t.name,
+            t.description,
+            t.image,
+            t.color,
+            { ...(t.rules || {}), ...(boardRules || {}) }
+          )
+        }
+      } catch (e) {
+        console.error('Failed to create template boards:', e)
+      }
+
+      // 3) Send invites (workspace-wide)
+      try {
+        const emails = (inviteEmails || []).map(e => e.trim()).filter(Boolean)
+        if (emails.length) {
+          await Promise.all(
+            emails.map(email =>
+              inviteApi.inviteMembers({ email, workspaceIds: [wsId], boardIds: [], actorId: user?.id })
+            )
+          )
+        }
+      } catch (e) {
+        console.error('Failed sending invites:', e)
+      }
+
+      // 4) Persist default board rules if requested
+      try {
+        if (setAsDefault && user?.email) {
+          await userApi.updateUser({ email: user.email }, { default_board_rules: boardRules })
+          // Update store copy
+          useFeedbirdStore.setState(s => ({
+            user: s.user ? ({ ...s.user, default_board_rules: boardRules } as any) : s.user
+          }))
+        }
+      } catch (e) {
+        console.error('Failed to update default board rules:', e)
+      }
     }
 
     // ensure workspace selected
     select(wsId)
 
     toast.success(`Workspace "${name}" created`)
+
+    return wsId
   }
 
   if (!isMounted) {

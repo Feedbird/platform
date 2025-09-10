@@ -8,6 +8,7 @@ const CreateUserSchema = z.object({
   first_name: z.string().optional(),
   last_name: z.string().optional(),
   image_url: z.string().url().optional(),
+  default_board_rules: z.any().optional(),
 })
 
 const NotificationSettingsSchema = z.object({
@@ -40,6 +41,7 @@ const UpdateUserSchema = z.object({
   unread_msg: z.array(z.string()).optional(),
   unread_notification: z.array(z.string()).optional(),
   notification_settings: z.array(NotificationSettingsSchema).optional(),
+  default_board_rules: z.any().optional(),
 })
 
 // GET - Get user by ID

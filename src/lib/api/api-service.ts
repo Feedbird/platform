@@ -85,6 +85,7 @@ export const userApi = {
     first_name?: string;
     last_name?: string;
     image_url?: string;
+    default_board_rules?: any;
   }): Promise<User> => {
     return apiRequest<User>("/user", {
       method: "POST",
@@ -102,6 +103,7 @@ export const userApi = {
       unread_msg?: string[];
       unread_notification?: string[];
       notification_settings?: any[];
+      default_board_rules?: any;
     }
   ): Promise<User> => {
     const searchParams = new URLSearchParams();

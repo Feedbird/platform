@@ -31,7 +31,8 @@ interface WorkspaceModalProps {
     selectedBoards: string[]
     boardRules: any
     inviteEmails: string[]
-  }) => void
+    setAsDefault?: boolean
+  }) => Promise<string>
 }
 
 interface WorkspaceFormData {
@@ -190,6 +191,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
   })
   const [setAsDefault, setSetAsDefault] = React.useState(false)
   const [avatarColors, setAvatarColors] = React.useState<Record<number, string>>({})
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [formData, setFormData] = React.useState<WorkspaceFormData>({
     name: '',
     logo: null,
@@ -225,7 +227,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
     updateRule('sortBy', value)
   }, [updateRule])
 
-  /* Reset every open */
+  /* Reset every open and initialize rules from user default if present */
   React.useEffect(() => {
     if (open) {
       setCurrentStep(1)
@@ -237,14 +239,30 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
         boardRules: {},
         inviteEmails: ['', '', '']
       }))
-      setBoardRules({
-        autoSchedule: false,
-        revisionRules: false,
-        approvalDeadline: false,
-        groupBy: "month",
-        sortBy: "status",
-        rowHeight: "Medium",
-      })
+      try {
+        const defaultRules = (useFeedbirdStore.getState().user as any)?.default_board_rules
+        if (defaultRules) {
+          setBoardRules(defaultRules as BoardRules)
+        } else {
+          setBoardRules({
+            autoSchedule: false,
+            revisionRules: false,
+            approvalDeadline: false,
+            groupBy: "month",
+            sortBy: "status",
+            rowHeight: "Medium",
+          })
+        }
+      } catch {
+        setBoardRules({
+          autoSchedule: false,
+          revisionRules: false,
+          approvalDeadline: false,
+          groupBy: "month",
+          sortBy: "status",
+          rowHeight: "Medium",
+        })
+      }
       setSetAsDefault(false)
       setAvatarColors({})
       if (wsLogoInput.current) wsLogoInput.current.value = ''
@@ -330,15 +348,17 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
     const additionalData = {
       selectedBoards: formData.selectedBoards,
       boardRules: boardRules,
-      inviteEmails: formData.inviteEmails.filter(email => email.trim().length > 0)
+      inviteEmails: formData.inviteEmails.filter(email => email.trim().length > 0),
+      setAsDefault,
     }
 
-    const workspaceId = await onAdd(formData.name.trim(), formData.logo, additionalData)
-
-    // Navigate to the new workspace
-    router.push(`/${workspaceId}`)
-
-    onClose()
+    try {
+      setIsSubmitting(true)
+      await onAdd(formData.name.trim(), formData.logo, additionalData)
+      onClose()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const renderStep1 = () => (
@@ -966,10 +986,14 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
         <div className="flex justify-center">
           <Button
             onClick={handleSubmit}
-            disabled={!canProceedToNext()}
+            disabled={!canProceedToNext() || isSubmitting}
             className="w-full bg-main hover:bg-blue-700 text-white py-3 cursor-pointer"
           >
-            Next
+            {isSubmitting ? (
+              'Creating...'
+            ) : (
+              'Create workspace'
+            )}
           </Button>
         </div>
       </div>

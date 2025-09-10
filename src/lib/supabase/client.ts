@@ -38,6 +38,7 @@ export interface User {
   unread_msg?: string[];
   unread_notification: string[];
   notification_settings?: NotificationSettings[];
+  default_board_rules?: any;
   created_at: string;
   updated_at: string;
 }
