@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApiHandlerError } from "../../shared";
 import { FormFieldsHandler } from "./handler";
 
-export async function POST(req: NextRequest, res: NextResponse) {
+export async function POST(req: NextRequest) {
   try {
     const { formId, formFields } = await req.json();
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
   }
 }
 
-export async function GET(req: NextRequest, res: NextResponse) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const formId = searchParams.get("formId");
