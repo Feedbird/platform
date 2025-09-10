@@ -19,15 +19,16 @@ export function BlocksPreview({
   postId,
   onFilesSelected,
   rowHeight,
+  isSelected,
 }: {
   blocks: Block[];
   postId: string;
   onFilesSelected?: (files: File[]) => void;
   rowHeight: RowHeightType;
+  isSelected?: boolean;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadDimensions, setUploadDimensions] = useState<Record<string, { w: number, h: number }>>({});
   const [showText, setShowText] = useState(false);
@@ -130,11 +131,6 @@ export function BlocksPreview({
     }
   };
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    checkWidthAndUpdateText();
-  };
-
   // Show drop overlay when dragging files over the cell
   const shouldShowDropOverlay = isDragOver;
 
@@ -142,8 +138,6 @@ export function BlocksPreview({
     <div
       ref={containerRef}
       className="relative flex items-center w-full h-full cursor-pointer transition-colors duration-150 pl-3 pr-1 py-1"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={() => setIsHovered(false)}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -165,34 +159,17 @@ export function BlocksPreview({
         </div>
       )}
 
-      {/* Plus button - shown on the left when hovering */}
-      {isHovered && !shouldShowDropOverlay && (
-        <div className="flex-shrink-0 mr-1">
-          <div
-            className="flex flex-row items-center justify-center px-[4px] py-[1px] h-5.5 w-5.5 rounded-[4px] bg-white cursor-pointer"
-            style={{
-              boxShadow:
-                "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
-            }}
-            data-preview-exempt
-            onClick={handlePlusButtonClick}
-          >
-            <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
-          </div>
-        </div>
-      )}
 
       {/* Blocks and uploads container */}
-      {(blocks.length > 0 || uploads.length > 0) && !shouldShowDropOverlay && (
+      {!shouldShowDropOverlay && (
         <div
           className={cn(
-            "block-previews-container flex flex-row gap-[2px] w-full h-full overflow-x-hidden overflow-y-hidden",
-            isHovered && "ml-2" // Add margin when hovering to move blocks to the right
+            "block-previews-container flex flex-row gap-[2px] h-full overflow-x-hidden overflow-y-hidden"
           )}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {/* Upload in progress - shown at the left end */}
-          {uploads.map((up) => {
+          {uploads.length > 0 && uploads.map((up) => {
             const dims = uploadDimensions[up.id];
             const aspectRatioType = dims ? getAspectRatioType(dims.w, dims.h) : "1:1";
             const isVideo = up.file.type.startsWith("video/");
@@ -336,9 +313,26 @@ export function BlocksPreview({
           })}
 
           {/* Existing blocks - shown after uploads */}
-          {blocks.map((block) => (
+          {blocks.length >0 && blocks.map((block) => (
             <BlockThumbnail key={block.id} block={block} height={getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight)} rowHeight={rowHeight} />
           ))}
+
+          {/* Plus button - shown at the right when selected */}
+          {isSelected && !shouldShowDropOverlay && (
+            <div className="flex-shrink-0 px-1 h-full flex items-center">
+              <div
+                className="flex flex-row items-center justify-center px-[4px] py-[1px] h-5.5 w-5.5 rounded-[4px] bg-white cursor-pointer"
+                style={{
+                  boxShadow:
+                    "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
+                }}
+                data-preview-exempt
+                onClick={handlePlusButtonClick}
+              >
+                <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

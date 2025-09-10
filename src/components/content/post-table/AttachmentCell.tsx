@@ -19,6 +19,7 @@ export type AttachmentCellProps = {
   postId: string;
   columnId: string;
   rowHeight: RowHeightType;
+  isSelected?: boolean;
 };
 
 export function AttachmentCell({
@@ -26,10 +27,10 @@ export function AttachmentCell({
   postId,
   columnId,
   rowHeight,
+  isSelected = false,
 }: AttachmentCellProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
   const { uploads, startUploads } = useAttachmentUploader({ postId, columnId });
@@ -173,12 +174,22 @@ export function AttachmentCell({
   // Show drop overlay when dragging files over the cell
   const shouldShowDropOverlay = isDragOver;
 
+  // Close selection when clicking outside
+  useEffect(() => {
+    const onDocMouseDown = (ev: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(ev.target as Node)) {
+        // Parent owns selection (isFocused). Nothing to update here.
+      }
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, []);
+
   return (
     <div
       ref={containerRef}
       className="relative flex items-center w-full h-full cursor-pointer transition-colors duration-150 pl-3 pr-1 py-1"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      // Click selection is handled by the parent FocusCell (like BlocksPreview)
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -194,33 +205,14 @@ export function AttachmentCell({
         </div>
       )}
 
-      {/* Plus button - shown on the left when hovering */}
-      {isHovered && !shouldShowDropOverlay && (
-        <div className="flex-shrink-0 mr-1">
-          <div
-            className="flex flex-row items-center justify-center px-[4px] py-[1px] h-5.5 w-5.5 rounded-[4px] bg-white cursor-pointer"
-            style={{
-              boxShadow:
-                "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
-            }}
-            data-preview-exempt
-            onClick={handlePlusButtonClick}
-          >
-            <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
-          </div>
-        </div>
-      )}
-
       {/* Attachments and uploads container */}
-      {(attachments.length > 0 || uploads.length > 0) && !shouldShowDropOverlay && (
+      {!shouldShowDropOverlay && (
         <div
           className={cn(
-            "attachments-container flex flex-row gap-[2px] w-full h-full overflow-x-hidden overflow-y-hidden",
-            isHovered && "ml-2" // Add margin when hovering to move attachments to the right
+            "attachments-container flex flex-row gap-[2px] h-full overflow-x-hidden overflow-y-hidden"
           )}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-                     {/* Upload in progress - shown at the left end */}
            {uploads.map((up: any) => {
              const thumbHeight = getRowHeightPixels(rowHeight) > 10 ? getRowHeightPixels(rowHeight) - 8 : getRowHeightPixels(rowHeight);
 
@@ -363,14 +355,47 @@ export function AttachmentCell({
                   >
                     <X className="w-2 h-2" />
                   </button>
+                key={attachment.id}
+              >
+                {renderFilePreview(attachment, thumbHeight)}
+
+                {/* Fallback icon for non-media files (hidden by default) */}
+                {!attachment.type.startsWith('image/') && !attachment.type.startsWith('video/') && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center hidden">
+                    {(() => {
+                      const FileIcon = getFileIcon(attachment.type);
+                      return (
+                        <>
+                          <FileIcon className={`${sizes.icon} text-gray-600`} />
+                          <span className="text-xs text-center px-1 text-gray-700" style={{ fontSize: `${sizes.text}px` }}>
+                            {attachment.name.length > 8 ? attachment.name.substring(0, 8) + '...' : attachment.name}
+                          </span>
+                        </>
                 )}
 
 
               </div>
             );
           })}
+          {/* Plus button - shown at the right when selected */}
+          {isSelected && !shouldShowDropOverlay && (
+            <div className="flex-shrink-0 px-1 h-full flex items-center">
+              <div
+                className="flex flex-row items-center justify-center px-[4px] py-[1px] h-5.5 w-5.5 rounded-[4px] bg-white cursor-pointer"
+                style={{
+                  boxShadow:
+                    "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
+                }}
+                data-preview-exempt
+                onClick={handlePlusButtonClick}
+              >
+                <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
+              </div>
+            </div>
+          )}
         </div>
       )}
+
 
       <input
         ref={fileInputRef}

@@ -498,6 +498,15 @@ export function PostTable({
   const [groupFeedbackSidebarOpen, setGroupFeedbackSidebarOpen] = React.useState(false);
   const [selectedGroupData, setSelectedGroupData] = React.useState<{ month: number; comments: GroupComment[] } | null>(null);
 
+  // Preview cell selection state
+  const [selectedPreviewCell, setSelectedPreviewCell] = React.useState<string | null>(null);
+  const selectedPreviewCellRef = React.useRef<string | null>(null);
+
+  // Keep ref in sync with state
+  React.useEffect(() => {
+    selectedPreviewCellRef.current = selectedPreviewCell;
+  }, [selectedPreviewCell]);
+
   const store = useFeedbirdStore();
   const updatePost = useFeedbirdStore((s) => s.updatePost);
   const updateBoard = useFeedbirdStore((s) => s.updateBoard);
@@ -2075,6 +2084,44 @@ export function PostTable({
     };
   }, [finishFillDrag]);
 
+  /** Preview cell function - separate from baseColumns to avoid refresh **/
+  const previewCellFn = React.useCallback(({ row, isFocused }: { row: Row<Post>; isFocused?: boolean }) => {
+    const post = row.original;
+
+    const handleFilesSelected = React.useCallback((files: File[]) => {
+      // In a real implementation, you'd upload to your API and update the post
+      console.log('Files selected for post:', post.id, files);
+
+      // TODO: Implement actual file upload
+      // 1. Upload files to /api/media/upload
+      // 2. Create blocks from uploaded files
+      // 3. Update post with new blocks
+    }, [post.id]);
+
+    return (
+      <div
+        className="flex flex-1 h-full cursor-pointer"
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('[data-preview-exempt]')) return;
+
+          // Focus handling is managed by FocusCell at the <td> level.
+          // First click focuses the cell; second click (when focused) opens the record.
+          if (isFocused) {
+            onOpen?.(post.id);
+          }
+        }}
+      >
+        <MemoBlocksPreview
+          blocks={post.blocks}
+          postId={post.id}
+          onFilesSelected={handleFilesSelected}
+          rowHeight={rowHeight}
+          isSelected={!!isFocused}
+        />
+      </div>
+    );
+  }, [onOpen, rowHeight]);
+
   /** 1) Base columns **/
   const baseColumns: ColumnDef<Post>[] = React.useMemo(() => {
     return [
@@ -2284,37 +2331,7 @@ export function PostTable({
         ),
         minSize: 90,
         enableSorting: false,
-        cell: ({ row }) => {
-          const post = row.original;
-
-          const handleFilesSelected = React.useCallback((files: File[]) => {
-            // In a real implementation, you'd upload to your API and update the post
-            console.log('Files selected for post:', post.id, files);
-
-            // TODO: Implement actual file upload
-            // 1. Upload files to /api/media/upload
-            // 2. Create blocks from uploaded files
-            // 3. Update post with new blocks
-          }, [post.id]);
-          return (
-            <div
-              className="flex flex-1 h-full"
-              onClick={(e) => {
-                if ((e.target as HTMLElement).closest('[data-preview-exempt]')) return;
-                if (post.blocks.length > 0) {
-                  onOpen?.(post.id);
-                }
-              }}
-            >
-              <MemoBlocksPreview
-                blocks={post.blocks}
-                postId={post.id}
-                onFilesSelected={handleFilesSelected}
-                rowHeight={rowHeight}
-              />
-            </div>
-          );
-        },
+        cell: previewCellFn,
       },
       // Caption
       {
@@ -2927,6 +2944,7 @@ export function PostTable({
                   postId={post.id}
                   columnId={col.id}
                   rowHeight={rowHeight}
+                  isSelected={!!isFocused}
                 />
               );
             }

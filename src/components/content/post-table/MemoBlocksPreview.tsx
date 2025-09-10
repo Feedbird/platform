@@ -10,6 +10,7 @@ export type BlocksPreviewProps = {
   postId: string;
   onFilesSelected?: (files: File[]) => void;
   rowHeight: RowHeightType;
+  isSelected?: boolean;
 };
 
 export const MemoBlocksPreview = React.memo(
@@ -17,7 +18,8 @@ export const MemoBlocksPreview = React.memo(
   (prev: BlocksPreviewProps, next: BlocksPreviewProps) =>
     prev.postId    === next.postId &&
     prev.rowHeight === next.rowHeight &&
-    prev.onFilesSelected === next.onFilesSelected
+    prev.onFilesSelected === next.onFilesSelected &&
+    prev.isSelected === next.isSelected
     // Note: We don't compare blocks anymore since BlocksPreview now subscribes to the store directly
 );
 

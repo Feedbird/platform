@@ -9,6 +9,7 @@ export type MemoAttachmentCellProps = {
   postId: string;
   columnId: string;
   rowHeight: RowHeightType;
+  isSelected?: boolean;
 };
 
 export const MemoAttachmentCell = React.memo(
@@ -17,7 +18,8 @@ export const MemoAttachmentCell = React.memo(
     prev.postId === next.postId &&
     prev.columnId === next.columnId &&
     prev.rowHeight === next.rowHeight &&
-    prev.attachments === next.attachments
+    prev.attachments === next.attachments &&
+    prev.isSelected === next.isSelected
 );
 
 MemoAttachmentCell.displayName = 'MemoAttachmentCell';
