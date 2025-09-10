@@ -209,12 +209,7 @@ export function CaptionEditor({
               value={draft.default}
               onChange={(v) => setDraft({ ...draft, default: v })}
             />
-          ) : availablePlatforms.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">
-              <p>No social pages are connected for this post.</p>
-              <p className="mt-2">Connect a page to add a platform-specific caption.</p>
-            </div>
-          ) : (
+          ) : availablePlatforms.length > 0 ? (
             <Tabs
               value={activePlatform}
               onValueChange={(v) => setActivePlatform(v as Platform)}
@@ -232,28 +227,40 @@ export function CaptionEditor({
                 ))}
               </TabsList>
               <div className="flex-1 min-h-0 overflow-hidden">
-              {availablePlatforms.map((platform) => {
-                const val = draft.perPlatform?.[platform] ?? "";
-                return (
-                  <TabsContent key={platform} value={platform} className="h-full">
-                    <SinglePlatformEditor
-                      platform={platform}
-                      value={val}
-                      onChange={(v) => {
-                        setDraft({
-                          ...draft,
-                          perPlatform: {
-                            ...draft.perPlatform,
-                            [platform]: v,
-                          },
-                        });
-                      }}
-                    />
-                  </TabsContent>
-                );
-              })}
+                {availablePlatforms.map((platform) => {
+                  const val = draft.perPlatform?.[platform] ?? "";
+                  return (
+                    <TabsContent key={platform} value={platform} className="h-full">
+                      <SinglePlatformEditor
+                        platform={platform}
+                        value={val}
+                        onChange={(v) => {
+                          setDraft({
+                            ...draft,
+                            perPlatform: {
+                              ...draft.perPlatform,
+                              [platform]: v,
+                            },
+                          });
+                        }}
+                      />
+                    </TabsContent>
+                  );
+                })}
               </div>
             </Tabs>
+          ) : (
+            <div className="h-full flex flex-col min-h-0">
+              <div className="text-center text-sm text-gray-500 mb-2">
+                <p>No social pages are connected for this post.</p>
+                <p className="mt-1">Connect a page to add a platform-specific caption.</p>
+              </div>
+              <SinglePlatformEditor
+                platform={availablePlatforms[0] || "instagram"}
+                value={draft.default}
+                onChange={(v) => setDraft({ ...draft, default: v })}
+              />
+            </div>
           )}
         </div>
       </motion.div>
