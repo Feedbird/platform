@@ -401,7 +401,7 @@ function PostCard({
       </p>
 
       {/* analytics ----------------------------------------------------- */}
-      {post.analytics && post.analytics.metadata?.platform === 'facebook' && (
+      {post.analytics && (post.analytics.metadata?.platform === 'facebook' || post.analytics.metadata?.platform === 'instagram') && (
         <div className="mb-3 p-3 bg-gray-50 rounded-md">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium text-gray-700">Analytics</h4>
@@ -411,21 +411,55 @@ function PostCard({
               }
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3 text-gray-500" />
-                <span className="text-gray-600">Views</span>
-              </div>
-              <span className="font-medium">{post.analytics.views?.toLocaleString() || 0}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <Heart className="h-3 w-3 text-red-500" />
-                <span className="text-gray-600">Likes</span>
-              </div>
-              <span className="font-medium">{post.analytics.likes?.toLocaleString() || 0}</span>
-            </div>
+          <div className={`grid gap-3 text-xs ${post.analytics.metadata?.platform === 'instagram' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            {/* Facebook analytics */}
+            {post.analytics.metadata?.platform === 'facebook' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3 text-gray-500" />
+                    <span className="text-gray-600">Views</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.views?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 text-red-500" />
+                    <span className="text-gray-600">Likes</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.likes?.toLocaleString() || 0}</span>
+                </div>
+              </>
+            )}
+            
+            {/* Instagram analytics */}
+            {post.analytics.metadata?.platform === 'instagram' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3 text-gray-500" />
+                    <span className="text-gray-600">Reach</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.reach?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 text-red-500" />
+                    <span className="text-gray-600">Likes</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.likes?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <svg className="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span className="text-gray-600">Comments</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.comments?.toLocaleString() || 0}</span>
+                </div>
+              </>
+            )}
           </div>
       
         </div>
