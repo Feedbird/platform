@@ -589,13 +589,13 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
             <Switch
               checked={boardRules.autoSchedule}
               onCheckedChange={handleAutoScheduleChange}
-              className="data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer"
+              className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
               icon={
                 <span className="flex items-center justify-center w-full h-full">
                   <img
                     src="/images/boards/stars-01.svg"
                     alt="star"
-                    className="w-3 h-3"
+                    className="w-2.5 h-2.5"
                     style={{
                       filter: boardRules.autoSchedule
                         ? undefined
@@ -619,7 +619,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
               <Switch
                 checked={boardRules.revisionRules}
                 onCheckedChange={handleRevisionRulesChange}
-                className="data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer"
+                className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
               />
             </div>
             {/* extra config shown only when enabled */}
@@ -696,7 +696,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
               <Switch
                 checked={boardRules.approvalDeadline}
                 onCheckedChange={handleApprovalDeadlineChange}
-                className="data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer"
+                className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
               />
             </div>
             {/* pills inside block */}
@@ -1012,13 +1012,13 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
 
   return (
     <>
-      <div className={`fixed inset-0 z-50 ${open ? 'flex' : 'hidden'}`}>
+      <div className={`fixed inset-0 z-[100] ${open ? 'flex' : 'hidden'}`}>
         <div className="min-h-screen flex w-full">
           {/* Left Side - Workspace Creation Form */}
-          <div className="flex-[11] flex flex-col items-center bg-white px-8 py-8 pt-16 min-h-screen">
+          <div className="flex-[11] flex flex-col items-center bg-white px-8 py-8 pt-8 min-h-screen">
             <div className="max-w-[480px] w-full flex flex-col min-h-full">
               {/* Header */}
-              <div className="flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center justify-between flex-shrink-0 mb-8">
                 <div className="flex-shrink-0">
                   <Image
                     src="/images/logo/logo(1).svg"

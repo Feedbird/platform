@@ -249,13 +249,13 @@ export function BoardRulesModal({
               <Switch
                 checked={rules.autoSchedule}
                 onCheckedChange={handleAutoScheduleChange}
-                className="data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer"
+                className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
                 icon={
                   <span className="flex items-center justify-center w-full h-full">
                     <img
                       src="/images/boards/stars-01.svg"
                       alt="star"
-                      className="w-3 h-3"
+                      className="w-2.5 h-2.5"
                       style={{
                         filter: rules.autoSchedule
                           ? undefined
@@ -279,7 +279,7 @@ export function BoardRulesModal({
                 <Switch
                   checked={rules.revisionRules}
                   onCheckedChange={handleRevisionRulesChange}
-                  className="data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer"
+                  className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
                 />
               </div>
               {/* extra config shown only when enabled */}
@@ -356,7 +356,7 @@ export function BoardRulesModal({
                 <Switch
                   checked={rules.approvalDeadline}
                   onCheckedChange={handleApprovalDeadlineChange}
-                  className="data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer"
+                  className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
                 />
               </div>
               {/* pills inside block */}

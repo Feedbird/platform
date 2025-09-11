@@ -3872,7 +3872,7 @@ export function PostTable({
             style={{
               position: 'sticky',
               right: 0,
-              zIndex: 30,
+              zIndex: 10,
               background: 'white',
               borderTopRightRadius: 4,
             }}
@@ -5512,7 +5512,7 @@ export function PostTable({
             {/* Fixed "Add new record" button for ungrouped view - only when scrollable */}
             {grouping.length === 0 && isScrollable && (
               <div
-                className="absolute bottom-2 px-3 py-3 left-1 right-0 bg-white border-t border-[#EAE9E9] z-20"
+                className="absolute bottom-2 px-3 py-3 left-1 right-0 bg-white border-t border-[#EAE9E9] z-10"
               >
                 <div className="flex items-center h-full">
                   <button
@@ -5586,7 +5586,7 @@ export function PostTable({
       {selectedPosts.length > 0 && !showUndoMessage && !showDuplicateUndoMessage && (
         <div
           className="
-            fixed bottom-4 left-1/2 -translate-x-1/2 z-50
+            fixed bottom-4 left-1/2 -translate-x-1/2 z-10
             flex items-center gap-4
             bg-black border rounded-lg shadow-xl
             pl-2 pr-3 py-1.5 text-white gap-3
@@ -5695,7 +5695,7 @@ export function PostTable({
       {showUndoMessage && (
         <div
           className="
-            absolute bottom-4 left-4 z-50
+            absolute bottom-4 left-4 z-10
             flex items-center
             bg-black border rounded-lg shadow-xl
             pl-4 pr-1 py-2 text-white gap-1
@@ -5722,7 +5722,7 @@ export function PostTable({
       {showDuplicateUndoMessage && (
         <div
           className="
-            absolute bottom-4 left-4 z-50
+            absolute bottom-4 left-4 z-10
             flex items-center
             bg-black border rounded-lg shadow-xl
             pl-4 pr-1 py-2 text-white gap-1
