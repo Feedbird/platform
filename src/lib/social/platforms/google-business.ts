@@ -444,8 +444,6 @@ export class GoogleBusinessPlatform extends BasePlatform {
       throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
     }
 
-    console.log('content', content);
-
     // Build post data using Google Business settings if available
     let postData: any;
     
@@ -497,7 +495,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
     if (!responseRaw.ok) {
       const responseError = await responseRaw.json();
-      const errorText = responseError?.error?.details[0]?.errorDetails[0]?.message || responseError?.error?.message || 'Unknown error';
+      const errorText = (responseError?.error?.details[0]?.errorDetails && responseError?.error?.details[0]?.errorDetails[0]?.message) || responseError?.error?.message || 'Unknown error';
       throw new SocialAPIError(`Failed to publish post: ${errorText}`, 'POST_ERROR');
     }
     const response = await responseRaw.json();
@@ -727,7 +725,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
     if (!response.ok) {
       const responseError = await response.json();
-      const errorText = responseError?.error?.details[0]?.errorDetails[0]?.message || responseError?.error?.message || 'Unknown error';
+      const errorText = (responseError?.error?.details[0]?.errorDetails && responseError?.error?.details[0]?.errorDetails[0]?.message) || responseError?.error?.message || 'Unknown error';
       throw new SocialAPIError(`Failed to delete post: ${errorText}`, 'DELETE_ERROR');
     }
 
