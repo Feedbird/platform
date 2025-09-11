@@ -2,7 +2,7 @@
 "use client";
 import * as React from "react";
 import Image from "next/image";
-import { motion, useDragControls } from "framer-motion";
+import { motion, useDragControls, useMotionValue } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
 import { Lock, Unlock, X } from "lucide-react";
@@ -75,6 +75,12 @@ export function CaptionEditor({
   });
   const isInitialMount = React.useRef(true);
   const hasOpened = React.useRef(false);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const [size, setSize] = React.useState<{ width: number; height: number }>({
+    width: 480,
+    height: 420,
+  });
   
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
 
@@ -98,6 +104,15 @@ export function CaptionEditor({
         perPlatform: { ...(post.caption.perPlatform || {}) },
       });
       setActivePlatform(availablePlatforms[0] || "instagram");
+      // reset position and size when opening, center in viewport
+      const initial = { width: 480, height: 420 };
+      setSize(initial);
+      const vw = typeof window !== "undefined" ? window.innerWidth : 0;
+      const vh = typeof window !== "undefined" ? window.innerHeight : 0;
+      const cx = Math.max(0, Math.round((vw - initial.width) / 2));
+      const cy = Math.max(0, Math.round((vh - initial.height) / 2));
+      x.set(cx);
+      y.set(cy);
       isInitialMount.current = true; // Reset debounce on open
       hasOpened.current = true;
     } else if (!open) {
@@ -146,9 +161,82 @@ export function CaptionEditor({
     setDraft(newDraft);
   }
 
+  const MIN_WIDTH = 360;
+  const MIN_HEIGHT = 240;
+
+  function startResize(
+    dir: "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw",
+    e: React.PointerEvent
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = x.get();
+    const startY = y.get();
+    const startWidth = size.width;
+    const startHeight = size.height;
+    const originClientX = e.clientX;
+    const originClientY = e.clientY;
+
+    const getMax = () => ({
+      maxWidth: Math.floor(window.innerWidth * 0.95),
+      maxHeight: Math.floor(window.innerHeight * 0.9),
+    });
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - originClientX;
+      const dy = ev.clientY - originClientY;
+
+      let nextWidth = startWidth;
+      let nextHeight = startHeight;
+      let nextX = startX;
+      let nextY = startY;
+
+      const { maxWidth, maxHeight } = getMax();
+
+      const clamp = (val: number, min: number, max: number) =>
+        Math.min(max, Math.max(min, val));
+
+      const hasE = dir.includes("e");
+      const hasW = dir.includes("w");
+      const hasS = dir.includes("s");
+      const hasN = dir.includes("n");
+
+      if (hasE) {
+        nextWidth = clamp(startWidth + dx, MIN_WIDTH, maxWidth);
+      }
+      if (hasW) {
+        nextWidth = clamp(startWidth - dx, MIN_WIDTH, maxWidth);
+        // move x so right edge stays put
+        nextX = startX + (startWidth - nextWidth);
+      }
+      if (hasS) {
+        nextHeight = clamp(startHeight + dy, MIN_HEIGHT, maxHeight);
+      }
+      if (hasN) {
+        nextHeight = clamp(startHeight - dy, MIN_HEIGHT, maxHeight);
+        // move y so bottom edge stays put
+        nextY = startY + (startHeight - nextHeight);
+      }
+
+      // apply
+      setSize({ width: nextWidth, height: nextHeight });
+      x.set(nextX);
+      y.set(nextY);
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once: true });
+  }
+
   return (
     <motion.div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20"
+      className="fixed inset-0 z-[9999] bg-black/20"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
@@ -159,7 +247,8 @@ export function CaptionEditor({
         dragListener={false}
         dragControls={dragControls}
         dragMomentum={false}
-        className="w-[480px] h-[420px] max-w-[95vw] max-h-[90vh] min-w-[360px] min-h-[240px] bg-gray-100 rounded-lg shadow-2xl border border-gray-400 resize overflow-hidden flex flex-col"
+        className="max-w-[95vw] max-h-[90vh] min-w-[360px] min-h-[240px] bg-gray-100 rounded-lg shadow-2xl border border-gray-400 overflow-hidden flex flex-col relative"
+        style={{ width: size.width, height: size.height, x, y }}
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
@@ -263,6 +352,48 @@ export function CaptionEditor({
             </div>
           )}
         </div>
+        {/* resize handles - sides */}
+        <div
+          className="absolute inset-y-0 left-0 w-2 cursor-w-resize z-20"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("w", e)}
+        />
+        <div
+          className="absolute inset-y-0 right-0 w-2 cursor-e-resize z-20"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("e", e)}
+        />
+        <div
+          className="absolute inset-x-0 top-0 h-2 cursor-n-resize z-20"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("n", e)}
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 h-2 cursor-s-resize z-20"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("s", e)}
+        />
+        {/* resize handles - corners */}
+        <div
+          className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize z-30"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("nw", e)}
+        />
+        <div
+          className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize z-30"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("ne", e)}
+        />
+        <div
+          className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize z-30"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("sw", e)}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize z-30"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => startResize("se", e)}
+        />
       </motion.div>
     </motion.div>
   );
