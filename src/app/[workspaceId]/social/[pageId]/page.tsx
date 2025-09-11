@@ -257,7 +257,7 @@ function PostCard({
           const isVideo  = post?.analytics?.metadata?.platform === 'instagram' && post?.analytics?.metadata?.mediaType?.toLowerCase() === 'video' ? true : isVideoUrl(url);
           
           /* ——— LINKEDIN MEDIA (using metadata) ——— */
-          if (post.analytics?.metadata?.platform === 'linkedin') {
+          if (post.analytics?.metadata?.platform === 'linkedin' || post.analytics?.metadata?.platform === 'google') {
             const mediaType = post.analytics?.metadata?.mediaTypes?.[idx];
 
             if (mediaType === 'image') {
@@ -353,7 +353,7 @@ function PostCard({
           }
 
         // if platfform is instagram then return an image
-        if (post.analytics?.metadata?.platform === 'instagram') {
+        if (post.analytics?.metadata?.platform === 'instagram' || post.analytics?.metadata?.platform === 'google') {
             return (
               <img
                 src={url}

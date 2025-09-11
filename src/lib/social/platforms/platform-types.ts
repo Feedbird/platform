@@ -15,6 +15,18 @@ export type TikTokPrivacyLevel =
   | "FOLLOWER_OF_CREATOR"
   | "SELF_ONLY";
 
+// Google Business Post Types
+export type GoogleBusinessPostType = "STANDARD" | "EVENT" | "OFFER";
+
+// Google Business CTA Action Types (from Google My Business API)
+export type GoogleBusinessCTAAction = 
+  | "BOOK"       // Book an appointment, table, etc.
+  | "ORDER"      // Order something
+  | "SHOP"       // Browse product catalog
+  | "LEARN_MORE" // See additional details on website
+  | "SIGN_UP"    // Register, sign up, or join
+  | "CALL";      // Call business
+
 // Status Types
 export type PageStatus = "active" | "expired" | "pending" | "disconnected" | "error";
 export type PostStatus = "draft" | "scheduled" | "published" | "failed" | "deleted";
@@ -310,6 +322,9 @@ export interface PublishOptions {
     contentDisclosureIcon?: string;
   };
   privacyLevel?: TikTokPrivacyLevel;
+  
+  // General settings object that can contain platform-specific settings
+  settings?: any;
 }
 
 // TikTok-specific interfaces
@@ -350,12 +365,89 @@ export interface TikTokSettings {
   canPostMore?: boolean;
 }
 
+// Google Business Settings for different post types
+export interface GoogleBusinessSettings {
+  postType: GoogleBusinessPostType;
+  
+  // Call to Action settings (when postType is "STANDARD" with CTA)
+  callToAction?: {
+    actionType: GoogleBusinessCTAAction;
+    url: string;
+  };
+  
+  // Event settings (when postType is "EVENT")
+  event?: {
+    title: string;
+    description?: string;
+    startDate: {
+      year: number;
+      month: number;
+      day: number;
+    };
+    startTime?: {
+      hours: number;
+      minutes: number;
+      seconds?: number;
+      nanos?: number;
+    };
+    endDate?: {
+      year: number;
+      month: number;
+      day: number;
+    };
+    endTime?: {
+      hours: number;
+      minutes: number;
+      seconds?: number;
+      nanos?: number;
+    };
+    // Events can also have CTA buttons
+    callToAction?: {
+      actionType: GoogleBusinessCTAAction;
+      url: string;
+    };
+  };
+  
+  // Offer settings (when postType is "OFFER") - all fields are optional
+  offer?: {
+    title?: string;
+    description?: string;
+    couponCode?: string;
+    redeemOnlineUrl?: string;
+    termsConditions?: string;
+    // Date/time fields for offers
+    startDate?: {
+      year: number;
+      month: number;
+      day: number;
+    };
+    endDate?: {
+      year: number;
+      month: number;
+      day: number;
+    };
+    startTime?: {
+      hours: number;
+      minutes: number;
+      seconds?: number;
+      nanos?: number;
+    };
+    endTime?: {
+      hours: number;
+      minutes: number;
+      seconds?: number;
+      nanos?: number;
+    };
+  };
+}
+
 // Post Settings Structure (includes platform-specific settings)
 export interface PostSettings {
   locationTags: string[];
   taggedAccounts: string[];
   thumbnail: boolean;
   tiktok?: TikTokSettings;
+  google?: GoogleBusinessSettings;
 }
 
 

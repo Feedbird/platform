@@ -6,17 +6,19 @@ const ops = getPlatformOperations("google")!;
 
 const Body = z.object({
   page: z.any(),
-  content: z.any(),
-  options: z.any().optional()
+  postId: z.string(),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const { page, content, options } = Body.parse(await req.json());
-    const result = await ops.publishPost(page, content, options);
+    const body: any = Body.parse(await req.json());
+    
+    const result = await ops.deletePost(body.page, body.postId);
+    
     return Response.json(result);
+
   } catch (e: any) {
-    console.error("[Google Business publish]", e);
-    return new Response(e.message ?? "Google Business error",{ status:500 });
+    console.error("[API] Google Business delete error\n", e);
+    return new Response(e.message ?? "Internal error", { status: 500 });
   }
 }
