@@ -12,6 +12,14 @@ import FormSettingsModal from "./content/FormSettingsModal";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import FormStatusBadge from "./content/configs/FormStatusBadge";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+} from "@radix-ui/react-dropdown-menu";
+import { Input } from "../ui/input";
+import { formsApi } from "@/lib/api/api-service";
 
 export function FormsHeader() {
   return (
@@ -47,6 +55,19 @@ function FormsHeaderContent() {
     }
   };
 
+  const [isDropDownOpen, setIsDropdownOpen] = React.useState(false);
+
+  const handleFormPublish = async () => {
+    try {
+      await formsApi.updateForm(activeForm!.id, { status: "published" });
+      toast.success("Form published successfully");
+      setActiveForm({ ...activeForm!, status: "published" });
+    } catch (e) {
+      console.error("Error publishing form:", e);
+      toast.error("Error publishing form. Please try again later");
+    }
+  };
+
   return (
     <>
       <header
@@ -57,7 +78,12 @@ function FormsHeaderContent() {
           <SidebarTrigger className="cursor-pointer shrink-0" color="#838488" />
           {isEditing && activeForm ? (
             <div className="flex flex-row items-center gap-1.5">
-              <span className="text-[#5C5E63] text-sm font-normal">Form</span>
+              <span
+                onClick={() => router.push("/forms")}
+                className="text-[#5C5E63] text-sm font-normal cursor-pointer"
+              >
+                Form
+              </span>
               <ChevronRight width={12} height={12} color="#838488" />
               <span className="text-[#1C1D1F] font-medium text-sm">
                 {activeForm.title}
@@ -100,15 +126,48 @@ function FormsHeaderContent() {
                   />
                   <span className="font-medium text-[13px]">Preview</span>
                 </Button>
-                <Button
-                  onClick={() => setSettingsModalOpen(true)}
-                  className="rounded-[4px] w-[86px] border-1 border-black/10 bg-[#4670F9] text-white font-medium h-7 text-[13px] hover:cursor-pointer p-0 gap-0"
+                <DropdownMenu
+                  open={isDropDownOpen}
+                  onOpenChange={(open) => setIsDropdownOpen(open)}
                 >
-                  <p className="px-2.5 py-2">Publish</p>
-                  <div className="h-full w-6 border-l-1 border-black/10 flex items-center justify-center">
-                    <ChevronDown />
-                  </div>
-                </Button>
+                  <DropdownMenuTrigger>
+                    <Button className="rounded-[4px] w-[86px] border-1 border-black/10 bg-[#4670F9] text-white font-medium h-7 text-[13px] hover:cursor-pointer p-0 gap-0">
+                      <p className="px-2.5 py-2">Publish</p>
+                      <div className="h-full w-6 border-l-1 border-black/10 flex items-center justify-center">
+                        <ChevronDown
+                          className={`transition-transform ${
+                            isDropDownOpen ? "rotate-180" : "rotate-0"
+                          } duration-150`}
+                        />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent>
+                      <div className="bg-white w-[340px] flex flex-col gap-2 mt-1.5 mr-2 shadow-md z-10 border-1 border-[#D3D3D3] rounded-[6px] p-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-[#1C1D1F]">
+                            Publish form
+                          </span>
+                          <p className="font-normal text-[#838488] text-sm">
+                            Publishing new changes to the sharable URL that will
+                            publicly visible
+                          </p>
+                        </div>
+                        <Input
+                          className="border-1 border-[#D3D3D3] rounded-[6px] text-[#1C1D1F]"
+                          value="https://nazmijavier.feedbird.com/form/a59b8a7c-2a8f-473a-aea0-648170827cff"
+                        />
+                        <Button
+                          onClick={handleFormPublish}
+                          className="bg-[#4670F9] mt-2 rounded-[4px] text-white font-medium text-sm hover:cursor-pointer"
+                        >
+                          Publish
+                        </Button>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
               </div>
             ) : (
               <Button

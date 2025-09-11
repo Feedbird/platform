@@ -31,6 +31,8 @@ import { humanizeDate } from "@/lib/utils/transformers";
 import { useForms } from "@/contexts/FormsContext";
 import FormDeleteModal from "./FormDeleteModal";
 import FormSettingsModal from "./FormSettingsModal";
+import FormStatusBadge from "./configs/FormStatusBadge";
+import { Chip } from "@mui/material";
 
 export interface TableForm extends Form {
   submissions_count?: number;
@@ -69,9 +71,6 @@ export default function FormsTable({ forms }: FormsTableProps) {
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>({
     name: "Name",
   });
-  function handleRowDragStart(e: React.DragEvent, fromIndex: number) {
-    e.dataTransfer.setData("text/plain", String(fromIndex));
-  }
 
   const hasActiveFilters = React.useMemo(() => {
     // Check if any condition has selected values
@@ -165,11 +164,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
         minSize: 120,
         size: 150,
         cell: ({ row }) => (
-          <span className="text-sm font-medium text-[#1C1D1F]">
-            {row.original.services.length
-              ? row.original.services[0].name
-              : "N/A"}
-          </span>
+          <div className="text-sm flex flex-row flex-wrap font-medium text-[#1C1D1F] gap-1">
+            {row.original.services.map((s) => (
+              <div className="border-1 rounded-[5px] border-[#D3D3D3] px-1.5">
+                {s.name}
+              </div>
+            ))}
+          </div>
         ),
       },
       {
@@ -199,31 +200,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 80,
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            {row.original.status === "published" ? (
-              <Badge className="bg-[#E5EEFF] rounded-[4px] border-border-primary border-1 flex justify-start py-[2px] pr-1.5 pl-[2px]">
-                <div className="bg-[#387DFF] content-center p-0.5 rounded-[3px] w-3.5 h-3.5">
-                  <Image
-                    src="/images/forms/send.svg"
-                    alt="send_icon_placeholder"
-                    width={9}
-                    height={9}
-                  />
-                </div>
-                <span>Published</span>
-              </Badge>
-            ) : (
-              <Badge className="bg-[#F4F7FA] rounded-[4px] border-border-primary border-1 flex justify-start py-[2px] pr-1.5 pl-[2px]">
-                <div className="bg-[#9B9DAB] content-center p-0.5 rounded-[3px] w-3.5 h-3.5">
-                  <Image
-                    src="/images/forms/minus.svg"
-                    alt="draft_icon_placeholder"
-                    width={9}
-                    height={9}
-                  />
-                </div>
-                <span>Draft</span>
-              </Badge>
-            )}
+            <FormStatusBadge status={row.original.status} />
           </div>
         ),
       },
