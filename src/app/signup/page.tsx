@@ -142,8 +142,11 @@ export default function SignUpPage() {
             <div className="flex-[11] flex flex-col items-center bg-white px-8 py-8 pt-16">
                 <div className="max-w-md w-full">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-35">
-                        <div className="flex-shrink-0">
+                    <div className="flex items-center justify-start mb-35">
+                        <button
+                            onClick={() => router.push('/landing')}
+                            className="flex-shrink-0 cursor-pointer"
+                        >
                             <Image
                                 src="/images/logo/logo(1).svg"
                                 alt="FeedBird Logo"
@@ -151,14 +154,7 @@ export default function SignUpPage() {
                                 height={20}
                                 className="h-5 w-auto"
                             />
-                        </div>
-                        <Button
-                            variant="ghost"
-                            onClick={() => router.push('/landing')}
-                            className="text-drakGrey hover:text-black"
-                        >
-                            ← Back to home
-                        </Button>
+                        </button>
                     </div>
 
 
