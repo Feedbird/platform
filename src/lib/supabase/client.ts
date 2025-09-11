@@ -182,3 +182,14 @@ export interface Service {
   form_id: string | null;
   name: string;
 }
+
+export interface FormField {
+  id: string;
+  form_id: string;
+  position: number;
+  type: string;
+  config: any;
+  title: string;
+  description: string;
+  required: boolean;
+}

@@ -130,7 +130,7 @@ export default function FormInnerVisualizer() {
         // Update order values
         return newFields.map((field, index) => ({
           ...field,
-          order: index,
+          position: index,
         }));
       });
     }
@@ -144,7 +144,7 @@ export default function FormInnerVisualizer() {
 
     const newField: CanvasFormField = {
       id: crypto.randomUUID(),
-      order: formFields.length,
+      position: formFields.length,
       type: fieldType.toLowerCase(),
       config: UIFormFieldDefaults[fieldType].config,
     };
@@ -162,7 +162,7 @@ export default function FormInnerVisualizer() {
     const newField: CanvasFormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
-      order: insertIndex,
+      position: insertIndex,
       config: UIFormFieldDefaults[fieldType].config,
     };
 
@@ -172,7 +172,7 @@ export default function FormInnerVisualizer() {
       // Update positions for all fields
       return updated.map((field, index) => ({
         ...field,
-        order: index,
+        position: index,
       }));
     });
   };

@@ -22,7 +22,7 @@ import { Button } from "../ui/button";
 export interface CanvasFormField {
   id: string;
   type: string;
-  order: number;
+  position: number;
   config?: any;
 }
 
@@ -73,6 +73,7 @@ export default function FormCanvas({
   };
 
   const fieldIds = formFields.map((f) => f.id);
+  console.log(formFields);
 
   return (
     <div
@@ -143,17 +144,6 @@ export default function FormCanvas({
                 {form.description ?? "Add description here"}
               </p>
             </div>
-            <div className="flex flex-col p-3 gap-2">
-              <div>
-                <span className="text-[#1C1D1F] text-base">
-                  Your company name
-                </span>
-                <p className="text-[#5C5E63] font-normal text-sm">
-                  Giving this project a title will help you find it later.
-                </p>
-              </div>
-              <Input className="border-[#D3D3D3] border-1 rounded-[6px] px-3 py-1.5" />
-            </div>
             {formFields.length === 0 ? (
               <div className="p-3 w-full h-[60px]">
                 <div className="bg-[#EDF6FF] w-full h-full border-[#4670F9] border-1 border-dashed rounded-[6px]">
@@ -167,7 +157,7 @@ export default function FormCanvas({
                 items={fieldIds}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {formFields.map((field, index) => (
                     <React.Fragment key={field.id}>
                       {/* Insertion indicator */}
@@ -302,15 +292,17 @@ function SimpleFormField({
       {/* Field Content */}
       <div className="">
         {field.type === "text" && (
-          <div className="flex flex-col gap-2">
-            <label className="block text-base text-[#1C1D1F]">
-              {field.config.title.value}
-            </label>
-            {field.config.description && (
-              <p className="text-sm text-[#838488] font-normal">
-                {field.config.description.value}
-              </p>
-            )}
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-1">
+              <label className="block text-base text-[#1C1D1F]">
+                {field.config.title.value}
+              </label>
+              {field.config.description && (
+                <p className="text-sm text-[#838488] font-normal">
+                  {field.config.description.value}
+                </p>
+              )}
+            </div>
             <Input
               onClick={(e) => e.stopPropagation()}
               placeholder={field.config?.placeholder?.value || ""}
@@ -321,14 +313,16 @@ function SimpleFormField({
 
         {field.type === "textarea" && (
           <div className="flex flex-col gap-2">
-            <label className="block text-base text-[#1C1D1F]">
-              {field.config.title.value}
-            </label>
-            {field.config.description && (
-              <p className="text-sm text-[#838488] font-normal">
-                {field.config.description.value}
-              </p>
-            )}
+            <div className="flex flex-col gap-1">
+              <label className="block text-base text-[#1C1D1F]">
+                {field.config.title.value}
+              </label>
+              {field.config.description && (
+                <p className="text-sm text-[#838488] font-normal">
+                  {field.config.description.value}
+                </p>
+              )}
+            </div>
             <Textarea
               rows={5}
               onClick={(e) => e.stopPropagation()}
@@ -340,9 +334,16 @@ function SimpleFormField({
 
         {field.type === "dropdown" && (
           <div className="flex flex-col gap-2">
-            <label className="block text-base text-[#1C1D1F]">
-              {field.config.title.value}
-            </label>
+            <div className="flex flex-col gap-1">
+              <label className="block text-base text-[#1C1D1F]">
+                {field.config.title.value}
+              </label>
+              {field.config.helpText && (
+                <p className="text-sm text-[#838488] font-normal">
+                  {field.config.helpText.value}
+                </p>
+              )}
+            </div>
             {!field.config?.allowMultipleSelection?.value ? (
               <Select value="" onValueChange={() => {}}>
                 <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F]">
@@ -462,14 +463,16 @@ function SimpleFormField({
 
         {field.type === "option" && (
           <div className="flex flex-col gap-3">
-            <label className="block text-base text-[#1C1D1F]">
-              {field.config.title.value}
-            </label>
-            {field.config.description && (
-              <p className="text-sm text-[#838488] font-normal">
-                {field.config.description.value}
-              </p>
-            )}
+            <div className="flex flex-col gap-1">
+              <label className="block text-base text-[#1C1D1F]">
+                {field.config.title.value}
+              </label>
+              {field.config.description && (
+                <p className="text-sm text-[#838488] font-normal">
+                  {field.config.description.value}
+                </p>
+              )}
+            </div>
             <OptionsPlaceholder config={field.config} />
           </div>
         )}

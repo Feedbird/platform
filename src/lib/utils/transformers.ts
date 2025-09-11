@@ -63,6 +63,6 @@ export function plainArrayEqual<T extends string | number>(
  * @param b Object 2
  * @returns Boolean indicating if objects are deeply equal (same keys and values)
  */
-export function plainObjectEqual<T>(a: T, b: T): boolean {
+export function nestedObjectEqual<T>(a: T, b: T): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }

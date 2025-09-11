@@ -9,6 +9,9 @@ import { useFormStore } from "@/lib/store/forms-store";
 import { useForms } from "@/contexts/FormsContext";
 import Image from "next/image";
 import FormSettingsModal from "./content/FormSettingsModal";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import FormStatusBadge from "./content/configs/FormStatusBadge";
+import { toast } from "sonner";
 
 export function FormsHeader() {
   return (
@@ -38,7 +41,7 @@ function FormsHeaderContent() {
       router.push(`/forms/${newForm.id}`);
     } catch (e) {
       console.error("Error creating initial form:", e);
-      throw new Error("Error creating initial form"); //! TODO Check toasts
+      toast.error("Error creating Form. Please try again later");
     } finally {
       isLoading(false);
     }
@@ -47,26 +50,24 @@ function FormsHeaderContent() {
   return (
     <>
       <header
-        className="relative flex justify-between w-full items-between border-b border-border-primary pl-4 pr-2.5 py-2.5 gap-4 bg-white
+        className="relative flex justify-between w-full items-between border-b h-12 border-border-primary px-3 py-2.5 2xl:py-2 bg-white
     "
       >
         <div className="flex flex-row gap-2 items-center">
-          <SidebarTrigger className="cursor-pointer shrink-0" />
+          <SidebarTrigger className="cursor-pointer shrink-0" color="#838488" />
           {isEditing && activeForm ? (
             <div className="flex flex-row items-center gap-1.5">
               <span className="text-[#5C5E63] text-sm font-normal">Form</span>
-              <Image
-                src="/images/forms/bar-gray.svg"
-                alt="right_separator"
-                width={12}
-                height={12}
-              />
-              <span className="text-[#1C1D1F] font-medium text-base">
+              <ChevronRight width={12} height={12} color="#838488" />
+              <span className="text-[#1C1D1F] font-medium text-sm">
                 {activeForm.title}
               </span>
+              <div className="ml-1">
+                <FormStatusBadge status={activeForm.status} />
+              </div>
             </div>
           ) : (
-            <span className="font-semibold text-lg tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
+            <span className="font-semibold text-base tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
               Forms
             </span>
           )}
@@ -78,18 +79,18 @@ function FormsHeaderContent() {
                 <Button
                   variant="ghost"
                   onClick={() => setSettingsModalOpen(true)}
-                  className="p-1 aspect-square border-1 border-[#D3D3D3] rounded-[6px] hover:cursor-pointer"
+                  className="p-1 aspect-square border-1 border-[#D3D3D3] rounded-[4px] hover:cursor-pointer h-7"
                 >
                   <Image
                     src="/images/forms/settings.svg"
                     alt="settings_icon"
-                    width={18}
-                    height={18}
+                    width={16}
+                    height={16}
                   />
                 </Button>
                 <Button
                   variant="ghost"
-                  className="aspect-square border-1 border-[#D3D3D3] text-[#1C1D1F] flex flex-row gap-1 rounded-[6px] hover:cursor-pointer"
+                  className="border-1 w-[84px] border-[#D3D3D3] text-[#1C1D1F] flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
                 >
                   <Image
                     src="/images/forms/play.svg"
@@ -97,23 +98,25 @@ function FormsHeaderContent() {
                     width={12}
                     height={12}
                   />
-                  <span>Preview</span>
+                  <span className="font-medium text-[13px]">Preview</span>
                 </Button>
                 <Button
                   onClick={() => setSettingsModalOpen(true)}
-                  className="rounded-[4px] border-1 border-black/10 bg-[#4670F9] text-white font-medium text-sm hover:cursor-pointer"
+                  className="rounded-[4px] w-[86px] border-1 border-black/10 bg-[#4670F9] text-white font-medium h-7 text-[13px] hover:cursor-pointer p-0 gap-0"
                 >
-                  Publish
+                  <p className="px-2.5 py-2">Publish</p>
+                  <div className="h-full w-6 border-l-1 border-black/10 flex items-center justify-center">
+                    <ChevronDown />
+                  </div>
                 </Button>
               </div>
             ) : (
               <Button
                 variant="ghost"
-                size="sm"
-                className="border border-border-button rounded-[6px] bg-main text-white px-[12px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium"
+                className="w-[90px] h-full border-1 border-black/10 rounded-[4px] bg-[#4670F9] text-white cursor-pointer text-[13px] py-1.5 px-2.5"
                 onClick={handleInitialFormCreation}
               >
-                {loading ? "Creating..." : "+ New Form"}
+                {loading ? "Creating..." : "+New Form"}
               </Button>
             )}
           </div>
