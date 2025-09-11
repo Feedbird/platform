@@ -233,7 +233,7 @@ export default function WorkspaceSwitcher() {
                       </div>
                     )
                 }
-                <span className="truncate font-semibold text-sm text-black flex-1 group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold text-sm text-black group-data-[collapsible=icon]:hidden">
                   {active?.name ?? (workspaces.length === 0 ? 'No workspaces' : 'Select workspace')}
                 </span>
                 <ChevronsUpDown className="size-4 text-black group-data-[collapsible=icon]:hidden"/>

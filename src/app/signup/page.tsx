@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import PlatformPreview from '@/components/platform-preview/platform-preview'
 
 const testimonials = [
     {
@@ -405,15 +406,11 @@ export default function SignUpPage() {
                         </div>
                     </div>
 
-                {/* Platform Preview Image */}
+                {/* Platform Preview Component */}
                 <div className="flex-1 flex justify-center">
                     <div className="w-full h-full">
                         <div className="w-full h-full rounded-tl-lg overflow-hidden border-l-5 border-t-5 border-elementStroke">
-                            <img
-                                src="/images/logo/preview.png"
-                                alt="FeedBird Dashboard Preview"
-                                className="w-full h-full object-cover"
-                            />
+                            <PlatformPreview />
                         </div>
                     </div>
                 </div>

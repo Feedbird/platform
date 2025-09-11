@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { cn } from '@/lib/utils'
 import { ROW_HEIGHT_CONFIG, RowHeightType } from '@/lib/utils'
+import PlatformPreview from '@/components/platform-preview/platform-preview'
 
 /* ---------------------------------------------------------------------
    Multi-step modal to create workspace
@@ -192,6 +193,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
   const [setAsDefault, setSetAsDefault] = React.useState(false)
   const [avatarColors, setAvatarColors] = React.useState<Record<number, string>>({})
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [isNameInputFocused, setIsNameInputFocused] = React.useState(false)
   const [formData, setFormData] = React.useState<WorkspaceFormData>({
     name: '',
     logo: null,
@@ -432,6 +434,8 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
           <Input
             value={formData.name}
             onChange={e => updateFormData({ name: e.target.value })}
+            onFocus={() => setIsNameInputFocused(true)}
+            onBlur={() => setIsNameInputFocused(false)}
             placeholder="Enter workspace name"
             className="text-left text-sm text-black font-normal"
             autoFocus
@@ -1012,8 +1016,8 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
 
   return (
     <>
-      <div className={`fixed inset-0 z-[100] ${open ? 'flex' : 'hidden'}`}>
-        <div className="min-h-screen flex w-full">
+      <div className={`fixed inset-0 z-[100] ${open ? 'flex' : 'hidden'} overflow-visible`}>
+        <div className="min-h-screen flex w-full overflow-visible">
           {/* Left Side - Workspace Creation Form */}
           <div className="flex-[11] flex flex-col items-center bg-white px-8 py-8 pt-8 min-h-screen">
             <div className="max-w-[480px] w-full flex flex-col min-h-full">
@@ -1052,7 +1056,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
           </div>
 
           {/* Right Side - Platform Preview */}
-          <div className="flex-[14] flex flex-col pl-12 pt-36 bg-[#F8F8F8] relative">
+          <div className="flex-[14] flex flex-col pl-12 pt-36 bg-[#F8F8F8] relative overflow-visible">
             {/* Cancel Button - Top Right */}
             <div
               onClick={onClose}
@@ -1061,15 +1065,11 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
               <X className="w-4 h-4" />
             </div>
 
-            {/* Platform Preview Image */}
+            {/* Platform Preview Component */}
             <div className="flex-1 flex justify-center">
               <div className="w-full h-full">
-                <div className="w-full h-full rounded-tl-lg overflow-hidden border-l-5 border-t-5 border-elementStroke">
-                  <img
-                    src="/images/logo/preview.png"
-                    alt="FeedBird Dashboard Preview"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-full h-full rounded-tl-lg overflow-visible border-l-5 border-t-5 border-elementStroke">
+                  <PlatformPreview logo={formData.logo} isNameInputFocused={isNameInputFocused} workspaceName={formData.name} />
                 </div>
               </div>
             </div>
