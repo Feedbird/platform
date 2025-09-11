@@ -201,6 +201,10 @@ export class GoogleBusinessPlatform extends BasePlatform {
       token: acc.authToken || ''
     });
 
+    if(!response.locations || response.locations.length === 0) {
+      throw new SocialAPIError('No Google Business locations found for account', 'API_ERROR');
+    }
+
     const pages: SocialPage[] = response.locations
       .filter(location => location.metadata?.placeId) // Only include locations with placeId
       .map(location => ({
