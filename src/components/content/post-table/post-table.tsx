@@ -855,6 +855,7 @@ export function PostTable({
     startOffset: null,
     startSize: null
   });
+  const [resizingColumnId, setResizingColumnId] = React.useState<string | null>(null);
 
   const [rowHeight, setRowHeight] = React.useState<RowHeightType>("Medium");
 
@@ -870,6 +871,19 @@ export function PostTable({
       return { ...prev, preview: target };
     });
   }, [rowHeight]);
+
+  // Maintain global col-resize cursor and suppress hovers while resizing
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (columnSizingInfo.isResizingColumn) {
+      root.classList.add('is-resizing-columns');
+    } else {
+      root.classList.remove('is-resizing-columns');
+    }
+    return () => {
+      root.classList.remove('is-resizing-columns');
+    };
+  }, [columnSizingInfo.isResizingColumn]);
 
   // State to track if scrolling is needed
   const [isScrollable, setIsScrollable] = React.useState(false);
@@ -1710,6 +1724,8 @@ export function PostTable({
     draggingColumnIdRef.current = colId;
     const headerEl = headerRefs.current[colId];
     if (headerEl) {
+      draggingHeaderElRef.current = headerEl;
+      try { headerEl.classList.add('drag-handle'); } catch {}
       const rect = headerEl.getBoundingClientRect();
       setDragStartOffsetX(clientX - rect.left);
       setDragOverlayWidth(rect.width);
@@ -1741,6 +1757,7 @@ export function PostTable({
     try {
       document.body.classList.add('fbp-dragging-cursor');
       document.documentElement.classList.add('fbp-dragging-cursor');
+      document.documentElement.classList.add('is-grabbing');
       document.body.style.cursor = 'grabbing';
       (document.documentElement as HTMLElement).style.cursor = 'grabbing';
     } catch { }
@@ -1818,12 +1835,15 @@ export function PostTable({
 
   const dragMouseMoveHandlerRef = React.useRef<((ev: MouseEvent) => void) | null>(null);
   const dragMouseUpHandlerRef = React.useRef<((ev: MouseEvent) => void) | null>(null);
+  const draggingHeaderElRef = React.useRef<HTMLElement | null>(null);
 
   function endColumnDrag() {
     setDraggingColumnId(null);
     setDragOverColumnId(null);
     setDragInsertAfter(false);
     draggingColumnIdRef.current = null;
+    try { if (draggingHeaderElRef.current) draggingHeaderElRef.current.classList.remove('drag-handle'); } catch {}
+    draggingHeaderElRef.current = null;
     dragOverColumnIdRef.current = null;
     dragInsertAfterRef.current = false;
     setDragOverlayLeft(null);
@@ -1860,6 +1880,7 @@ export function PostTable({
       document.body.style.userSelect = "";
       document.body.classList.remove('fbp-dragging-cursor');
       document.documentElement.classList.remove('fbp-dragging-cursor');
+      document.documentElement.classList.remove('is-grabbing');
       document.body.style.cursor = '';
       (document.documentElement as HTMLElement).style.cursor = '';
     } catch { }
@@ -3033,7 +3054,21 @@ export function PostTable({
     onExpandedChange: setExpanded,
     // needed for resizing:
     onColumnSizingChange: setColumnSizing,
-    onColumnSizingInfoChange: setColumnSizingInfo,
+    onColumnSizingInfoChange: (updaterOrValue: ColumnSizingInfoState | ((old: ColumnSizingInfoState) => ColumnSizingInfoState)) => {
+      setColumnSizingInfo(updaterOrValue);
+      // Track which column is being resized
+      const newInfo = typeof updaterOrValue === 'function' 
+        ? updaterOrValue(columnSizingInfo) 
+        : updaterOrValue;
+      
+      if (newInfo.isResizingColumn && newInfo.columnSizingStart.length > 0) {
+        // Get the column ID from the first column being resized
+        const firstColumn = newInfo.columnSizingStart[0];
+        setResizingColumnId(Array.isArray(firstColumn) ? firstColumn[0] : firstColumn);
+      } else if (!newInfo.isResizingColumn) {
+        setResizingColumnId(null);
+      }
+    },
 
     enableRowSelection: true,
     enableExpanding: true,
@@ -3442,7 +3477,7 @@ export function PostTable({
               <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
                 <PlusIcon className="w-3 h-3 text-[#5C5E63]" />
               </div>
-              <span className="text-xs text-[#5C5E63] font-semibold">Select socials</span>
+              <span className="text-xs text-[#5C5E63] font-medium">Select socials</span>
             </div>
           );
         }
@@ -3459,7 +3494,7 @@ export function PostTable({
               <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
                 <PlusIcon className="w-3 h-3 text-[#5C5E63]" />
               </div>
-              <span className="text-xs text-[#5C5E63] font-semibold">Select format</span>
+              <span className="text-xs text-[#5C5E63] font-medium">Select format</span>
             </div>
           );
         }
@@ -3622,7 +3657,9 @@ export function PostTable({
                             onDoubleClick={() => h.column.resetSize()}
                             onMouseDown={h.getResizeHandler()}
                             onTouchStart={h.getResizeHandler()}
-                            className="absolute top-0 h-full w-2 cursor-col-resize -right-1 z-10"
+                            className={`absolute top-0 h-full w-1 cursor-col-resize -right-1 z-10 transition-colors duration-150 ${
+                              resizingColumnId === h.column.id ? 'bg-main resize-handle-active' : 'hover:bg-main'
+                            }`}
                           />
                         )}
                       </>
@@ -4500,7 +4537,9 @@ export function PostTable({
                           onDoubleClick={() => header.column.resetSize()}
                           onMouseDown={header.getResizeHandler()}
                           onTouchStart={header.getResizeHandler()}
-                          className="absolute top-0 h-full w-2 cursor-col-resize -right-1 z-10"
+                          className={`absolute top-0 h-full w-1 cursor-col-resize -right-1 z-10 transition-colors duration-150 ${
+                            resizingColumnId === header.column.id ? 'bg-main resize-handle-active' : 'hover:bg-main'
+                          }`}
                         />
                       )}
                     </TableHead>

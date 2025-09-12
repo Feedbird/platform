@@ -7,6 +7,42 @@
 @tailwind components;
 @tailwind utilities;
 
+/* While resizing table columns, force col-resize cursor everywhere and neutralize hover effects */
+html.is-resizing-columns,
+html.is-resizing-columns * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* Disable all interactions except the active resize handle while resizing */
+html.is-resizing-columns * {
+  pointer-events: none !important;
+}
+
+html.is-resizing-columns .resize-handle-active,
+html.is-resizing-columns .resize-handle-active * {
+  pointer-events: auto !important;
+}
+
+/* While grabbing (dragging rows/cards), force grabbing cursor and suppress hover effects */
+html.is-grabbing,
+html.is-grabbing * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+/* Disable interactions during grabbing except the drag handles themselves */
+html.is-grabbing * {
+  pointer-events: none !important;
+}
+
+html.is-grabbing .drag-handle,
+html.is-grabbing .gdg-row-marker,
+html.is-grabbing .drag-handle *,
+html.is-grabbing .gdg-row-marker * {
+  pointer-events: auto !important;
+}
+
 /* Global default font: Inter */
 html, body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";

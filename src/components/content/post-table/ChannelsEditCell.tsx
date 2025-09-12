@@ -212,7 +212,7 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
                         "w-3 h-3 text-[#5C5E63]",
                       )}/>
                     </div>
-                   <span className="text-xs text-[#5C5E63] font-semibold">Select socials</span>
+                   <span className="text-xs text-[#5C5E63] font-medium">Select socials</span>
                 </div>
               )}
 

@@ -67,7 +67,7 @@ export function FormatEditCell({
                 <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
                   <Plus className="w-3 h-3 text-[#5C5E63]" />
                 </div>
-                <span className="text-xs text-[#5C5E63] font-semibold">Select format</span>
+                <span className="text-xs text-[#5C5E63] font-medium">Select format</span>
               </div>
             )}
           </div>

@@ -226,7 +226,7 @@ export default function WorkspaceSwitcher() {
                   ? <Image src={active.logo} alt={active.name} width={24} height={24}
                            className="rounded object-contain"/>
                   : (
-                      <div className="size-8 rounded bg-muted flex items-center justify-center">
+                      <div className="size-8 rounded bg-[#B5B5FF] flex items-center justify-center">
                         <span className="text-xs font-semibold uppercase text-[#5C5E63]">
                           {active?.name ? getInitials(active.name) : ""}
                         </span>
@@ -317,7 +317,7 @@ export default function WorkspaceSwitcher() {
                           ? <Image src={ws.logo} alt={ws.name} width={24} height={24}
                                   className="rounded object-contain flex-shrink-0"/>
                           : (
-                              <div className="size-6 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+                              <div className="size-6 rounded bg-[#B5B5FF] flex-shrink-0 flex items-center justify-center">
                                 <span className="text-[10px] font-semibold uppercase text-[#5C5E63]">
                                   {getInitials(ws.name)}
                                 </span>

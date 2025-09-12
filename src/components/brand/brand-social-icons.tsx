@@ -31,7 +31,7 @@ export default function BrandSocialIcons() {
   if (!pages.length) {
     return (
       <div className="flex items-center gap-2 h-7.5">
-        <Button variant="ghost" onClick={() => setDialogOpen(true)} className="text-sm font-semibold text-black cursor-pointer">
+        <Button variant="ghost" onClick={() => setDialogOpen(true)} className="text-sm font-medium text-black cursor-pointer">
           Connect Social Page
         </Button>
         <ManageSocialsDialog
