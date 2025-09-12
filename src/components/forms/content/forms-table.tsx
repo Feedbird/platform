@@ -490,7 +490,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
           />
         </div>
       </div>
-      <div className="bg-background border border-gray-200 overflow-hidden">
+      <div className="bg-background border border-gray-200 overflow-y-hidden">
         <table
           data-grouped="true"
           className="

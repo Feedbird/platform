@@ -39,6 +39,10 @@ function FormsHeaderContent() {
 
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
 
+  const [formLink, setFormLink] = React.useState(
+    "https://nazmijavier.feedbird.com/form/a59b8a7c-2a8f-473a-aea0-648170827cff"
+  );
+
   const handleInitialFormCreation = async () => {
     isLoading(true);
     try {
@@ -130,17 +134,21 @@ function FormsHeaderContent() {
                   open={isDropDownOpen}
                   onOpenChange={(open) => setIsDropdownOpen(open)}
                 >
-                  <DropdownMenuTrigger>
-                    <Button className="rounded-[4px] w-[86px] border-1 border-black/10 bg-[#4670F9] text-white font-medium h-7 text-[13px] hover:cursor-pointer p-0 gap-0">
-                      <p className="px-2.5 py-2">Publish</p>
-                      <div className="h-full w-6 border-l-1 border-black/10 flex items-center justify-center">
-                        <ChevronDown
-                          className={`transition-transform ${
-                            isDropDownOpen ? "rotate-180" : "rotate-0"
-                          } duration-150`}
-                        />
-                      </div>
-                    </Button>
+                  <DropdownMenuTrigger
+                    className={`flex rounded-[4px] w-[86px] border-1 border-black/10 ${
+                      isDropDownOpen ? "bg-gray-600" : "bg-[#4670F9]"
+                    } text-white font-medium h-7 text-[13px] hover:cursor-pointer transition-colors hover:bg-gray-600 p-0 gap-0`}
+                  >
+                    <p className="px-2.5 py-1">Publish</p>
+                    <div className="h-full w-6 border-l-1 border-black/10 flex items-center justify-center">
+                      <ChevronDown
+                        width={14}
+                        height={14}
+                        className={`transition-transform ${
+                          isDropDownOpen ? "rotate-180" : "rotate-0"
+                        } duration-150`}
+                      />
+                    </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuPortal>
                     <DropdownMenuContent>
@@ -156,7 +164,8 @@ function FormsHeaderContent() {
                         </div>
                         <Input
                           className="border-1 border-[#D3D3D3] rounded-[6px] text-[#1C1D1F]"
-                          value="https://nazmijavier.feedbird.com/form/a59b8a7c-2a8f-473a-aea0-648170827cff"
+                          onChange={(e) => setFormLink(e.target.value)}
+                          value={formLink}
                         />
                         <Button
                           onClick={handleFormPublish}

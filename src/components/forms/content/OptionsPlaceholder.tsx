@@ -26,7 +26,7 @@ function OptionCard({
 
   return (
     <div
-      className={`border-1 items-center bg-white border-[#D3D3D3] rounded-[6px] px-3 py-2 flex flex-row justify-between ${getWidthClass()}`}
+      className={`border-1 items-center bg-white border-[#D3D3D3] rounded-[6px] p-2 flex flex-row justify-between ${getWidthClass()}`}
     >
       {option.image && (
         <Image

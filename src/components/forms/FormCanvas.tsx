@@ -76,12 +76,7 @@ export default function FormCanvas({
   console.log(formFields);
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`min-h-[600px] px-6 transition-colors duration-200 ${
-        isOver ? "bg-blue-50" : "bg-transparent"
-      }`}
-    >
+    <div ref={setNodeRef} className="min-h-[600px] px-6 bg-transparent">
       <div className="mx-auto max-w-[900px] p-4">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div
@@ -144,44 +139,66 @@ export default function FormCanvas({
                 {form.description ?? "Add description here"}
               </p>
             </div>
-            {formFields.length === 0 ? (
-              <div className="p-3 w-full h-[60px]">
-                <div className="bg-[#EDF6FF] w-full h-full border-[#4670F9] border-1 border-dashed rounded-[6px]">
-                  <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
-                    +Add Components
-                  </span>
+
+            {/* Droppable area for form fields */}
+            <div className="min-h-[60px] p-3 relative">
+              {/* Show insertion indicator when dragging over empty canvas */}
+              {formFields.length === 0 && activeId && isOver && (
+                <div className="absolute inset-3 flex items-center">
+                  <div className="h-[1px] bg-blue-400 rounded-full w-full transition-all duration-200" />
                 </div>
+              )}
+
+              {formFields.length > 0 ? (
+                <SortableContext
+                  items={fieldIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {formFields.map((field, index) => (
+                      <React.Fragment key={field.id}>
+                        {/* Insertion indicator */}
+                        {activeId &&
+                          overId === field.id &&
+                          activeId !== field.id &&
+                          !formFields.find((f) => f.id === activeId) && (
+                            <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200" />
+                          )}
+                        <SimpleFormField
+                          field={field}
+                          selectedFieldId={selectedFieldId}
+                          onFieldSelect={onFieldSelect}
+                          onDelete={(fieldId) => {
+                            setFormFields((prev) =>
+                              prev.filter((f) => f.id !== fieldId)
+                            );
+                          }}
+                        />
+                        {/* Insertion indicator at the end */}
+                        {index === formFields.length - 1 &&
+                          activeId &&
+                          overId === "form-canvas" &&
+                          !formFields.find((f) => f.id === activeId) && (
+                            <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200" />
+                          )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </SortableContext>
+              ) : (
+                <></>
+              )}
+            </div>
+
+            {/* Fixed +Add Components footer - always present */}
+            <div className="p-3 w-full">
+              <div className="bg-[#EDF6FF] w-full h-[36px] border-[#4670F9] border-1 border-dashed rounded-[3px]">
+                <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
+                  +Add Components
+                </span>
               </div>
-            ) : (
-              <SortableContext
-                items={fieldIds}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-3">
-                  {formFields.map((field, index) => (
-                    <React.Fragment key={field.id}>
-                      {/* Insertion indicator */}
-                      {activeId &&
-                        overId === field.id &&
-                        activeId !== field.id &&
-                        !formFields.find((f) => f.id === activeId) && (
-                          <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200" />
-                        )}
-                      <SimpleFormField
-                        field={field}
-                        selectedFieldId={selectedFieldId}
-                        onFieldSelect={onFieldSelect}
-                        onDelete={(fieldId) => {
-                          setFormFields((prev) =>
-                            prev.filter((f) => f.id !== fieldId)
-                          );
-                        }}
-                      />
-                    </React.Fragment>
-                  ))}
-                </div>
-              </SortableContext>
-            )}
+            </div>
+
             <div className="flex flex-row py-6 px-3 gap-3 items-center">
               <Image
                 src="/images/logo/logo(1).svg"
