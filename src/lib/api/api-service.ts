@@ -811,7 +811,6 @@ export const storeApi = {
                   }
                 })
               );
-              console.log("postsWithActivities:", postsWithActivities);
               const transformedPosts = postsWithActivities.map((p) => ({
                 id: p.id,
                 workspaceId: p.workspace_id ?? ws.id,

@@ -338,7 +338,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
       case 1: return formData.name.trim().length > 0
       case 2: return formData.selectedBoards.length > 0
       case 3: return true // Board rules are optional
-      case 4: return formData.inviteEmails.some(email => email.trim().length > 0)
+      case 4: return true // Invite emails are optional
       default: return false
     }
   }
