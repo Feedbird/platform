@@ -2585,7 +2585,7 @@ export function PostTable({
                     }}
                   >
                     <Image src={`/images/columns/request.svg`} alt="revision" width={14} height={14} />
-                    <span className="text-xs text-black font-semibold leading-[16px]">Request changes</span>
+                    <span className="text-xs text-black font-medium leading-[16px]">Request changes</span>
                   </div>
                 </div>
               </div>
@@ -4979,7 +4979,7 @@ export function PostTable({
                   <MoreHorizontal className="h-4 w-4 text-black" />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[180px]">
+              <DropdownMenuContent className="!min-w-[105px]">
                 <DropdownMenuItem onClick={handleImport} className="cursor-pointer">
                   <ArrowUpFromLine className="mr-2 h-4 w-4" />
                   <span className="text-sm text-black font-medium leading-[16px]">Import</span>
