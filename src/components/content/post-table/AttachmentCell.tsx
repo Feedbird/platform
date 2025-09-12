@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Plus, X, CircleCheck, FileText, FileImage, FileVideo, File } from "lucide-react";
+import { Paperclip, X, CircleCheck, FileText, FileImage, FileVideo, File, ArrowDownCircle } from "lucide-react";
 import { cn, getRowHeightPixels, RowHeightType } from "@/lib/utils";
 import { useAttachmentUploader } from "@/lib/hooks/use-attachment-uploader";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
@@ -54,11 +54,11 @@ export function AttachmentCell({
   const getSizes = () => {
     switch (rowHeight) {
       case "Small":
-        return { spinner: 12, text: 8, icon: "w-3 h-3" };
+        return { spinner: 16, text: 8, icon: "w-3 h-3" };
       case "Medium":
         return { spinner: 16, text: 10, icon: "w-4 h-4" };
       default:
-        return { spinner: 24, text: 14, icon: "w-6 h-6" };
+        return { spinner: 16, text: 14, icon: "w-6 h-6" };
     }
   };
 
@@ -198,7 +198,7 @@ export function AttachmentCell({
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center w-full h-full cursor-pointer transition-colors duration-150 pl-3 pr-1 py-1"
+      className="relative flex items-center w-full h-full cursor-pointer transition-colors duration-150 p-1"
       // Click selection is handled by the parent FocusCell (like BlocksPreview)
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -207,12 +207,18 @@ export function AttachmentCell({
       {/* Drop overlay - shown when dragging files over the cell */}
       {shouldShowDropOverlay && (
         <div className="absolute inset-0 flex items-center justify-center z-10 border border-[1px] border-solid border-main">
-          <div className="flex flex-row items-center gap-2 absolute transition-all duration-200 left-1/2 -translate-x-1/2">
-            <span className="text-sm text-main font-normal whitespace-nowrap">
-              Drop files here
-            </span>
-          </div>
+        <div
+          className={cn(
+            "flex flex-row items-center gap-2 justify-center w-[calc(100%-16px)] max-w-[calc(100%-16px)]",
+            "absolute transition-all duration-200",
+            "left-1/2 -translate-x-1/2"
+          )}
+        >
+          <span className="text-xs text-main font-base truncate">
+            Add files to this record
+          </span>
         </div>
+      </div>
       )}
 
       {/* Attachments and uploads container */}
@@ -230,10 +236,13 @@ export function AttachmentCell({
              return (
                <div
                  key={up.id}
-                 className="relative flex-shrink-0 rounded-[2px] bg-black/10 overflow-hidden aspect-square"
-                 style={{ height: `${thumbHeight}px`, width: `${thumbHeight}px`, border: "0.5px solid #D0D5D0" }}
+                 className={cn(
+                  "relative flex-shrink-0 rounded-[2px] overflow-hidden aspect-square",
+                  up.status === "uploading" ? "bg-transparent" : "bg-black/10"
+                )}
+                 style={{ height: `${thumbHeight}px`, width: `${thumbHeight}px`, border: up.status === "uploading" ? "none" : "0.5px solid #D0D5D0" }}
                >
-                 {renderFilePreview(up.file, thumbHeight)}
+                 {!(up.status === "uploading" || up.status === "processing") && renderFilePreview(up.file, thumbHeight)}
                  
                  {/* Fallback icon for non-media files (hidden by default) */}
                  {!up.file.type.startsWith('image/') && !up.file.type.startsWith('video/') && (
@@ -254,27 +263,40 @@ export function AttachmentCell({
 
                 {/* Progress overlay */}
                 {up.status === "uploading" && (
-                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center">
-                    <img
-                      src="/images/icons/spinner-gradient.svg"
-                      alt="Upload progress bar"
-                      style={{
-                        width: `${sizes.spinner}px`,
-                        height: `${sizes.spinner}px`,
-                        animation: "spin 1s linear infinite"
-                      }}
-                    />
-                    <span 
-                      className="mt-1 text-white font-medium"
-                      style={{ fontSize: `${sizes.text}px` }}
+                  <div className="absolute inset-0 bg-transparent flex flex-col items-center justify-center">
+                    <svg
+                      width={sizes.spinner}
+                      height={sizes.spinner}
+                      viewBox="0 0 24 24"
+                      className="text-darkGrey"
+                      style={{ animation: "spinAccel 1.6s linear infinite" }}
                     >
-                      {typeof up.progress === "number" ? `${Math.round(up.progress)}%` : ""}
-                    </span>
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        pathLength={100}
+                        strokeDasharray="20 13.333"
+                      />
+                    </svg>
                     <style>
                       {`
-                        @keyframes spin {
+                        @keyframes spinAccel {
                           0% { transform: rotate(0deg); }
-                          100% { transform: rotate(360deg); }
+                          10% { transform: rotate(7.2deg); }
+                          20% { transform: rotate(28.8deg); }
+                          30% { transform: rotate(64.8deg); }
+                          40% { transform: rotate(115.2deg); }
+                          50% { transform: rotate(180deg); }
+                          60% { transform: rotate(259.2deg); }
+                          70% { transform: rotate(352.8deg); }
+                          80% { transform: rotate(460.8deg); }
+                          90% { transform: rotate(583.2deg); }
+                          100% { transform: rotate(720deg); }
                         }
                       `}
                     </style>
@@ -288,33 +310,7 @@ export function AttachmentCell({
                   </div>
                 )}
 
-                {up.status === "processing" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
-                    <img
-                      src="/images/icons/spinner-gradient.svg"
-                      alt="Upload progress bar"
-                      style={{
-                        width: `${sizes.spinner}px`,
-                        height: `${sizes.spinner}px`,
-                        animation: "spin 1s linear infinite"
-                      }}
-                    />
-                    <span 
-                      className="mt-1 text-white font-medium"
-                      style={{ fontSize: `${sizes.text}px` }}
-                    >
-                      100%
-                    </span>
-                    <style>
-                      {`
-                        @keyframes spin {
-                          0% { transform: rotate(0deg); }
-                          100% { transform: rotate(360deg); }
-                        }
-                      `}
-                    </style>
-                  </div>
-                )}
+             
 
                 {up.status === "done" && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-600/70 text-white text-xs gap-2">
@@ -358,20 +354,24 @@ export function AttachmentCell({
               </div>
             );
           })}
-          {/* Plus button - shown at the right when selected */}
-          {isSelected && !shouldShowDropOverlay && (
-            <div className="flex-shrink-0 px-1 h-full flex items-center">
+         {/* Plus button - shown at the right when selected */}
+         {isSelected && !shouldShowDropOverlay && (
               <div
-                className="flex flex-row items-center justify-center px-[4px] py-[1px] h-5.5 w-5.5 rounded-[4px] bg-white cursor-pointer"
-                style={{
-                  boxShadow:
-                    "0px 0px 0px 1px #D3D3D3, 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04)",
-                }}
+                className="flex flex-row h-full items-center justify-center bg-elementStroke/50 hover:bg-elementStroke p-1 mr-0.5 w-6 cursor-pointer"
                 data-preview-exempt
                 onClick={handlePlusButtonClick}
               >
-                <Plus className="w-3 h-3 text-[#5C5E63] bg-[#D3D3D3] rounded-[3px]" />
+                <Paperclip className="w-3.5 h-3.5 text-gray-700" />
               </div>
+          )}
+          {isSelected && !shouldShowDropOverlay && uploads.length === 0 && attachments.length === 0 && (
+            <div className="flex flex-row h-full items-center gap-1" data-preview-exempt>
+              <ArrowDownCircle className="w-3.5 h-3.5 text-grey" />
+              <span
+                className="text-xs text-grey font-base whitespace-nowrap"
+              >
+                Drop files here
+              </span>
             </div>
           )}
         </div>

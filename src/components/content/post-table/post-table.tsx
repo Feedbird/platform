@@ -3657,7 +3657,7 @@ export function PostTable({
                             onDoubleClick={() => h.column.resetSize()}
                             onMouseDown={h.getResizeHandler()}
                             onTouchStart={h.getResizeHandler()}
-                            className={`absolute top-0 h-full w-1 cursor-col-resize -right-1 z-10 transition-colors duration-150 ${
+                            className={`absolute top-0 h-full w-[3px] cursor-col-resize -right-[3px] z-10 transition-colors duration-150 ${
                               resizingColumnId === h.column.id ? 'bg-main resize-handle-active' : 'hover:bg-main'
                             }`}
                           />
@@ -4537,7 +4537,7 @@ export function PostTable({
                           onDoubleClick={() => header.column.resetSize()}
                           onMouseDown={header.getResizeHandler()}
                           onTouchStart={header.getResizeHandler()}
-                          className={`absolute top-0 h-full w-1 cursor-col-resize -right-1 z-10 transition-colors duration-150 ${
+                          className={`absolute top-0 h-full w-[3px] cursor-col-resize -right-[3px] z-10 transition-colors duration-150 ${
                             resizingColumnId === header.column.id ? 'bg-main resize-handle-active' : 'hover:bg-main'
                           }`}
                         />
