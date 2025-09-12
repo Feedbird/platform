@@ -10,8 +10,7 @@ import { toast } from "sonner";
 export default function FormsInner() {
   const { activeWorkspaceId } = useFeedbirdStore();
   const { getFormsByWorkspaceId } = useFormStore();
-  const { forms, setForms, activeForm, setActiveForm, loading, setLoading } =
-    useForms();
+  const { forms, setForms, loading, setLoading } = useForms();
 
   const fetchForms = async () => {
     if (!activeWorkspaceId) return;

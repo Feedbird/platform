@@ -59,10 +59,13 @@ export default function FormInnerVisualizer() {
 
   const retrieveForm = async (formId: string) => {
     try {
+      console.log("🚀 Starting form retrieval for:", formId);
       setLoading(true);
       setError(null);
       const { data } = await formsApi.getFormById(formId);
+      console.log("✅ Form data received:", data?.title);
       const { formFields } = await formsApi.getFormFields(formId);
+      console.log("✅ Form fields received:", formFields?.length, "fields");
       setFormFields(
         formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
       );
@@ -74,21 +77,25 @@ export default function FormInnerVisualizer() {
         fields_count: 0,
       };
       setActiveForm(tableForm);
+      console.log("✅ Form setup complete");
     } catch (err) {
-      console.error("Error fetching form:", err);
+      console.error("❌ Error fetching form:", err);
       setError(err instanceof Error ? err.message : "Failed to load form");
     } finally {
       setLoading(false);
+      console.log("🏁 Loading state set to false");
     }
   };
 
   React.useEffect(() => {
-    if (formId && !activeForm) {
+    console.log("🔄 Form effect triggered:", { formId, activeForm: !!activeForm });
+    if (formId) {
+      console.log("📡 Fetching form data for:", formId);
+      // Always fetch form data and fields from server, regardless of activeForm state
+      // This ensures we have complete data including form fields
       retrieveForm(formId);
-    } else {
-      setForm(activeForm);
     }
-  }, [formId, activeForm]);
+  }, [formId]);
   React.useEffect(() => {
     setIsEditing(true);
     return () => {
