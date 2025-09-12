@@ -110,7 +110,12 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
             )}
           </div>
           <div className="flex flex-col">
-            <span className="truncate font-semibold text-sm text-black">{workspaceName || 'Workspace'}</span>
+            <span className="truncate font-semibold text-sm text-black">
+              {workspaceName && workspaceName.length > 20 
+                ? `${workspaceName.substring(0, 20)}...` 
+                : workspaceName || 'Workspace'
+              }
+            </span>
           </div>
           <ChevronsUpDown className="size-4 text-black" />
         </div>
@@ -152,7 +157,12 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
               )}
             </div>
             <div className="flex flex-col">
-              <span className="truncate font-semibold text-sm text-black">{workspaceName || 'Workspace'}</span>
+              <span className="truncate font-semibold text-sm text-black">
+              {workspaceName && workspaceName.length > 20 
+                ? `${workspaceName.substring(0, 20)}...` 
+                : workspaceName || 'Workspace'
+              }
+            </span>
             </div>
             <ChevronsUpDown className="size-4 text-black" />
           </div>
