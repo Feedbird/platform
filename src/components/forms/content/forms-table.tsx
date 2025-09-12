@@ -32,7 +32,7 @@ import { useForms } from "@/contexts/FormsContext";
 import FormDeleteModal from "./FormDeleteModal";
 import FormSettingsModal from "./FormSettingsModal";
 import FormStatusBadge from "./configs/FormStatusBadge";
-import { Chip } from "@mui/material";
+import { PopoverPortal } from "@radix-ui/react-popover";
 
 export interface TableForm extends Form {
   submissions_count?: number;
@@ -45,12 +45,15 @@ export type FormsTableProps = {
 };
 
 export default function FormsTable({ forms }: FormsTableProps) {
+  // Hooks
+  const router = useRouter();
+  const { selectFormForEditing } = useForms();
+
+  // States
   const [tabledData, setTableData] = React.useState<TableForm[]>(forms);
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
-  const router = useRouter();
-  const { selectFormForEditing } = useForms();
   const [filterTree, setFilterTree] = React.useState<ConditionGroup>({
     id: "root",
     andOr: "AND",
@@ -66,11 +69,11 @@ export default function FormsTable({ forms }: FormsTableProps) {
     "lastUpdated",
     "actions",
   ]);
-
-  const { activeForm, setActiveForm } = useForms();
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>({
     name: "Name",
   });
+  const [localActiveForm, setLocalActiveForm] =
+    React.useState<TableForm | null>(null);
 
   const hasActiveFilters = React.useMemo(() => {
     // Check if any condition has selected values
@@ -166,7 +169,10 @@ export default function FormsTable({ forms }: FormsTableProps) {
         cell: ({ row }) => (
           <div className="text-sm flex flex-row flex-wrap font-medium text-[#1C1D1F] gap-1">
             {row.original.services.map((s) => (
-              <div className="border-1 rounded-[5px] border-[#D3D3D3] px-1.5">
+              <div
+                key={s.id}
+                className="border-1 rounded-[5px] border-[#D3D3D3] px-1.5"
+              >
                 {s.name}
               </div>
             ))}
@@ -197,7 +203,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
             Status
           </div>
         ),
-        size: 80,
+        size: 85,
+        minSize: 95,
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <FormStatusBadge status={row.original.status} />
@@ -230,7 +237,15 @@ export default function FormsTable({ forms }: FormsTableProps) {
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
             <Popover>
-              <PopoverTrigger className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4">
+              <PopoverTrigger
+                onClick={() =>
+                  setLocalActiveForm(
+                    tabledData.find((f) => f.id === row.original.id) ??
+                      tabledData[0]
+                  )
+                }
+                className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4"
+              >
                 <Image
                   src="/images/forms/actions.svg"
                   alt="actions_icon"
@@ -238,65 +253,68 @@ export default function FormsTable({ forms }: FormsTableProps) {
                   height={16}
                 />
               </PopoverTrigger>
-              <PopoverContent className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 max-w-[130px]">
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                  <Image
-                    src="/images/forms/write.svg"
-                    alt="write_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Rename</span>
-                </button>
-                <button
-                  className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                  onClick={() => {
-                    setActiveForm(row.original);
-                    setSettingsModalOpen(true);
-                  }}
+              <PopoverPortal>
+                <PopoverContent
+                  // onClick={() => isDropdownOpen(false)}
+                  className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 max-w-[130px]"
                 >
-                  <Image
-                    src="/images/boards/settings.svg"
-                    alt="settings_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Settings</span>
-                </button>
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                  <Image
-                    src="/images/boards/duplicate.svg"
-                    alt="duplicate_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Duplicate</span>
-                </button>
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                  <Image
-                    src="/images/boards/share.svg"
-                    alt="share_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Share</span>
-                </button>
-                <button
-                  className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                  onClick={() => {
-                    setActiveForm(row.original);
-                    setDeleteModalOpen(true);
-                  }}
-                >
-                  <Image
-                    src="/images/boards/delete.svg"
-                    alt="delete_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Delete</span>
-                </button>
-              </PopoverContent>
+                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                    <Image
+                      src="/images/forms/write.svg"
+                      alt="write_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Rename</span>
+                  </button>
+                  <button
+                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+                    onClick={() => {
+                      setSettingsModalOpen(true);
+                    }}
+                  >
+                    <Image
+                      src="/images/boards/settings.svg"
+                      alt="settings_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Settings</span>
+                  </button>
+                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                    <Image
+                      src="/images/boards/duplicate.svg"
+                      alt="duplicate_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Duplicate</span>
+                  </button>
+                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                    <Image
+                      src="/images/boards/share.svg"
+                      alt="share_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Share</span>
+                  </button>
+                  <button
+                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+                    onClick={() => {
+                      setDeleteModalOpen(true);
+                    }}
+                  >
+                    <Image
+                      src="/images/boards/delete.svg"
+                      alt="delete_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Delete</span>
+                  </button>
+                </PopoverContent>
+              </PopoverPortal>
             </Popover>
           </div>
         ),
@@ -337,26 +355,12 @@ export default function FormsTable({ forms }: FormsTableProps) {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const STICKY_COLUMNS = ["rowIndex", "name"] as const;
-
-  const STICKY_OFFSETS: Record<string, number> = {
-    rowIndex: 0,
-    name: 50, // width of rowIndex column
-  };
-
-  function isSticky(colId: string): colId is (typeof STICKY_COLUMNS)[number] {
-    return STICKY_COLUMNS.includes(colId as any);
-  }
-
   function stickyStyles(
     colId: string,
     zIndex = 10
   ): React.CSSProperties | undefined {
-    if (!isSticky(colId)) return;
-
     const styles: React.CSSProperties = {
       position: "sticky",
-      left: STICKY_OFFSETS[colId],
       zIndex,
     };
 
@@ -530,14 +534,16 @@ export default function FormsTable({ forms }: FormsTableProps) {
         open={deleteModalOpen}
         onClose={setDeleteModalOpen}
         setForms={setTableData}
-        formId={activeForm?.id || ""}
+        formId={localActiveForm?.id || ""}
       />
-      <FormSettingsModal
-        setForm={setActiveForm}
-        open={settingsModalOpen && !!activeForm}
-        onClose={setSettingsModalOpen}
-        form={activeForm!}
-      />
+      {localActiveForm && (
+        <FormSettingsModal
+          setForm={setLocalActiveForm}
+          open={!!localActiveForm && settingsModalOpen}
+          onClose={setSettingsModalOpen}
+          form={localActiveForm!}
+        />
+      )}
     </>
   );
 }

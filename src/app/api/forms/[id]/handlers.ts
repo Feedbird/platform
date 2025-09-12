@@ -115,6 +115,10 @@ export class FormHandler {
         delete updates.services;
       }
 
+      if (updates.status && updates.status === "published") {
+        updates.published_at = new Date().toISOString();
+      }
+
       const { data, error } = await supabase
         .from("forms")
         .update(updates)

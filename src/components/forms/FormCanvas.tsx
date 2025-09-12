@@ -73,7 +73,6 @@ export default function FormCanvas({
   };
 
   const fieldIds = formFields.map((f) => f.id);
-  console.log(formFields);
 
   return (
     <div ref={setNodeRef} className="min-h-[600px] px-6 bg-transparent">
@@ -141,7 +140,7 @@ export default function FormCanvas({
             </div>
 
             {/* Droppable area for form fields */}
-            <div className="min-h-[60px] p-3 relative">
+            <div className="min-h-[20px] p-3 relative">
               {/* Show insertion indicator when dragging over empty canvas */}
               {formFields.length === 0 && activeId && isOver && (
                 <div className="absolute inset-3 flex items-center">
@@ -323,7 +322,7 @@ function SimpleFormField({
             <Input
               onClick={(e) => e.stopPropagation()}
               placeholder={field.config?.placeholder?.value || ""}
-              className="w-full rounded-[6px] border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#1C1D1F] focus:border-transparent"
+              className="w-full rounded-[6px] border bg-white border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#1C1D1F] focus:border-transparent"
             />
           </div>
         )}

@@ -62,6 +62,7 @@ function FormsHeaderContent() {
   const [isDropDownOpen, setIsDropdownOpen] = React.useState(false);
 
   const handleFormPublish = async () => {
+    isLoading(true);
     try {
       await formsApi.updateForm(activeForm!.id, { status: "published" });
       toast.success("Form published successfully");
@@ -69,6 +70,22 @@ function FormsHeaderContent() {
     } catch (e) {
       console.error("Error publishing form:", e);
       toast.error("Error publishing form. Please try again later");
+    } finally {
+      isLoading(false);
+    }
+  };
+
+  const handleFormUnpublish = async () => {
+    isLoading(true);
+    try {
+      await formsApi.updateForm(activeForm!.id, { status: "draft" });
+      toast.success("Form unpublished successfully");
+      setActiveForm({ ...activeForm!, status: "draft" });
+    } catch (e) {
+      console.error("Error unpublishing form:", e);
+      toast.error("Error unpublishing form. Please try again later");
+    } finally {
+      isLoading(false);
     }
   };
 
@@ -154,9 +171,14 @@ function FormsHeaderContent() {
                     <DropdownMenuContent>
                       <div className="bg-white w-[340px] flex flex-col gap-2 mt-1.5 mr-2 shadow-md z-10 border-1 border-[#D3D3D3] rounded-[6px] p-4">
                         <div className="flex flex-col gap-1">
-                          <span className="font-semibold text-[#1C1D1F]">
-                            Publish form
-                          </span>
+                          <div className="flex flex-row gap-2 items-center">
+                            <span className="font-semibold text-[#1C1D1F]">
+                              Publish form
+                            </span>
+                            {loading && (
+                              <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-black/80 border-t-transparent"></div>
+                            )}
+                          </div>
                           <p className="font-normal text-[#838488] text-sm">
                             Publishing new changes to the sharable URL that will
                             publicly visible
@@ -168,10 +190,29 @@ function FormsHeaderContent() {
                           value={formLink}
                         />
                         <Button
+                          disabled={
+                            activeForm.status === "published" || loading
+                          }
                           onClick={handleFormPublish}
                           className="bg-[#4670F9] mt-2 rounded-[4px] text-white font-medium text-sm hover:cursor-pointer"
                         >
                           Publish
+                        </Button>
+                        <Button
+                          disabled={
+                            activeForm.status !== "published" || loading
+                          }
+                          variant="ghost"
+                          onClick={handleFormUnpublish}
+                          className="mt-1 rounded-[4px] border-[#D3D3D3] border-1 font-medium text-sm hover:cursor-pointer text-[#1C1D1F]"
+                        >
+                          <Image
+                            src="/images/forms/unlink.svg"
+                            alt="unlink_icon"
+                            width={14}
+                            height={14}
+                          />
+                          Unpublish
                         </Button>
                       </div>
                     </DropdownMenuContent>
@@ -184,7 +225,11 @@ function FormsHeaderContent() {
                 className="w-[90px] h-full border-1 border-black/10 rounded-[4px] bg-[#4670F9] text-white cursor-pointer text-[13px] py-1.5 px-2.5"
                 onClick={handleInitialFormCreation}
               >
-                {loading ? "Creating..." : "+New Form"}
+                {loading ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  "+New Form"
+                )}
               </Button>
             )}
           </div>

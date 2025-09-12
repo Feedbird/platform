@@ -22,7 +22,6 @@ export default function FormEditorSideBar({
 }: FormEditorSideBarProps) {
   const [loading, isLoading] = React.useState(false);
 
-  console.log(formFields);
   const updateFormFields = async () => {
     isLoading(true);
     try {

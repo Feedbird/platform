@@ -38,7 +38,10 @@ function OptionCard({
         />
       )}
       <span className="text-[#1C1D1F] font-normal text-sm">{option.value}</span>
-      <Checkbox className="bg-white" onClick={(e) => e.stopPropagation()} />
+      <Checkbox
+        className="bg-white rounded-full size-5"
+        onClick={(e) => e.stopPropagation()}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { ModalMultiSelect } from "./ModalMultiSelect";
 import { useFormStore } from "@/lib/store/forms-store";
 import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
+import { nestedObjectEqual } from "@/lib/utils/transformers";
 
 type FormSettingsModalProps = {
   open: boolean;
@@ -34,8 +35,7 @@ export default function FormSettingsModal({
   form,
 }: FormSettingsModalProps) {
   const [loading, isLoading] = React.useState(false);
-
-  console.log("Loading state:", loading);
+  console.log(`Settings modal: `, form);
 
   const { services } = useFormStore();
 
@@ -47,6 +47,18 @@ export default function FormSettingsModal({
 
   const [settings, setSettings] =
     React.useState<FormSettingsOptions>(initialSettings);
+  const [hasChanged, setHasChanged] = React.useState(false);
+
+  React.useEffect(() => {
+    const changed = nestedObjectEqual(settings, initialSettings);
+    setHasChanged(!changed);
+  }, [settings]);
+
+  React.useEffect(() => {
+    if (form) {
+      setSettings(initialSettings);
+    }
+  }, [form]);
 
   if (!form) {
     return null;
@@ -113,6 +125,7 @@ export default function FormSettingsModal({
                 Title
               </span>
               <Input
+                autoFocus
                 disabled={loading}
                 id="title"
                 value={settings.title}
@@ -149,7 +162,7 @@ export default function FormSettingsModal({
           </div>
           <div className="flex flex-row-reverse justify-between">
             <Button
-              disabled={loading}
+              disabled={loading || !hasChanged}
               variant="default"
               className="rounded-[6px] bg-[#4670F9] text-white text-[13px] font-medium hover:cursor-pointer"
               onClick={handleSave}

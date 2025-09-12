@@ -20,12 +20,17 @@ export default function FormTypeConfig({
   config,
   setVisible,
 }: Props) {
-  const [message, setMessage] = React.useState("");
+  const [localConfig, setLocalConfig] = React.useState(config);
+
+  // Update local config when parent config changes
+  React.useEffect(() => {
+    setLocalConfig(config);
+  }, [config]);
+
   const updateConfig = (newConfig: any) => {
     if (fieldId) {
+      setLocalConfig(newConfig);
       updateFieldConfig(fieldId, newConfig);
-      setMessage("Field configuration updated");
-      setTimeout(() => setMessage(""), 1500);
     }
   };
 
@@ -36,7 +41,7 @@ export default function FormTypeConfig({
         isVisible ? "transform translate-x-0" : "transform translate-x-full"
       }`}
     >
-      {config && (
+      {localConfig && (
         <>
           <header className="border-border-primary border-b-1 w-full p-3 text-black font-medium flex gap-2">
             <Image
@@ -50,20 +55,17 @@ export default function FormTypeConfig({
             <div className="flex flex-row gap-1">
               <span>Edit Field</span>
               <p className="text-[#838488] font-normal">
-                ({Object.keys(config).length})
+                ({Object.keys(localConfig).length})
               </p>
             </div>
           </header>
           <div>
-            <FieldConfigWrapper updateConfig={updateConfig} config={config} />
+            <FieldConfigWrapper
+              updateConfig={updateConfig}
+              config={localConfig}
+              setVisible={setVisible}
+            />
           </div>
-          <p
-            className={`italic ml-4 text-xs transition-opacity ease-in-out duration-200 ${
-              message.length ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            {message}
-          </p>
         </>
       )}
     </div>
