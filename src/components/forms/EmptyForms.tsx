@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { useFormStore } from "@/lib/store/forms-store";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { toast } from "sonner";
 
 export default function EmptyFormsComponent() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function EmptyFormsComponent() {
       router.push(`/forms/${newForm.id}`);
     } catch (e) {
       console.error("Error creating initial form:", e);
-      throw new Error("Error creating initial form"); //! TODO Check toasts
+      toast.error("Error creating Form. Please try again later");
     }
   };
   return (

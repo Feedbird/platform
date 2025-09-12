@@ -12,6 +12,7 @@ interface ModalMultiSelectProps {
   className?: string;
   maxDisplayTags?: number;
   loading?: boolean;
+  loadingParent?: boolean;
 }
 
 export function ModalMultiSelect({
@@ -22,6 +23,7 @@ export function ModalMultiSelect({
   className = "",
   maxDisplayTags = 3,
   loading = false,
+  loadingParent = false,
 }: ModalMultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,9 +79,11 @@ export function ModalMultiSelect({
         className={cn(
           "flex min-h-[40px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm cursor-pointer",
           "hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500",
-          isOpen && "border-blue-500 ring-1 ring-blue-500"
+          isOpen && "border-blue-500 ring-1 ring-blue-500",
+          loadingParent &&
+            "bg-gray-50 border-gray-200 cursor-not-allowed opacity-60"
         )}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !loadingParent && setIsOpen(!isOpen)}
       >
         <div className="flex flex-1 flex-wrap items-center gap-1">
           {selectedOptions.length === 0 ? (
@@ -123,6 +127,7 @@ export function ModalMultiSelect({
           {/* Search Input */}
           <div className="border-b border-gray-100 p-2">
             <input
+              disabled={loadingParent}
               type="text"
               placeholder="Search..."
               value={searchTerm}

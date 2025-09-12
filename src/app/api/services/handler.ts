@@ -6,7 +6,6 @@ export class ServicesHandler {
     workspaceId: string,
     available?: boolean
   ): Promise<Service[]> {
-    //! TODO: Type on @client
     try {
       let query = supabase
         .from("services")
@@ -32,14 +31,32 @@ export class ServicesHandler {
     }
   }
 
-  static async verifyServicesExists(
-    serviceIds: string[],
-    workspaceId: string
-  ): Promise<Service[]> {
+  static async getServicesByFormId(formId: string): Promise<Service[]> {
     try {
       const { data, error } = await supabase
         .from("services")
         .select("*")
+        .eq("form_id", formId);
+      if (error) {
+        throw new ApiHandlerError("Database error: " + error.message);
+      }
+      return data;
+    } catch (e) {
+      if (e instanceof ApiHandlerError) {
+        throw e;
+      }
+      throw new ApiHandlerError("Internal server error: " + e);
+    }
+  }
+
+  static async verifyServicesExists(
+    serviceIds: string[],
+    workspaceId: string
+  ): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from("services")
+        .select("id")
         .in("id", serviceIds)
         .eq("workspace_id", workspaceId);
 
@@ -53,8 +70,6 @@ export class ServicesHandler {
           `Some services not found. Expected ${serviceIds.length}, found ${data.length}`
         );
       }
-
-      return data;
     } catch (e) {
       if (e instanceof ApiHandlerError) {
         throw e;

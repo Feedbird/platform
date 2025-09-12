@@ -1,5 +1,4 @@
 import React from "react";
-import { UIFormField } from "@/lib/forms/fields";
 import { Button } from "@/components/ui/button";
 import {
   AllowMultipleSelectionInput,
@@ -13,81 +12,62 @@ import {
   RowsSelectInput,
   TitleInput,
 } from "./Inputs";
+import { FieldTypeEntitlements } from "@/lib/forms/field.config";
 
 type Props = {
-  field: UIFormField;
+  config: FieldTypeEntitlements;
   updateConfig: (newConfig: any) => void;
+  setVisible: (value: null) => void;
 };
 
-export default function FieldConfigWrapper({ field, updateConfig }: Props) {
-  const [fieldConfig, setFieldConfig] = React.useState(field.config);
-
-  React.useEffect(() => {
-    setFieldConfig(field.config);
-  }, [field]);
-
+export default function FieldConfigWrapper({
+  config,
+  updateConfig,
+  setVisible,
+}: Props) {
   return (
     <div className="p-4 flex flex-col gap-6">
-      {fieldConfig.title && (
-        <TitleInput fieldConfig={fieldConfig} setFieldConfig={setFieldConfig} />
+      {config.title && (
+        <TitleInput fieldConfig={config} setFieldConfig={updateConfig} />
       )}
-      {fieldConfig.placeholder && (
-        <PlaceholderInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
-        />
+      {config.placeholder && (
+        <PlaceholderInput fieldConfig={config} setFieldConfig={updateConfig} />
       )}
-      {fieldConfig.spreadsheetColumns && (
-        <ColumnSelectInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
-        />
+      {config.spreadsheetColumns && (
+        <ColumnSelectInput fieldConfig={config} setFieldConfig={updateConfig} />
       )}
-      {fieldConfig.allowedRows && (
-        <RowsSelectInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
-        />
+      {config.allowedRows && (
+        <RowsSelectInput fieldConfig={config} setFieldConfig={updateConfig} />
       )}
-      {fieldConfig.description && (
-        <DescriptionInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
-        />
+      {config.description && (
+        <DescriptionInput fieldConfig={config} setFieldConfig={updateConfig} />
       )}
-      {fieldConfig.helpText && (
-        <HelpTextInput
-          setFieldConfig={setFieldConfig}
-          fieldConfig={fieldConfig}
-        />
+      {config.helpText && (
+        <HelpTextInput setFieldConfig={updateConfig} fieldConfig={config} />
       )}
-      {fieldConfig.dropdownItems && (
+      {config.dropdownItems && (
         <DropdownItemsInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
+          fieldConfig={config}
+          setFieldConfig={updateConfig}
         />
       )}
-      {fieldConfig.optionItems && (
-        <OptionSelectInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
-        />
+      {config.optionItems && (
+        <OptionSelectInput fieldConfig={config} setFieldConfig={updateConfig} />
       )}
-      {fieldConfig.isRequired && (
-        <RequiredInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
-        />
+      {config.isRequired && (
+        <RequiredInput fieldConfig={config} setFieldConfig={updateConfig} />
       )}
-      {fieldConfig.allowMultipleSelection && (
+      {config.allowMultipleSelection && (
         <AllowMultipleSelectionInput
-          fieldConfig={fieldConfig}
-          setFieldConfig={setFieldConfig}
+          fieldConfig={config}
+          setFieldConfig={updateConfig}
         />
       )}
       <Button
         variant="default"
-        onClick={() => updateConfig(fieldConfig)}
+        onClick={() => {
+          setVisible(null);
+        }}
         className="w-full hover:cursor-pointer shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
       >
         Save

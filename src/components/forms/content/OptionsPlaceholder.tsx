@@ -26,7 +26,7 @@ function OptionCard({
 
   return (
     <div
-      className={`border-1 items-center bg-white border-[#D3D3D3] rounded-[6px] px-3 py-2 flex flex-row justify-between ${getWidthClass()}`}
+      className={`border-1 items-center bg-white border-[#D3D3D3] rounded-[6px] p-2 flex flex-row justify-between ${getWidthClass()}`}
     >
       {option.image && (
         <Image
@@ -38,7 +38,10 @@ function OptionCard({
         />
       )}
       <span className="text-[#1C1D1F] font-normal text-sm">{option.value}</span>
-      <Checkbox className="bg-white" onClick={(e) => e.stopPropagation()} />
+      <Checkbox
+        className="bg-white rounded-full size-5"
+        onClick={(e) => e.stopPropagation()}
+      />
     </div>
   );
 }

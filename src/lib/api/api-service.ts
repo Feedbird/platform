@@ -1,3 +1,6 @@
+import { TableForm } from "@/components/forms/content/forms-table";
+import { CanvasFormField } from "@/components/forms/FormCanvas";
+import { FormField } from "@/components/ui/form";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 export interface ApiResponse<T> {
@@ -260,6 +263,24 @@ export const formsApi = {
   deleteForm: async (id: string) => {
     return apiRequest<{ message: string }>(`/forms/${id}`, {
       method: "DELETE",
+    });
+  },
+  updateForm: async (
+    id: string,
+    updates: Partial<TableForm>
+  ): Promise<ApiResponse<TableForm>> => {
+    return apiRequest<{ data: TableForm }>(`/forms/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+  },
+  getFormFields: async (formId: string) => {
+    return apiRequest<{ formFields: any[] }>(`/forms/fields?formId=${formId}`);
+  },
+  updateFormFields: async (formId: string, fields: CanvasFormField[]) => {
+    return apiRequest<{ message: string }>(`/forms/fields`, {
+      method: "POST",
+      body: JSON.stringify({ formId, formFields: fields }),
     });
   },
 };

@@ -9,6 +9,17 @@ import { useFormStore } from "@/lib/store/forms-store";
 import { useForms } from "@/contexts/FormsContext";
 import Image from "next/image";
 import FormSettingsModal from "./content/FormSettingsModal";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import FormStatusBadge from "./content/configs/FormStatusBadge";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+} from "@radix-ui/react-dropdown-menu";
+import { Input } from "../ui/input";
+import { formsApi } from "@/lib/api/api-service";
 
 export function FormsHeader() {
   return (
@@ -24,9 +35,13 @@ function FormsHeaderContent() {
   const router = useRouter();
   const { user, activeWorkspaceId } = useFeedbirdStore();
   const { createInitialForm } = useFormStore();
-  const { activeForm, isEditing } = useForms();
+  const { activeForm, setActiveForm, isEditing } = useForms();
 
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
+
+  const [formLink, setFormLink] = React.useState(
+    "https://nazmijavier.feedbird.com/form/a59b8a7c-2a8f-473a-aea0-648170827cff"
+  );
 
   const handleInitialFormCreation = async () => {
     isLoading(true);
@@ -38,7 +53,37 @@ function FormsHeaderContent() {
       router.push(`/forms/${newForm.id}`);
     } catch (e) {
       console.error("Error creating initial form:", e);
-      throw new Error("Error creating initial form"); //! TODO Check toasts
+      toast.error("Error creating Form. Please try again later");
+    } finally {
+      isLoading(false);
+    }
+  };
+
+  const [isDropDownOpen, setIsDropdownOpen] = React.useState(false);
+
+  const handleFormPublish = async () => {
+    isLoading(true);
+    try {
+      await formsApi.updateForm(activeForm!.id, { status: "published" });
+      toast.success("Form published successfully");
+      setActiveForm({ ...activeForm!, status: "published" });
+    } catch (e) {
+      console.error("Error publishing form:", e);
+      toast.error("Error publishing form. Please try again later");
+    } finally {
+      isLoading(false);
+    }
+  };
+
+  const handleFormUnpublish = async () => {
+    isLoading(true);
+    try {
+      await formsApi.updateForm(activeForm!.id, { status: "draft" });
+      toast.success("Form unpublished successfully");
+      setActiveForm({ ...activeForm!, status: "draft" });
+    } catch (e) {
+      console.error("Error unpublishing form:", e);
+      toast.error("Error unpublishing form. Please try again later");
     } finally {
       isLoading(false);
     }
@@ -47,26 +92,29 @@ function FormsHeaderContent() {
   return (
     <>
       <header
-        className="relative flex justify-between w-full items-between border-b border-border-primary pl-4 pr-2.5 py-2.5 gap-4 bg-white
+        className="relative flex justify-between w-full items-between border-b h-12 border-border-primary px-3 py-2.5 2xl:py-2 bg-white
     "
       >
         <div className="flex flex-row gap-2 items-center">
-          <SidebarTrigger className="cursor-pointer shrink-0" />
+          <SidebarTrigger className="cursor-pointer shrink-0" color="#838488" />
           {isEditing && activeForm ? (
             <div className="flex flex-row items-center gap-1.5">
-              <span className="text-[#5C5E63] text-sm font-normal">Form</span>
-              <Image
-                src="/images/forms/bar-gray.svg"
-                alt="right_separator"
-                width={12}
-                height={12}
-              />
-              <span className="text-[#1C1D1F] font-medium text-base">
+              <span
+                onClick={() => router.push("/forms")}
+                className="text-[#5C5E63] text-sm font-normal cursor-pointer"
+              >
+                Form
+              </span>
+              <ChevronRight width={12} height={12} color="#838488" />
+              <span className="text-[#1C1D1F] font-medium text-sm">
                 {activeForm.title}
               </span>
+              <div className="ml-1">
+                <FormStatusBadge status={activeForm.status} />
+              </div>
             </div>
           ) : (
-            <span className="font-semibold text-lg tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
+            <span className="font-semibold text-base tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
               Forms
             </span>
           )}
@@ -78,18 +126,18 @@ function FormsHeaderContent() {
                 <Button
                   variant="ghost"
                   onClick={() => setSettingsModalOpen(true)}
-                  className="p-1 aspect-square border-1 border-[#D3D3D3] rounded-[6px] hover:cursor-pointer"
+                  className="p-1 aspect-square border-1 border-[#D3D3D3] rounded-[4px] hover:cursor-pointer h-7"
                 >
                   <Image
                     src="/images/forms/settings.svg"
                     alt="settings_icon"
-                    width={18}
-                    height={18}
+                    width={16}
+                    height={16}
                   />
                 </Button>
                 <Button
                   variant="ghost"
-                  className="aspect-square border-1 border-[#D3D3D3] text-[#1C1D1F] flex flex-row gap-1 rounded-[6px] hover:cursor-pointer"
+                  className="border-1 w-[84px] border-[#D3D3D3] text-[#1C1D1F] flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
                 >
                   <Image
                     src="/images/forms/play.svg"
@@ -97,23 +145,91 @@ function FormsHeaderContent() {
                     width={12}
                     height={12}
                   />
-                  <span>Preview</span>
+                  <span className="font-medium text-[13px]">Preview</span>
                 </Button>
-                <Button
-                  onClick={() => setSettingsModalOpen(true)}
-                  className="rounded-[4px] border-1 border-black/10 bg-[#4670F9] text-white font-medium text-sm hover:cursor-pointer"
+                <DropdownMenu
+                  open={isDropDownOpen}
+                  onOpenChange={(open) => setIsDropdownOpen(open)}
                 >
-                  Publish
-                </Button>
+                  <DropdownMenuTrigger
+                    className={`flex rounded-[4px] w-[86px] border-1 border-black/10 ${
+                      isDropDownOpen ? "bg-gray-600" : "bg-[#4670F9]"
+                    } text-white font-medium h-7 text-[13px] hover:cursor-pointer transition-colors hover:bg-gray-600 p-0 gap-0`}
+                  >
+                    <p className="px-2.5 py-1">Publish</p>
+                    <div className="h-full w-6 border-l-1 border-black/10 flex items-center justify-center">
+                      <ChevronDown
+                        width={14}
+                        height={14}
+                        className={`transition-transform ${
+                          isDropDownOpen ? "rotate-180" : "rotate-0"
+                        } duration-150`}
+                      />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent>
+                      <div className="bg-white w-[340px] flex flex-col gap-2 mt-1.5 mr-2 shadow-md z-10 border-1 border-[#D3D3D3] rounded-[6px] p-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-row gap-2 items-center">
+                            <span className="font-semibold text-[#1C1D1F]">
+                              Publish form
+                            </span>
+                            {loading && (
+                              <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-black/80 border-t-transparent"></div>
+                            )}
+                          </div>
+                          <p className="font-normal text-[#838488] text-sm">
+                            Publishing new changes to the sharable URL that will
+                            publicly visible
+                          </p>
+                        </div>
+                        <Input
+                          className="border-1 border-[#D3D3D3] rounded-[6px] text-[#1C1D1F]"
+                          onChange={(e) => setFormLink(e.target.value)}
+                          value={formLink}
+                        />
+                        <Button
+                          disabled={
+                            activeForm.status === "published" || loading
+                          }
+                          onClick={handleFormPublish}
+                          className="bg-[#4670F9] mt-2 rounded-[4px] text-white font-medium text-sm hover:cursor-pointer"
+                        >
+                          Publish
+                        </Button>
+                        <Button
+                          disabled={
+                            activeForm.status !== "published" || loading
+                          }
+                          variant="ghost"
+                          onClick={handleFormUnpublish}
+                          className="mt-1 rounded-[4px] border-[#D3D3D3] border-1 font-medium text-sm hover:cursor-pointer text-[#1C1D1F]"
+                        >
+                          <Image
+                            src="/images/forms/unlink.svg"
+                            alt="unlink_icon"
+                            width={14}
+                            height={14}
+                          />
+                          Unpublish
+                        </Button>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
               </div>
             ) : (
               <Button
                 variant="ghost"
-                size="sm"
-                className="border border-border-button rounded-[6px] bg-main text-white px-[12px] py-[7px] gap-[4px] cursor-pointer text-sm font-medium"
+                className="w-[90px] h-full border-1 border-black/10 rounded-[4px] bg-[#4670F9] text-white cursor-pointer text-[13px] py-1.5 px-2.5"
                 onClick={handleInitialFormCreation}
               >
-                {loading ? "Creating..." : "+ New Form"}
+                {loading ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  "+New Form"
+                )}
               </Button>
             )}
           </div>
@@ -122,6 +238,7 @@ function FormsHeaderContent() {
       </header>
       {activeForm && isEditing && (
         <FormSettingsModal
+          setForm={setActiveForm}
           open={settingsModalOpen}
           onClose={setSettingsModalOpen}
           form={activeForm}

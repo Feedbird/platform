@@ -5,15 +5,37 @@ import Image from "next/image";
 import { FormFieldsArray, FormFieldType } from "@/lib/forms/fields";
 import { Button } from "../ui/button";
 import { DraggableFieldType } from "./content/DraggableFieldType";
+import { CanvasFormField } from "./FormCanvas";
+import { formsApi } from "@/lib/api/api-service";
+import { toast } from "sonner";
 
 type FormEditorSideBarProps = {
   onAddField?: (fieldType: FormFieldType) => void;
+  formFields: CanvasFormField[];
+  formId: string;
 };
 
 export default function FormEditorSideBar({
   onAddField,
+  formFields,
+  formId,
 }: FormEditorSideBarProps) {
-  const formFields = React.useMemo(
+  const [loading, isLoading] = React.useState(false);
+
+  const updateFormFields = async () => {
+    isLoading(true);
+    try {
+      await formsApi.updateFormFields(formId, formFields);
+      toast.success("Form fields updated");
+    } catch (e) {
+      toast.error("Failed to update form fields. Please try again.");
+      console.error("Error updating form fields:", e);
+    } finally {
+      isLoading(false);
+    }
+  };
+
+  const fields = React.useMemo(
     () =>
       FormFieldsArray.map((field) => ({
         type: field.type,
@@ -43,7 +65,7 @@ export default function FormEditorSideBar({
 
         <div className="space-y-6 flex-1">
           <div className="space-y-2">
-            {formFields.map((field) => (
+            {fields.map((field) => (
               <DraggableFieldType
                 key={field.type}
                 {...field}
@@ -53,9 +75,14 @@ export default function FormEditorSideBar({
           </div>
         </div>
         <Button
+          onClick={updateFormFields}
+          disabled={loading}
           variant="default"
           className="w-full mt-4 hover:cursor-pointer shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
         >
+          {loading && (
+            <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
+          )}
           Save Form
         </Button>
       </div>

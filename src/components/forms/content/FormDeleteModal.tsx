@@ -10,6 +10,7 @@ import { formsApi } from "@/lib/api/api-service";
 import Image from "next/image";
 import React, { SetStateAction, Dispatch, useEffect } from "react";
 import { TableForm } from "./forms-table";
+import { toast } from "sonner";
 
 type FormDeleteModal = {
   open: boolean;
@@ -40,7 +41,7 @@ export default function FormDeleteModal({
       setConfirmation("");
     } catch (e) {
       console.error("❌ Error deleting form:", e);
-      throw new Error("Error deleting form"); //! TODO Check toasts
+      toast.error("Error deleting form. Please try again later.");
     } finally {
       isLoading(false);
     }

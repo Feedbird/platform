@@ -1,28 +1,31 @@
 "use client";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import React from "react";
-import { ServicesMultiSelect } from "../ServicesMultiSelect";
-import { Service } from "@/lib/supabase/client";
+import React, { useEffect } from "react";
 import { ModalMultiSelect } from "./ModalMultiSelect";
 import { useFormStore } from "@/lib/store/forms-store";
+import { useForms } from "@/contexts/FormsContext";
 
 type ServiceSelectorProps = {
-  formServices: Service[];
+  formServices: { id: string; name: string }[];
 };
 
 export default function ServiceSelector({
   formServices,
 }: ServiceSelectorProps) {
   const { services } = useFormStore();
-  const [selectedServices, setSelectedServices] = React.useState<Service[]>(
-    formServices || []
-  );
+  const { activeForm } = useForms();
+  const [selectedServices, setSelectedServices] = React.useState<
+    { id: string; name: string }[]
+  >(formServices || []);
 
   const handleServicesChange = (selectedIds: string[]) => {
     setSelectedServices(
       services.filter((service) => selectedIds.includes(service.id.toString()))
     );
   };
+
+  useEffect(() => {
+    setSelectedServices(activeForm?.services || []);
+  }, [activeForm]);
 
   return (
     <header className="flex flex-col gap-5 p-6 max-w-[900px] mx-auto">

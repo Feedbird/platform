@@ -35,3 +35,34 @@ export function humanizeDate(date: Date | string): string {
 
   return `${month} ${day}, ${year}`;
 }
+
+/**
+ * Compares two plain arrays (of strings or numbers) for equality.
+ *
+ * @param a Array of strings or numbers
+ * @param b Second array of strings or numbers
+ * @returns Boolean indicating if arrays are equal (same length and same content no matter the order)
+ */
+export function plainArrayEqual<T extends string | number>(
+  a: Array<T>,
+  b: Array<T>
+): boolean {
+  if (a.length !== b.length) return false;
+
+  // Sort both arrays once, then compare
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+
+  return sortedA.every((val, index) => val === sortedB[index]);
+}
+
+/**
+ * Simple object deep equality check using JSON stringification.
+ *
+ * @param a Object 1
+ * @param b Object 2
+ * @returns Boolean indicating if objects are deeply equal (same keys and values)
+ */
+export function nestedObjectEqual<T>(a: T, b: T): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}

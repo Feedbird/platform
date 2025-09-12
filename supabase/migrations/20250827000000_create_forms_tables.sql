@@ -63,8 +63,6 @@ CREATE TABLE form_fields (
     required BOOLEAN NOT NULL DEFAULT false,
     config JSON NOT NULL DEFAULT '{}',
     
-    -- Unique constraints
-    UNIQUE(form_id, position),
 );
 
 -- Create indexes for better performance

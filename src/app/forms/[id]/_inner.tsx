@@ -1,6 +1,6 @@
 "use client";
 import FormEditorSideBar from "@/components/forms/FormEditorSideBar";
-import FormCanvas, { FormField } from "@/components/forms/FormCanvas";
+import FormCanvas, { CanvasFormField } from "@/components/forms/FormCanvas";
 import {
   DndContext,
   DragEndEvent,
@@ -28,10 +28,11 @@ import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
 type SelectedField = {
   id: string;
   type: string;
+  config: any;
 };
 
 export default function FormInnerVisualizer() {
-  const { setIsEditing, setActiveForm } = useForms();
+  const { setIsEditing, setActiveForm, activeForm } = useForms();
   const params = useParams();
   const formId = params.id as string;
 
@@ -40,7 +41,7 @@ export default function FormInnerVisualizer() {
   const [error, setError] = React.useState<string | null>(null);
 
   // Form fields state - local to the form editor
-  const [formFields, setFormFields] = React.useState<FormField[]>([]);
+  const [formFields, setFormFields] = React.useState<CanvasFormField[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
   const [selectedField, setSelectedField] =
@@ -61,12 +62,15 @@ export default function FormInnerVisualizer() {
       setLoading(true);
       setError(null);
       const { data } = await formsApi.getFormById(formId);
+      const { formFields } = await formsApi.getFormFields(formId);
+      setFormFields(
+        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
+      );
       setForm(data);
-      // Convert Form to TableForm and update the FormsContext with the active form
       const tableForm = {
         ...data,
         services: data.services || [],
-        submissions_count: 0, // Default values for table-specific properties
+        submissions_count: 0,
         fields_count: 0,
       };
       setActiveForm(tableForm);
@@ -79,15 +83,15 @@ export default function FormInnerVisualizer() {
   };
 
   React.useEffect(() => {
-    if (formId) {
+    if (formId && !activeForm) {
       retrieveForm(formId);
+    } else {
+      setForm(activeForm);
     }
-  }, [formId]);
-  // Set edit mode when this layout mounts
+  }, [formId, activeForm]);
   React.useEffect(() => {
     setIsEditing(true);
     return () => {
-      // Clean up edit mode and active form when leaving
       setIsEditing(false);
       setActiveForm(null);
     };
@@ -101,28 +105,24 @@ export default function FormInnerVisualizer() {
       return;
     }
 
-    // Check if dragging from sidebar (template) to form area
     if (active.data.current?.type === "template") {
       if (over.id === "form-canvas") {
         addNewField(active.id as FormFieldType);
       } else if (formFields.find((f) => f.id === over.id)) {
-        // Dropping over an existing field - insert before it
         const targetIndex = formFields.findIndex((f) => f.id === over.id);
-        addNewFieldAtPosition(active.id as string, targetIndex);
+        addNewFieldAtPosition(active.id as FormFieldType, targetIndex);
       }
     }
 
-    // Handle field reordering within the form
     if (active.id !== over.id && formFields.find((f) => f.id === active.id)) {
       setFormFields((fields) => {
         const oldIndex = fields.findIndex((f) => f.id === active.id);
         const newIndex = fields.findIndex((f) => f.id === over.id);
 
         const newFields = arrayMove(fields, oldIndex, newIndex);
-        // Update order values
         return newFields.map((field, index) => ({
           ...field,
-          order: index,
+          position: index,
         }));
       });
     }
@@ -132,13 +132,11 @@ export default function FormInnerVisualizer() {
   };
 
   const addNewField = (fieldType: FormFieldType) => {
-    const fieldDef = fieldDefs[fieldType];
-
-    const newField: FormField = {
+    const newField: CanvasFormField = {
       id: crypto.randomUUID(),
-      type: fieldType.toLowerCase(),
       position: formFields.length,
-      config: fieldDef.config,
+      type: fieldType.toLowerCase(),
+      config: UIFormFieldDefaults[fieldType].config,
     };
 
     setFormFields((prev) => {
@@ -147,15 +145,15 @@ export default function FormInnerVisualizer() {
     });
   };
 
-  const addNewFieldAtPosition = (fieldType: string, insertIndex: number) => {
-    const fieldDef =
-      fieldDefs[fieldType.toLowerCase() as keyof typeof fieldDefs];
-
-    const newField: FormField = {
+  const addNewFieldAtPosition = (
+    fieldType: FormFieldType,
+    insertIndex: number
+  ) => {
+    const newField: CanvasFormField = {
       id: crypto.randomUUID(),
       type: fieldType.toLowerCase(),
       position: insertIndex,
-      config: fieldDef.config,
+      config: UIFormFieldDefaults[fieldType].config,
     };
 
     setFormFields((prev) => {
@@ -220,7 +218,7 @@ export default function FormInnerVisualizer() {
     >
       <div className="w-full h-full flex bg-[#FBFBFB] overflow-hidden relative">
         <div className="flex-1 min-w-0 overflow-auto relative pb-10">
-          <ServiceSelector formServices={form.services || []} />
+          <ServiceSelector formServices={activeForm!.services || []} />
           <FormCanvas
             formFields={formFields}
             setFormFields={setFormFields}
@@ -228,18 +226,24 @@ export default function FormInnerVisualizer() {
             activeId={activeId}
             overId={overId}
             selectedFieldId={selectedField?.id || null}
-            onFieldSelect={(val: { id: string; type: string } | null) => {
+            onFieldSelect={(
+              val: { id: string; type: string; config: any } | null
+            ) => {
               setSelectedField(val);
             }}
           />
         </div>
-        <FormEditorSideBar onAddField={addNewField} />
+        <FormEditorSideBar
+          onAddField={addNewField}
+          formFields={formFields}
+          formId={form.id}
+        />
         <FormTypeConfig
           fieldId={selectedField?.id || ""}
           updateFieldConfig={updateFieldConfig}
           setVisible={setSelectedField}
           isVisible={selectedField !== null}
-          type={selectedField?.type || ""}
+          config={selectedField?.config}
         />
       </div>
 

@@ -11,9 +11,13 @@ import React, { SetStateAction, Dispatch } from "react";
 import { TableForm } from "./forms-table";
 import { ModalMultiSelect } from "./ModalMultiSelect";
 import { useFormStore } from "@/lib/store/forms-store";
+import { formsApi } from "@/lib/api/api-service";
+import { toast } from "sonner";
+import { nestedObjectEqual } from "@/lib/utils/transformers";
 
 type FormSettingsModalProps = {
   open: boolean;
+  setForm: Dispatch<SetStateAction<TableForm | null>>;
   form: TableForm;
   onClose: Dispatch<SetStateAction<boolean>>;
 };
@@ -27,6 +31,7 @@ type FormSettingsOptions = {
 export default function FormSettingsModal({
   open,
   onClose,
+  setForm,
   form,
 }: FormSettingsModalProps) {
   const [loading, isLoading] = React.useState(false);
@@ -41,6 +46,18 @@ export default function FormSettingsModal({
 
   const [settings, setSettings] =
     React.useState<FormSettingsOptions>(initialSettings);
+  const [hasChanged, setHasChanged] = React.useState(false);
+
+  React.useEffect(() => {
+    const changed = nestedObjectEqual(settings, initialSettings);
+    setHasChanged(!changed);
+  }, [settings]);
+
+  React.useEffect(() => {
+    if (form) {
+      setSettings(initialSettings);
+    }
+  }, [form]);
 
   if (!form) {
     return null;
@@ -61,6 +78,26 @@ export default function FormSettingsModal({
       ...prev,
       serviceIds: selectedIds,
     }));
+  };
+
+  const handleSave = async () => {
+    isLoading(true);
+    try {
+      const { data } = await formsApi.updateForm(form.id, {
+        title: settings.title,
+        description: settings.description,
+        services: settings.serviceIds as any,
+      });
+
+      setForm(data);
+      onClose(false);
+      toast.success("Form updated successfully!");
+    } catch (error) {
+      console.error("Error updating form:", error);
+      toast.error("Failed to update form. Please try again.");
+    } finally {
+      isLoading(false);
+    }
   };
 
   return (
@@ -87,6 +124,8 @@ export default function FormSettingsModal({
                 Title
               </span>
               <Input
+                autoFocus
+                disabled={loading}
                 id="title"
                 value={settings.title}
                 className="text-[#1C1D1F] py-2 px-3 rounded-[6px]"
@@ -98,6 +137,7 @@ export default function FormSettingsModal({
                 Choose Services
               </span>
               <ModalMultiSelect
+                loadingParent={loading}
                 options={services}
                 selectedValues={settings.serviceIds}
                 onSelectionChange={handleServicesChange}
@@ -111,6 +151,7 @@ export default function FormSettingsModal({
                 Description
               </span>
               <Textarea
+                disabled={loading}
                 id="description"
                 value={settings.description}
                 className="text-[#1C1D1F] py-2 px-3 rounded-[6px]"
@@ -120,9 +161,14 @@ export default function FormSettingsModal({
           </div>
           <div className="flex flex-row-reverse justify-between">
             <Button
+              disabled={loading || !hasChanged}
               variant="default"
               className="rounded-[6px] bg-[#4670F9] text-white text-[13px] font-medium hover:cursor-pointer"
+              onClick={handleSave}
             >
+              {loading && (
+                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
+              )}
               Save
             </Button>
             <Button

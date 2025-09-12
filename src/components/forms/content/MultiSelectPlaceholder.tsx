@@ -3,15 +3,19 @@ import React from "react";
 
 type Props = {
   values: { value: string; order: string }[];
+  placeholder?: string;
 };
 
-export default function MultiSelectPlaceholder({ values }: Props) {
+export default function MultiSelectPlaceholder({
+  values,
+  placeholder = "Select options",
+}: Props) {
   const [selectedValues, setSelectedValues] = React.useState<string[]>([]);
   return (
     <MultiSelect
       selectedValues={selectedValues}
       onSelectionChange={setSelectedValues}
-      placeholder="Select options"
+      placeholder={placeholder}
       options={values.map((v) => ({
         id: v.order,
         name: v.value,

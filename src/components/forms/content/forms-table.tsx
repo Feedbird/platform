@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { ColumnDef } from "@tanstack/table-core";
 import { ChevronDownIcon, ChevronUpIcon, ListPlus } from "lucide-react";
-import React, { Dispatch, SetStateAction } from "react";
+import React from "react";
 import FormsFiltersPopover from "./FormsFiltersPopover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -31,11 +31,13 @@ import { humanizeDate } from "@/lib/utils/transformers";
 import { useForms } from "@/contexts/FormsContext";
 import FormDeleteModal from "./FormDeleteModal";
 import FormSettingsModal from "./FormSettingsModal";
+import FormStatusBadge from "./configs/FormStatusBadge";
+import { PopoverPortal } from "@radix-ui/react-popover";
 
 export interface TableForm extends Form {
   submissions_count?: number;
   fields_count?: number;
-  services: { id: number; name: string }[];
+  services: { id: string; name: string }[];
 }
 
 export type FormsTableProps = {
@@ -43,12 +45,15 @@ export type FormsTableProps = {
 };
 
 export default function FormsTable({ forms }: FormsTableProps) {
+  // Hooks
+  const router = useRouter();
+  const { selectFormForEditing } = useForms();
+
+  // States
   const [tabledData, setTableData] = React.useState<TableForm[]>(forms);
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
-  const router = useRouter();
-  const { selectFormForEditing } = useForms();
   const [filterTree, setFilterTree] = React.useState<ConditionGroup>({
     id: "root",
     andOr: "AND",
@@ -64,14 +69,11 @@ export default function FormsTable({ forms }: FormsTableProps) {
     "lastUpdated",
     "actions",
   ]);
-
-  const { activeForm, setActiveForm } = useForms();
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>({
     name: "Name",
   });
-  function handleRowDragStart(e: React.DragEvent, fromIndex: number) {
-    e.dataTransfer.setData("text/plain", String(fromIndex));
-  }
+  const [localActiveForm, setLocalActiveForm] =
+    React.useState<TableForm | null>(null);
 
   const hasActiveFilters = React.useMemo(() => {
     // Check if any condition has selected values
@@ -101,11 +103,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
       {
         id: "rowIndex",
         header: () => <Checkbox checked={false} />,
-        size: 24,
-        minSize: 20,
+        size: 30,
+        maxSize: 32,
+        minSize: 30,
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
+
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
             <span className="text-xs text-[#5C5E63] font-extralight">
@@ -118,15 +122,15 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "name",
         accessorKey: "formName",
         header: () => (
-          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
+          <div className="flex items-center text-[#1C1D1F] text-sm font-medium">
             Name
           </div>
         ),
-        minSize: 250,
-        size: 350,
+        minSize: 275,
+        // size: 350,
         cell: ({ row }) => (
           <div
-            className="group flex items-center gap-3 py-1 hover:cursor-pointer"
+            className="group flex items-center py-1 hover:cursor-pointer"
             onClick={() => handleEditClick(row.original)}
           >
             {/* <span className="text-lg">{row.original.icon}</span> */}
@@ -157,17 +161,22 @@ export default function FormsTable({ forms }: FormsTableProps) {
         accessorKey: "services",
         header: () => (
           <div className="flex items-center text-[#1C1D1F] text-sm font-medium">
-            Type
+            Services
           </div>
         ),
         minSize: 120,
         size: 150,
         cell: ({ row }) => (
-          <span className="text-sm font-medium text-[#1C1D1F]">
-            {row.original.services.length
-              ? row.original.services[0].name
-              : "N/A"}
-          </span>
+          <div className="text-sm flex flex-row flex-wrap font-medium text-[#1C1D1F] gap-1">
+            {row.original.services.map((s) => (
+              <div
+                key={s.id}
+                className="border-1 rounded-[5px] border-[#D3D3D3] px-1.5"
+              >
+                {s.name}
+              </div>
+            ))}
+          </div>
         ),
       },
       {
@@ -178,8 +187,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
             Submissions
           </div>
         ),
-        minSize: 100,
-        size: 120,
+        minSize: 70,
+        size: 110,
         cell: ({ row }) => (
           <span className="text-xs font-medium text-[#1C1D1F]">
             {row.original.submissions_count || 0}
@@ -194,35 +203,11 @@ export default function FormsTable({ forms }: FormsTableProps) {
             Status
           </div>
         ),
-        minSize: 100,
-        size: 120,
+        size: 85,
+        minSize: 95,
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            {row.original.status === "published" ? (
-              <Badge className="bg-[#E5EEFF] rounded-[4px] border-border-primary border-1 flex justify-start py-[2px] pr-1.5 pl-[2px]">
-                <div className="bg-[#387DFF] content-center p-0.5 rounded-[3px] w-3.5 h-3.5">
-                  <Image
-                    src="/images/forms/send.svg"
-                    alt="send_icon_placeholder"
-                    width={9}
-                    height={9}
-                  />
-                </div>
-                <span>Published</span>
-              </Badge>
-            ) : (
-              <Badge className="bg-[#F4F7FA] rounded-[4px] border-border-primary border-1 flex justify-start py-[2px] pr-1.5 pl-[2px]">
-                <div className="bg-[#9B9DAB] content-center p-0.5 rounded-[3px] w-3.5 h-3.5">
-                  <Image
-                    src="/images/forms/minus.svg"
-                    alt="draft_icon_placeholder"
-                    width={9}
-                    height={9}
-                  />
-                </div>
-                <span>Draft</span>
-              </Badge>
-            )}
+            <FormStatusBadge status={row.original.status} />
           </div>
         ),
       },
@@ -234,8 +219,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
             Last updated
           </div>
         ),
-        minSize: 120,
-        size: 150,
+        size: 100,
         cell: ({ row }) => (
           <span className="text-sm text-gray-500">
             {humanizeDate(row.original.updated_at)}
@@ -253,7 +237,15 @@ export default function FormsTable({ forms }: FormsTableProps) {
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
             <Popover>
-              <PopoverTrigger className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4">
+              <PopoverTrigger
+                onClick={() =>
+                  setLocalActiveForm(
+                    tabledData.find((f) => f.id === row.original.id) ??
+                      tabledData[0]
+                  )
+                }
+                className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4"
+              >
                 <Image
                   src="/images/forms/actions.svg"
                   alt="actions_icon"
@@ -261,65 +253,68 @@ export default function FormsTable({ forms }: FormsTableProps) {
                   height={16}
                 />
               </PopoverTrigger>
-              <PopoverContent className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 max-w-[130px]">
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                  <Image
-                    src="/images/forms/write.svg"
-                    alt="write_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Rename</span>
-                </button>
-                <button
-                  className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                  onClick={() => {
-                    setActiveForm(row.original);
-                    setSettingsModalOpen(true);
-                  }}
+              <PopoverPortal>
+                <PopoverContent
+                  // onClick={() => isDropdownOpen(false)}
+                  className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 max-w-[130px]"
                 >
-                  <Image
-                    src="/images/boards/settings.svg"
-                    alt="settings_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Settings</span>
-                </button>
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                  <Image
-                    src="/images/boards/duplicate.svg"
-                    alt="duplicate_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Duplicate</span>
-                </button>
-                <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                  <Image
-                    src="/images/boards/share.svg"
-                    alt="share_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Share</span>
-                </button>
-                <button
-                  className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                  onClick={() => {
-                    setActiveForm(row.original);
-                    setDeleteModalOpen(true);
-                  }}
-                >
-                  <Image
-                    src="/images/boards/delete.svg"
-                    alt="delete_icon"
-                    width={14}
-                    height={14}
-                  />
-                  <span>Delete</span>
-                </button>
-              </PopoverContent>
+                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                    <Image
+                      src="/images/forms/write.svg"
+                      alt="write_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Rename</span>
+                  </button>
+                  <button
+                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+                    onClick={() => {
+                      setSettingsModalOpen(true);
+                    }}
+                  >
+                    <Image
+                      src="/images/boards/settings.svg"
+                      alt="settings_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Settings</span>
+                  </button>
+                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                    <Image
+                      src="/images/boards/duplicate.svg"
+                      alt="duplicate_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Duplicate</span>
+                  </button>
+                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+                    <Image
+                      src="/images/boards/share.svg"
+                      alt="share_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Share</span>
+                  </button>
+                  <button
+                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+                    onClick={() => {
+                      setDeleteModalOpen(true);
+                    }}
+                  >
+                    <Image
+                      src="/images/boards/delete.svg"
+                      alt="delete_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Delete</span>
+                  </button>
+                </PopoverContent>
+              </PopoverPortal>
             </Popover>
           </div>
         ),
@@ -354,30 +349,18 @@ export default function FormsTable({ forms }: FormsTableProps) {
       columnOrder,
     },
     onColumnOrderChange: setColumnOrder,
+    enableColumnResizing: true,
+    columnResizeMode: "onChange",
     debugTable: true,
     getCoreRowModel: getCoreRowModel(),
   });
-
-  const STICKY_COLUMNS = ["rowIndex", "name"] as const;
-
-  const STICKY_OFFSETS: Record<string, number> = {
-    rowIndex: 0,
-    name: 50, // width of rowIndex column
-  };
-
-  function isSticky(colId: string): colId is (typeof STICKY_COLUMNS)[number] {
-    return STICKY_COLUMNS.includes(colId as any);
-  }
 
   function stickyStyles(
     colId: string,
     zIndex = 10
   ): React.CSSProperties | undefined {
-    if (!isSticky(colId)) return;
-
     const styles: React.CSSProperties = {
       position: "sticky",
-      left: STICKY_OFFSETS[colId],
       zIndex,
     };
 
@@ -410,10 +393,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                 <TableHead
                   key={h.id}
                   className={cn(
-                    "relative text-left border-b border-r border-gray-200 px-2 py-2 h-8",
-                    "last:border-r-0",
-                    h.id === "rowIndex" && "border-l border-gray-200",
-                    h.id === "status" && "sticky-status-shadow"
+                    "relative text-left border-b border-r border-gray-200 px-2 py-2 h-8"
                   )}
                   style={{ width: h.getSize(), ...stickyStyles(h.id, 10) }}
                 >
@@ -514,7 +494,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
           />
         </div>
       </div>
-      <div className="bg-background border border-gray-200 overflow-hidden">
+      <div className="bg-background border border-gray-200 overflow-auto max-h-full pb-12">
         <table
           data-grouped="true"
           className="
@@ -530,29 +510,18 @@ export default function FormsTable({ forms }: FormsTableProps) {
                 key={row.id}
                 className="group hover:bg-[#FBFBFB] border-b border-gray-200"
               >
-                {row.getVisibleCells().map((cell, cellIndex) => (
+                {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
                     className={cn(
-                      "py-1.5 pr-4 pl-2 text-sm border-r border-gray-200 bg-white group-hover:bg-[#FBFBFB]",
-                      "last:border-r-0",
-                      cell.column.id === "rowIndex" &&
-                        "border-l border-gray-200"
+                      "py-1.5 px-2 text-sm border-r border-gray-200 bg-white group-hover:bg-[#FBFBFB]"
                     )}
                     style={{
                       width: cell.column.getSize(),
                       ...stickyStyles(cell.column.id),
                     }}
                   >
-                    {cell.column.id === "rowIndex" ? (
-                      <div className="flex px-2">
-                        <span className="text-[#5C5E63] text-xs font-light">
-                          {rowIndex + 1}
-                        </span>
-                      </div>
-                    ) : (
-                      flexRender(cell.column.columnDef.cell, cell.getContext())
-                    )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
               </tr>
@@ -560,18 +529,21 @@ export default function FormsTable({ forms }: FormsTableProps) {
           </tbody>
         </table>
       </div>
-      {forms.length === 0 && <EmptyFormsComponent />}
+      {tabledData.length === 0 && <EmptyFormsComponent />}
       <FormDeleteModal
         open={deleteModalOpen}
         onClose={setDeleteModalOpen}
         setForms={setTableData}
-        formId={activeForm?.id || ""}
+        formId={localActiveForm?.id || ""}
       />
-      <FormSettingsModal
-        open={settingsModalOpen && !!activeForm}
-        onClose={setSettingsModalOpen}
-        form={activeForm!}
-      />
+      {localActiveForm && (
+        <FormSettingsModal
+          setForm={setLocalActiveForm}
+          open={!!localActiveForm && settingsModalOpen}
+          onClose={setSettingsModalOpen}
+          form={localActiveForm!}
+        />
+      )}
     </>
   );
 }

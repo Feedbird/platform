@@ -2,19 +2,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ComplexObjectType } from "@/lib/forms/field.config";
-import {
-  DndContext,
-  DragEndEvent,
-  DragStartEvent,
-  closestCenter,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
+import { DragEndEvent } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import React from "react";
-import ItemCard from "./ItemCard";
 import DraggableItems, { DraggableItemType } from "./DraggableItems";
 
 export function TitleInput({
@@ -54,7 +44,7 @@ export function DescriptionInput({
   return (
     <div className="flex flex-col gap-1 w-full">
       <div className="flex flex-row gap-1 items-center">
-        <label className="text-[#5C5E63] text-sm font-normal ">
+        <label className="text-[#5C5E63] text-sm font-normal">
           Description
         </label>
         <p className="text-[#838488] font-light text-xs">(Optional)</p>
@@ -114,7 +104,7 @@ export function RequiredInput({
     <div className="flex flex-row justify-between w-full">
       <span className="text-[#5C5E63] text-sm font-normal">Required field</span>
       <Switch
-        value={fieldConfig.isRequired?.value || false}
+        checked={fieldConfig.isRequired?.value || false}
         onCheckedChange={(checked) =>
           setFieldConfig({
             ...fieldConfig,
@@ -143,7 +133,7 @@ export function AllowMultipleSelectionInput({
         Allow multiple selections
       </span>
       <Switch
-        value={fieldConfig.allowMultipleSelection?.value || false}
+        checked={fieldConfig.allowMultipleSelection?.value || false}
         onCheckedChange={(checked) =>
           setFieldConfig({
             ...fieldConfig,
