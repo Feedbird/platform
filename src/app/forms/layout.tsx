@@ -13,7 +13,6 @@ export default function FormsLayout({
   const { fetchServices } = useFormStore();
   const { activeWorkspaceId } = useFeedbirdStore();
   useEffect(() => {
-    console.log(activeWorkspaceId);
     fetchServices(activeWorkspaceId!);
   }, [fetchServices]);
   return (

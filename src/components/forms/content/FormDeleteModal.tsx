@@ -28,8 +28,6 @@ export default function FormDeleteModal({
   const [loading, isLoading] = React.useState(false);
   const [confirmation, setConfirmation] = React.useState<string>("");
 
-  console.log(`Delete modal: `, formId);
-
   const handleConfirmationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setConfirmation(e.target.value);
   };

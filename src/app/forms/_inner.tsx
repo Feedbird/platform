@@ -5,6 +5,7 @@ import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { useEffect } from "react";
 import Loading from "./[id]/loading";
 import { useForms } from "@/contexts/FormsContext";
+import { toast } from "sonner";
 
 export default function FormsInner() {
   const { activeWorkspaceId } = useFeedbirdStore();
@@ -18,10 +19,8 @@ export default function FormsInner() {
     try {
       const { data } = await getFormsByWorkspaceId(activeWorkspaceId);
       setForms(data as TableForm[]);
-      console.log("✅ Forms fetched successfully:", data);
     } catch (e) {
-      console.error("❌ Error fetching forms:", e);
-      //! TODO CHECK TOAST?
+      toast.error("Failed to fetch forms. Please try again.");
     } finally {
       setLoading(false);
     }

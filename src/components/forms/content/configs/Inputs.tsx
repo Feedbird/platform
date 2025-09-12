@@ -44,7 +44,7 @@ export function DescriptionInput({
   return (
     <div className="flex flex-col gap-1 w-full">
       <div className="flex flex-row gap-1 items-center">
-        <label className="text-[#5C5E63] text-sm font-normal ">
+        <label className="text-[#5C5E63] text-sm font-normal">
           Description
         </label>
         <p className="text-[#838488] font-light text-xs">(Optional)</p>

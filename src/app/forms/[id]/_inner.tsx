@@ -64,15 +64,13 @@ export default function FormInnerVisualizer() {
       const { data } = await formsApi.getFormById(formId);
       const { formFields } = await formsApi.getFormFields(formId);
       setFormFields(
-        formFields.sort((a, b) => (a.order || 0) - (b.order || 0)) // Ensure fields are sorted by order
+        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
       );
-      // Set the retrieved form data to state
       setForm(data);
-      // Convert Form to TableForm and update the FormsContext with the active form
       const tableForm = {
         ...data,
         services: data.services || [],
-        submissions_count: 0, // Default values for table-specific properties
+        submissions_count: 0,
         fields_count: 0,
       };
       setActiveForm(tableForm);
@@ -91,11 +89,9 @@ export default function FormInnerVisualizer() {
       setForm(activeForm);
     }
   }, [formId, activeForm]);
-  // Set edit mode when this layout mounts
   React.useEffect(() => {
     setIsEditing(true);
     return () => {
-      // Clean up edit mode and active form when leaving
       setIsEditing(false);
       setActiveForm(null);
     };
@@ -109,25 +105,21 @@ export default function FormInnerVisualizer() {
       return;
     }
 
-    // Check if dragging from sidebar (template) to form area
     if (active.data.current?.type === "template") {
       if (over.id === "form-canvas") {
         addNewField(active.id as FormFieldType);
       } else if (formFields.find((f) => f.id === over.id)) {
-        // Dropping over an existing field - insert before it
         const targetIndex = formFields.findIndex((f) => f.id === over.id);
         addNewFieldAtPosition(active.id as FormFieldType, targetIndex);
       }
     }
 
-    // Handle field reordering within the form
     if (active.id !== over.id && formFields.find((f) => f.id === active.id)) {
       setFormFields((fields) => {
         const oldIndex = fields.findIndex((f) => f.id === active.id);
         const newIndex = fields.findIndex((f) => f.id === over.id);
 
         const newFields = arrayMove(fields, oldIndex, newIndex);
-        // Update order values
         return newFields.map((field, index) => ({
           ...field,
           position: index,
@@ -140,8 +132,6 @@ export default function FormInnerVisualizer() {
   };
 
   const addNewField = (fieldType: FormFieldType) => {
-    const fieldDef = fieldDefs[fieldType];
-
     const newField: CanvasFormField = {
       id: crypto.randomUUID(),
       position: formFields.length,

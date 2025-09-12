@@ -25,7 +25,6 @@ export default function FieldConfigWrapper({
   updateConfig,
   setVisible,
 }: Props) {
-  console.log(config);
   return (
     <div className="p-4 flex flex-col gap-6">
       {config.title && (

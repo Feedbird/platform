@@ -35,7 +35,6 @@ export default function FormSettingsModal({
   form,
 }: FormSettingsModalProps) {
   const [loading, isLoading] = React.useState(false);
-  console.log(`Settings modal: `, form);
 
   const { services } = useFormStore();
 

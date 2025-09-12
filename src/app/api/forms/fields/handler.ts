@@ -66,7 +66,6 @@ export class FormFieldsHandler {
       const fieldsToUpdate = this.validateUpdates(formId, data, existingFields);
       const fieldsToInsert = this.mapInsertionFields(formId, newFields);
 
-      console.log(fieldsToUpdate, fieldsToInsert);
       await supabase
         .from("form_fields")
         .upsert([...fieldsToUpdate, ...fieldsToInsert]);
