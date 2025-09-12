@@ -104,7 +104,7 @@ export function RequiredInput({
     <div className="flex flex-row justify-between w-full">
       <span className="text-[#5C5E63] text-sm font-normal">Required field</span>
       <Switch
-        value={fieldConfig.isRequired?.value || false}
+        checked={fieldConfig.isRequired?.value || false}
         onCheckedChange={(checked) =>
           setFieldConfig({
             ...fieldConfig,
@@ -133,7 +133,7 @@ export function AllowMultipleSelectionInput({
         Allow multiple selections
       </span>
       <Switch
-        value={fieldConfig.allowMultipleSelection?.value || false}
+        checked={fieldConfig.allowMultipleSelection?.value || false}
         onCheckedChange={(checked) =>
           setFieldConfig({
             ...fieldConfig,
