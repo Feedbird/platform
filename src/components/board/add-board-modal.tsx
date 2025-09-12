@@ -319,14 +319,11 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
           </div>
 
           <DialogFooter className="flex justify-between sm:justify-between items-center">
-            <Button className="bg-white text-black cursor-pointer" variant="outline" onClick={onClose}>Back</Button>
+            <Button className="bg-backgroundHover hover:bg-backgroundHover/80 text-grey text-sm font-medium cursor-pointer border border-buttonStroke" variant="outline" onClick={onClose}>Back</Button>
             <div className="flex gap-2">
               <Button 
                 className={cn(
-                  "cursor-pointer",
-                  selectedTemplate.id === 'blank' 
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
-                    : "bg-white text-black hover:bg-gray-50"
+                  "bg-backgroundHover hover:bg-backgroundHover/80 text-grey text-sm font-medium cursor-pointer border border-buttonStroke",
                 )}
                 variant="outline"
                 disabled={selectedTemplate.id === 'blank'}
@@ -334,7 +331,7 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
               >
                 Use template
               </Button>
-              <Button className="bg-[#125AFF] text-white cursor-pointer" onClick={handleCreateBoard}>
+              <Button className="bg-main hover:bg-main/80 text-white text-sm font-medium cursor-pointer px-3 py-1.5" onClick={handleCreateBoard}>
                 Next
               </Button>
             </div>
