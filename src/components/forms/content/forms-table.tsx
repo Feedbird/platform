@@ -494,7 +494,11 @@ export default function FormsTable({ forms }: FormsTableProps) {
           />
         </div>
       </div>
-      <div className="bg-background border border-gray-200 overflow-auto max-h-full pb-12">
+      <div
+        className={`bg-background border border-gray-200 overflow-auto max-h-full ${
+          tabledData.length === 0 ? "" : "pb-12"
+        }`}
+      >
         <table
           data-grouped="true"
           className="

@@ -24,29 +24,29 @@ export default function EmptyFormsComponent() {
     }
   };
   return (
-    <div className="w-full h-full bg-[#F8F8F8] items-center justify-center flex flex-col p-4">
-      <div className="w-full md:max-w-[230px] flex flex-col gap-4">
+    <div className="w-full h-full bg-[#F8F8F8] items-center justify-center flex flex-col gap-4 p-4">
+      <div className="w-full md:max-w-[230px] flex flex-col gap-1">
         <div className="flex flex-col gap-2 p-5">
           <EmptyFormPreview iconColor="#A288DE" />
           <EmptyFormPreview iconColor="#FF8251" iconOpacity={0.6} />
           <EmptyFormPreview iconColor="#79C4E4" />
         </div>
         <div className="flex flex-col text-center">
-          <span className="font-semibold text-medium text-[#1C1D1F]">
+          <span className="font-semibold text-base text-[#1C1D1F] p-1">
             No forms yet
           </span>
-          <p className="font-normal text-[13px]">
-            No form created yet. Start by creating your first form.
-          </p>
+          <div className="flex flex-col font-normal text-[#5C5E63] text-sm">
+            <p>No form created yet.</p>
+            <p>Start by creating your first form.</p>
+          </div>
         </div>
-
-        <Button
-          onClick={handleInitialFormCreation}
-          className="bg-[#4670F9] hover:cursor-pointer self-center w-24 text-white py-1 px-[10px] rounded-[4px] font-medium text-[13px]"
-        >
-          + New Form
-        </Button>
       </div>
+      <Button
+        onClick={handleInitialFormCreation}
+        className="bg-[#4670F9] hover:cursor-pointer self-center w-24 text-white py-1 px-[10px] rounded-[4px] font-medium text-[13px]"
+      >
+        + New Form
+      </Button>
     </div>
   );
 }
