@@ -18,6 +18,18 @@ import MultiSelectPlaceholder from "./content/MultiSelectPlaceholder";
 import SpreadSheetTablePlaceholder from "./content/SpreadSheetTablePlaceholder";
 import OptionsPlaceholder from "./content/OptionsPlaceholder";
 import { Button } from "../ui/button";
+import {
+  AttachmentInput,
+  CheckboxInput,
+  DropdownInput,
+  OptionInput,
+  PageBreakInput,
+  SectionBreakInput,
+  SingleTextInput,
+  SpreadSheetInput,
+  TextAreaInput,
+} from "./content/FormInputs";
+import FieldRenderWrapper from "./content/FieldRenderWrapper";
 
 export interface CanvasFormField {
   id: string;
@@ -306,215 +318,7 @@ function SimpleFormField({
       </button>
 
       {/* Field Content */}
-      <div className="">
-        {field.type === "text" && (
-          <div className="flex flex-col gap-2.5">
-            <div className="flex flex-col gap-1">
-              <label className="block text-base text-[#1C1D1F]">
-                {field.config.title.value}
-              </label>
-              {field.config.description && (
-                <p className="text-sm text-[#838488] font-normal">
-                  {field.config.description.value}
-                </p>
-              )}
-            </div>
-            <Input
-              onClick={(e) => e.stopPropagation()}
-              placeholder={field.config?.placeholder?.value || ""}
-              className="w-full rounded-[6px] border bg-white border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#1C1D1F] focus:border-transparent"
-            />
-          </div>
-        )}
-
-        {field.type === "textarea" && (
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="block text-base text-[#1C1D1F]">
-                {field.config.title.value}
-              </label>
-              {field.config.description && (
-                <p className="text-sm text-[#838488] font-normal">
-                  {field.config.description.value}
-                </p>
-              )}
-            </div>
-            <Textarea
-              rows={5}
-              onClick={(e) => e.stopPropagation()}
-              placeholder={field.config?.placeholder?.value || ""}
-              className="w-full border bg-white border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 text-[#1C1D1F] focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        )}
-
-        {field.type === "dropdown" && (
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="block text-base text-[#1C1D1F]">
-                {field.config.title.value}
-              </label>
-              {field.config.helpText && (
-                <p className="text-sm text-[#838488] font-normal">
-                  {field.config.helpText.value}
-                </p>
-              )}
-            </div>
-            {!field.config?.allowMultipleSelection?.value ? (
-              <Select value="" onValueChange={() => {}}>
-                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F]">
-                  {field.config?.placeholder?.value || "Select an option"}
-                </SelectTrigger>
-                <SelectContent avoidCollisions>
-                  {field.config?.dropdownItems?.dropdownValues?.length ? (
-                    field.config.dropdownItems.dropdownValues
-                      .sort((i: ComplexObjectType) => i.order)
-                      .map((item: ComplexObjectType) => (
-                        <SelectItem key={item.order} value={item.value}>
-                          {item.value}
-                        </SelectItem>
-                      ))
-                  ) : (
-                    <SelectItem value="no-value">No values</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            ) : (
-              <MultiSelectPlaceholder
-                placeholder={field.config?.placeholder?.value}
-                values={
-                  field.config?.dropdownItems?.dropdownValues?.length
-                    ? field.config.dropdownItems.dropdownValues.sort(
-                        (i: ComplexObjectType) => i.order
-                      )
-                    : []
-                }
-              />
-            )}
-          </div>
-        )}
-
-        {field.type === "checkbox" && (
-          <div className="flex flex-row gap-3">
-            <Checkbox
-              className="size-5 bg-white"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            />
-            <div className="flex flex-col gap-0.5">
-              <label className="block text-base text-[#1C1D1F]">
-                {field.config.title.value}
-              </label>
-              {field.config.description && (
-                <p className="text-sm text-[#838488] font-normal">
-                  {field.config.description.value}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {field.type === "section-break" && (
-          <div className="flex flex-col gap-1.5">
-            <label className="block text-base text-[#1C1D1F]">
-              {field.config.title.value}
-            </label>
-            {field.config.description && (
-              <p className="text-sm text-[#838488] font-normal">
-                {field.config.description.value}
-              </p>
-            )}
-          </div>
-        )}
-        {field.type === "attachment" && (
-          <div className="flex flex-col gap-1.5">
-            <label className="block text-base text-[#1C1D1F]">
-              {field.config.title.value}
-            </label>
-            {field.config.description && (
-              <p className="text-sm text-[#838488] font-normal">
-                {field.config.description.value}
-              </p>
-            )}
-            <div className="w-full rounded-[6px] border-1 border-[#D3D3D3] p-4.5 border-dashed flex justify-center bg-white">
-              <div className="flex flex-col items-center gap-1">
-                <div className="p-2 rounded-full h-9 w-9 border-1 border-[#D3D3D3] flex items-center justify-center">
-                  <Image
-                    src="/images/forms/upload.svg"
-                    alt="upload_icon"
-                    width={16}
-                    height={16}
-                  />
-                </div>
-                <div className="flex flex-row gap-1">
-                  <span className="text-[#4670F9] font-semibold text-sm hover:underline">
-                    Click to upload
-                  </span>
-                  <p className="text-[#5C5E63] font-normal text-sm">
-                    or drag and drop
-                  </p>
-                </div>
-                <p className="text-[#5C5E63] font-normal text-sm">
-                  {field.config?.placeholder?.value || "SVG, PNG, JPG"}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {field.type === "spreadsheet" && (
-          <div className="flex flex-col gap-3">
-            <label className="block text-base text-[#1C1D1F]">
-              {field.config.title.value}
-            </label>
-            {field.config.description && (
-              <p className="text-sm text-[#838488] font-normal">
-                {field.config.description.value}
-              </p>
-            )}
-            <SpreadSheetTablePlaceholder config={field.config} />
-          </div>
-        )}
-
-        {field.type === "option" && (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="block text-base text-[#1C1D1F]">
-                {field.config.title.value}
-              </label>
-              {field.config.description && (
-                <p className="text-sm text-[#838488] font-normal">
-                  {field.config.description.value}
-                </p>
-              )}
-            </div>
-            <OptionsPlaceholder config={field.config} />
-          </div>
-        )}
-
-        {field.type === "page-break" && (
-          <div className="flex flex-row items-center justify-between gap-3">
-            <div className="flex flex-col">
-              {field.config.description && (
-                <p className="text-sm text-[#838488] font-normal">
-                  {field.config.description.value}
-                </p>
-              )}
-              <label className="block text-base text-[#1C1D1F]">
-                {field.config.title.value}
-              </label>
-            </div>
-            <Button
-              variant="default"
-              onClick={(e) => e.stopPropagation()}
-              className="mr-4 shadow-lg bg-[#4670F9] rounded-[6px] text-white cursor-pointer px-3 py-1.5"
-            >
-              Next
-            </Button>
-          </div>
-        )}
-      </div>
+      <FieldRenderWrapper type={field.type} config={field.config} />
     </div>
   );
 }

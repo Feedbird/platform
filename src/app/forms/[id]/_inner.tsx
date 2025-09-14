@@ -9,10 +9,10 @@ import {
   pointerWithin,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import React, { useEffect } from "react";
+import React from "react";
 import { useForms } from "@/contexts/FormsContext";
 import ServiceSelector from "@/components/forms/content/ServiceSelector";
-import { Form, FormField } from "@/lib/supabase/client";
+import { Form } from "@/lib/supabase/client";
 import {
   FormFieldsArray,
   FormFieldType,
@@ -24,7 +24,7 @@ import { useParams } from "next/navigation";
 import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
 import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
-import { nestedObjectEqual } from "@/lib/utils/transformers";
+import { useFormEditor } from "@/contexts/FormEditorContext";
 
 type SelectedField = {
   id: string;
@@ -33,13 +33,7 @@ type SelectedField = {
 };
 
 export default function FormInnerVisualizer() {
-  const {
-    setActiveForm,
-    activeForm,
-    setUnsavedChanges,
-    setIsEditing,
-    unsavedChanges,
-  } = useForms();
+  const { setIsEditing, setActiveForm, activeForm } = useForms();
   const params = useParams();
   const formId = params.id as string;
 
@@ -47,13 +41,12 @@ export default function FormInnerVisualizer() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Form fields state - local to the form editor
-  const [formFields, setFormFields] = React.useState<CanvasFormField[]>([]);
+  // const [formFields, setFormFields] = React.useState<CanvasFormField[]>([]);
+  const { formFields, setFormFields } = useFormEditor();
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
   const [selectedField, setSelectedField] =
     React.useState<SelectedField | null>(null); // For field settings/editing
-  const fieldsRef = React.useRef<FormField[] | null>(null);
 
   const updateFieldConfig = (fieldId: string, newConfig: any) => {
     setFormFields((prevFields) =>
@@ -63,29 +56,17 @@ export default function FormInnerVisualizer() {
     );
   };
 
-  useEffect(() => {
-    if (activeForm) {
-      if (!nestedObjectEqual(formFields, fieldsRef.current)) {
-        setUnsavedChanges(true);
-      } else setUnsavedChanges(false);
-    }
-  }, [formFields, setUnsavedChanges]);
-
-  console.log("Are there unsaved changes?: ", unsavedChanges);
+  console.log(formFields);
 
   const retrieveForm = async (formId: string) => {
     try {
-      console.log("🚀 Starting form retrieval for:", formId);
       setLoading(true);
       setError(null);
       const { data } = await formsApi.getFormById(formId);
-      console.log("✅ Form data received:", data?.title);
       const { formFields } = await formsApi.getFormFields(formId);
-      const fields = formFields.sort(
-        (a, b) => (a.position || 0) - (b.position || 0)
+      setFormFields(
+        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
       );
-      setFormFields(fields);
-      fieldsRef.current = fields;
       setForm(data);
       const tableForm = {
         ...data,
@@ -94,19 +75,17 @@ export default function FormInnerVisualizer() {
         fields_count: 0,
       };
       setActiveForm(tableForm);
-      console.log("✅ Form setup complete");
+      setIsEditing(true);
     } catch (err) {
-      console.error("❌ Error fetching form:", err);
+      console.error("Error fetching form:", err);
       setError(err instanceof Error ? err.message : "Failed to load form");
     } finally {
       setLoading(false);
-      console.log("🏁 Loading state set to false");
     }
   };
 
   React.useEffect(() => {
     retrieveForm(formId);
-    setIsEditing(true);
   }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {

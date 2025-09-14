@@ -42,7 +42,7 @@ export class FormHandler {
     try {
       const { data, error } = await supabase
         .from("forms")
-        .select(`*, services:services(id, name)`)
+        .select(`*, services:services(id, name, pricing)`)
         .eq("id", formId)
         .single();
 

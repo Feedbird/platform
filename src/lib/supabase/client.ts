@@ -183,6 +183,7 @@ export interface Service {
   workspace_id: string;
   form_id: string | null;
   name: string;
+  pricing: number;
 }
 
 export interface FormField {
