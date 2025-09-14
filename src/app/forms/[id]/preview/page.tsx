@@ -1,4 +1,5 @@
 "use client";
+import FieldRenderWrapper from "@/components/forms/content/FieldRenderWrapper";
 import { useFormEditor } from "@/contexts/FormEditorContext";
 import { useForms } from "@/contexts/FormsContext";
 import { Divider } from "@mui/material";
@@ -13,7 +14,7 @@ export default function Page() {
   console.log(`Previewing form ID: ${params.id}`, activeForm);
 
   return (
-    <div className="h-full">
+    <div className="h-full overflow-auto">
       <div className="w-full h-9 bg-[#EDF6FF] grid items-center justify-center border-1 border-[#EAE9E9]">
         <span className="text-[#133495] font-medium text-sm">
           This is a preview
@@ -40,9 +41,13 @@ export default function Page() {
                 {activeForm?.description}
               </p>
             </div>
-            <div>
-              {formFields.map((f) => (
-                <p key={f.id}>{f.position}</p>
+            <div className="flex flex-col gap-6">
+              {formFields.map((field) => (
+                <FieldRenderWrapper
+                  key={field.id}
+                  type={field.type}
+                  config={field.config}
+                />
               ))}
             </div>
           </div>
