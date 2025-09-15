@@ -20,8 +20,9 @@ export function ChannelsMultiSelectPopup({
   const [vals, setVals] = React.useState(value);
   const [showManageDialog, setShowManageDialog] = React.useState(false);
 
-  // Get all available pages from the brand
-  const availablePages = brand?.socialPages?.filter((page) => page.connected) ?? [];
+  // Get all available pages from the workspace
+  const ws = useFeedbirdStore(s => s.getActiveWorkspace());
+  const availablePages = (ws?.socialPages || []).filter((page: any) => page.connected) ?? [];
 
   function toggle(pageId: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -43,7 +44,7 @@ export function ChannelsMultiSelectPopup({
         {vals.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap p-2 bg-[#F8F8F8] border-b" style={{borderColor:'#E6E4E2'}}>
             {vals.map((id) => {
-              const pg = availablePages.find((p) => p.id === id);
+              const pg = availablePages.find((p: any) => p.id === id);
               if (!pg) return null;
               return (
                 <div key={id} className="relative">
@@ -67,7 +68,7 @@ export function ChannelsMultiSelectPopup({
 
         {/* Social Pages List */}
         <div className="flex flex-col px-2">
-          {availablePages.map((page) => (
+          {availablePages.map((page: any) => (
             <Button
               key={page.id}
               variant="ghost"
@@ -113,13 +114,11 @@ export function ChannelsMultiSelectPopup({
       </div>
 
       {/* Manage Socials Dialog */}
-      {brand && (
         <ManageSocialsDialog
-          brandId={brand.id}
+          workspaceId={ws?.id || ''}
           open={showManageDialog}
           onOpenChange={setShowManageDialog}
         />
-      )}
     </>
   );
 }

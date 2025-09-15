@@ -12,11 +12,11 @@ export async function GET(request: Request): Promise<Response> {
   /* --------------------- query-params ------------------------------ */
   const code = searchParams.get('code')
   const state = searchParams.get('state')
-  const brandId = state?.split('brandId:')[1]?.split(':')[0]
+  const workspaceId = state?.split('workspaceId:')[1]?.split(':')[0] || state?.split('brandId:')[1]?.split(':')[0] // Support both for backward compatibility
   const method = state?.includes('method:') ? state?.split('method:')[1] : undefined
   const err  = searchParams.get('error_description') || searchParams.get('error')
 
-  if (err || !code || !brandId) {
+  if (err || !code || !workspaceId) {
     return html(`<script>
       window.opener.postMessage({ 
         error: ${JSON.stringify(err || 'Missing parameters')}
@@ -33,7 +33,7 @@ export async function GET(request: Request): Promise<Response> {
 
     // 2. Save to database FIRST
     const savedData = await socialAccountApi.saveSocialAccount({
-      brandId,
+      workspaceId: workspaceId!,
       platform: sp,
       account,
       pages
@@ -43,7 +43,7 @@ export async function GET(request: Request): Promise<Response> {
     return html(`<script>
       window.opener.postMessage({
         success: true,
-        brandId: ${JSON.stringify(brandId)},
+        workspaceId: ${JSON.stringify(workspaceId)},
         accountId: ${JSON.stringify(savedData.account.id)},
         pages: ${JSON.stringify(savedData.pages)}
       }, "*");

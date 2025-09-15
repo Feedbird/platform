@@ -60,6 +60,7 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
 }: ChannelsEditCellProps) {
   const [open, setOpen] = React.useState(false);
   const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
   const checkPageStatus = useFeedbirdStore((s) => s.checkPageStatus);
 
   // Local state to hold selected page IDs while user is editing
@@ -92,18 +93,18 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
     e.stopPropagation();
     e.preventDefault();
     
-    if (!brand) return;
+    if (!ws && !brand) return;
     
     try {
-      await checkPageStatus(brand.id, pageId);
+      await checkPageStatus(brand?.id || '', pageId);
     } catch (error) {
       console.error("Failed to reconnect page:", error);
     }
   };
 
-  // Find the page objects from brand.socialPages
+  // Find the page objects from workspace.socialPages
   const selectedPageDetails: SocialPage[] =
-    brand?.socialPages?.filter((page) => selectedPages.includes(page.id)) ?? [];
+    (ws?.socialPages || []).filter((page: SocialPage) => selectedPages.includes(page.id)) ?? [];
 
   // For the small "cluster" icon display, we group pages by .platform
   const platformCounts = selectedPageDetails.reduce(
@@ -282,7 +283,7 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
         sideOffset={6}
       >
         <ChannelsMultiSelectPopup
-          // This component should show a list of brand.socialPages
+          // This component should show a list of workspace.socialPages
           // and let the user pick which ones are selected
           value={selectedPages}
           onChange={handleTempChange}

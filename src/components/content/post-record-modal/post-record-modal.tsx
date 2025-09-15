@@ -89,21 +89,21 @@ import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-se
 // Wrapper component to convert between platform names and page IDs
 function PlatformsEditor({ post }: { post: Post }) {
   const updatePost = useFeedbirdStore((s) => s.updatePost);
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
   const [open, setOpen] = React.useState(false);
   
   // Convert platform names to page IDs
   const platformToPageIds = (platforms: Platform[]): string[] => {
-    if (!brand?.socialPages) return [];
-    return brand.socialPages
+    const pages = ws?.socialPages || [];
+    return pages
       .filter(page => page.connected && platforms.includes(page.platform))
       .map(page => page.id);
   };
   
   // Convert page IDs to platform names
   const pageIdsToPlatforms = (pageIds: string[]): Platform[] => {
-    if (!brand?.socialPages) return [];
-    return brand.socialPages
+    const pages = ws?.socialPages || [];
+    return pages
       .filter(page => pageIds.includes(page.id))
       .map(page => page.platform);
   };
@@ -113,7 +113,7 @@ function PlatformsEditor({ post }: { post: Post }) {
 
   React.useEffect(() => {
     setSelectedPages(platformToPageIds(post.platforms));
-  }, [post.platforms, brand?.socialPages]);
+  }, [post.platforms, ws?.socialPages]);
 
   // Called whenever user picks/unpicks pages in the multi-select
   const handleTempChange = (v: string[]) => {
@@ -127,8 +127,8 @@ function PlatformsEditor({ post }: { post: Post }) {
     setOpen(false);
   };
 
-  // Find the page objects from brand.socialPages
-  const selectedPageDetails = brand?.socialPages?.filter((page) => selectedPages.includes(page.id)) ?? [];
+  // Find the page objects from workspace.socialPages
+  const selectedPageDetails = (ws?.socialPages || []).filter((page) => selectedPages.includes(page.id));
 
   // For the small "cluster" icon display, we group pages by .platform
   const platformCounts = selectedPageDetails.reduce(
@@ -296,27 +296,27 @@ function FormatEditor({ post }: { post: Post }) {
 // Settings editor component using the same style as SettingsCell
 function SettingsEditor({ post }: { post: Post }) {
   const updatePost = useFeedbirdStore((s) => s.updatePost);
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
   const [open, setOpen] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
 
   // Get the first TikTok page ID if TikTok is selected
   const tiktokPageId = React.useMemo(() => {
-    if (!post.platforms.includes('tiktok') || !brand?.socialPages) return null;
-    const tiktokPage = brand.socialPages.find(page => 
+    if (!post.platforms.includes('tiktok') || !ws?.socialPages) return null;
+    const tiktokPage = ws.socialPages.find(page => 
       page.platform === 'tiktok' && page.connected
     );
     return tiktokPage?.id || null;
-  }, [post.platforms, brand?.socialPages]);
+  }, [post.platforms, ws?.socialPages]);
 
   // Get the first Google Business page ID if Google is selected
   const googlePageId = React.useMemo(() => {
-    if (!post.platforms.includes('google') || !brand?.socialPages) return null;
-    const googlePage = brand.socialPages.find(page => 
+    if (!post.platforms.includes('google') || !ws?.socialPages) return null;
+    const googlePage = ws.socialPages.find(page => 
       page.platform === 'google' && page.connected
     );
     return googlePage?.id || null;
-  }, [post.platforms, brand?.socialPages]);
+  }, [post.platforms, ws?.socialPages]);
 
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
@@ -829,11 +829,10 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
   onClose(): void;
   onPostSelect?: (postId: string) => void;
 }) {
-  const { updatePost, brand, activeWorkspace } = useStoreWithEqualityFn(
+  const { updatePost, activeWorkspace } = useStoreWithEqualityFn(
     useFeedbirdStore,
     (s) => ({
       updatePost: s.updatePost,
-      brand: s.getActiveBrand(),
       activeWorkspace: s.getActiveWorkspace(),
     }),
     shallow

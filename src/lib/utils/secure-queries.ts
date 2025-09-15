@@ -62,15 +62,15 @@ export const SOCIAL_ACCOUNT_WITH_TOKENS = `
 `;
 
 // Helper functions for common secure queries
-export const getSecureSocialAccountsQuery = (brandId: string) => ({
+export const getSecureSocialAccountsQuery = (workspaceId: string) => ({
   from: 'social_accounts',
   select: SECURE_SOCIAL_ACCOUNT_WITH_PAGES,
-  eq: { brand_id: brandId },
+  eq: { workspace_id: workspaceId },
   order: { created_at: 'asc' }
 });
 
-export const getSecureBrandWithSocialQuery = (brandId: string) => ({
-  from: 'brands',
+export const getSecureWorkspaceWithSocialQuery = (workspaceId: string) => ({
+  from: 'workspaces',
   select: `*, social_accounts (${SECURE_SOCIAL_ACCOUNT_WITH_PAGES})`,
-  eq: { id: brandId }
+  eq: { id: workspaceId }
 });

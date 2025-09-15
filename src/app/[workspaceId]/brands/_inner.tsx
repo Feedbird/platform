@@ -160,7 +160,7 @@ export function BrandsInner () {
             </span>
 
             {/* socials */ }
-            <ChannelIcons channels={brand.socialPages?.map(p => p.platform) || []}/>
+            <ChannelIcons channels={(getActiveWorkspace()?.socialPages || []).map(p => p.platform)} />
 
             {/* colors */ }
             <ColorStrip   colors  ={brand.styleGuide?.colors || []}/>

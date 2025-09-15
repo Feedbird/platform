@@ -25,7 +25,7 @@ import {
  */
 export default function SocialShortcuts() {
   const pathname = usePathname();
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const { state } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
@@ -34,8 +34,8 @@ export default function SocialShortcuts() {
     setIsClient(true);
   }, []);
 
-  // Get all connected pages from brand
-  const pages = brand?.socialPages?.filter((p) => p.connected) ?? [];
+  // Get all connected pages from workspace
+  const pages = workspace?.socialPages?.filter((p) => p.connected) ?? [];
   
   // On the server, and on the first client render, return null to match server-rendered HTML.
   if (!isClient || !pages.length) {

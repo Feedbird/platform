@@ -215,9 +215,6 @@ export interface Brand {
     fonts?: string[];
     colors?: string[];
   };
-  platforms?: Platform[];
-  socialAccounts: SocialAccount[];
-  socialPages: SocialPage[];
   link?: string;
   voice?: string;
   prefs?: string;
@@ -235,6 +232,8 @@ export interface Workspace {
   channels?: MessageChannel[];
   boards: Board[];
   brand?: Brand; // Single brand per workspace (one-to-one relationship)
+  socialAccounts?: SocialAccount[];
+  socialPages?: SocialPage[];
 }
 
 
@@ -354,7 +353,7 @@ export interface FeedbirdStore {
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
   setActiveBoard: (id: string) => void;
-  connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId" | "authToken">) => string;
+  connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId">) => string;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
   confirmSocialPage: (brandId: string, pageId: string) => Promise<void>;
   disconnectSocialPage: (brandId: string, pageId: string) => Promise<void>;
@@ -883,7 +882,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 throw new Error("No brand found for workspace");
               }
 
-              const connectedPages = brand.socialPages.filter(page => 
+              const connectedPages = (workspace.socialPages || []).filter((page: SocialPage) => 
                 post.pages.includes(page.id) && page.connected
               );
 
@@ -891,7 +890,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 throw new Error("No connected pages found for this post");
               }
 
-              const publishPromises = connectedPages.map(async (page) => {
+              const publishPromises = connectedPages.map(async (page: SocialPage) => {
                 const ops = getPlatformOperations(page.platform);
                 if (!ops) {
                   throw new Error(`Platform operations not found for ${page.platform}`);
@@ -918,9 +917,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                     text: post.caption.default,
                     media: {
                       type: post.format,
-                      urls: processedBlocks.flatMap(block => {
+                      urls: processedBlocks.flatMap((block: any) => {
                         // from the version i want to pick the latest one
-                        const latestVersion = block.versions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                        const latestVersion = block.versions.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                         return [latestVersion.file?.url]
                       })
                     }
@@ -949,7 +948,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               const results = await Promise.all(publishPromises);
               
               // Update post status based on results
-              const hasErrors = results.some(r => r.result.error);
+              const hasErrors = results.some((r: any) => r.result.error);
               if (hasErrors) {
                 updatePost(postId, { status: "Failed Publishing" });
                 throw new Error("Some posts failed to publish");
@@ -987,7 +986,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               }
 
               const brand = workspace.brand;
-              const page = brand.socialPages.find(p => p.id === pageId);
+              const page = (workspace.socialPages || []).find((p: SocialPage) => p.id === pageId);
               if (!page) throw new Error("Page not found");
 
               const ops = getPlatformOperations(page.platform);
@@ -1005,12 +1004,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   nextPage: { ...state.nextPage, [pageId]: fetched.nextPage },
                   workspaces: state.workspaces.map((w) => ({
                     ...w,
-                    brand: w.brand && w.brand.id === brandId ? {
-                      ...w.brand,
-                      socialPages: w.brand.socialPages.map((sp) =>
-                        sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
-                      ),
-                    } : w.brand,
+                    socialPages: (w.socialPages || []).map((sp: SocialPage) =>
+                      sp.id === pageId ? { ...sp, lastSyncAt: new Date() } : sp
+                    ),
                   })),
                 };
               });
@@ -1244,29 +1240,15 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((state) => ({
             workspaces: state.workspaces.map((w) => ({
               ...w,
-              brand: w.brand && w.brand.id === brandId ? (() => {
-                const b = w.brand!;
-                // 1) Check if an existing account has the same real accountId
-                const existingAccount = b.socialAccounts?.find(
-                  (a) => a.accountId === account.accountId
-                );
+              // Update workspace-level accounts
+              socialAccounts: (() => {
+                const existingAccount = (w.socialAccounts || []).find((a: SocialAccount) => a.accountId === account.accountId);
                 if (existingAccount) {
                   localReturnId = existingAccount.id;
-                  return {
-                    ...b,
-                    socialAccounts: b.socialAccounts.map((a) =>
-                      a.accountId === account.accountId
-                        ? {
-                            ...a,
-                            connected: true,
-                            status: "active",
-                          }
-                        : a
-                    ),
-                  };
+                  return (w.socialAccounts || []).map((a: SocialAccount) =>
+                    a.accountId === account.accountId ? { ...a, connected: true, status: "active" } : a
+                  );
                 }
-
-                // 2) Otherwise, create a new local account
                 const newAccount: SocialAccount = {
                   id: localReturnId,
                   name: account.name,
@@ -1275,11 +1257,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   connected: true,
                   status: "active",
                 };
-                return {
-                  ...b,
-                  socialAccounts: [...(b.socialAccounts || []), newAccount],
-                };
-              })() : w.brand,
+                return [ ...(w.socialAccounts || []), newAccount ];
+              })(),
             })),
           }));
           return localReturnId;
@@ -1289,56 +1268,35 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((state) => {
             const newWs = state.workspaces.map((ws) => ({
               ...ws,
-              brand: ws.brand && ws.brand.id === brandId ? (() => {
-                const existing = ws.brand!.socialPages ?? [];
-
-                // For each page => if we find a matching pageId, update accountId.
-                const incoming = pages.map((p) => {
-                  // does brand already have a page w/ pageId === p.pageId?
-                  const found = existing.find((ex) => ex.pageId === p.pageId);
+              // Workspace-level pages
+              socialPages: (() => {
+                const existing: SocialPage[] = ws.socialPages || [];
+                const incoming = pages.map((p: SocialPage) => {
+                  const found = existing.find((ex: SocialPage) => ex.pageId === p.pageId);
                   if (found) {
-                    // Reassign this page's accountId
-                    return {
-                      ...found,
-                      accountId: localAccountId,
-                      connected: found.connected, 
-                      status: toPageStatus(found.status),
-                    };
+                    return { ...found, accountId: localAccountId, connected: found.connected, status: toPageStatus(found.status) } as SocialPage;
                   } else {
-                    // new page => set accountId to localAccountId, connected=false
-                    return {
-                      ...p,
-                      accountId: localAccountId,
-                      connected: false,
-                      status: toPageStatus(p.status),
-                    };
+                    return { ...p, accountId: localAccountId, connected: false, status: toPageStatus(p.status) } as SocialPage;
                   }
                 });
-
-                // Merge them back into the brand's socialPages
                 const merged = [...existing];
-                incoming.forEach((pg) => {
-                  const idx = merged.findIndex((m) => m.pageId === pg.pageId);
-                  if (idx >= 0) {
-                    merged[idx] = pg; // update existing
-                  } else {
-                    merged.push(pg); // new
-                  }
+                incoming.forEach((pg: SocialPage) => {
+                  const idx = merged.findIndex((m: SocialPage) => m.pageId === pg.pageId);
+                  if (idx >= 0) merged[idx] = pg; else merged.push(pg);
                 });
-
-                return { ...ws.brand!, socialPages: merged };
-              })() : ws.brand,
+                return merged;
+              })(),
             }));
             return { workspaces: newWs };
           });
         },
 
         confirmSocialPage: async (brandId, pageId) => {
-          const brand = get().getActiveBrand();
-          if (!brand || brand.id !== brandId) return;
+          const ws = get().getActiveWorkspace();
+          if (!ws) return;
 
-          const page = brand.socialPages.find((p) => p.id === pageId);
-          if (!page) throw new Error(`Page with ID ${pageId} not found in brand.`);
+          const page = (ws?.socialPages || []).find((p: SocialPage) => p.id === pageId);
+          if (!page) throw new Error(`Page with ID ${pageId} not found.`);
           
           /* TikTok profile == page; no page-level API available in sandbox.
            * We therefore skip the remote connect call and simply flip the
@@ -1348,7 +1306,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             return;
           }
 
-          const acct = brand.socialAccounts.find((a) => a.id === page.accountId);
+          const acct = (ws?.socialAccounts || []).find((a: SocialAccount) => a.id === page.accountId);
           if (!acct) throw new Error(`Account for page ${pageId} not found.`);
 
           const ops = getPlatformOperations(page.platform);
@@ -1359,27 +1317,14 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             const finalPage = await ops.connectPage(acct, page.pageId);
 
             // store final results in feedbird store
-            set((s) => {
-              const newWs = s.workspaces.map((ws) => ({
-                ...ws,
-                brand: ws.brand && ws.brand.id === brandId ? {
-                  ...ws.brand,
-                  socialPages: ws.brand.socialPages.map((sp) => {
-                    if (sp.id === pageId) {
-                      // Overwrite with finalPage info
-                      return {
-                        ...sp,
-                        ...finalPage,
-                        connected: true,
-                        status: finalPage.status ?? 'active',
-                      };
-                    }
-                    return sp;
-                  }),
-                } : ws.brand,
-              }));
-              return { workspaces: newWs };
-            });
+            set((s) => ({
+              workspaces: s.workspaces.map((w) => ({
+                ...w,
+                socialPages: (w.socialPages || []).map((sp: SocialPage) =>
+                  sp.id === pageId ? { ...sp, ...finalPage, connected: true, status: finalPage.status ?? 'active' } : sp
+                ),
+              })),
+            }));
           } catch (error) {
             console.error(`Failed to connect page ${page.name}:`, error);
             // Propagate the error to be caught by the UI
@@ -1389,14 +1334,16 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         disconnectSocialPage: async (brandId: string, pageId: string) => {
           try {
+            const ws = get().getActiveWorkspace();
+            if (!ws) throw new Error('No active workspace');
             // Use proper API service instead of raw fetch
             await socialAccountApi.disconnectSocial({
-              brandId,
+              workspaceId: ws.id,
               pageId
             });
 
             // Reload social accounts to get updated data
-            await get().loadSocialAccounts(brandId);
+            await get().loadSocialAccounts(ws.id);
           } catch (error) {
             console.error('Failed to disconnect page:', error);
             throw error;
@@ -1407,26 +1354,24 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set((state) => ({
             workspaces: state.workspaces.map((w) => ({
               ...w,
-              brand: w.brand && w.brand.id === brandId ? {
-                ...w.brand,
-                socialAccounts: w.brand.socialAccounts.map((a) => {
-                  if (a.id === accountId) {
-                    return {
-                      ...a,
-                      status: a.connected ? "active" : "disconnected",
-                    };
-                  }
-                  return a;
-                }),
-              } : w.brand,
+              socialAccounts: (w.socialAccounts || []).map((a: SocialAccount) => {
+                if (a.id === accountId) {
+                  return {
+                    ...a,
+                    status: a.connected ? "active" : "disconnected",
+                  } as SocialAccount;
+                }
+                return a;
+              }),
             })),
           }));
         },
 
         checkPageStatus: async (brandId: string, pageId: string) => {
           const { workspaces } = get();
-          const brand = findBrand(workspaces, brandId);
-          const page = findPage(brand, pageId);
+          const ws = workspaces.find((w: Workspace) => w.brand?.id === brandId);
+          const pages = (ws?.socialPages || []) as SocialPage[];
+          const page = pages.find(p => p.id === pageId);
           if (!page) return;
 
           try {
@@ -1450,12 +1395,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           const st = get();
 
           // locate page & ops
-          const brand = st.workspaces
-            .map(w => w.brand)
-            .filter(b => b !== undefined)
-            .find(b => b!.id === brandId);
-          const page  = brand?.socialPages.find(p => p.id === pageId);
-          if (!brand || !page) {
+          const ws = st.getActiveWorkspace();
+          const page  = (ws?.socialPages || []).find((p: SocialPage) => p.id === pageId);
+          if (!ws || !page) {
             console.error("deletePagePost: page not found");
             return;
           }
@@ -1488,7 +1430,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         loadSocialAccounts: async (brandId: string) => {
           try {
             // Use proper API service instead of raw fetch
-            const accounts = await socialAccountApi.getSocialAccounts(brandId);
+            const ws = get().getActiveWorkspace();
+            if (!ws) throw new Error('No active workspace');
+            const accounts = await socialAccountApi.getSocialAccounts(ws.id);
             
             // Extract all pages from all accounts into a flat array (exclude sensitive tokens)
             const allPages = accounts.flatMap((acc: any) => 
@@ -1512,24 +1456,22 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             set((state) => ({
               workspaces: state.workspaces.map(ws => ({
                 ...ws,
-                brand: ws.brand && ws.brand.id == brandId ? {
-                  ...ws.brand,
-                  socialAccounts: accounts.map((acc: any) => ({
-                    id: acc.id,
-                    platform: acc.platform,
-                    name: acc.name,
-                    accountId: acc.account_id,
-                    connected: acc.connected,
-                    status: acc.status,
-                    metadata: acc.metadata,
-                    socialPages: acc.social_pages || []
-                  })),
-                  socialPages: allPages
-                } : ws.brand
+                socialAccounts: accounts.map((acc: any) => ({
+                  id: acc.id,
+                  platform: acc.platform,
+                  name: acc.name,
+                  accountId: acc.account_id,
+                  connected: acc.connected,
+                  status: acc.status,
+                  metadata: acc.metadata,
+                  socialPages: acc.social_pages || []
+                })),
+                socialPages: allPages,
+                brand: ws.brand
               }))
             }));
 
-            console.log('state.workspaces', get().workspaces.find(ws => ws.brand?.id == brandId));
+            console.log('state.workspaces', get().workspaces.find(w => w.id == ws.id));
 
           } catch (error) {
             console.error('Failed to load social accounts:', error);
@@ -1549,7 +1491,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
 
         getPageCounts: () => {
-          const brand = get().getActiveBrand();
+          const ws = get().getActiveWorkspace();
           const platforms = [
             "facebook", "instagram", "linkedin", "pinterest",
             "youtube", "tiktok", "google"
@@ -1565,7 +1507,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
             google: 0,
           };
 
-          brand?.socialPages?.forEach((p) => {
+          (ws?.socialPages || []).forEach((p) => {
             if (p.connected && p.status === "active") {
               const platform = p.platform as Platform;
               result[platform] = (result[platform] ?? 0) + 1;
@@ -2897,11 +2839,11 @@ function toPageStatus(val: any): import("@/lib/social/platforms/platform-types")
 const findBrand = (workspaces: Workspace[], brandId: string) =>
   workspaces.map(w => w.brand).filter(b => b !== undefined).find(b => b!.id === brandId);
 
-const findPage = (brand: Brand | undefined, pageId: string) =>
-  brand?.socialPages.find(p => p.id === pageId);
+const findPage = (workspace: Workspace | undefined, pageId: string) =>
+  workspace?.socialPages?.find((p: SocialPage) => p.id === pageId);
 
-const findAccount = (brand: Brand | undefined, accountId: string) =>
-  brand?.socialAccounts.find(a => a.id === accountId);
+const findAccount = (workspace: Workspace | undefined, accountId: string) =>
+  workspace?.socialAccounts?.find((a: SocialAccount) => a.id === accountId);
 
 /**
  * Determines the correct post status based on publish date and current status
@@ -2953,11 +2895,9 @@ function updatePage(
   return {
     workspaces: state.workspaces.map(w => ({
       ...w,
-      brand: w.brand && w.brand.id === brandId
-        ? { ...w.brand, socialPages: w.brand.socialPages.map(p => p.id === pageId
-          ? { ...p, ...updates }
-          : p)
-        } : w.brand
+      socialPages: (w.socialPages || []).map((p: SocialPage) => p.id === pageId
+        ? { ...p, ...updates }
+        : p),
     }))
   };
 }

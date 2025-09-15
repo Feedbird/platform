@@ -46,11 +46,11 @@ export async function GET(req: NextRequest) {
         if (brandError) {
           error = brandError;
         } else if (brandData) {
-          // Get social accounts without sensitive tokens
+          // Get social accounts without sensitive tokens (workspace scoped)
           const { data: accounts, error: accountsError } = await supabase
             .from('social_accounts')
             .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
-            .eq('brand_id', id);
+            .eq('workspace_id', brandData.workspace_id);
             
           if (accountsError) {
             error = accountsError;
@@ -102,11 +102,11 @@ export async function GET(req: NextRequest) {
         if (brandError) {
           error = brandError;
         } else if (brandData) {
-          // Get social accounts without sensitive tokens
+          // Get social accounts without sensitive tokens (workspace scoped)
           const { data: accounts, error: accountsError } = await supabase
             .from('social_accounts')
             .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
-            .eq('brand_id', brandData.id);
+            .eq('workspace_id', workspace_id);
             
           if (accountsError) {
             error = accountsError;

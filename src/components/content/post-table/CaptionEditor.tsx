@@ -82,15 +82,15 @@ export function CaptionEditor({
     height: 420,
   });
   
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
 
   const availablePlatforms = React.useMemo(() => {
-    if (!brand) return [];
+    const pages = ws?.socialPages || [];
     const platformIds = post.pages
-      .map((pageId) => brand.socialPages.find((p) => p.id === pageId)?.platform)
+      .map((pageId) => pages.find((p) => p.id === pageId)?.platform)
       .filter((p): p is Platform => !!p);
     return [...new Set(platformIds)];
-  }, [post, brand]);
+  }, [post, ws?.socialPages]);
 
   const [activePlatform, setActivePlatform] = React.useState<Platform>(
     availablePlatforms[0] || "instagram"

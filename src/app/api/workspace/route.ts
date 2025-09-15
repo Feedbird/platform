@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { SECURE_SOCIAL_ACCOUNT_WITH_PAGES } from '@/lib/utils/secure-queries'
 import { z } from 'zod'
 
 // Validation schemas
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     if (id) {
       // Get specific workspace
-      const { data, error } = await supabase
+      const { data: ws, error } = await supabase
         .from('workspaces')
         .select('*')
         .eq('id', id)
@@ -38,14 +39,28 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      if (!data) {
+      if (!ws) {
         return NextResponse.json(
           { error: 'Workspace not found' },
           { status: 404 }
         )
       }
 
-      return NextResponse.json(data)
+      // Attach social accounts (workspace-scoped) with pages
+      const { data: accounts, error: accountsError } = await supabase
+        .from('social_accounts')
+        .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
+        .eq('workspace_id', id)
+
+      if (accountsError) {
+        console.error('Error fetching workspace social accounts:', accountsError)
+        return NextResponse.json(
+          { error: 'Failed to fetch workspace socials' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ ...ws, social_accounts: accounts || [] })
     } else if (email) {
       /* ------------------------------------------------------------
        *  Workspaces & boards the user has access to (creator + invites)
@@ -123,7 +138,30 @@ export async function GET(req: NextRequest) {
         boards = boardData || []
       }
 
-      // 5️⃣  Assemble response with role + board access rules
+      // 5️⃣  Fetch social accounts for these workspaces (workspace-scoped)
+      let socialsByWorkspace: Record<string, any[]> = {}
+      if (allWorkspaceIds.length) {
+        const { data: socials, error: socialsErr } = await supabase
+          .from('social_accounts')
+          .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
+          .in('workspace_id', allWorkspaceIds)
+
+        if (socialsErr) {
+          console.error('Error fetching workspace socials:', socialsErr)
+          return NextResponse.json(
+            { error: 'Failed to fetch workspace socials' },
+            { status: 500 }
+          )
+        }
+
+        for (const acc of socials || []) {
+          const wsid = (acc as any).workspace_id
+          if (!socialsByWorkspace[wsid]) socialsByWorkspace[wsid] = []
+          socialsByWorkspace[wsid].push(acc)
+        }
+      }
+
+      // 6️⃣  Assemble response with role + board access rules and socials
       const buildWs = (ws: any, role: 'admin' | 'member') => {
         let wsBoards: any[] = []
         if (role === 'admin') {
@@ -138,7 +176,7 @@ export async function GET(req: NextRequest) {
             wsBoards = boards.filter(b => allowedBoardIds.includes(b.id))
           }
         }
-        return { ...ws, role, boards: wsBoards }
+        return { ...ws, role, boards: wsBoards, social_accounts: socialsByWorkspace[ws.id] || [] }
       }
 
       const responsePayload = [
@@ -392,7 +430,7 @@ export async function DELETE(req: NextRequest) {
       if (brands && brands.length > 0) {
         const brandIds = brands.map(b => b.id)
 
-        // Delete social pages for these brands
+        // Delete social pages for these brands (backward compat if any remain)
         const { error: socialPagesError } = await supabase
           .from('social_pages')
           .delete()
@@ -403,7 +441,7 @@ export async function DELETE(req: NextRequest) {
           throw new Error('Failed to delete social pages')
         }
 
-        // Delete social accounts for these brands
+        // Delete social accounts for these brands (backward compat if any remain)
         const { error: socialAccountsError } = await supabase
           .from('social_accounts')
           .delete()
@@ -413,6 +451,27 @@ export async function DELETE(req: NextRequest) {
           console.error('Error deleting social accounts:', socialAccountsError)
           throw new Error('Failed to delete social accounts')
         }
+      }
+
+      // Also delete workspace-scoped social entities
+      const { error: socialPagesByWorkspaceError } = await supabase
+        .from('social_pages')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (socialPagesByWorkspaceError) {
+        console.error('Error deleting social pages by workspace:', socialPagesByWorkspaceError)
+        throw new Error('Failed to delete social pages')
+      }
+
+      const { error: socialAccountsByWorkspaceError } = await supabase
+        .from('social_accounts')
+        .delete()
+        .eq('workspace_id', id)
+
+      if (socialAccountsByWorkspaceError) {
+        console.error('Error deleting social accounts by workspace:', socialAccountsByWorkspaceError)
+        throw new Error('Failed to delete social accounts')
       }
 
       // 7. Delete brands

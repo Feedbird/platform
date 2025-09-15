@@ -107,10 +107,10 @@ export default function BrandKitDrawer(
           </Field>
 
           <Field label="Social media channel">
-            {brand.socialPages?.length
+            {(ws?.socialPages || []).length
               ? (
                 <div className="flex gap-2">
-                  {brand.socialPages.map(sp=>(
+                  {(ws?.socialPages || []).map(sp=>(
                     <span key={sp.id}>{sp.platform}</span>
                   ))}
                 </div>

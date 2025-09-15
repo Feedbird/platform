@@ -7,34 +7,34 @@ import { SOCIAL_ACCOUNT_WITH_TOKENS } from '@/lib/utils/secure-queries';
 
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
   try {
-    const { pageId, brandId } = await req.json();
+    const { pageId, workspaceId } = await req.json();
 
-    if (!brandId) {
-      return NextResponse.json({ error: 'Brand ID is required' }, { status: 400 });
+    if (!workspaceId) {
+      return NextResponse.json({ error: 'Workspace ID is required' }, { status: 400 });
     }
 
     if (!pageId) {
       return NextResponse.json({ error: 'Page ID is required' }, { status: 400 });
     }
 
-    // Get the brand with social accounts and pages (secure query)
-    const { data: brand, error: brandError } = await supabase
-      .from('brands')
+    // Get the workspace's social accounts and pages (secure query)
+    const { data: workspace, error: workspaceError } = await supabase
+      .from('workspaces')
       .select(`
         *,
         social_accounts (
           ${SOCIAL_ACCOUNT_WITH_TOKENS}
         )
       `)
-      .eq('id', brandId)
+      .eq('id', workspaceId)
       .single();
 
-    if (brandError || !brand) {
-      return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+    if (workspaceError || !workspace) {
+      return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
     // Handle disconnection
-    const page = brand.social_accounts
+    const page = workspace.social_accounts
       ?.flatMap((acc: any) => acc.social_pages || [])
       .find((p: any) => p.id === pageId);
 
@@ -42,7 +42,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    const account = brand.social_accounts?.find((a: any) => a.id === page.account_id);
+    const account = workspace.social_accounts?.find((a: any) => a.id === page.account_id);
     if (!account) {
       return NextResponse.json({ error: 'Account not found' }, { status: 404 });
     }
@@ -64,7 +64,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
     }
 
     // Check if this is the only page for this account
-    const pagesForSameAccount = brand.social_accounts
+    const pagesForSameAccount = workspace.social_accounts
       ?.flatMap((acc: any) => acc.social_pages || [])
       .filter((p: any) => p.account_id === page.account_id) || [];
 

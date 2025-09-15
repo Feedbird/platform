@@ -14,18 +14,17 @@ import { Platform, SocialPage } from "@/lib/social/platforms/platform-types";
 
 export default function BrandSocialIcons() {
   const [isClient, setIsClient] = React.useState(false);
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const ws = useFeedbirdStore(s => s.getActiveWorkspace());
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
 
-  if (!brand || !isClient) {
+  if (!ws || !isClient) {
     return null;
   }
-
-  const pages: SocialPage[] = brand.socialPages ?? [];
+  const pages: SocialPage[] = (ws?.socialPages || []) as SocialPage[];
 
   // If no connected pages, optionally show a simpler UI:
   if (!pages.length) {
@@ -35,7 +34,7 @@ export default function BrandSocialIcons() {
           Connect Social Page
         </Button>
         <ManageSocialsDialog
-          brandId={brand.id}
+          workspaceId={ws?.id || ''}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
         />
@@ -99,7 +98,7 @@ export default function BrandSocialIcons() {
 
       {/* Reusable dialog component */}
       <ManageSocialsDialog
-        brandId={brand.id}
+        workspaceId={ws?.id || ''}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />

@@ -1583,12 +1583,12 @@ export function PostTable({
     }
   }, [captionLocked]);
 
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
 
   const pageIdToPlatformMap = React.useMemo(() => {
-    if (!brand?.socialPages) return new Map<string, Platform>();
-    return new Map(brand.socialPages.map(p => [p.id, p.platform]));
-  }, [brand?.socialPages]);
+    const pages: any[] = (ws?.socialPages || []) ?? [];
+    return new Map(pages.map((p: any) => [p.id, p.platform] as const));
+  }, [ws?.socialPages]);
 
   // Now we define the functions INSIDE the component, so they have access to the map
   const platformsFilterFn: FilterFn<Post> = React.useCallback((row, colId, filterValues: string[]) => {
@@ -1618,7 +1618,7 @@ export function PostTable({
   }, [pageIdToPlatformMap]);
 
   const availablePlatforms = React.useMemo(() => {
-    if (!brand) return [];
+    const pages: any[] = (ws?.socialPages || []) ?? [];
 
     // Gather all page IDs from the table's posts
     const allPageIds = new Set<string>();
@@ -1628,17 +1628,17 @@ export function PostTable({
       }
     }
 
-    // For each page in brand.socialPages, if its ID is in allPageIds,
+    // For each page in workspace/brand pages, if its ID is in allPageIds,
     // add page.platform to a set
     const platformSet = new Set<Platform>();
-    for (const sp of brand.socialPages) {
+    for (const sp of pages) {
       if (allPageIds.has(sp.id)) {
         platformSet.add(sp.platform);
       }
     }
 
     return Array.from(platformSet);
-  }, [tableData, brand]);
+  }, [tableData, ws?.socialPages]);
 
   const togglePlatform = (e: any, platform: Platform) => {
     e.stopPropagation();

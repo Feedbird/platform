@@ -298,7 +298,7 @@ export function BlocksPreview({
           {/* Plus button - shown at the right when selected */}
           {isSelected && !shouldShowDropOverlay && (
               <div
-                className="flex flex-row h-full items-center justify-center bg-elementStroke/50 hover:bg-elementStroke p-1 mr-0.5 w-6 cursor-pointer"
+                className="flex flex-row h-full items-center justify-center bg-elementStroke/50 hover:bg-elementStroke p-1 mr-0.5 w-6 rounded-[2px] cursor-pointer"
                 data-preview-exempt
                 onClick={handlePlusButtonClick}
               >

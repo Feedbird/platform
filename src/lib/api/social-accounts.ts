@@ -3,18 +3,18 @@ import { SECURE_SOCIAL_ACCOUNT_WITH_PAGES } from '@/lib/utils/secure-queries';
 
 export const socialAccountApi = {
   async saveSocialAccount(data: {
-    brandId: string;
+    workspaceId: string;
     platform: string;
     account: any;
     pages: any[];
   }) {
-    const { brandId, platform, account, pages } = data;
+    const { workspaceId, platform, account, pages } = data;
 
     // check if account already exists
     const { data: existingAccount, error: existingAccountError } = await supabase
       .from('social_accounts')
       .select('*')
-      .eq('brand_id', brandId)
+      .eq('workspace_id', workspaceId)
       .eq('account_id', account.accountId)
       .eq('platform', platform)
       .maybeSingle()
@@ -70,7 +70,7 @@ export const socialAccountApi = {
     const { data: savedAccount, error: accountError } = await supabase
       .from('social_accounts')
       .insert({
-        brand_id: brandId,
+        workspace_id: workspaceId,
         name: account.name,
         account_id: account.accountId,
         platform: platform,
@@ -93,7 +93,7 @@ export const socialAccountApi = {
 
     // 2. Save social pages
     const pagesToInsert = pages.map(page => ({
-      brand_id: brandId,
+      workspace_id: workspaceId,
       account_id: savedAccount.id,
       page_id: page.pageId,
       name: page.name,
@@ -128,13 +128,12 @@ export const socialAccountApi = {
     };
   },
 
-  async getSocialAccounts(brandId: string) {
+  async getSocialAccounts(workspaceId: string) {
     const { data, error } = await supabase
       .from('social_accounts')
       .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
-      .eq('brand_id', brandId)
+      .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false });
-
     if (error) {
       console.error('Failed to fetch social accounts:', error);
       throw new Error('Failed to load accounts');

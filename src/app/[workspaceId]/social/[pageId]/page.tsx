@@ -21,7 +21,7 @@ export default function SocialPagePosts() {
   const syncPostHistory  = useFeedbirdStore(s => s.syncPostHistory);
   const nextPage         = useFeedbirdStore(s => s.nextPage[pageId]);
   const deletePagePost   = useFeedbirdStore(s => s.deletePagePost);
-  const brand            = useFeedbirdStore(s => s.getActiveBrand());
+  const workspace        = useFeedbirdStore(s => s.getActiveWorkspace());
   
   // Check if the store is currently syncing this page
   const isStoreSyncing   = usePostHistoryLoading(pageId);
@@ -36,8 +36,8 @@ export default function SocialPagePosts() {
 
   // Memoize the page to avoid unnecessary re-renders
   const page = useMemo(() => {
-    return brand?.socialPages.find(p => p.id === pageId);
-  }, [brand?.socialPages, pageId]);
+    return workspace?.socialPages?.find((p: any) => p.id === pageId);
+  }, [workspace?.socialPages, pageId]);
 
   // Memoize the history to avoid unnecessary re-renders
   const history = useMemo(() => {
@@ -109,8 +109,8 @@ export default function SocialPagePosts() {
     return <div className="p-4 text-gray-500">No active brand selected.</div>;
   }
 
-  if (!brand) {
-    return <div className="p-4 text-gray-500">Loading brand...</div>;
+  if (!workspace) {
+    return <div className="p-4 text-gray-500">Loading workspace...</div>;
   }
 
   if (!page) {

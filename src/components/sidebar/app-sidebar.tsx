@@ -826,9 +826,9 @@ export function AppSidebar() {
         initialRules={pendingBoardData?.rules}
       />
 
-      {activeBrand && (
+      {activeWorkspace && (
         <ManageSocialsDialog
-          brandId={activeBrand.id}
+          workspaceId={activeWorkspace.id}
           open={isManageSocialsOpen}
           onOpenChange={setIsManageSocialsOpen}
         />

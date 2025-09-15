@@ -174,8 +174,8 @@ export default function NotificationsPane() {
 		}
 	}
 
-	// Get disconnected social pages from the active brand
-	const disconnectedPages = activeBrand?.socialPages?.filter(page =>
+	// Get disconnected social pages from the active workspace
+	const disconnectedPages = activeWorkspace?.socialPages?.filter(page =>
 		!page.connected || page.status === 'disconnected' || page.status === 'expired' || page.status === 'error'
 	) || []
 
@@ -1152,9 +1152,9 @@ export default function NotificationsPane() {
 			</Dialog>
 
 			{/* Manage Socials Dialog */}
-			{activeBrand && (
+			{activeWorkspace && (
 				<ManageSocialsDialog
-					brandId={activeBrand.id}
+					workspaceId={activeWorkspace.id}
 					open={isManageSocialsOpen}
 					onOpenChange={setIsManageSocialsOpen}
 				/>

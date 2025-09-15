@@ -45,14 +45,12 @@ const PLATFORM_CONNECT_OPTIONS = {
 };
 
 export function ManageSocialsDialog(props: {
-  brandId: string; open: boolean; onOpenChange(o: boolean): void;
+  workspaceId: string; open: boolean; onOpenChange(o: boolean): void;
 }) {
-  const { brandId, open, onOpenChange } = props;
+  const { workspaceId, open, onOpenChange } = props;
   const { executeWithLoading, isLoading } = useAsyncLoading();
 
-  const brand = useFeedbirdStore(
-    s => s.getActiveWorkspace()?.brand
-  );
+  const ws = useFeedbirdStore(s => s.getActiveWorkspace());
 
   const connectAccount    = useFeedbirdStore(s => s.connectSocialAccount);
   const stagePages        = useFeedbirdStore(s => s.stageSocialPages);
@@ -76,11 +74,11 @@ export function ManageSocialsDialog(props: {
       }
       
       if (e.data?.success) {
-        const { brandId } = e.data;
+        const { workspaceId } = e.data;
         
         executeWithLoading(async () => {
           // Load fresh data from database
-          await handleOAuthSuccess(brandId);
+          await handleOAuthSuccess(workspaceId);
           toast.success("Account connected successfully!");
         }, "Connecting account...").finally(() => {
           if (connectingPlatform) {
@@ -93,7 +91,7 @@ export function ManageSocialsDialog(props: {
     
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [brandId, handleOAuthSuccess, executeWithLoading, connectingPlatform]);
+  }, [workspaceId, handleOAuthSuccess, executeWithLoading, connectingPlatform]);
 
   /* ————————— Handle popup closure ————————— */
   useEffect(() => {
@@ -105,11 +103,11 @@ export function ManageSocialsDialog(props: {
       const left = window.screenX + (window.outerWidth  - w) / 2;
       const top  = window.screenY + (window.outerHeight - h) / 2;
       
-      // Include brandId and connection method in the URL
+      // Include workspaceId and connection method in the URL
       const connectionMethod = sessionStorage.getItem('instagram_connection_method');
       const url = connectionMethod 
-        ? `/api/oauth/${connectingPlatform}?brandId=${brandId}&method=${connectionMethod}`
-        : `/api/oauth/${connectingPlatform}?brandId=${brandId}`;
+        ? `/api/oauth/${connectingPlatform}?workspaceId=${workspaceId}&method=${connectionMethod}`
+        : `/api/oauth/${connectingPlatform}?workspaceId=${workspaceId}`;
       
       popup = window.open(
         url, 
@@ -142,11 +140,11 @@ export function ManageSocialsDialog(props: {
   }
 
   const createApiHandler = (
-    apiCall: (brandId: string, pageId: string) => Promise<any>,
+    apiCall: (workspaceId: string, pageId: string) => Promise<any>,
     pageId: string,
     messages: { loading: string; success: string; error: string }
   ) => () => {
-   return executeWithLoading(() => apiCall(brandId, pageId), messages);
+   return executeWithLoading(() => apiCall(workspaceId, pageId), messages);
   }
 
   const handleConfirmPage = (pageId: string) =>
@@ -170,9 +168,9 @@ export function ManageSocialsDialog(props: {
      error: "Failed to check page status."
    });
    
-  if (!brand) return null;
+  if (!ws) return null;
 
-  const pages = brand.socialPages;
+  const pages = ws.socialPages || [];
   const [connected, pending] = [
     pages.filter(p => p.connected),
     pages.filter(p => !p.connected),

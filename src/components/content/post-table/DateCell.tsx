@@ -586,12 +586,12 @@ function ConfirmScheduleDialog({
   open: boolean;
 }) {
   const { executeWithLoading } = useAsyncLoading();
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const dt = post.publish_date ? formatDateTime(new Date(post.publish_date)) : "(none)";
 
   // Get the actual pages for post.pages
   const selectedPages: SocialPage[] =
-    brand?.socialPages?.filter((pg) => post.pages.includes(pg.id)) ?? [];
+    workspace?.socialPages?.filter((pg) => post.pages.includes(pg.id)) ?? [];
 
   // Group them by platform for a small icon cluster
   const platformCounts = selectedPages.reduce((acc, pg) => {
@@ -665,12 +665,12 @@ function ConfirmPublishNowDialog({
   open: boolean;
 }) {
   const { executeWithLoading } = useAsyncLoading();
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const dt = post.publish_date ? formatDateTime(new Date(post.publish_date)) : "(none)";
 
   // Get the actual pages for post.pages
   const selectedPages: SocialPage[] =
-    brand?.socialPages?.filter((pg) => post.pages.includes(pg.id)) ?? [];
+    workspace?.socialPages?.filter((pg) => post.pages.includes(pg.id)) ?? [];
 
   // Group them by platform for a small icon cluster
   const platformCounts = selectedPages.reduce((acc, pg) => {

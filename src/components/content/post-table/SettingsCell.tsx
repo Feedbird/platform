@@ -94,25 +94,25 @@ export function SettingsEditCell({
   enterEdit,
   exitEdit,
 }: Props) {
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
+  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
 
   // Get the first TikTok page ID if TikTok is selected
   const tiktokPageId = React.useMemo(() => {
-    if (!platforms.includes('tiktok') || !brand?.socialPages) return null;
-    const tiktokPage = brand.socialPages.find(page => 
+    if (!platforms.includes('tiktok') || !ws?.socialPages) return null;
+    const tiktokPage = ws.socialPages.find(page => 
       page.platform === 'tiktok' && page.connected
     );
     return tiktokPage?.id || null;
-  }, [platforms, brand?.socialPages]);
+  }, [platforms, ws?.socialPages]);
 
   // Get the first Google Business page ID if Google is selected
   const googlePageId = React.useMemo(() => {
-    if (!platforms.includes('google') || !brand?.socialPages) return null;
-    const googlePage = brand.socialPages.find(page => 
+    if (!platforms.includes('google') || !ws?.socialPages) return null;
+    const googlePage = ws.socialPages.find(page => 
       page.platform === 'google' && page.connected
     );
     return googlePage?.id || null;
-  }, [platforms, brand?.socialPages]);
+  }, [platforms, ws?.socialPages]);
 
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {

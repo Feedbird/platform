@@ -53,6 +53,8 @@ async function apiRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   const response = await fetch(url, {
+    // Ensure auth cookies are sent to API routes
+    credentials: 'include',
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
@@ -729,8 +731,28 @@ export const storeApi = {
       // mark loading in store
       useFeedbirdStore.setState({ workspacesLoading: true });
 
+      if (!email) {
+        console.warn('No email provided for loading workspaces');
+        useFeedbirdStore.setState({
+          workspaces: [],
+          workspacesLoading: false,
+          workspacesInitialized: true,
+        });
+        return [];
+      }
+
       const workspaces = await workspaceApi.getWorkspacesByCreator(email);
       const store = useFeedbirdStore.getState();
+
+      if (!workspaces || workspaces.length === 0) {
+        console.warn('No workspaces found for user:', email);
+        useFeedbirdStore.setState({
+          workspaces: [],
+          workspacesLoading: false,
+          workspacesInitialized: true,
+        });
+        return [];
+      }
 
       // Transform workspaces - boards are already included from the API
       const transformedWorkspaces = workspaces.map((ws) => {
@@ -754,40 +776,91 @@ export const storeApi = {
           logo: ws.logo,
           role: ws.role, // Include the role from API
           boards,
-          brands: [], // Will be populated below
+          brand: undefined, // Will be populated below
+          // Map workspace.social_accounts (from API) to client shape
+          socialAccounts: ((ws as any).social_accounts || []).map((acc: any) => ({
+            id: acc.id,
+            platform: acc.platform,
+            name: acc.name,
+            accountId: acc.account_id,
+            connected: acc.connected,
+            status: acc.status,
+            socialPages: (acc.social_pages || []).map((p: any) => ({
+              id: p.id,
+              platform: p.platform,
+              entityType: p.entity_type || 'page',
+              name: p.name,
+              pageId: p.page_id,
+              connected: p.connected,
+              status: p.status,
+              accountId: acc.id,
+              statusUpdatedAt: p.status_updated_at ? new Date(p.status_updated_at) : undefined,
+              lastSyncAt: p.last_sync_at ? new Date(p.last_sync_at) : undefined,
+              followerCount: p.follower_count,
+              postCount: p.post_count,
+              metadata: p.metadata,
+            })),
+          })),
+          socialPages: (((ws as any).social_accounts || []).flatMap((acc: any) => acc.social_pages || [])).map((p: any) => ({
+            id: p.id,
+            platform: p.platform,
+            entityType: p.entity_type || 'page',
+            name: p.name,
+            pageId: p.page_id,
+            connected: p.connected,
+            status: p.status,
+            accountId: p.account_id,
+            statusUpdatedAt: p.status_updated_at ? new Date(p.status_updated_at) : undefined,
+            lastSyncAt: p.last_sync_at ? new Date(p.last_sync_at) : undefined,
+            followerCount: p.follower_count,
+            postCount: p.post_count,
+            metadata: p.metadata,
+          })),
         };
       });
 
-      // Fetch brand and posts for each workspace
+      // Fetch brand and posts for each workspace (socials already included with workspace)
       const workspacesWithBrands = await Promise.all(
         transformedWorkspaces.map(async (ws) => {
-          const brandResp = await brandApi.getBrand({
-            workspace_id: ws.id,
-            include_social: true,
-          });
-          const brand = brandResp || null;
+          let brand = null;
+          try {
+            const brandResp = await brandApi.getBrand({
+              workspace_id: ws.id,
+              include_social: false, // Social data is now at workspace level
+            });
+            brand = brandResp || null;
+          } catch (error) {
+            console.warn(`Failed to load brand for workspace ${ws.id}:`, error);
+            // Continue without brand data
+          }
 
           // Load channels for this workspace and transform to store shape
-          const channelsResp = await channelApi.getChannel({
-            workspace_id: ws.id,
-          });
-          const channelsDb = Array.isArray(channelsResp)
-            ? channelsResp
-            : channelsResp
-            ? [channelsResp]
-            : [];
-          const channels = channelsDb.map((c: any) => ({
-            id: c.id,
-            workspaceId: c.workspace_id,
-            createdBy: c.created_by,
-            name: c.name,
-            description: c.description,
-            members: c.members,
-            icon: c.icon,
-            color: c.color,
-            createdAt: c.created_at ? new Date(c.created_at) : new Date(),
-            updatedAt: c.updated_at ? new Date(c.updated_at) : new Date(),
-          }));
+          let channels: any[] = [];
+          try {
+            const channelsResp = await channelApi.getChannel({
+              workspace_id: ws.id,
+            });
+            const channelsDb = Array.isArray(channelsResp)
+              ? channelsResp
+              : channelsResp
+              ? [channelsResp]
+              : [];
+            channels = channelsDb.map((c: any) => ({
+              id: c.id,
+              workspaceId: c.workspace_id,
+              createdBy: c.created_by,
+              name: c.name,
+              description: c.description,
+              members: c.members,
+              icon: c.icon,
+              color: c.color,
+              createdAt: c.created_at ? new Date(c.created_at) : new Date(),
+              updatedAt: c.updated_at ? new Date(c.updated_at) : new Date(),
+            }));
+          } catch (error) {
+            console.warn(`Failed to load channels for workspace ${ws.id}:`, error);
+            // Continue without channels data
+          }
 
           // Load posts for each board
           const boardsWithPosts = await Promise.all(
@@ -842,6 +915,7 @@ export const storeApi = {
             })
           );
 
+          // ws at this point already has social_accounts mapped in transformedWorkspaces
           return {
             ...ws,
             boards: boardsWithPosts,
@@ -855,44 +929,9 @@ export const storeApi = {
                   link: (brand as any).link,
                   voice: (brand as any).voice,
                   prefs: (brand as any).prefs,
-                  platforms: (brand as any).platforms || [],
-                  socialAccounts: ((brand as any).social_accounts || []).map(
-                    (acc: any) => ({
-                      id: acc.id,
-                      platform: acc.platform,
-                      name: acc.name,
-                      accountId: acc.account_id,
-                      authToken: acc.auth_token,
-                      connected: acc.connected,
-                      status: acc.status,
-                      socialPages: acc.social_pages || [],
-                    })
-                  ),
-                  socialPages: ((brand as any).social_accounts || []).flatMap(
-                    (acc: any) =>
-                      (acc.social_pages || []).map((page: any) => ({
-                        id: page.id,
-                        platform: page.platform,
-                        entityType: page.entity_type || "page",
-                        name: page.name,
-                        pageId: page.page_id,
-                        authToken: page.auth_token,
-                        connected: page.connected,
-                        status: page.status,
-                        accountId: acc.id,
-                        statusUpdatedAt: page.status_updated_at
-                          ? new Date(page.status_updated_at)
-                          : undefined,
-                        lastSyncAt: page.last_sync_at
-                          ? new Date(page.last_sync_at)
-                          : undefined,
-                        followerCount: page.follower_count,
-                        postCount: page.post_count,
-                        metadata: page.metadata,
-                      }))
-                  ),
                 }
               : undefined,
+            // socialAccounts/socialPages already set in the initial transform
           };
         })
       );
@@ -1256,7 +1295,9 @@ export const storeApi = {
         name: workspace.name,
         logo: workspace.logo,
         boards: [],
-        brands: [],
+        brand: undefined,
+        socialAccounts: [],
+        socialPages: [],
       };
 
       store.workspaces = [...store.workspaces, newWorkspace];
@@ -2156,14 +2197,14 @@ export const commentApi = {
 
 // Social Account API functions
 export const socialAccountApi = {
-  // Get social accounts for a brand
-  getSocialAccounts: async (brandId: string) => {
-    return apiRequest<any[]>(`/social-account?brandId=${brandId}`);
+  // Get social accounts for a workspace
+  getSocialAccounts: async (workspaceId: string) => {
+    return apiRequest<any[]>(`/social-account?workspaceId=${workspaceId}`);
   },
 
   // Disconnect social page or account
   disconnectSocial: async (data: {
-    brandId: string;
+    workspaceId: string;
     pageId?: string;
     accountId?: string;
   }) => {

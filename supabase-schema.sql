@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS posts (
 
 CREATE TABLE IF NOT EXISTS social_accounts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   account_id TEXT NOT NULL,
   platform TEXT NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS social_accounts (
 
 CREATE TABLE IF NOT EXISTS social_pages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
   account_id UUID REFERENCES social_accounts(id) ON DELETE CASCADE,
   page_id TEXT NOT NULL,
   name TEXT NOT NULL,
@@ -200,8 +200,8 @@ CREATE INDEX IF NOT EXISTS idx_channel_messages_parent_id ON channel_messages(pa
 CREATE INDEX IF NOT EXISTS idx_channel_messages_author_email ON channel_messages(author_email);
 CREATE INDEX IF NOT EXISTS idx_posts_workspace_id ON posts(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_posts_board_id ON posts(board_id);
-CREATE INDEX IF NOT EXISTS idx_social_accounts_brand_id ON social_accounts(brand_id);
-CREATE INDEX IF NOT EXISTS idx_social_pages_brand_id ON social_pages(brand_id);
+CREATE INDEX IF NOT EXISTS idx_social_accounts_workspace_id ON social_accounts(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_social_pages_workspace_id ON social_pages(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_social_pages_account_id ON social_pages(account_id);
 CREATE INDEX IF NOT EXISTS idx_post_history_page_id ON post_history(page_id);
 CREATE INDEX IF NOT EXISTS idx_members_workspace_id ON members(workspace_id);
@@ -507,8 +507,7 @@ CREATE POLICY "Users can view social accounts in their workspaces" ON social_acc
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_accounts.brand_id 
+      WHERE m.workspace_id = social_accounts.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -517,8 +516,7 @@ CREATE POLICY "Users can create social accounts in their workspaces" ON social_a
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_accounts.brand_id 
+      WHERE m.workspace_id = social_accounts.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -527,8 +525,7 @@ CREATE POLICY "Users can update social accounts in their workspaces" ON social_a
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_accounts.brand_id 
+      WHERE m.workspace_id = social_accounts.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -537,8 +534,7 @@ CREATE POLICY "Users can delete social accounts in their workspaces" ON social_a
   FOR DELETE USING (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_accounts.brand_id 
+      WHERE m.workspace_id = social_accounts.workspace_id
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -548,8 +544,7 @@ CREATE POLICY "Users can view social pages in their workspaces" ON social_pages
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_pages.brand_id 
+      WHERE m.workspace_id = social_pages.workspace_id 
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -558,8 +553,7 @@ CREATE POLICY "Users can create social pages in their workspaces" ON social_page
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_pages.brand_id 
+      WHERE m.workspace_id = social_pages.workspace_id 
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -568,8 +562,7 @@ CREATE POLICY "Users can update social pages in their workspaces" ON social_page
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_pages.brand_id 
+      WHERE m.workspace_id = social_pages.workspace_id 
       AND m.email = auth.jwt() ->> 'email'
     )
   );
@@ -578,8 +571,7 @@ CREATE POLICY "Users can delete social pages in their workspaces" ON social_page
   FOR DELETE USING (
     EXISTS (
       SELECT 1 FROM members m
-      JOIN brands b ON b.workspace_id = m.workspace_id
-      WHERE b.id = social_pages.brand_id 
+      WHERE m.workspace_id = social_pages.workspace_id 
       AND m.email = auth.jwt() ->> 'email'
     )
   );
