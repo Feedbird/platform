@@ -35,8 +35,7 @@ function BrandSocialCallbackInner() {
         "facebook",
         {
           name: "My FB Account",
-          accountId: "fb_user", // Placeholder, should be real user id
-          authToken: accessToken
+          accountId: "fb_user" // Placeholder, should be real user id
         }
       );
       // Stage a placeholder page (should be replaced with real FB page info)
@@ -47,7 +46,6 @@ function BrandSocialCallbackInner() {
           name: "My FB Page",
           platform: "facebook",
           accountId: localAccountId,
-          authToken: accessToken,
           connected: false,
           status: "pending",
           entityType: "page"
