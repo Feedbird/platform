@@ -24,12 +24,33 @@ export async function POST(req: NextRequest) {
     // ------------------------------------------------------------
     let clerkInvitationSent = false
     try {
-        const clerk = await clerkClient()      
-        await clerk.invitations.createInvitation({
+        const redirectUrl = process.env.CLERK_INVITE_REDIRECT_URL
+        const invitePayload: { emailAddress: string; redirectUrl?: string; ignoreExisting?: boolean } = {
           emailAddress: email,
-          redirectUrl: process.env.CLERK_INVITE_REDIRECT_URL,
-        })
-        clerkInvitationSent = true
+          ignoreExisting: true,
+        }
+        if (redirectUrl && /^https?:\/\//i.test(redirectUrl)) {
+          invitePayload.redirectUrl = redirectUrl
+        }
+
+        const clerk = await clerkClient()
+        try {
+          await clerk.invitations.createInvitation(invitePayload)
+          clerkInvitationSent = true
+        } catch (inviteErr: any) {
+          const clerkErrors = inviteErr?.errors as Array<{ code?: string; message?: string }> | undefined
+          const hasRedirectIssue =
+            Array.isArray(clerkErrors) &&
+            clerkErrors.some(e => (e.code || '').toLowerCase().includes('redirect') || (e.message || '').toLowerCase().includes('redirect'))
+
+          if (hasRedirectIssue && invitePayload.redirectUrl) {
+            delete invitePayload.redirectUrl
+            await clerk.invitations.createInvitation(invitePayload)
+            clerkInvitationSent = true
+          } else {
+            throw inviteErr
+          }
+        }
     } catch (err: any) {
       // Check if it's an existing invitation error
       if (err?.message?.includes('already exists') || 
