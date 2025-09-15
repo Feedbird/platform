@@ -147,14 +147,14 @@ export async function POST(req: NextRequest) {
     // ------------------------------------------------------------
     // 4️⃣  Insert only new records into members table
     // ------------------------------------------------------------
-    // const { error: insertErr } = await supabase
-    //   .from('members')
-    //   .insert(newRows)
+    const { error: insertErr } = await supabase
+      .from('members')
+      .insert(newRows)
 
-    // if (insertErr) {
-    //   console.error('Supabase insert error:', insertErr)
-    //   return NextResponse.json({ error: 'Failed to save members' }, { status: 500 })
-    // }
+    if (insertErr) {
+      console.error('Supabase insert error:', insertErr)
+      return NextResponse.json({ error: 'Failed to save members' }, { status: 500 })
+    }
 
     // ------------------------------------------------------------
     // 5️⃣  Create activities for workspace and board invitations
