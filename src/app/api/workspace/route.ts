@@ -427,32 +427,6 @@ export async function DELETE(req: NextRequest) {
         throw new Error('Failed to fetch brands')
       }
 
-      if (brands && brands.length > 0) {
-        const brandIds = brands.map(b => b.id)
-
-        // Delete social pages for these brands (backward compat if any remain)
-        const { error: socialPagesError } = await supabase
-          .from('social_pages')
-          .delete()
-          .in('brand_id', brandIds)
-
-        if (socialPagesError) {
-          console.error('Error deleting social pages:', socialPagesError)
-          throw new Error('Failed to delete social pages')
-        }
-
-        // Delete social accounts for these brands (backward compat if any remain)
-        const { error: socialAccountsError } = await supabase
-          .from('social_accounts')
-          .delete()
-          .in('brand_id', brandIds)
-
-        if (socialAccountsError) {
-          console.error('Error deleting social accounts:', socialAccountsError)
-          throw new Error('Failed to delete social accounts')
-        }
-      }
-
       // Also delete workspace-scoped social entities
       const { error: socialPagesByWorkspaceError } = await supabase
         .from('social_pages')

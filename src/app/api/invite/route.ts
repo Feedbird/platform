@@ -23,25 +23,25 @@ export async function POST(req: NextRequest) {
     // 1️⃣  Send invitation via Clerk
     // ------------------------------------------------------------
     let clerkInvitationSent = false
-    // try {
-    //     const clerk = await clerkClient()      
-    //     await clerk.invitations.createInvitation({
-    //       emailAddress: email,
-    //       redirectUrl: process.env.CLERK_INVITE_REDIRECT_URL,
-    //     })
-    //     clerkInvitationSent = true
-    // } catch (err: any) {
-    //   // Check if it's an existing invitation error
-    //   if (err?.message?.includes('already exists') || 
-    //       err?.message?.includes('already invited') ||
-    //       err?.message?.includes('duplicate')) {
-    //     console.log('Clerk invitation already exists for:', email)
-    //   } else {
-    //     console.error('Clerk invitation error:', err)
-    //     // For other errors, we'll still proceed with database operations
-    //     // but note that Clerk invitation failed
-    //   }
-    // }
+    try {
+        const clerk = await clerkClient()      
+        await clerk.invitations.createInvitation({
+          emailAddress: email,
+          redirectUrl: process.env.CLERK_INVITE_REDIRECT_URL,
+        })
+        clerkInvitationSent = true
+    } catch (err: any) {
+      // Check if it's an existing invitation error
+      if (err?.message?.includes('already exists') || 
+          err?.message?.includes('already invited') ||
+          err?.message?.includes('duplicate')) {
+        console.log('Clerk invitation already exists for:', email)
+      } else {
+        console.error('Clerk invitation error:', err)
+        // For other errors, we'll still proceed with database operations
+        // but note that Clerk invitation failed
+      }
+    }
 
     // ------------------------------------------------------------
     // 2️⃣  Prepare rows for `members` table
@@ -147,14 +147,14 @@ export async function POST(req: NextRequest) {
     // ------------------------------------------------------------
     // 4️⃣  Insert only new records into members table
     // ------------------------------------------------------------
-    const { error: insertErr } = await supabase
-      .from('members')
-      .insert(newRows)
+    // const { error: insertErr } = await supabase
+    //   .from('members')
+    //   .insert(newRows)
 
-    if (insertErr) {
-      console.error('Supabase insert error:', insertErr)
-      return NextResponse.json({ error: 'Failed to save members' }, { status: 500 })
-    }
+    // if (insertErr) {
+    //   console.error('Supabase insert error:', insertErr)
+    //   return NextResponse.json({ error: 'Failed to save members' }, { status: 500 })
+    // }
 
     // ------------------------------------------------------------
     // 5️⃣  Create activities for workspace and board invitations
