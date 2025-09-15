@@ -4,6 +4,7 @@ export const SECURE_SOCIAL_ACCOUNT_FIELDS = `
   platform,
   name,
   account_id,
+  workspace_id,
   connected,
   auth_token,
   refresh_token,
@@ -26,6 +27,7 @@ export const SECURE_SOCIAL_PAGE_FIELDS = `
   connected,
   status,
   account_id,
+  workspace_id,
   status_updated_at,
   last_sync_at,
   metadata
@@ -57,7 +59,8 @@ export const SOCIAL_ACCOUNT_WITH_TOKENS = `
     auth_token,
     connected,
     status,
-    account_id
+    account_id,
+    workspace_id
   )
 `;
 
