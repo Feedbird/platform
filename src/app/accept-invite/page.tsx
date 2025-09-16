@@ -10,6 +10,7 @@ import PlatformPreview from '@/components/platform-preview/platform-preview'
 import { ClientOnboardingModal } from '@/components/workspace/client-onboarding-modal'
 
 export default function AcceptInvitePage() {
+    console.log("@@@@@@@@@@@@@@@@@@@@@@@accept-invite")
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isSignedIn, isLoaded: authLoaded } = useAuth()
