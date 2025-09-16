@@ -9,27 +9,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import React from "react";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
-import { Checkbox } from "../ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
-import { ComplexObjectType } from "@/lib/forms/field.config";
-import MultiSelectPlaceholder from "./content/MultiSelectPlaceholder";
-import SpreadSheetTablePlaceholder from "./content/SpreadSheetTablePlaceholder";
-import OptionsPlaceholder from "./content/OptionsPlaceholder";
-import { Button } from "../ui/button";
-import {
-  AttachmentInput,
-  CheckboxInput,
-  DropdownInput,
-  OptionInput,
-  PageBreakInput,
-  SectionBreakInput,
-  SingleTextInput,
-  SpreadSheetInput,
-  TextAreaInput,
-} from "./content/FormInputs";
 import FieldRenderWrapper from "./content/FieldRenderWrapper";
+import { useForms } from "@/contexts/FormsContext";
+import { TableForm } from "./content/forms-table";
 
 export interface CanvasFormField {
   id: string;
@@ -66,7 +48,7 @@ export default function FormCanvas({
     },
   });
 
-  const [formCover, setFormCover] = React.useState<string | null>(null);
+  const { setActiveForm, activeForm } = useForms();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleCoverImageClick = () => {
@@ -78,7 +60,10 @@ export default function FormCanvas({
     if (file) {
       // For now, create a local preview URL
       const previewUrl = URL.createObjectURL(file);
-      setFormCover(previewUrl);
+      console.log(previewUrl);
+      setActiveForm(
+        (prev) => ({ ...prev, cover_url: previewUrl } as TableForm)
+      );
 
       // TODO: Implement actual upload using the useImageUploader hook
     }
@@ -92,13 +77,13 @@ export default function FormCanvas({
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div
             className={`w-full relative h-[160px] ${
-              formCover ? "" : "bg-[#F4F5F6]"
+              activeForm?.cover_url ? "" : "bg-[#F4F5F6]"
             } flex items-center justify-center`}
           >
-            {formCover ? (
+            {activeForm?.cover_url ? (
               <>
                 <Image
-                  src={formCover}
+                  src={activeForm.cover_url}
                   alt="form_cover_image"
                   width={920}
                   height={160}

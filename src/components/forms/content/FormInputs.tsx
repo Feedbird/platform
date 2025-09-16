@@ -13,6 +13,7 @@ import Image from "next/image";
 import SpreadSheetTablePlaceholder from "./SpreadSheetTablePlaceholder";
 import OptionsPlaceholder from "./OptionsPlaceholder";
 import { Button } from "@/components/ui/button";
+import { ChevronRight } from "lucide-react";
 
 export type CommonProps = {
   config: any;
@@ -237,9 +238,10 @@ export function PageBreakInput({ config }: CommonProps) {
       <Button
         variant="default"
         onClick={(e) => e.stopPropagation()}
-        className="mr-4 shadow-lg bg-[#4670F9] rounded-[6px] text-white cursor-pointer px-3 py-1.5"
+        className="shadow-md bg-[#4670F9] rounded-[6px] text-white cursor-pointer px-3 py-1.5 border-1 border-black/10 flex flex-row"
       >
         Next
+        <ChevronRight />
       </Button>
     </div>
   );

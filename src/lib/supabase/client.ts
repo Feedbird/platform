@@ -174,7 +174,7 @@ export interface Form {
   created_at: string;
   updated_at: string;
   has_branding: boolean;
-  services?: any[];
+  services?: Service[];
 }
 
 //? Placeholder for forms feature. This is not final entity structure.
@@ -184,6 +184,8 @@ export interface Service {
   form_id: string | null;
   name: string;
   pricing: number;
+  qty_indicator: string;
+  quantity: number;
 }
 
 export interface FormField {

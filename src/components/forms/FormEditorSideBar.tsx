@@ -21,8 +21,10 @@ export default function FormEditorSideBar({
   formFields,
   formId,
 }: FormEditorSideBarProps) {
-  const { setUnsavedChanges } = useForms();
+  const { setUnsavedChanges, activeForm } = useForms();
   const [loading, isLoading] = React.useState(false);
+
+  console.log(activeForm);
 
   const updateFormFields = async () => {
     isLoading(true);

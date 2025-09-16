@@ -36,7 +36,8 @@ function FormsHeaderContent() {
   const router = useRouter();
   const { user, activeWorkspaceId } = useFeedbirdStore();
   const { createInitialForm } = useFormStore();
-  const { activeForm, setActiveForm, isEditing, unsavedChanges } = useForms();
+  const { activeForm, setActiveForm, isEditing, unsavedChanges, isPreview } =
+    useForms();
 
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
   const [alertModalOpen, setAlertModalOpen] = React.useState(false);
@@ -61,7 +62,7 @@ function FormsHeaderContent() {
     }
   };
 
-  const [isDropDownOpen, setIsDropdownOpen] = React.useState(true);
+  const [isDropDownOpen, setIsDropdownOpen] = React.useState(false);
 
   const handleFormPublish = async () => {
     isLoading(true);
@@ -110,12 +111,31 @@ function FormsHeaderContent() {
                 Form
               </span>
               <ChevronRight width={12} height={12} color="#838488" />
-              <span className="text-[#1C1D1F] font-medium text-sm">
+              <span
+                onClick={() => {
+                  if (isPreview) router.push(`/forms/${activeForm.id}`);
+                }}
+                className={`${
+                  isPreview
+                    ? "text-[#5C5E63] text-sm font-normal cursor-pointer"
+                    : "text-[#1C1D1F] font-medium text-sm"
+                }`}
+              >
                 {activeForm.title}
               </span>
-              <div className="ml-1">
-                <FormStatusBadge status={activeForm.status} />
-              </div>
+              {!isPreview && (
+                <div className="ml-1">
+                  <FormStatusBadge status={activeForm.status} />
+                </div>
+              )}
+              {isPreview && (
+                <>
+                  <ChevronRight width={12} height={12} color="#838488" />
+                  <span className="text-[#1C1D1F] font-medium text-sm">
+                    Preview
+                  </span>
+                </>
+              )}
             </div>
           ) : (
             <span className="font-semibold text-base tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
