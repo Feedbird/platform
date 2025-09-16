@@ -52,11 +52,27 @@ async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+
+  // Attempt to attach Clerk session token on the client if available
+  let authHeader: Record<string, string> = {}
+  if (typeof window !== 'undefined') {
+    try {
+      const maybeClerk: any = (window as any).Clerk
+      const token: string | undefined = await maybeClerk?.session?.getToken?.()
+      if (token && !('Authorization' in (options.headers || {} as any))) {
+        authHeader = { Authorization: `Bearer ${token}` }
+      }
+    } catch {
+      // no-op; continue without Authorization header
+    }
+  }
+
   const response = await fetch(url, {
     // Ensure auth cookies are sent to API routes
     credentials: 'include',
     headers: {
       "Content-Type": "application/json",
+      ...authHeader,
       ...options.headers,
     },
     ...options,
@@ -314,10 +330,11 @@ export const workspaceApi = {
     name: string;
     logo?: string;
     email: string;
-  }): Promise<Workspace> => {
+  }, authToken?: string): Promise<Workspace> => {
     console.log("workspaceData", workspaceData);
     return apiRequest<Workspace>("/workspace", {
       method: "POST",
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
       body: JSON.stringify(workspaceData),
     });
   },
@@ -328,6 +345,9 @@ export const workspaceApi = {
     updates: {
       name?: string;
       logo?: string;
+      timezone?: string;
+      week_start?: 'monday' | 'sunday';
+      time_format?: '24h' | '12h';
     }
   ): Promise<Workspace> => {
     return apiRequest<Workspace>(`/workspace?id=${id}`, {
@@ -774,6 +794,7 @@ export const storeApi = {
           id: ws.id,
           name: ws.name,
           logo: ws.logo,
+          clerk_organization_id: (ws as any).clerk_organization_id,
           role: ws.role, // Include the role from API
           boards,
           brand: undefined, // Will be populated below
@@ -1294,6 +1315,7 @@ export const storeApi = {
         id: workspace.id,
         name: workspace.name,
         logo: workspace.logo,
+        clerk_organization_id: (workspace as any).clerk_organization_id,
         boards: [],
         brand: undefined,
         socialAccounts: [],
@@ -2028,6 +2050,10 @@ export const inviteApi = {
     workspaceIds: string[];
     boardIds: string[];
     actorId?: string;
+    organizationId?: string;
+    role?: string;
+    memberRole?: 'client' | 'team';
+    first_name?: string;
   }) => {
     return apiRequest<{ message: string; details?: string; warning?: boolean }>(
       "/invite",

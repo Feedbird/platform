@@ -104,6 +104,8 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
           return !selectedWorkspaces.has(wsId ?? '');
         }),
         actorId: user?.id, // Pass current user ID for activity logging
+        first_name: user?.firstName,
+        role: 'org:client',
       });
       
       // Handle different response types

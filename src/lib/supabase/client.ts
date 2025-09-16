@@ -47,6 +47,7 @@ export interface Workspace {
   id: string;
   name: string;
   logo?: string;
+  clerk_organization_id?: string;
   created_at: string;
   updated_at: string;
   /**
@@ -151,6 +152,7 @@ export interface Member {
   workspace_id: string;
   board_id?: string | null;
   is_workspace: boolean;
+  role: "client" | "team";
   created_at: string;
   updated_at: string;
 }

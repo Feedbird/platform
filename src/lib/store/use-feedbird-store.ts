@@ -224,6 +224,7 @@ export interface Workspace {
   id: string;
   name: string;
   logo?: string;
+  clerk_organization_id?: string;
   createdby?: string; // ID of the user who created this workspace
   /**
    * User role within this workspace. "admin" for creator, "member" for invitee.

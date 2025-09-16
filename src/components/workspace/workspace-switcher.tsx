@@ -74,17 +74,6 @@ export default function WorkspaceSwitcher() {
 
   const [search,     setSearch]     = useState('')
 
-  React.useEffect(() => {
-    console.log('Workspace Init:', { isMounted, workspacesCount: workspaces.length, activeId });
-    if (isMounted && workspaces.length === 0) {
-      console.log('Creating default workspace...');
-      // addWorkspace("My Workspace").then((wsId) => {
-      //   console.log('Workspace created:', wsId);
-      //   setActive(wsId);
-      // });
-    }
-  }, [isMounted, workspaces.length, addWorkspace, setActive]);
-
   const filtered = workspaces.filter(ws =>
     ws.name.toLowerCase().includes(search.toLowerCase())
   )
@@ -128,6 +117,8 @@ export default function WorkspaceSwitcher() {
     const userEmail = user?.email || 'demo@example.com'
 
     const wsId = await addWorkspace(name, userEmail, logo ?? '')
+    // Resolve Clerk organization ID for the newly created workspace
+    const orgId = useFeedbirdStore.getState().workspaces.find(w => w.id === wsId)?.clerk_organization_id
 
     // Handle additional data (boards, rules, invitations)
     if (additionalData) {
@@ -158,7 +149,16 @@ export default function WorkspaceSwitcher() {
         if (emails.length) {
           await Promise.all(
             emails.map(email =>
-              inviteApi.inviteMembers({ email, workspaceIds: [wsId], boardIds: [], actorId: user?.id })
+              inviteApi.inviteMembers({
+                email,
+                workspaceIds: [wsId],
+                boardIds: [],
+                actorId: user?.id,
+                role: 'org:member',
+                memberRole: 'client',
+                organizationId: orgId,
+                first_name: user?.firstName,
+              })
             )
           )
         }

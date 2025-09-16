@@ -16,13 +16,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (isLoaded) {
       // If user is signed in and trying to access landing, signup, signin, verify-email, or sso-callback page, redirect to home
-      if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email' || pathname === '/sso-callback')) {
+      if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email' || pathname === '/sso-callback' || pathname === '/accept-invite')) {
         console.log('AuthGuard: Redirecting signed-in user from landing/signup/signin/verify-email/sso-callback to home');
         router.replace('/');
         return;
       }
       // If user is not signed in and trying to access protected routes, redirect to landing
-      else if (!isSignedIn && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback') {
+      else if (!isSignedIn && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback' && pathname !== '/accept-invite') {
         console.log('AuthGuard: Redirecting unsigned user to landing');
         router.replace('/landing');
         return;
@@ -64,6 +64,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       // Import the sso-callback page dynamically to avoid circular imports
       const SSOCallbackPage = require('@/app/sso-callback/page').default;
       return <SSOCallbackPage />;
+    }
+    if (pathname === '/accept-invite') {
+      const AcceptInvitePage = require('@/app/accept-invite/page').default;
+      return <AcceptInvitePage />;
     }
     return <LandingPage />;
   }

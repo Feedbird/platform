@@ -7,6 +7,7 @@ export type Workspace = {
   name: string
   plan: string
   logo: React.ComponentType<any> // storing a React icon, like the reference code
+  clerk_organization_id?: string
 }
 
 interface WorkspaceState {

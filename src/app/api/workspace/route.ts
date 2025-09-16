@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const runtime = 'nodejs'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase/client'
 import { SECURE_SOCIAL_ACCOUNT_WITH_PAGES } from '@/lib/utils/secure-queries'
 import { z } from 'zod'
@@ -8,11 +10,16 @@ const CreateWorkspaceSchema = z.object({
   name: z.string().min(1, 'Workspace name is required'),
   logo: z.string().url().optional().or(z.literal('')),
   email: z.string().email('Valid email is required'),
+  clerk_organization_id: z.string().regex(/^org_.*/).optional(),
 })
 
 const UpdateWorkspaceSchema = z.object({
   name: z.string().min(1, 'Workspace name is required').optional(),
   logo: z.string().url().optional().or(z.literal('')),
+  clerk_organization_id: z.string().regex(/^org_.*/).optional(),
+  timezone: z.string().optional(),
+  week_start: z.enum(['monday','sunday']).optional(),
+  time_format: z.enum(['24h','12h']).optional(),
 })
 
 // GET - Get workspace by ID or list workspaces by creator
@@ -234,11 +241,45 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const validatedData = CreateWorkspaceSchema.parse(body)
+
+    // 0) Require authenticated user and create a Clerk organization for this workspace
+    let resolvedOrgId: string | undefined
+    const authData = await auth()
+    const userId = authData?.userId
+    console.log("authData", authData)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    try {
+      const clerk = await clerkClient()
+      // Generate a unique slug from name
+      const baseSlug = (validatedData.name || 'workspace')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40)
+      const suffix = Math.random().toString(36).slice(2, 7)
+      const slug = [baseSlug || 'workspace', suffix].join('-')
+
+      const createdOrg = await clerk.organizations.createOrganization({
+        name: validatedData.name,
+        slug,
+        createdBy: userId,
+      } as any)
+      if (createdOrg?.id) {
+        resolvedOrgId = createdOrg.id
+      }
+    } catch (orgErr: any) {
+      console.error('Failed to create Clerk organization for workspace:', orgErr)
+      return NextResponse.json({ error: 'Failed to create organization' }, { status: 502 })
+    }
     // Use the email from request body as the creator
     const workspaceData = {
       name: validatedData.name,
       logo: validatedData.logo,
-      createdby: validatedData.email
+      createdby: validatedData.email,
+      clerk_organization_id: resolvedOrgId,
     }
     
     const { data, error } = await supabase
@@ -340,10 +381,10 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    // Check if workspace exists and get its details
+    // Check if workspace exists and get its details (including Clerk org id)
     const { data: workspace, error: fetchError } = await supabase
       .from('workspaces')
-      .select('id, name, createdby')
+      .select('id, name, createdby, clerk_organization_id')
       .eq('id', id)
       .single()
 
@@ -355,6 +396,37 @@ export async function DELETE(req: NextRequest) {
     }
 
     console.log(`Deleting workspace: ${workspace.name} (ID: ${id})`)
+
+    // Attempt to delete the associated Clerk organization first (if present)
+    try {
+      const organizationId = (workspace as any).clerk_organization_id as string | null | undefined
+      if (organizationId) {
+        const clerk = await clerkClient()
+        try {
+          await clerk.organizations.deleteOrganization(organizationId as any)
+          console.log(`Deleted Clerk organization ${organizationId} for workspace ${id}`)
+        } catch (orgDeleteErr: any) {
+          const status = orgDeleteErr?.status || orgDeleteErr?.code
+          const message = (orgDeleteErr?.message || '').toLowerCase()
+          const isNotFound = status === 404 || message.includes('not found')
+          if (isNotFound) {
+            console.warn(`Clerk organization ${organizationId} not found; continuing workspace deletion`)
+          } else {
+            console.error('Failed to delete Clerk organization:', orgDeleteErr)
+            return NextResponse.json(
+              { error: 'Failed to delete associated organization' },
+              { status: 502 }
+            )
+          }
+        }
+      }
+    } catch (orgPrecheckErr) {
+      console.error('Unexpected error during Clerk organization cleanup step:', orgPrecheckErr)
+      return NextResponse.json(
+        { error: 'Organization cleanup failed' },
+        { status: 502 }
+      )
+    }
 
     // Start a transaction-like approach by deleting related records in order
     // Note: Supabase doesn't support explicit transactions across multiple tables

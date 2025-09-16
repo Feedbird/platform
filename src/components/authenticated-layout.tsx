@@ -51,6 +51,8 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
 
   // Wait for workspace data to load after auth
   if (!workspacesInitialized || workspacesLoading) {
+    console.log("workspacesInitialized", workspacesInitialized)
+    console.log("workspacesLoading", workspacesLoading)
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="flex flex-col items-center space-y-4">
