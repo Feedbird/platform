@@ -206,7 +206,7 @@ export default function SignInPage() {
                                 </div>
                             )}
 
-                            {/* Remember Me and Forgot Password */}
+                            {/* Forgot Password */}
                             <div className="flex items-center justify-end pt-2">
                                 <button
                                     type="button"

@@ -20,16 +20,58 @@ export default function AcceptInvitePage() {
   const [view, setView] = useState<'signup'|'signin'>('signup')
   const [openOnboarding, setOpenOnboarding] = useState(false)
 
+  const testimonials = [
+    {
+      quote: "FeedBird transformed how we manage our social media. The scheduling feature alone saved us hours every week! It's incredibly intuitive and has streamlined our entire content workflow.",
+      author: "Sarah Chen",
+      role: "Social Media Manager",
+      company: "TechStart Inc.",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face",
+      rating: 5
+    },
+    {
+      quote: "The analytics insights are incredible. We've seen a 40% increase in engagement since switching to FeedBird. The detailed reports help us understand what content resonates with our audience.",
+      author: "Mike Johnson",
+      role: "Marketing Director",
+      company: "GrowthCo",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+      rating: 5
+    },
+    {
+      quote: "Finally, a tool that makes team collaboration on social media content seamless and efficient. Multiple team members can work together without any conflicts or confusion.",
+      author: "Emma Rodriguez",
+      role: "Content Creator",
+      company: "Creative Studios",
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
+      rating: 5
+    },
+    {
+      quote: "The automation features are game-changing. I can focus on creating great content instead of posting it. The smart scheduling has improved our posting consistency significantly.",
+      author: "David Kim",
+      role: "Brand Manager",
+      company: "Fashion Forward",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+      rating: 5
+    },
+    {
+      quote: "Customer support is outstanding, and the platform just keeps getting better with each update. The team is responsive and genuinely cares about user experience.",
+      author: "Lisa Thompson",
+      role: "CEO",
+      company: "Local Business Network",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face",
+      rating: 5
+    }
+  ]
+  const [currentTestimonial, setCurrentTestimonial] = useState(0)
+  const [previousTestimonial, setPreviousTestimonial] = useState(4)
+
   const role = (searchParams.get('role') as 'client'|'team' | null) || 'team'
   const workspaceId = searchParams.get('workspaceId') || undefined
-  console.log('#############111111workspaceId', workspaceId)
   // If already authenticated, go to workspace directly
   useEffect(() => {
     if (!authLoaded) return
     if (isSignedIn) {
-      console.log('#############isSignedIn', isSignedIn)
       if (workspaceId) {
-        console.log('#############222222workspaceId', workspaceId)
         router.replace(`/${workspaceId}`)
       }
       else router.replace('/')
@@ -43,6 +85,7 @@ export default function AcceptInvitePage() {
   const [lastName, setLastName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const title = "You've been invited to join workspace on Feedbird"
 
@@ -93,6 +136,17 @@ export default function AcceptInvitePage() {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => {
+        const next = (prev + 1) % testimonials.length
+        setPreviousTestimonial(prev)
+        return next
+      })
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
 
   const LeftContent = () => {
     if (view === 'signup') {
@@ -159,8 +213,47 @@ export default function AcceptInvitePage() {
         <h1 className="text-3xl font-semibold text-black mb-8">{title}</h1>
         <form onSubmit={handleSignin} className="space-y-4 text-sm text-black font-normal">
           <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Enter your email" required className="w-full rounded-md" />
-          <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Enter your password" required className="w-full rounded-md" />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e)=>setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+              className="w-full rounded-md pr-10"
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              disabled={isLoading}
+            >
+              {showPassword ? (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.05 8.05m1.829 1.829l4.242 4.242M12 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-1.563 3.029m-5.858-.908a3 3 0 01-4.243-4.243" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
+          </div>
           {error && <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md">{error}</div>}
+          <div className="flex items-center justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => router.push('/forgot-password')}
+              className="text-blue-600 hover:text-blue-700 underline font-medium text-sm"
+              disabled={isLoading}
+            >
+              Forgot password?
+            </button>
+          </div>
+          <div id="clerk-captcha" className="flex justify-center"></div>
           <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium" disabled={isLoading}>{isLoading?'Signing In...':'Sign In'}</Button>
         </form>
         <Button onClick={handleGoogle} variant="outline" className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 rounded-md font-medium flex items-center justify-center gap-3">
@@ -172,6 +265,18 @@ export default function AcceptInvitePage() {
           </svg>
           Sign in with Google
         </Button>
+        <div className="mt-8 text-center">
+          <span className="text-darkGrey text-sm font-normal">
+            Don't have an account?{' '}
+            <button
+              onClick={() => setView('signup')}
+              className="text-main hover:text-blue-700 font-semibold leading-tight"
+              disabled={isLoading}
+            >
+              Sign up
+            </button>
+          </span>
+        </div>
       </>
     )
   }
@@ -192,8 +297,82 @@ export default function AcceptInvitePage() {
         </div>
       </div>
 
-      {/* Right Side - reuse same as signin/signup */}
+      {/* Right Side - same as signin page */}
       <div className="flex-[14] flex flex-col pl-12 pt-10 bg-[#F8F8F8]">
+        {/* Testimonials Section */}
+        <div className="pr-12 mb-10">
+          <div className="relative overflow-hidden min-h-[160px]">
+            {testimonials.map((testimonial, index) => (
+              <div
+                key={index}
+                className={`transition-all duration-1000 transform absolute inset-0 ${index === currentTestimonial
+                    ? 'opacity-100 translate-x-0 z-10'
+                    : index === previousTestimonial
+                    ? 'opacity-0 translate-x-full z-0'
+                    : 'opacity-0 -translate-x-full z-0'
+                  }`}
+              >
+                <blockquote
+                  className="h-25 text-xl font-semibold text-black mb-4 leading-relaxed overflow-hidden"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical' as const,
+                    lineHeight: '1.625'
+                  }}
+                >
+                  "{testimonial.quote}"
+                </blockquote>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <img
+                      src={testimonial.avatar}
+                      alt={testimonial.author}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div className="text-sm space-y-1">
+                      <div className="font-semibold text-black">
+                        {testimonial.author.split(' ').map((name, i) => i === 0 ? `${name.charAt(0)}.` : name).join(' ')}
+                      </div>
+                      <div className="font-normal text-darkGrey">
+                        {testimonial.role} at {testimonial.company}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        className={`w-4 h-4 ${i < testimonial.rating ? 'text-main fill-current' : 'text-darkGrey'}`}
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Testimonial Indicators */}
+          <div className="flex justify-start space-x-2 mt-6">
+            {testimonials.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentTestimonial(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentTestimonial
+                    ? 'bg-blue-600 w-6'
+                    : 'bg-gray-300'
+                  }`}
+                aria-label={`Go to testimonial ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Platform Preview Component */}
         <div className="flex-1 flex justify-center">
           <div className="w-full h-full">
             <div className="w-full h-full rounded-tl-lg overflow-hidden border-l-5 border-t-5 border-elementStroke">
