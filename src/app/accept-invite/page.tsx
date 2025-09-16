@@ -21,12 +21,16 @@ export default function AcceptInvitePage() {
 
   const role = (searchParams.get('role') as 'client'|'team' | null) || 'team'
   const workspaceId = searchParams.get('workspaceId') || undefined
-
+  console.log('#############111111workspaceId', workspaceId)
   // If already authenticated, go to workspace directly
   useEffect(() => {
     if (!authLoaded) return
     if (isSignedIn) {
-      if (workspaceId) router.replace(`/${workspaceId}`)
+      console.log('#############isSignedIn', isSignedIn)
+      if (workspaceId) {
+        console.log('#############222222workspaceId', workspaceId)
+        router.replace(`/${workspaceId}`)
+      }
       else router.replace('/')
     }
   }, [authLoaded, isSignedIn, workspaceId, router])
