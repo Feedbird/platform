@@ -14,9 +14,14 @@ import {
 type Props = {
   config: any;
   type: string;
+  isPreview?: boolean;
 };
 
-export default function FieldRenderWrapper({ type, config }: Props) {
+export default function FieldRenderWrapper({
+  type,
+  config,
+  isPreview = false,
+}: Props) {
   return (
     <div>
       {type === "text" && <SingleTextInput config={config} />}
@@ -34,7 +39,9 @@ export default function FieldRenderWrapper({ type, config }: Props) {
 
       {type === "option" && <OptionInput config={config} />}
 
-      {type === "page-break" && <PageBreakInput config={config} />}
+      {type === "page-break" && (
+        <PageBreakInput config={config} isPreview={isPreview} />
+      )}
     </div>
   );
 }

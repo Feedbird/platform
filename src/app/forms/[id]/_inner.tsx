@@ -41,7 +41,6 @@ export default function FormInnerVisualizer() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // const [formFields, setFormFields] = React.useState<CanvasFormField[]>([]);
   const { formFields, setFormFields } = useFormEditor();
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
@@ -55,8 +54,6 @@ export default function FormInnerVisualizer() {
       )
     );
   };
-
-  console.log(formFields);
 
   const retrieveForm = async (formId: string) => {
     try {

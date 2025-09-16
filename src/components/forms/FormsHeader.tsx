@@ -94,6 +94,7 @@ function FormsHeaderContent() {
     }
   };
 
+  console.log(unsavedChanges);
   return (
     <>
       <header

@@ -17,6 +17,7 @@ import { ChevronRight } from "lucide-react";
 
 export type CommonProps = {
   config: any;
+  isPreview?: boolean;
 };
 
 export function SingleTextInput({ config }: CommonProps) {
@@ -222,18 +223,20 @@ export function OptionInput({ config }: CommonProps) {
   );
 }
 
-export function PageBreakInput({ config }: CommonProps) {
+export function PageBreakInput({ config, isPreview }: CommonProps) {
   return (
     <div className="flex flex-row items-center justify-between gap-3">
       <div className="flex flex-col">
-        {config.description && (
+        {!isPreview && config.description && (
           <p className="text-sm text-[#838488] font-normal">
             {config.description.value}
           </p>
         )}
-        <label className="block text-base text-[#1C1D1F]">
-          {config.title.value}
-        </label>
+        {!isPreview && (
+          <label className="block text-base text-[#1C1D1F]">
+            {config.title.value}
+          </label>
+        )}
       </div>
       <Button
         variant="default"

@@ -99,6 +99,7 @@ export default function Page() {
                     <div className="flex flex-col gap-6">
                       {page.map((field) => (
                         <FieldRenderWrapper
+                          isPreview={true}
                           key={field.id}
                           type={field.type}
                           config={field.config}
