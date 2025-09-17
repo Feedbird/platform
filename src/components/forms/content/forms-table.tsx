@@ -129,10 +129,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         minSize: 275,
         // size: 350,
         cell: ({ row }) => (
-          <div
-            className="group flex items-center py-1 hover:cursor-pointer"
-            onClick={() => handleEditClick(row.original)}
-          >
+          <div className="group flex items-center py-1">
             {/* <span className="text-lg">{row.original.icon}</span> */}
             <div className="flex flex-col flex-1 gap-0.5">
               <span className="text-sm font-medium text-[#4670F9]">
@@ -149,7 +146,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
               >
                 Edit
               </Button>
-              <Button className="px-3 py-1.5 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-[5px] hover:bg-gray-50 transition-colors hover:cursor-pointer">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/forms/${row.original.id}/preview`);
+                }}
+                className="px-3 py-1.5 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-[5px] hover:bg-gray-50 transition-colors hover:cursor-pointer"
+              >
                 Preview
               </Button>
             </div>
@@ -238,12 +241,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
           <div className="flex items-center justify-center">
             <Popover>
               <PopoverTrigger
-                onClick={() =>
+                onClick={(e) => {
+                  e.stopPropagation();
                   setLocalActiveForm(
                     tabledData.find((f) => f.id === row.original.id) ??
                       tabledData[0]
-                  )
-                }
+                  );
+                }}
                 className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4"
               >
                 <Image
@@ -269,7 +273,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
                   </button>
                   <button
                     className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSettingsModalOpen(true);
                     }}
                   >
@@ -301,7 +306,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
                   </button>
                   <button
                     className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setDeleteModalOpen(true);
                     }}
                   >
@@ -495,8 +501,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
         </div>
       </div>
       <div
-        className={`bg-background border border-gray-200 overflow-auto max-h-full ${
-          tabledData.length === 0 ? "" : "pb-12"
+        className={`bg-background border-t-1 border-[#EAE9E9] overflow-auto max-h-full ${
+          tabledData.length === 0 ? "" : "mb-12"
         }`}
       >
         <table
@@ -512,7 +518,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
             {table.getRowModel().rows.map((row, rowIndex) => (
               <tr
                 key={row.id}
-                className="group hover:bg-[#FBFBFB] border-b border-gray-200"
+                onClick={() => handleEditClick(row.original)}
+                className="group hover:bg-[#FBFBFB] border-b border-gray-200 hover:cursor-pointer"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td

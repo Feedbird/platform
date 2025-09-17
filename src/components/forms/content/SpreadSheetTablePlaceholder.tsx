@@ -3,9 +3,13 @@ import React from "react";
 
 type Props = {
   config: FieldTypeEntitlements;
+  isPreview: boolean;
 };
 
-export default function SpreadSheetTablePlaceholder({ config }: Props) {
+export default function SpreadSheetTablePlaceholder({
+  config,
+  isPreview,
+}: Props) {
   const columns = config.spreadsheetColumns?.columns || [];
   const sampleRows = config.allowedRows?.value || 2;
 
@@ -43,7 +47,7 @@ export default function SpreadSheetTablePlaceholder({ config }: Props) {
               {columns.map((col, idx) => (
                 <td
                   key={idx + 7}
-                  className={`p-2.5 border-r border-b border-[#EAE9E9] bg-white ${
+                  className={`px-2.5 border-r border-b border-[#EAE9E9] bg-white ${
                     isLastRow && idx === columns.length - 1
                       ? "rounded-br-[6px] border-r-0 border-b-0"
                       : isLastRow
@@ -52,7 +56,14 @@ export default function SpreadSheetTablePlaceholder({ config }: Props) {
                       ? "border-r-0"
                       : ""
                   }`}
-                ></td>
+                >
+                  {isPreview && (
+                    <input
+                      type="text"
+                      className="w-full border-none outline-none bg-transparent text-sm"
+                    />
+                  )}
+                </td>
               ))}
             </tr>
           );

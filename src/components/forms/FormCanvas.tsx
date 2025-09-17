@@ -12,6 +12,7 @@ import React from "react";
 import FieldRenderWrapper from "./content/FieldRenderWrapper";
 import { useForms } from "@/contexts/FormsContext";
 import { TableForm } from "./content/forms-table";
+import { useFormEditor } from "@/contexts/FormEditorContext";
 
 export interface CanvasFormField {
   id: string;
@@ -49,6 +50,7 @@ export default function FormCanvas({
   });
 
   const { setActiveForm, activeForm } = useForms();
+  const { setFilesToUpload } = useFormEditor();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleCoverImageClick = () => {
@@ -63,8 +65,8 @@ export default function FormCanvas({
       setActiveForm(
         (prev) => ({ ...prev, cover_url: previewUrl } as TableForm)
       );
-
-      // TODO: Implement actual upload using the useImageUploader hook
+      // Keep track of files to upload and path to update form accordingly
+      setFilesToUpload((prev) => [...prev, { path: "form/cover_url", file }]);
     }
   };
 

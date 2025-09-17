@@ -4,11 +4,15 @@ import React, { useContext } from "react";
 interface FormEditorState {
   formFields: CanvasFormField[];
   originalFields: CanvasFormField[];
+  filesToUpload: { path: string; file: File }[];
 }
 
 interface FormEditorContextType extends FormEditorState {
   setFormFields: React.Dispatch<React.SetStateAction<CanvasFormField[]>>;
   setOriginalFields: React.Dispatch<React.SetStateAction<CanvasFormField[]>>;
+  setFilesToUpload: React.Dispatch<
+    React.SetStateAction<{ path: string; file: File }[]>
+  >;
 }
 
 const FormEditorContext = React.createContext<
@@ -24,10 +28,15 @@ export function FormEditorProvider({
   const [originalFields, setOriginalFields] = React.useState<CanvasFormField[]>(
     []
   );
+  const [filesToUpload, setFilesToUpload] = React.useState<
+    { path: string; file: File }[]
+  >([]);
 
   return (
     <FormEditorContext.Provider
       value={{
+        filesToUpload,
+        setFilesToUpload,
         originalFields,
         setOriginalFields,
         formFields,

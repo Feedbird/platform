@@ -25,7 +25,7 @@ import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
 import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
 import { useFormEditor } from "@/contexts/FormEditorContext";
-import { nestedObjectEqual } from "@/lib/utils/transformers";
+import { formFieldSorter, nestedObjectEqual } from "@/lib/utils/transformers";
 
 type SelectedField = {
   id: string;
@@ -34,13 +34,8 @@ type SelectedField = {
 };
 
 export default function FormInnerVisualizer() {
-  const {
-    setIsEditing,
-    setActiveForm,
-    activeForm,
-    setUnsavedChanges,
-    unsavedChanges,
-  } = useForms();
+  const { setIsEditing, setActiveForm, activeForm, setUnsavedChanges } =
+    useForms();
   const params = useParams();
   const formId = params.id as string;
 
@@ -70,12 +65,8 @@ export default function FormInnerVisualizer() {
       setError(null);
       const { data } = await formsApi.getFormById(formId);
       const { formFields } = await formsApi.getFormFields(formId);
-      setFormFields(
-        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
-      );
-      setOriginalFields(
-        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
-      );
+      setFormFields(formFields.sort(formFieldSorter));
+      setOriginalFields(formFields.sort(formFieldSorter));
       setForm(data);
       const tableForm = {
         ...data,
@@ -108,6 +99,10 @@ export default function FormInnerVisualizer() {
       setUnsavedChanges(false);
     }
   }, [formFields]);
+
+  React.useEffect(() => {
+    setForm(activeForm);
+  }, [activeForm]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

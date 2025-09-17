@@ -15,6 +15,7 @@ import OptionsPlaceholder from "./OptionsPlaceholder";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import React from "react";
+import { toast } from "sonner";
 
 export type CommonProps = {
   config: any;
@@ -66,13 +67,27 @@ export function TextAreaInput({ config }: CommonProps) {
   );
 }
 
-export function CheckboxInput({ config }: CommonProps) {
+export function CheckboxInput({ config, isPreview }: CommonProps) {
+  const [checked, setChecked] = React.useState(false);
+
   return (
-    <div className="flex flex-row gap-3">
+    <div
+      className={`flex flex-row gap-3 ${
+        isPreview ? "hover:cursor-pointer" : ""
+      }`}
+      onClick={(e) => {
+        if (isPreview) {
+          e.stopPropagation();
+          setChecked(!checked);
+        }
+      }}
+    >
       <Checkbox
         className="size-5 bg-white"
+        checked={checked}
         onClick={(e) => {
           e.stopPropagation();
+          setChecked(!checked);
         }}
       />
       <div className="flex flex-col gap-0.5">
@@ -156,7 +171,7 @@ export function SectionBreakInput({ config }: CommonProps) {
   );
 }
 
-export function AttachmentInput({ config }: CommonProps) {
+export function AttachmentInput({ config, isPreview }: CommonProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="block text-base text-[#1C1D1F]">
@@ -167,7 +182,15 @@ export function AttachmentInput({ config }: CommonProps) {
           {config.description.value}
         </p>
       )}
-      <div className="w-full rounded-[6px] border-1 border-[#D3D3D3] p-4.5 border-dashed flex justify-center bg-white">
+      <div
+        onClick={() => {
+          if (isPreview)
+            toast.warning("File upload not implemented in preview");
+        }}
+        className={`w-full rounded-[6px] border-1 border-[#D3D3D3] p-4.5 border-dashed flex justify-center bg-white ${
+          isPreview ? "hover:cursor-pointer" : ""
+        }`}
+      >
         <div className="flex flex-col items-center gap-1">
           <div className="p-2 rounded-full h-9 w-9 border-1 border-[#D3D3D3] flex items-center justify-center">
             <Image
@@ -194,7 +217,7 @@ export function AttachmentInput({ config }: CommonProps) {
   );
 }
 
-export function SpreadSheetInput({ config }: CommonProps) {
+export function SpreadSheetInput({ config, isPreview }: CommonProps) {
   return (
     <div className="flex flex-col gap-3">
       <label className="block text-base text-[#1C1D1F]">
@@ -205,7 +228,10 @@ export function SpreadSheetInput({ config }: CommonProps) {
           {config.description.value}
         </p>
       )}
-      <SpreadSheetTablePlaceholder config={config} />
+      <SpreadSheetTablePlaceholder
+        config={config}
+        isPreview={isPreview ?? false}
+      />
     </div>
   );
 }
@@ -278,7 +304,7 @@ export function PageBreakInput({
 
 export function PageEnding({ pages }: { pages: number }) {
   return (
-    <div className="flex flex-row justify-between mt-8">
+    <div className="flex flex-row justify-between mt-6">
       {pages > 1 ? (
         <Button
           variant="ghost"
