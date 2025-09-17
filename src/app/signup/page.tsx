@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSignUp } from '@clerk/nextjs'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -65,6 +65,7 @@ export default function SignUpPage() {
   const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
     const { isLoaded, signUp, setActive } = useSignUp()
 
@@ -79,6 +80,13 @@ export default function SignUpPage() {
 
         return () => clearInterval(interval)
     }, [])
+
+    useEffect(() => {
+        const incomingNotice = searchParams?.get('notice')
+        if (incomingNotice === 'already-registered') {
+            setError('This email is already registered. Please sign in instead.')
+        }
+    }, [searchParams])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -110,7 +118,6 @@ export default function SignUpPage() {
             router.push('/verify-email')
 
         } catch (err: any) {
-            console.error('Signup error:', err)
             setError(err.errors?.[0]?.message || 'An error occurred during signup')
         } finally {
             setIsLoading(false)
@@ -127,11 +134,10 @@ export default function SignUpPage() {
         try {
             await signUp.authenticateWithRedirect({
                 strategy: 'oauth_google',
-                redirectUrl: '/sso-callback',
+                redirectUrl: '/sso-callback?from=signup',
                 redirectUrlComplete: '/',
             })
         } catch (err: any) {
-            console.error('Google signup error:', err)
             setError(err.errors?.[0]?.message || 'Failed to sign up with Google')
         }
     }
@@ -218,7 +224,7 @@ export default function SignUpPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
                                     disabled={isLoading}
                                 >
                                     {showPassword ? (
@@ -251,17 +257,17 @@ export default function SignUpPage() {
                                 />
                                 <div className="leading-relaxed break-words">
                                     I have read and agree to the{' '}
-                                    <button
+                                <button
                                         type="button"
-                                        className="text-blue-600 hover:text-blue-700 underline font-medium cursor-pointer"
+                                    className="text-blue-600 hover:text-blue-700 underline font-medium cursor-pointer"
                                         onClick={() => window.open('/terms-of-service', '_blank')}
                                     >
                                         Terms of Service
                                     </button>
                                     {' '}and{' '}
-                                    <button
+                                <button
                                         type="button"
-                                        className="text-blue-600 hover:text-blue-700 underline font-medium cursor-pointer"
+                                    className="text-blue-600 hover:text-blue-700 underline font-medium cursor-pointer"
                                         onClick={() => window.open('/privacy-policy', '_blank')}
                                     >
                                         Privacy Policy
@@ -276,7 +282,7 @@ export default function SignUpPage() {
                             {/* Submit Button */}
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium cursor-pointer disabled:cursor-not-allowed"
                                 disabled={isLoading || !isLoaded || !agreeToTerms}
                             >
                                 {isLoading ? 'Signing Up...' : 'Sign Up'}
@@ -287,7 +293,7 @@ export default function SignUpPage() {
                         <Button
                             onClick={handleGoogleSignUp}
                             variant="outline"
-                            className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 px-4 rounded-md font-medium flex items-center justify-center gap-3"
+                            className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 px-4 rounded-md font-medium flex items-center justify-center gap-3 cursor-pointer disabled:cursor-not-allowed"
                             disabled={isLoading || !isLoaded}
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -305,7 +311,7 @@ export default function SignUpPage() {
                                 Already have an account?{' '}
                                 <button
                                     onClick={() => router.push('/signin')}
-                                    className="text-main hover:text-blue-700 font-semibold leading-tight"
+                                    className="text-main hover:text-blue-700 font-semibold leading-tight cursor-pointer"
                                     disabled={isLoading}
                                 >
                                     Sign in

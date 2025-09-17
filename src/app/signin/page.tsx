@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSignIn } from '@clerk/nextjs'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import PlatformPreview from '@/components/platform-preview/platform-preview'
@@ -61,6 +61,7 @@ export default function SignInPage() {
     const [error, setError] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const router = useRouter()
+    const searchParams = useSearchParams()
 
     const { isLoaded, signIn, setActive } = useSignIn()
 
@@ -75,6 +76,13 @@ export default function SignInPage() {
 
         return () => clearInterval(interval)
     }, [])
+
+    useEffect(() => {
+        const incomingNotice = searchParams?.get('notice')
+        if (incomingNotice === 'not-registered') {
+            setError('You are not registered. Please sign up to continue.')
+        }
+    }, [searchParams])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -101,7 +109,6 @@ export default function SignInPage() {
             }
 
         } catch (err: any) {
-            console.error('Signin error:', err)
             setError(err.errors?.[0]?.message || 'An error occurred during sign in')
         } finally {
             setIsLoading(false)
@@ -118,11 +125,10 @@ export default function SignInPage() {
         try {
             await signIn.authenticateWithRedirect({
                 strategy: 'oauth_google',
-                redirectUrl: '/sso-callback',
+                redirectUrl: '/sso-callback?from=signin',
                 redirectUrlComplete: '/',
             })
         } catch (err: any) {
-            console.error('Google signin error:', err)
             setError(err.errors?.[0]?.message || 'Failed to sign in with Google')
         }
     }
@@ -183,7 +189,7 @@ export default function SignInPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
                                     disabled={isLoading}
                                 >
                                     {showPassword ? (
@@ -211,7 +217,7 @@ export default function SignInPage() {
                                 <button
                                     type="button"
                                     onClick={() => router.push('/forgot-password')}
-                                    className="text-blue-600 hover:text-blue-700 underline font-medium text-sm"
+                                    className="text-blue-600 hover:text-blue-700 underline font-medium text-sm cursor-pointer"
                                     disabled={isLoading}
                                 >
                                     Forgot password?
@@ -224,7 +230,7 @@ export default function SignInPage() {
                             {/* Submit Button */}
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium cursor-pointer disabled:cursor-not-allowed"
                                 disabled={isLoading || !isLoaded}
                             >
                                 {isLoading ? 'Signing In...' : 'Sign In'}
@@ -235,7 +241,7 @@ export default function SignInPage() {
                         <Button
                             onClick={handleGoogleSignIn}
                             variant="outline"
-                            className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 px-4 rounded-md font-medium flex items-center justify-center gap-3"
+                            className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 px-4 rounded-md font-medium flex items-center justify-center gap-3 cursor-pointer disabled:cursor-not-allowed"
                             disabled={isLoading || !isLoaded}
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -253,7 +259,7 @@ export default function SignInPage() {
                                 Don't have an account?{' '}
                                 <button
                                     onClick={() => router.push('/signup')}
-                                    className="text-main hover:text-blue-700 font-semibold leading-tight"
+                                    className="text-main hover:text-blue-700 font-semibold leading-tight cursor-pointer"
                                     disabled={isLoading}
                                 >
                                     Sign up
