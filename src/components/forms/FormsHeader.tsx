@@ -1,5 +1,5 @@
 "use client";
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Button } from "../ui/button";
 import { UserButton } from "@clerk/nextjs";
@@ -20,6 +20,7 @@ import {
 } from "@radix-ui/react-dropdown-menu";
 import { Input } from "../ui/input";
 import { formsApi } from "@/lib/api/api-service";
+import ConfirmationModal from "./content/ConfirmationModal";
 
 export function FormsHeader() {
   return (
@@ -35,9 +36,11 @@ function FormsHeaderContent() {
   const router = useRouter();
   const { user, activeWorkspaceId } = useFeedbirdStore();
   const { createInitialForm } = useFormStore();
-  const { activeForm, setActiveForm, isEditing } = useForms();
+  const { activeForm, setActiveForm, isEditing, unsavedChanges, isPreview } =
+    useForms();
 
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
+  const [alertModalOpen, setAlertModalOpen] = React.useState(false);
 
   const [formLink, setFormLink] = React.useState(
     "https://nazmijavier.feedbird.com/form/a59b8a7c-2a8f-473a-aea0-648170827cff"
@@ -52,7 +55,6 @@ function FormsHeaderContent() {
       const newForm = await createInitialForm(user.email, activeWorkspaceId);
       router.push(`/forms/${newForm.id}`);
     } catch (e) {
-      console.error("Error creating initial form:", e);
       toast.error("Error creating Form. Please try again later");
     } finally {
       isLoading(false);
@@ -67,8 +69,8 @@ function FormsHeaderContent() {
       await formsApi.updateForm(activeForm!.id, { status: "published" });
       toast.success("Form published successfully");
       setActiveForm({ ...activeForm!, status: "published" });
+      setIsDropdownOpen(false);
     } catch (e) {
-      console.error("Error publishing form:", e);
       toast.error("Error publishing form. Please try again later");
     } finally {
       isLoading(false);
@@ -81,8 +83,8 @@ function FormsHeaderContent() {
       await formsApi.updateForm(activeForm!.id, { status: "draft" });
       toast.success("Form unpublished successfully");
       setActiveForm({ ...activeForm!, status: "draft" });
+      setIsDropdownOpen(false);
     } catch (e) {
-      console.error("Error unpublishing form:", e);
       toast.error("Error unpublishing form. Please try again later");
     } finally {
       isLoading(false);
@@ -106,12 +108,31 @@ function FormsHeaderContent() {
                 Form
               </span>
               <ChevronRight width={12} height={12} color="#838488" />
-              <span className="text-[#1C1D1F] font-medium text-sm">
+              <span
+                onClick={() => {
+                  if (isPreview) router.push(`/forms/${activeForm.id}`);
+                }}
+                className={`${
+                  isPreview
+                    ? "text-[#5C5E63] text-sm font-normal cursor-pointer"
+                    : "text-[#1C1D1F] font-medium text-sm"
+                }`}
+              >
                 {activeForm.title}
               </span>
-              <div className="ml-1">
-                <FormStatusBadge status={activeForm.status} />
-              </div>
+              {!isPreview && (
+                <div className="ml-1">
+                  <FormStatusBadge status={activeForm.status} />
+                </div>
+              )}
+              {isPreview && (
+                <>
+                  <ChevronRight width={12} height={12} color="#838488" />
+                  <span className="text-[#1C1D1F] font-medium text-sm">
+                    Preview
+                  </span>
+                </>
+              )}
             </div>
           ) : (
             <span className="font-semibold text-base tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
@@ -136,6 +157,7 @@ function FormsHeaderContent() {
                   />
                 </Button>
                 <Button
+                  onClick={() => router.push(`/forms/${activeForm.id}/preview`)}
                   variant="ghost"
                   className="border-1 w-[84px] border-[#D3D3D3] text-[#1C1D1F] flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
                 >
@@ -193,7 +215,14 @@ function FormsHeaderContent() {
                           disabled={
                             activeForm.status === "published" || loading
                           }
-                          onClick={handleFormPublish}
+                          onClick={() => {
+                            if (unsavedChanges) {
+                              setIsDropdownOpen(false);
+                              setAlertModalOpen(true);
+                            } else {
+                              handleFormPublish();
+                            }
+                          }}
                           className="bg-[#4670F9] mt-2 rounded-[4px] text-white font-medium text-sm hover:cursor-pointer"
                         >
                           Publish
@@ -235,6 +264,14 @@ function FormsHeaderContent() {
           </div>
           <UserButton afterSignOutUrl="/landing" />
         </div>
+
+        <ConfirmationModal
+          open={alertModalOpen}
+          title="You have unsaved changes"
+          onClose={() => setAlertModalOpen(false)}
+          message="If you publish this form, your changes will be lost. Are you sure you want to continue?"
+          action={handleFormPublish}
+        />
       </header>
       {activeForm && isEditing && (
         <FormSettingsModal

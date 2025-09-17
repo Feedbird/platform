@@ -1,7 +1,7 @@
 import { TableForm } from "@/components/forms/content/forms-table";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
-import { FormField } from "@/components/ui/form";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { FormField } from "@/lib/supabase/client";
 
 export interface ApiResponse<T> {
   data: T;
@@ -293,7 +293,9 @@ export const formsApi = {
     });
   },
   getFormFields: async (formId: string) => {
-    return apiRequest<{ formFields: any[] }>(`/forms/fields?formId=${formId}`);
+    return apiRequest<{ formFields: FormField[] }>(
+      `/forms/fields?formId=${formId}`
+    );
   },
   updateFormFields: async (formId: string, fields: CanvasFormField[]) => {
     return apiRequest<{ message: string }>(`/forms/fields`, {

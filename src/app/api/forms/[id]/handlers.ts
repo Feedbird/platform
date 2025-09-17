@@ -42,7 +42,9 @@ export class FormHandler {
     try {
       const { data, error } = await supabase
         .from("forms")
-        .select(`*, services:services(id, name)`)
+        .select(
+          `*, services:services(id, name, pricing, qty_indicator, quantity)`
+        )
         .eq("id", formId)
         .single();
 
@@ -68,7 +70,7 @@ export class FormHandler {
 
   static async updateForm(
     formId: string,
-    updates: Partial<Form>
+    updates: Partial<Omit<Form, "services"> & { services?: string[] }>
   ): Promise<Form> {
     try {
       const form = await supabase

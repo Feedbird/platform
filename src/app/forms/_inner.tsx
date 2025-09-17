@@ -10,7 +10,15 @@ import { toast } from "sonner";
 export default function FormsInner() {
   const { activeWorkspaceId } = useFeedbirdStore();
   const { getFormsByWorkspaceId } = useFormStore();
-  const { forms, setForms, loading, setLoading } = useForms();
+  const {
+    forms,
+    setForms,
+    activeForm,
+    setActiveForm,
+    setIsEditing,
+    loading,
+    setLoading,
+  } = useForms();
 
   const fetchForms = async () => {
     if (!activeWorkspaceId) return;
@@ -29,6 +37,12 @@ export default function FormsInner() {
     fetchForms();
   }, [activeWorkspaceId]);
 
+  useEffect(() => {
+    if (activeForm) {
+      setActiveForm(null);
+      setIsEditing(false);
+    }
+  }, []);
   if (loading) {
     return <Loading />;
   }

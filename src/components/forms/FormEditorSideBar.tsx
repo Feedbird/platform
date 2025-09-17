@@ -8,6 +8,7 @@ import { DraggableFieldType } from "./content/DraggableFieldType";
 import { CanvasFormField } from "./FormCanvas";
 import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
+import { useForms } from "@/contexts/FormsContext";
 
 type FormEditorSideBarProps = {
   onAddField?: (fieldType: FormFieldType) => void;
@@ -20,6 +21,7 @@ export default function FormEditorSideBar({
   formFields,
   formId,
 }: FormEditorSideBarProps) {
+  const { setUnsavedChanges, activeForm } = useForms();
   const [loading, isLoading] = React.useState(false);
 
   const updateFormFields = async () => {
@@ -27,9 +29,9 @@ export default function FormEditorSideBar({
     try {
       await formsApi.updateFormFields(formId, formFields);
       toast.success("Form fields updated");
+      setUnsavedChanges(false);
     } catch (e) {
       toast.error("Failed to update form fields. Please try again.");
-      console.error("Error updating form fields:", e);
     } finally {
       isLoading(false);
     }

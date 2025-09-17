@@ -23,7 +23,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Form } from "@/lib/supabase/client";
+import { Form, Service } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import EmptyFormsComponent from "../EmptyForms";
@@ -37,7 +37,7 @@ import { PopoverPortal } from "@radix-ui/react-popover";
 export interface TableForm extends Form {
   submissions_count?: number;
   fields_count?: number;
-  services: { id: string; name: string }[];
+  services: Service[];
 }
 
 export type FormsTableProps = {
@@ -494,7 +494,11 @@ export default function FormsTable({ forms }: FormsTableProps) {
           />
         </div>
       </div>
-      <div className="bg-background border border-gray-200 overflow-auto max-h-full pb-12">
+      <div
+        className={`bg-background border border-gray-200 overflow-auto max-h-full ${
+          tabledData.length === 0 ? "" : "pb-12"
+        }`}
+      >
         <table
           data-grouped="true"
           className="

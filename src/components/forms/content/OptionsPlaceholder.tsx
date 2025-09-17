@@ -17,6 +17,7 @@ function OptionCard({
   option: ComplexObjectType & { image?: string };
   totalItems: number;
 }) {
+  const [selected, isSelected] = React.useState(false);
   const getWidthClass = () => {
     if (totalItems === 1) return "w-full";
     if (totalItems === 2) return "w-[calc(50%-0.375rem)]";
@@ -26,7 +27,13 @@ function OptionCard({
 
   return (
     <div
-      className={`border-1 items-center bg-white border-[#D3D3D3] rounded-[6px] p-2 flex flex-row justify-between ${getWidthClass()}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        isSelected(!selected);
+      }}
+      className={`border-1 hover:cursor-pointer items-center ${
+        selected ? "bg-[#EDF6FF] border-[#4670F9]" : "bg-white border-[#D3D3D3]"
+      } rounded-[6px] p-2 flex flex-row justify-between ${getWidthClass()}`}
     >
       {option.image && (
         <Image
@@ -38,10 +45,7 @@ function OptionCard({
         />
       )}
       <span className="text-[#1C1D1F] font-normal text-sm">{option.value}</span>
-      <Checkbox
-        className="bg-white rounded-full size-5"
-        onClick={(e) => e.stopPropagation()}
-      />
+      <Checkbox checked={selected} className="bg-white rounded-full size-5" />
     </div>
   );
 }

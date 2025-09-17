@@ -36,7 +36,7 @@ export default function EmptyFormPreview({
   iconOpacity?: number;
 }) {
   return (
-    <div className="rounded-[8px] bg-white w-full py-3.5 shadow-sm items-center pl-3 pr-5 gap-3 flex flex-row border-1 border-border-primary">
+    <div className="rounded-[8px] bg-white w-full py-3.5 shadow-lg items-center pl-3 pr-5 gap-3 flex flex-row border-1 border-border-primary">
       <FormIcon
         color={iconColor}
         width={20}

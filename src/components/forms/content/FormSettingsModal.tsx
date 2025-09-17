@@ -93,7 +93,6 @@ export default function FormSettingsModal({
       onClose(false);
       toast.success("Form updated successfully!");
     } catch (error) {
-      console.error("Error updating form:", error);
       toast.error("Failed to update form. Please try again.");
     } finally {
       isLoading(false);
