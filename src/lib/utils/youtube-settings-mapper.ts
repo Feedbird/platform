@@ -7,6 +7,8 @@ export function mapYouTubeSettingsToPublishOptions(youtubeSettings: YouTubeSetti
   return {
     visibility: youtubeSettings.privacyStatus,
     madeForKids: youtubeSettings.madeForKids,
+    description: youtubeSettings.description,
+    // Keep other settings for future use, but focus on core 3 for now
     categoryId: youtubeSettings.categoryId,
     tags: youtubeSettings.tags,
     defaultLanguage: youtubeSettings.defaultLanguage,

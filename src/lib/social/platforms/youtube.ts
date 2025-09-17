@@ -219,7 +219,8 @@ import { supabase } from "@/lib/supabase/client";
     /* 5 ─ upload video */
     async publishPost(
       page: SocialPage,
-      content: PostContent
+      content: PostContent,
+      options?: PublishOptions
     ): Promise<PostHistory> {
       /* —— browser side: call the server route —— */
       if (IS_BROWSER) {
@@ -231,7 +232,8 @@ import { supabase } from "@/lib/supabase/client";
             post: {
               content: content.text,
               mediaUrls: content.media?.urls
-            }
+            },
+            options
           }),
         });
         if (!res.ok) throw new Error(await res.text());
@@ -253,12 +255,41 @@ import { supabase } from "@/lib/supabase/client";
   
       /* b) multipart via FormData (boundary handled automatically) */
       const form = new FormData();
+      
+      // Build snippet with settings from options
+      const snippet: any = {
+        title: content.title?.slice(0, 100) || content.text.slice(0, 100) || "Untitled",
+        description: options?.description || content.text,
+      };
+      
+      // Add tags if provided
+      if (options?.tags && options.tags.length > 0) {
+        snippet.tags = options.tags;
+      }
+      
+      // Add category if provided
+      if (options?.categoryId) {
+        snippet.categoryId = options.categoryId;
+      }
+      
+      // Add default language if provided
+      if (options?.defaultLanguage) {
+        snippet.defaultLanguage = options.defaultLanguage;
+      }
+      
+      // Add default audio language if provided
+      if (options?.defaultAudioLanguage) {
+        snippet.defaultAudioLanguage = options.defaultAudioLanguage;
+      }
+      
+      const status: any = {
+        privacyStatus: options?.visibility || "public",
+        selfDeclaredMadeForKids: options?.madeForKids || false,
+      };
+      
       form.append("snippet", new Blob([JSON.stringify({
-        snippet: {
-          title: content.title?.slice(0, 100) || content.text.slice(0, 100) || "Untitled",
-          description: content.text,
-        },
-        status: { privacyStatus: "private" },
+        snippet,
+        status,
       })], { type: "application/json" }));
       form.append("video", new Blob([bytes], { type: "video/*" }));
   
@@ -271,7 +302,17 @@ import { supabase } from "@/lib/supabase/client";
           headers: { Authorization: `Bearer ${token}` },
           body: form,
         });
-  
+
+      // Set custom thumbnail if provided
+      if (options?.thumbnailUrl && vid.id) {
+        try {
+          await this.setThumbnail(token, vid.id, options.thumbnailUrl);
+        } catch (error) {
+          console.warn("Failed to set thumbnail:", error);
+          // Don't fail the entire upload if thumbnail fails
+        }
+      }
+
       return {
         id: vid.id,
         pageId: page.id,
@@ -334,19 +375,51 @@ import { supabase } from "@/lib/supabase/client";
     async getPostAnalytics(){ return {}; }
     async deletePost() {}
 
+    // Helper method to set custom thumbnail
+    async setThumbnail(token: string, videoId: string, thumbnailUrl: string): Promise<void> {
+      try {
+        // Fetch the image from the URL
+        const response = await fetch(thumbnailUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch thumbnail: ${response.status}`);
+        }
+        
+        const imageBlob = await response.blob();
+        
+        // Set the thumbnail using YouTube API
+        await ytFetch(
+          `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}`,
+          {
+            method: "POST",
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              "Content-Type": imageBlob.type || "image/jpeg"
+            },
+            body: imageBlob,
+          }
+        );
+      } catch (error) {
+        console.error("Error setting YouTube thumbnail:", error);
+        throw error;
+      }
+    }
+
     async createPost(
       page: SocialPage,
-      content: PostContent
+      content: PostContent,
+      options?: PublishOptions
     ): Promise<PostHistory> {
-      return this.publishPost(page, content);
+      return this.publishPost(page, content, options);
     }
 
     async schedulePost(
       page: SocialPage,
       content: PostContent,
-      scheduledTime: Date
+      scheduledTime: Date,
+      options?: PublishOptions
     ): Promise<PostHistory> {
-      throw new Error('YouTube scheduling is not implemented yet');
+      // For now, just publish immediately since scheduling is not implemented
+      return this.publishPost(page, content, options);
     }
 
     getPlatformFeatures() {

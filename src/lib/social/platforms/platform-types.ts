@@ -325,6 +325,7 @@ export interface PublishOptions {
   
   // YouTube-specific options
   madeForKids?: boolean;
+  description?: string;
   categoryId?: string;
   tags?: string[];
   defaultLanguage?: string;
@@ -453,6 +454,7 @@ export interface GoogleBusinessSettings {
 export interface YouTubeSettings {
   privacyStatus: 'public' | 'private' | 'unlisted';
   madeForKids: boolean;
+  description?: string;
   categoryId?: string;
   tags?: string[];
   defaultLanguage?: string;

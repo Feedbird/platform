@@ -83,8 +83,10 @@ import { Span } from "next/dist/trace";
 import { ImageConfigContext } from "next/dist/shared/lib/image-config-context.shared-runtime";
 import { TikTokSettingsPanel } from './tiktok-settings';
 import { GoogleBusinessSettingsPanel } from './google-business-settings';
-import type { TikTokSettings, GoogleBusinessSettings } from '@/lib/social/platforms/platform-types';
+import { YouTubeSettingsPanel } from './youtube-settings';
+import type { TikTokSettings, GoogleBusinessSettings, YouTubeSettings } from '@/lib/social/platforms/platform-types';
 import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-settings-mapper';
+import { getDefaultYouTubeSettings } from '@/lib/utils/youtube-settings-mapper';
 
 // Wrapper component to convert between platform names and page IDs
 function PlatformsEditor({ post }: { post: Post }) {
@@ -318,6 +320,15 @@ function SettingsEditor({ post }: { post: Post }) {
     return googlePage?.id || null;
   }, [post.platforms, ws?.socialPages]);
 
+  // Get the first YouTube page ID if YouTube is selected
+  const youtubePageId = React.useMemo(() => {
+    if (!post.platforms.includes('youtube') || !ws?.socialPages) return null;
+    const youtubePage = ws.socialPages.find(page => 
+      page.platform === 'youtube' && page.connected
+    );
+    return youtubePage?.id || null;
+  }, [post.platforms, ws?.socialPages]);
+
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
     privacyLevel: 'SELF_ONLY',
@@ -338,6 +349,9 @@ function SettingsEditor({ post }: { post: Post }) {
   // Default Google Business settings
   const defaultGoogleBusinessSettings: GoogleBusinessSettings = getDefaultGoogleBusinessSettings();
 
+  // Default YouTube settings
+  const defaultYouTubeSettings: YouTubeSettings = getDefaultYouTubeSettings();
+
   // Local state for all settings
   const [local, setLocal] = React.useState({
     locationTags: post.settings?.locationTags ?? [],
@@ -345,11 +359,13 @@ function SettingsEditor({ post }: { post: Post }) {
     thumbnail: post.settings?.thumbnail ?? false,
     tiktok: post.settings?.tiktok ?? defaultTikTokSettings,
     google: post.settings?.google ?? defaultGoogleBusinessSettings,
+    youtube: post.settings?.youtube ?? defaultYouTubeSettings,
   });
 
   // Validation states
   const [tiktokValidation, setTiktokValidation] = React.useState(true);
   const [googleValidation, setGoogleValidation] = React.useState(true);
+  const [youtubeValidation, setYoutubeValidation] = React.useState(true);
 
   // Helper booleans for UI
   const activeFlags = {
@@ -358,6 +374,7 @@ function SettingsEditor({ post }: { post: Post }) {
     thumbnail: local.thumbnail,
     tiktok: post.platforms.includes('tiktok'),
     google: post.platforms.includes('google'),
+    youtube: post.platforms.includes('youtube'),
   };
 
   const LABELS = {
@@ -366,6 +383,7 @@ function SettingsEditor({ post }: { post: Post }) {
     thumbnail: "Custom Thumbnail",
     tiktok: "TikTok Settings",
     google: "Google Business Settings",
+    youtube: "YouTube Settings",
   };
 
   const ICONS = {
@@ -374,6 +392,7 @@ function SettingsEditor({ post }: { post: Post }) {
     thumbnail: <Image src={`/images/settings/image.svg`} alt="Thumbnail" width={16} height={16} />,
     tiktok: <Image src={`/images/platforms/tiktok.svg`} alt="TikTok" width={16} height={16} />,
     google: <Image src={`/images/platforms/google.svg`} alt="Google Business" width={16} height={16} />,
+    youtube: <Image src={`/images/platforms/youtube.svg`} alt="YouTube" width={16} height={16} />,
   };
 
   const iconClass = (active: boolean) =>
@@ -393,6 +412,11 @@ function SettingsEditor({ post }: { post: Post }) {
           return prev;
         case 'google':
           // Google Business settings are managed by platform selection, not toggleable here
+          return prev;
+        case 'youtube':
+          // YouTube settings are managed by platform selection, not toggleable here
+          return prev;
+        default:
           return prev;
       }
     });
@@ -520,6 +544,7 @@ function SettingsEditor({ post }: { post: Post }) {
           <Tabs defaultValue={
             post.platforms.includes('tiktok') ? 'tiktok' : 
             post.platforms.includes('google') ? 'google' : 
+            post.platforms.includes('youtube') ? 'youtube' : 
             'location'
           } className="w-full mt-0 flex flex-col gap-6 flex-1 min-h-0">
             <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
@@ -531,6 +556,11 @@ function SettingsEditor({ post }: { post: Post }) {
               {post.platforms.includes('google') && (
                 <TabsTrigger value="google" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
                   {ICONS.google} Google
+                </TabsTrigger>
+              )}
+              {post.platforms.includes('youtube') && (
+                <TabsTrigger value="youtube" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                  {ICONS.youtube} YouTube
                 </TabsTrigger>
               )}
               <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
@@ -572,6 +602,22 @@ function SettingsEditor({ post }: { post: Post }) {
                     }
                     onValidationChange={(isValid) => {
                       setGoogleValidation(isValid);
+                    }}
+                  />
+                </TabsContent>
+              )}
+
+              {/* YouTube Tab */}
+              {post.platforms.includes('youtube') && (
+                <TabsContent value="youtube" className="space-y-4 m-0 h-full">
+                  <YouTubeSettingsPanel
+                    pageId={youtubePageId}
+                    settings={local.youtube}
+                    onChange={(youtubeSettings) => 
+                      setLocal(prev => ({ ...prev, youtube: youtubeSettings }))
+                    }
+                    onValidationChange={(isValid) => {
+                      setYoutubeValidation(isValid);
                     }}
                   />
                 </TabsContent>
@@ -646,12 +692,13 @@ function SettingsEditor({ post }: { post: Post }) {
                   taggedAccounts: local.taggedAccounts,
                   thumbnail: local.thumbnail,
                   ...(post.platforms.includes('tiktok') && { tiktok: local.tiktok }),
-                  ...(post.platforms.includes('google') && { google: local.google })
+                  ...(post.platforms.includes('google') && { google: local.google }),
+                  ...(post.platforms.includes('youtube') && { youtube: local.youtube })
                 };
                 updatePost(post.id, { settings: updatedSettings });
                 setModalOpen(false);
               }}
-              disabled={(post.platforms.includes('tiktok') && !tiktokValidation) || (post.platforms.includes('google') && !googleValidation)}
+              disabled={(post.platforms.includes('tiktok') && !tiktokValidation) || (post.platforms.includes('google') && !googleValidation) || (post.platforms.includes('youtube') && !youtubeValidation)}
               className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Changes

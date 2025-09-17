@@ -16,6 +16,7 @@
      options: z.object({
        visibility: z.enum(["public", "private", "unlisted"]).optional(),
        madeForKids: z.boolean().optional(),
+       description: z.string().optional(),
        categoryId: z.string().optional(),
        tags: z.array(z.string()).optional(),
        defaultLanguage: z.string().optional(),
