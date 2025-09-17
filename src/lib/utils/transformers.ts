@@ -2,6 +2,8 @@
  * Place any data transformers here, for humanizing / normalizing data
  */
 
+import { CanvasFormField } from "@/components/forms/FormCanvas";
+
 export function humanizeDate(date: Date | string): string {
   const standardizedDate = typeof date === "string" ? new Date(date) : date;
   const now = new Date();
@@ -65,4 +67,11 @@ export function plainArrayEqual<T extends string | number>(
  */
 export function nestedObjectEqual<T>(a: T, b: T): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export function formFieldSorter(
+  a: CanvasFormField,
+  b: CanvasFormField
+): number {
+  return (a.position || 0) - (b.position || 0);
 }

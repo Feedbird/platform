@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import React from "react";
 import Loading from "./loading";
+import { formFieldSorter } from "@/lib/utils/transformers";
 
 export default function Page() {
   const { activeForm, setIsPreview, setActiveForm, setIsEditing } = useForms();
@@ -26,12 +27,8 @@ export default function Page() {
       setError(null);
       const { data } = await formsApi.getFormById(formId);
       const { formFields } = await formsApi.getFormFields(formId);
-      setFormFields(
-        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
-      );
-      setOriginalFields(
-        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
-      );
+      setFormFields(formFields.sort(formFieldSorter));
+      setOriginalFields(formFields.sort(formFieldSorter));
       const tableForm = {
         ...data,
         services: data.services || [],
@@ -52,7 +49,7 @@ export default function Page() {
       setIsPreview(true);
 
       const tempPages: CanvasFormField[][] = [[]];
-      for (const field of formFields.sort((a, b) => a.position - b.position)) {
+      for (const field of formFields.sort(formFieldSorter)) {
         if (field.type === "page-break") {
           tempPages[tempPages.length - 1].push(field);
           tempPages.push([]);
@@ -62,7 +59,6 @@ export default function Page() {
       }
       setPages(tempPages);
     } else {
-      console.log(`Retrieving form for preview: ${params.id}`);
       retrieveForm(params.id as string);
     }
     return () => setIsPreview(false);
