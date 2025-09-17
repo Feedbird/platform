@@ -45,7 +45,10 @@ export default function Page() {
             </span>
             <div className="flex flex-col gap-1.5">
               {activeForm?.services?.map((service, index) => (
-                <div className="flex flex-row gap-3 text-sm text-[#5C5E63] font-normal">
+                <div
+                  key={index}
+                  className="flex flex-row gap-3 text-sm text-[#5C5E63] font-normal"
+                >
                   <p className="min-w-[170px]">{service.name}</p>
                   <Divider orientation="vertical" />
                   <p>
