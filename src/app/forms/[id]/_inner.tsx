@@ -34,13 +34,8 @@ type SelectedField = {
 };
 
 export default function FormInnerVisualizer() {
-  const {
-    setIsEditing,
-    setActiveForm,
-    activeForm,
-    setUnsavedChanges,
-    unsavedChanges,
-  } = useForms();
+  const { setIsEditing, setActiveForm, activeForm, setUnsavedChanges } =
+    useForms();
   const params = useParams();
   const formId = params.id as string;
 

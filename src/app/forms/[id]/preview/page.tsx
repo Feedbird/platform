@@ -4,31 +4,84 @@ import { PageEnding } from "@/components/forms/content/FormInputs";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
 import { useFormEditor } from "@/contexts/FormEditorContext";
 import { useForms } from "@/contexts/FormsContext";
+import { formsApi } from "@/lib/api/api-service";
 import { Divider } from "@mui/material";
 import Image from "next/image";
+import { useParams } from "next/navigation";
 import React from "react";
+import Loading from "./loading";
 
 export default function Page() {
-  const { activeForm, setIsPreview } = useForms();
-  const { formFields } = useFormEditor();
+  const { activeForm, setIsPreview, setActiveForm, setIsEditing } = useForms();
+  const { formFields, setFormFields, setOriginalFields } = useFormEditor();
+  const params = useParams();
 
   const [pages, setPages] = React.useState<CanvasFormField[][]>([]);
+  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+
+  const retrieveForm = async (formId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data } = await formsApi.getFormById(formId);
+      const { formFields } = await formsApi.getFormFields(formId);
+      setFormFields(
+        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
+      );
+      setOriginalFields(
+        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
+      );
+      const tableForm = {
+        ...data,
+        services: data.services || [],
+        submissions_count: 0,
+        fields_count: 0,
+      };
+      setActiveForm(tableForm);
+      setIsEditing(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load form");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   React.useEffect(() => {
-    setIsPreview(true);
+    if (activeForm) {
+      setIsPreview(true);
 
-    const tempPages: CanvasFormField[][] = [[]];
-    for (const field of formFields.sort((a, b) => a.position - b.position)) {
-      if (field.type === "page-break") {
-        tempPages[tempPages.length - 1].push(field);
-        tempPages.push([]);
-      } else {
-        tempPages[tempPages.length - 1].push(field);
+      const tempPages: CanvasFormField[][] = [[]];
+      for (const field of formFields.sort((a, b) => a.position - b.position)) {
+        if (field.type === "page-break") {
+          tempPages[tempPages.length - 1].push(field);
+          tempPages.push([]);
+        } else {
+          tempPages[tempPages.length - 1].push(field);
+        }
       }
+      setPages(tempPages);
+    } else {
+      console.log(`Retrieving form for preview: ${params.id}`);
+      retrieveForm(params.id as string);
     }
-    setPages(tempPages);
     return () => setIsPreview(false);
-  }, []);
+  }, [activeForm]);
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex justify-center items-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Error Loading Form</h2>
+          <p className="text-gray-600">{error || "Form not found"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-auto bg-[#FBFBFB]">
@@ -68,7 +121,13 @@ export default function Page() {
                   </span>
                 </div>
 
-                <div className="rounded-[8px] bg-white rounded-tl-none border-1 border-[#EAE9E9] flex flex-col overflow-hidden">
+                <div
+                  className={`rounded-[8px] bg-white rounded-tl-none ${
+                    pageIndex === 0 && activeForm?.cover_url
+                      ? "border-1 border-t-0"
+                      : "border-1"
+                  } border-[#EAE9E9] flex flex-col overflow-hidden`}
+                >
                   {pageIndex === 0 && activeForm?.cover_url && (
                     <div className="w-full relative h-[160px]">
                       <Image

@@ -278,7 +278,7 @@ export function PageBreakInput({
 
 export function PageEnding({ pages }: { pages: number }) {
   return (
-    <div className="flex flex-row justify-between mt-8">
+    <div className="flex flex-row justify-between mt-6">
       {pages > 1 ? (
         <Button
           variant="ghost"
