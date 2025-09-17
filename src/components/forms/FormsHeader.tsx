@@ -55,7 +55,6 @@ function FormsHeaderContent() {
       const newForm = await createInitialForm(user.email, activeWorkspaceId);
       router.push(`/forms/${newForm.id}`);
     } catch (e) {
-      console.error("Error creating initial form:", e);
       toast.error("Error creating Form. Please try again later");
     } finally {
       isLoading(false);
@@ -72,7 +71,6 @@ function FormsHeaderContent() {
       setActiveForm({ ...activeForm!, status: "published" });
       setIsDropdownOpen(false);
     } catch (e) {
-      console.error("Error publishing form:", e);
       toast.error("Error publishing form. Please try again later");
     } finally {
       isLoading(false);
@@ -87,14 +85,12 @@ function FormsHeaderContent() {
       setActiveForm({ ...activeForm!, status: "draft" });
       setIsDropdownOpen(false);
     } catch (e) {
-      console.error("Error unpublishing form:", e);
       toast.error("Error unpublishing form. Please try again later");
     } finally {
       isLoading(false);
     }
   };
 
-  console.log(unsavedChanges);
   return (
     <>
       <header

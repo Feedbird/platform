@@ -24,8 +24,6 @@ export default function FormEditorSideBar({
   const { setUnsavedChanges, activeForm } = useForms();
   const [loading, isLoading] = React.useState(false);
 
-  console.log(activeForm);
-
   const updateFormFields = async () => {
     isLoading(true);
     try {
@@ -34,7 +32,6 @@ export default function FormEditorSideBar({
       setUnsavedChanges(false);
     } catch (e) {
       toast.error("Failed to update form fields. Please try again.");
-      console.error("Error updating form fields:", e);
     } finally {
       isLoading(false);
     }

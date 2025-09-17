@@ -19,7 +19,6 @@ export default function EmptyFormsComponent() {
       const newForm = await createInitialForm(user.email, activeWorkspaceId);
       router.push(`/forms/${newForm.id}`);
     } catch (e) {
-      console.error("Error creating initial form:", e);
       toast.error("Error creating Form. Please try again later");
     }
   };

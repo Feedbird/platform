@@ -18,7 +18,6 @@ export default function Page() {
 
     const tempPages: CanvasFormField[][] = [[]];
     for (const field of formFields.sort((a, b) => a.position - b.position)) {
-      console.log(`Evaluating field: ${field.type}`);
       if (field.type === "page-break") {
         tempPages[tempPages.length - 1].push(field);
         tempPages.push([]);
@@ -29,8 +28,6 @@ export default function Page() {
     setPages(tempPages);
     return () => setIsPreview(false);
   }, []);
-
-  console.log();
 
   return (
     <div className="h-full overflow-auto bg-[#FBFBFB]">

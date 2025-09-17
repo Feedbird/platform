@@ -25,6 +25,7 @@ import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
 import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
 import { useFormEditor } from "@/contexts/FormEditorContext";
+import { nestedObjectEqual } from "@/lib/utils/transformers";
 
 type SelectedField = {
   id: string;
@@ -33,7 +34,13 @@ type SelectedField = {
 };
 
 export default function FormInnerVisualizer() {
-  const { setIsEditing, setActiveForm, activeForm } = useForms();
+  const {
+    setIsEditing,
+    setActiveForm,
+    activeForm,
+    setUnsavedChanges,
+    unsavedChanges,
+  } = useForms();
   const params = useParams();
   const formId = params.id as string;
 
@@ -42,6 +49,8 @@ export default function FormInnerVisualizer() {
   const [error, setError] = React.useState<string | null>(null);
 
   const { formFields, setFormFields } = useFormEditor();
+
+  const originalFields = React.useRef<CanvasFormField[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
   const [selectedField, setSelectedField] =
@@ -64,6 +73,7 @@ export default function FormInnerVisualizer() {
       setFormFields(
         formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
       );
+      originalFields.current = formFields;
       setForm(data);
       const tableForm = {
         ...data,
@@ -74,7 +84,6 @@ export default function FormInnerVisualizer() {
       setActiveForm(tableForm);
       setIsEditing(true);
     } catch (err) {
-      console.error("Error fetching form:", err);
       setError(err instanceof Error ? err.message : "Failed to load form");
     } finally {
       setLoading(false);
@@ -82,8 +91,21 @@ export default function FormInnerVisualizer() {
   };
 
   React.useEffect(() => {
-    retrieveForm(formId);
+    if ((!formFields || formFields.length === 0) && formId) {
+      retrieveForm(formId);
+    } else {
+      setForm(activeForm);
+      setLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    if (!nestedObjectEqual(formFields, originalFields.current)) {
+      setUnsavedChanges(true);
+    } else {
+      setUnsavedChanges(false);
+    }
+  }, [formFields]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

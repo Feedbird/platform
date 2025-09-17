@@ -60,7 +60,6 @@ export default function FormCanvas({
     if (file) {
       // For now, create a local preview URL
       const previewUrl = URL.createObjectURL(file);
-      console.log(previewUrl);
       setActiveForm(
         (prev) => ({ ...prev, cover_url: previewUrl } as TableForm)
       );

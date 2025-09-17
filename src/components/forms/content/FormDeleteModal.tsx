@@ -40,7 +40,6 @@ export default function FormDeleteModal({
       onClose(false);
       setConfirmation("");
     } catch (e) {
-      console.error("❌ Error deleting form:", e);
       toast.error("Error deleting form. Please try again later.");
     } finally {
       isLoading(false);
