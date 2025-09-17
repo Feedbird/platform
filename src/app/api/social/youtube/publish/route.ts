@@ -8,30 +8,32 @@
    const ops = getPlatformOperations("youtube")!;
    
    const Body = z.object({
-     page: z.object({
-       id        : z.string(),
-       pageId    : z.string(),
-       authToken : z.string(),
-       name      : z.string(),
-       accountId : z.string(),
-       platform  : z.literal("youtube"),
-     }).passthrough(),                 // keep extra fields
+     page: z.any(),                    // Use flexible validation like other platforms
      post: z.object({
        content  : z.string().min(1),
        mediaUrls: z.array(z.string().url()).nonempty(),
      }),
+     options: z.object({
+       visibility: z.enum(["public", "private", "unlisted"]).optional(),
+       madeForKids: z.boolean().optional(),
+       categoryId: z.string().optional(),
+       tags: z.array(z.string()).optional(),
+       defaultLanguage: z.string().optional(),
+       defaultAudioLanguage: z.string().optional(),
+       thumbnailUrl: z.string().url().optional(),
+     }).optional(),
    });
    
    export async function POST(req: NextRequest) {
      try {
-       const { page, post } = Body.parse(await req.json());
+       const { page, post, options } = Body.parse(await req.json());
        const res = await ops.publishPost(page as any, {
          text: post.content,
          media: {
            type: "video",
            urls: post.mediaUrls
          }
-       });
+       }, options);
        return Response.json(res);                       // 200
      } catch (e: any) {
        console.error("[YouTube publish]", e);

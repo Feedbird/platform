@@ -6,6 +6,8 @@
     PlatformOperations, SocialAccount, SocialPage,
     PostHistory, SocialPlatformConfig, PostContent, PublishOptions
   } from "./platform-types";
+  import { BasePlatform } from "./base-platform";
+import { supabase } from "@/lib/supabase/client";
   
   /* —— static meta —— */
   const cfg: SocialPlatformConfig = {
@@ -53,12 +55,14 @@
   }
   
   /* ─────────────────────────────────────────────────────────── */
-  export class YouTubePlatform implements PlatformOperations {
+  export class YouTubePlatform extends BasePlatform {
     constructor(
       private clientId    : string,
       private clientSecret: string,
       private redirectUri : string,
-    ) {}
+    ) {
+      super(cfg, { clientId, clientSecret, redirectUri });
+    }
   
     /* 1 ─ popup */
     getAuthUrl() {
@@ -69,7 +73,7 @@
       u.searchParams.set("scope",          cfg.scopes.join(" "));
       u.searchParams.set("access_type",    "offline");
       u.searchParams.set("include_granted_scopes", "true");
-      u.searchParams.set("state", crypto.randomUUID());
+      u.searchParams.set("prompt",        "consent");  // force refresh_token
       return u.toString();
     }
   
@@ -113,19 +117,30 @@
     }
   
     /* 3 ─ silent refresh */
-    async refreshToken(acc: SocialAccount) {
-      if (!acc.refreshToken) return acc;
+    async refreshToken(acc: any) {
+
+      if (!acc.refresh_token) {
+        throw new Error('No refresh token available');
+      }
+
       const tok = await ytFetch<{ access_token: string; expires_in: number }>(
         TOKEN_URL, {
           method : "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body   : new URLSearchParams({
             grant_type   : "refresh_token",
-            refresh_token: acc.refreshToken,
+            refresh_token: acc.refresh_token,
             client_id    : this.clientId,
             client_secret: this.clientSecret,
           }),
         });
+
+        // update the supabase table with the new token
+      await supabase.from('social_accounts').update({
+          auth_token: tok.access_token,
+          access_token_expires_at: new Date(Date.now() + tok.expires_in * 1_000)
+        }).eq('id', acc.id);
+
       return { ...acc,
         authToken: tok.access_token,
         accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
@@ -135,13 +150,18 @@
   
     /* 4 ─ one synthetic "page" == the channel  */
     async listPages(acc: SocialAccount): Promise<SocialPage[]> {
+      if (!acc.authToken) {
+        throw new Error('YouTube authentication token is missing. Please reconnect your YouTube account.');
+      }
+      
       return [{
         id        : crypto.randomUUID(),
         platform  : "youtube",
         entityType: "channel",
         name      : acc.name,
         pageId    : acc.accountId,
-        authToken : acc.authToken || '',
+        authToken : acc.authToken,
+        authTokenExpiresAt: acc.accessTokenExpiresAt,
         connected : true,
         status    : "active",
         accountId : acc.id,
@@ -152,12 +172,55 @@
     async disconnectPage(p: SocialPage)           { p.connected = false; p.status = "expired"; }
     async checkPageStatus(p: SocialPage)          { return { ...p }; }
   
+    async getToken(pageId: string): Promise<string> {
+
+      const { data, error } = await supabase
+        .from('social_pages')
+        .select('auth_token, auth_token_expires_at, account_id')
+        .eq('id', pageId)
+        .single();
+        
+      if (error) {
+        throw new Error('Failed to get YouTube token. Please reconnect your YouTube account.');
+      }
+      
+      // check if the token is expired
+      const now = new Date();
+      const expiresAt = data?.auth_token_expires_at ? new Date(data.auth_token_expires_at) : null;
+      if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
+        return data?.auth_token;
+      }
+
+      // fetch the account from the database
+      const {data: account, error: accountError} = await supabase
+        .from('social_accounts')
+        .select('*')
+        .eq('id', data?.account_id)
+        .single();
+        
+      if (accountError) {
+        throw new Error('Failed to get account');
+      }
+
+      // refresh the token
+      const refreshedToken = await this.refreshToken(account);
+      if (!refreshedToken.authToken) {
+        throw new Error('Failed to refresh YouTube token. Please reconnect your YouTube account.');
+      }
+      // update the token in the database
+      await supabase
+        .from('social_pages')
+        .update({ auth_token: refreshedToken.authToken, auth_token_expires_at: refreshedToken.accessTokenExpiresAt })
+        .eq('id', pageId);
+
+
+      return refreshedToken.authToken;
+    }
     /* 5 ─ upload video */
     async publishPost(
       page: SocialPage,
       content: PostContent
     ): Promise<PostHistory> {
-      console.log("publishPost", page, content);
       /* —— browser side: call the server route —— */
       if (IS_BROWSER) {
         const res = await fetch("/api/social/youtube/publish", {
@@ -177,6 +240,12 @@
   
       if (!content.media?.urls[0]) {
         throw new Error("YouTube API needs a video file URL.");
+      }
+
+      // fetch the token from the database
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
       }
   
       /* a) pull raw bytes */
@@ -199,7 +268,7 @@
         "?part=snippet,status&uploadType=multipart",
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${page.authToken || ''}` },
+          headers: { Authorization: `Bearer ${token}` },
           body: form,
         });
   
@@ -223,7 +292,7 @@
             items: { contentDetails: { relatedPlaylists: { uploads: string } } }[];
           }>(
             `${cfg.baseUrl}/channels?part=contentDetails&id=${pg.pageId}`,
-            { headers: { Authorization: `Bearer ${pg.authToken || ''}` } },
+            { headers: { Authorization: `Bearer ${pg.authToken}` } },
           );
           (globalThis as any)._yt_uploads =
             ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
@@ -245,7 +314,7 @@
         }>(
           `${cfg.baseUrl}/playlistItems` +
           `?part=snippet&playlistId=${uploads}&maxResults=${limit}`,
-          { headers: { Authorization: `Bearer ${pg.authToken || ''}` } },
+          { headers: { Authorization: `Bearer ${pg.authToken}` } },
         );
       
         return vids.items.map(v => ({
