@@ -70,7 +70,7 @@ export class FormHandler {
 
   static async updateForm(
     formId: string,
-    updates: Partial<Form>
+    updates: Partial<Omit<Form, "services"> & { services?: string[] }>
   ): Promise<Form> {
     try {
       const form = await supabase
