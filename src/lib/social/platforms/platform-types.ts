@@ -326,11 +326,6 @@ export interface PublishOptions {
   // YouTube-specific options
   madeForKids?: boolean;
   description?: string;
-  categoryId?: string;
-  tags?: string[];
-  defaultLanguage?: string;
-  defaultAudioLanguage?: string;
-  thumbnailUrl?: string;
   
   // General settings object that can contain platform-specific settings
   settings?: any;
@@ -455,11 +450,6 @@ export interface YouTubeSettings {
   privacyStatus: 'public' | 'private' | 'unlisted';
   madeForKids: boolean;
   description?: string;
-  categoryId?: string;
-  tags?: string[];
-  defaultLanguage?: string;
-  defaultAudioLanguage?: string;
-  thumbnailUrl?: string;
 }
 
 // Post Settings Structure (includes platform-specific settings)

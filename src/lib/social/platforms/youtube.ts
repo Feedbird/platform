@@ -262,26 +262,6 @@ import { supabase } from "@/lib/supabase/client";
         description: options?.description || content.text,
       };
       
-      // Add tags if provided
-      if (options?.tags && options.tags.length > 0) {
-        snippet.tags = options.tags;
-      }
-      
-      // Add category if provided
-      if (options?.categoryId) {
-        snippet.categoryId = options.categoryId;
-      }
-      
-      // Add default language if provided
-      if (options?.defaultLanguage) {
-        snippet.defaultLanguage = options.defaultLanguage;
-      }
-      
-      // Add default audio language if provided
-      if (options?.defaultAudioLanguage) {
-        snippet.defaultAudioLanguage = options.defaultAudioLanguage;
-      }
-      
       const status: any = {
         privacyStatus: options?.visibility || "public",
         selfDeclaredMadeForKids: options?.madeForKids || false,
@@ -303,15 +283,6 @@ import { supabase } from "@/lib/supabase/client";
           body: form,
         });
 
-      // Set custom thumbnail if provided
-      if (options?.thumbnailUrl && vid.id) {
-        try {
-          await this.setThumbnail(token, vid.id, options.thumbnailUrl);
-        } catch (error) {
-          console.warn("Failed to set thumbnail:", error);
-          // Don't fail the entire upload if thumbnail fails
-        }
-      }
 
       return {
         id: vid.id,
@@ -375,34 +346,6 @@ import { supabase } from "@/lib/supabase/client";
     async getPostAnalytics(){ return {}; }
     async deletePost() {}
 
-    // Helper method to set custom thumbnail
-    async setThumbnail(token: string, videoId: string, thumbnailUrl: string): Promise<void> {
-      try {
-        // Fetch the image from the URL
-        const response = await fetch(thumbnailUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch thumbnail: ${response.status}`);
-        }
-        
-        const imageBlob = await response.blob();
-        
-        // Set the thumbnail using YouTube API
-        await ytFetch(
-          `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}`,
-          {
-            method: "POST",
-            headers: { 
-              Authorization: `Bearer ${token}`,
-              "Content-Type": imageBlob.type || "image/jpeg"
-            },
-            body: imageBlob,
-          }
-        );
-      } catch (error) {
-        console.error("Error setting YouTube thumbnail:", error);
-        throw error;
-      }
-    }
 
     async createPost(
       page: SocialPage,

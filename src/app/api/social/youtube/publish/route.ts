@@ -17,11 +17,6 @@
        visibility: z.enum(["public", "private", "unlisted"]).optional(),
        madeForKids: z.boolean().optional(),
        description: z.string().optional(),
-       categoryId: z.string().optional(),
-       tags: z.array(z.string()).optional(),
-       defaultLanguage: z.string().optional(),
-       defaultAudioLanguage: z.string().optional(),
-       thumbnailUrl: z.string().url().optional(),
      }).optional(),
    });
    

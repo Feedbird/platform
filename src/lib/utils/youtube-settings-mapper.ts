@@ -8,12 +8,6 @@ export function mapYouTubeSettingsToPublishOptions(youtubeSettings: YouTubeSetti
     visibility: youtubeSettings.privacyStatus,
     madeForKids: youtubeSettings.madeForKids,
     description: youtubeSettings.description,
-    // Keep other settings for future use, but focus on core 3 for now
-    categoryId: youtubeSettings.categoryId,
-    tags: youtubeSettings.tags,
-    defaultLanguage: youtubeSettings.defaultLanguage,
-    defaultAudioLanguage: youtubeSettings.defaultAudioLanguage,
-    thumbnailUrl: youtubeSettings.thumbnailUrl,
   };
 }
 
@@ -24,9 +18,5 @@ export function getDefaultYouTubeSettings(): YouTubeSettings {
   return {
     privacyStatus: 'public',
     madeForKids: false,
-    categoryId: '22', // People & Blogs (default category)
-    tags: [],
-    defaultLanguage: 'en',
-    defaultAudioLanguage: 'en',
   };
 }
