@@ -32,13 +32,19 @@ export default function FieldRenderWrapper({
 
       {type === "dropdown" && <DropdownInput config={config} />}
 
-      {type === "checkbox" && <CheckboxInput config={config} />}
+      {type === "checkbox" && (
+        <CheckboxInput config={config} isPreview={isPreview} />
+      )}
 
       {type === "section-break" && <SectionBreakInput config={config} />}
 
-      {type === "attachment" && <AttachmentInput config={config} />}
+      {type === "attachment" && (
+        <AttachmentInput config={config} isPreview={isPreview} />
+      )}
 
-      {type === "spreadsheet" && <SpreadSheetInput config={config} />}
+      {type === "spreadsheet" && (
+        <SpreadSheetInput config={config} isPreview={isPreview} />
+      )}
 
       {type === "option" && <OptionInput config={config} />}
 

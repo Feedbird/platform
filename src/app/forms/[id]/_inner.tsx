@@ -104,6 +104,10 @@ export default function FormInnerVisualizer() {
     }
   }, [formFields]);
 
+  React.useEffect(() => {
+    setForm(activeForm);
+  }, [activeForm]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 

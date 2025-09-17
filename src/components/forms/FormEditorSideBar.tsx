@@ -9,6 +9,8 @@ import { CanvasFormField } from "./FormCanvas";
 import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { useForms } from "@/contexts/FormsContext";
+import { useFormEditor } from "@/contexts/FormEditorContext";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 type FormEditorSideBarProps = {
   onAddField?: (fieldType: FormFieldType) => void;
@@ -21,19 +23,72 @@ export default function FormEditorSideBar({
   formFields,
   formId,
 }: FormEditorSideBarProps) {
-  const { setUnsavedChanges, activeForm } = useForms();
+  const { activeWorkspaceId } = useFeedbirdStore();
+  const { setUnsavedChanges } = useForms();
   const [loading, isLoading] = React.useState(false);
+  const { filesToUpload } = useFormEditor();
 
   const updateFormFields = async () => {
     isLoading(true);
     try {
       await formsApi.updateFormFields(formId, formFields);
+      if (filesToUpload.length > 0) {
+        await handleImageUpload();
+      }
       toast.success("Form fields updated");
       setUnsavedChanges(false);
     } catch (e) {
       toast.error("Failed to update form fields. Please try again.");
     } finally {
       isLoading(false);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    try {
+      const updates = [];
+      for (const fileData of filesToUpload) {
+        const { path, file } = fileData;
+        // TODO Migrate this to mediaApi instead of front calling It here
+        const req = await fetch("/api/upload/sign", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            wid: activeWorkspaceId,
+          }),
+        });
+
+        if (!req.ok) {
+          throw new Error("Failed to get signed URL");
+        }
+        const { uploadUrl, publicUrl } = await req.json();
+
+        const uploadReq = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        });
+
+        if (!uploadReq.ok) {
+          throw new Error("Failed to upload image");
+        }
+
+        updates.push({ path, url: publicUrl });
+      }
+      console.log("Updates to perform after image upload:", updates);
+
+      await formsApi.updateForm(formId, { cover_url: updates[0].url });
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        "Failed to upload form related media images. Please try again."
+      );
     }
   };
 
