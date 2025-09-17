@@ -1,5 +1,6 @@
 "use client";
 import FieldRenderWrapper from "@/components/forms/content/FieldRenderWrapper";
+import { PageEnding } from "@/components/forms/content/FormInputs";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
 import { useFormEditor } from "@/contexts/FormEditorContext";
 import { useForms } from "@/contexts/FormsContext";
@@ -94,15 +95,19 @@ export default function Page() {
                       </p>
                     </div>
                     <div className="flex flex-col gap-6">
-                      {page.map((field) => (
+                      {page.map((field, index) => (
                         <FieldRenderWrapper
+                          pageNumber={pageIndex + 1}
                           isPreview={true}
-                          key={field.id}
+                          key={`${pageIndex}-${index}`}
                           type={field.type}
                           config={field.config}
                         />
                       ))}
                     </div>
+                    {pageIndex === pages.length - 1 && (
+                      <PageEnding pages={pages.length} />
+                    )}
                     <div className="min-h-[62px] w-full flex items-end">
                       <Image
                         src="/images/logo/logo(1).svg"

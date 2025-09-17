@@ -15,12 +15,14 @@ type Props = {
   config: any;
   type: string;
   isPreview?: boolean;
+  pageNumber?: number;
 };
 
 export default function FieldRenderWrapper({
   type,
   config,
   isPreview = false,
+  pageNumber,
 }: Props) {
   return (
     <div>
@@ -33,6 +35,7 @@ export default function FieldRenderWrapper({
       {type === "checkbox" && <CheckboxInput config={config} />}
 
       {type === "section-break" && <SectionBreakInput config={config} />}
+
       {type === "attachment" && <AttachmentInput config={config} />}
 
       {type === "spreadsheet" && <SpreadSheetInput config={config} />}
@@ -40,7 +43,11 @@ export default function FieldRenderWrapper({
       {type === "option" && <OptionInput config={config} />}
 
       {type === "page-break" && (
-        <PageBreakInput config={config} isPreview={isPreview} />
+        <PageBreakInput
+          config={config}
+          isPreview={isPreview}
+          pageNumber={pageNumber ?? 1}
+        />
       )}
     </div>
   );

@@ -3,10 +3,12 @@ import React, { useContext } from "react";
 
 interface FormEditorState {
   formFields: CanvasFormField[];
+  originalFields: CanvasFormField[];
 }
 
 interface FormEditorContextType extends FormEditorState {
   setFormFields: React.Dispatch<React.SetStateAction<CanvasFormField[]>>;
+  setOriginalFields: React.Dispatch<React.SetStateAction<CanvasFormField[]>>;
 }
 
 const FormEditorContext = React.createContext<
@@ -19,10 +21,15 @@ export function FormEditorProvider({
   children: React.ReactNode;
 }) {
   const [formFields, setFormFields] = React.useState<CanvasFormField[]>([]);
+  const [originalFields, setOriginalFields] = React.useState<CanvasFormField[]>(
+    []
+  );
 
   return (
     <FormEditorContext.Provider
       value={{
+        originalFields,
+        setOriginalFields,
         formFields,
         setFormFields,
       }}

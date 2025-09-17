@@ -48,9 +48,9 @@ export default function FormInnerVisualizer() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const { formFields, setFormFields } = useFormEditor();
+  const { formFields, setFormFields, setOriginalFields, originalFields } =
+    useFormEditor();
 
-  const originalFields = React.useRef<CanvasFormField[]>([]);
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
   const [selectedField, setSelectedField] =
@@ -73,7 +73,9 @@ export default function FormInnerVisualizer() {
       setFormFields(
         formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
       );
-      originalFields.current = formFields;
+      setOriginalFields(
+        formFields.sort((a, b) => (a.position || 0) - (b.position || 0))
+      );
       setForm(data);
       const tableForm = {
         ...data,
@@ -100,7 +102,7 @@ export default function FormInnerVisualizer() {
   }, []);
 
   React.useEffect(() => {
-    if (!nestedObjectEqual(formFields, originalFields.current)) {
+    if (!nestedObjectEqual(formFields, originalFields)) {
       setUnsavedChanges(true);
     } else {
       setUnsavedChanges(false);

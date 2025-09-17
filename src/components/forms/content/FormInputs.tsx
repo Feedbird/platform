@@ -14,6 +14,7 @@ import SpreadSheetTablePlaceholder from "./SpreadSheetTablePlaceholder";
 import OptionsPlaceholder from "./OptionsPlaceholder";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
+import React from "react";
 
 export type CommonProps = {
   config: any;
@@ -89,6 +90,8 @@ export function CheckboxInput({ config }: CommonProps) {
 }
 
 export function DropdownInput({ config }: CommonProps) {
+  const [ddValue, setDDValue] = React.useState<string>("");
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
@@ -102,9 +105,11 @@ export function DropdownInput({ config }: CommonProps) {
         )}
       </div>
       {!config?.allowMultipleSelection?.value ? (
-        <Select value="" onValueChange={() => {}}>
+        <Select value={ddValue} onValueChange={(value) => setDDValue(value)}>
           <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F]">
-            {config?.placeholder?.value || "Select an option"}
+            {ddValue
+              ? ddValue
+              : config?.placeholder?.value || "Select an option"}
           </SelectTrigger>
           <SelectContent avoidCollisions>
             {config?.dropdownItems?.dropdownValues?.length ? (
@@ -223,10 +228,31 @@ export function OptionInput({ config }: CommonProps) {
   );
 }
 
-export function PageBreakInput({ config, isPreview }: CommonProps) {
+export type PageBreakProps = CommonProps & {
+  pageNumber: number;
+};
+
+export function PageBreakInput({
+  config,
+  isPreview,
+  pageNumber,
+}: PageBreakProps) {
   return (
-    <div className="flex flex-row items-center justify-between gap-3">
+    <div
+      className={`flex flex-row items-center justify-between gap-3 ${
+        isPreview ? "mt-3" : ""
+      }`}
+    >
       <div className="flex flex-col">
+        {isPreview && pageNumber > 1 && (
+          <Button
+            variant="ghost"
+            onClick={(e) => e.stopPropagation()}
+            className="hover:cursor-pointer border-1 border-[#D3D3D3] radius-[6px]"
+          >
+            Back
+          </Button>
+        )}
         {!isPreview && config.description && (
           <p className="text-sm text-[#838488] font-normal">
             {config.description.value}
@@ -244,6 +270,32 @@ export function PageBreakInput({ config, isPreview }: CommonProps) {
         className="shadow-md bg-[#4670F9] rounded-[6px] text-white cursor-pointer px-3 py-1.5 border-1 border-black/10 flex flex-row"
       >
         Next
+        <ChevronRight />
+      </Button>
+    </div>
+  );
+}
+
+export function PageEnding({ pages }: { pages: number }) {
+  return (
+    <div className="flex flex-row justify-between mt-8">
+      {pages > 1 ? (
+        <Button
+          variant="ghost"
+          onClick={(e) => e.stopPropagation()}
+          className="hover:cursor-pointer border-1 border-[#D3D3D3] radius-[6px]"
+        >
+          Back
+        </Button>
+      ) : (
+        <div></div>
+      )}
+      <Button
+        variant="default"
+        onClick={(e) => e.stopPropagation()}
+        className="shadow-md bg-[#4670F9] rounded-[6px] text-white cursor-pointer px-3 py-1.5 border-1 border-black/10 flex flex-row"
+      >
+        Review
         <ChevronRight />
       </Button>
     </div>
