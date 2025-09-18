@@ -48,6 +48,8 @@ export default function FormCanvas({
       type: "form-area",
     },
   });
+  const [editingTitle, setEditingTitle] = React.useState(false);
+  const [editingDescription, setEditingDescription] = React.useState(false);
 
   const { setActiveForm, activeForm } = useForms();
   const { setFilesToUpload } = useFormEditor();
@@ -55,6 +57,17 @@ export default function FormCanvas({
 
   const handleCoverImageClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleFormValuesChange = (title?: string, description?: string) => {
+    setActiveForm(
+      (prev) =>
+        ({
+          ...prev,
+          title: title ?? prev?.title,
+          description: description ?? prev?.description,
+        } as TableForm)
+    );
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,12 +119,13 @@ export default function FormCanvas({
                   alt="add-image-icon"
                 />
                 <div className="flex flex-col text-center">
-                  <span
-                    className="text-sm underline hover:cursor-pointer text-black font-medium"
+                  <button
+                    type="button"
+                    className="text-sm underline hover:cursor-pointer text-black font-medium bg-transparent border-none p-0"
                     onClick={handleCoverImageClick}
                   >
                     +Add Cover
-                  </span>
+                  </button>
                   <p className="text-sm text-gray-500">
                     Optimal dimensions 920x160
                   </p>
@@ -129,12 +143,42 @@ export default function FormCanvas({
 
           <div className="flex flex-col gap-1 p-6">
             <div className="flex flex-col gap-2 p-3">
-              <h2 className="text-[#1C1D1F] font-semibold text-3xl">
-                {form.title}
-              </h2>
-              <p className="text-sm text-[#5C5E63] font-normal">
-                {form.description ?? "Add description here"}
-              </p>
+              {editingTitle ? (
+                <input
+                  type="text"
+                  value={activeForm?.title}
+                  onChange={(e) =>
+                    handleFormValuesChange(e.target.value, undefined)
+                  }
+                  onBlur={() => setEditingTitle(false)}
+                  className="outline-none text-[#1C1D1F] font-semibold text-3xl border-b-[1px]"
+                />
+              ) : (
+                <h2
+                  className="text-[#1C1D1F] font-semibold text-3xl"
+                  onDoubleClick={() => setEditingTitle(true)}
+                >
+                  {form.title}
+                </h2>
+              )}
+              {editingDescription && activeForm?.description ? (
+                <input
+                  type="textarea"
+                  value={activeForm.description}
+                  onChange={(e) =>
+                    handleFormValuesChange(undefined, e.target.value)
+                  }
+                  onBlur={() => setEditingDescription(false)}
+                  className="outline-none text-sm text-[#5C5E63] font-normal border-b-[1px]"
+                />
+              ) : (
+                <p
+                  className="text-sm text-[#5C5E63] font-normal"
+                  onDoubleClick={() => setEditingDescription(true)}
+                >
+                  {form.description ?? "Add description here"}
+                </p>
+              )}
             </div>
 
             {/* Droppable area for form fields */}
@@ -204,9 +248,7 @@ export default function FormCanvas({
                 height={14}
                 className="h-3.5"
               />
-              <span className="text-xs text-gray-500 h-4">
-                Do not submit passwords through this form. Report malicious form
-              </span>
+              <div></div>
             </div>
           </div>
         </div>
@@ -279,6 +321,7 @@ function SimpleFormField({
 
       {/* Delete Button */}
       <button
+        type="button"
         onClick={(event) => {
           event.stopPropagation();
           onDelete(field.id);

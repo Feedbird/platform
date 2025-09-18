@@ -60,6 +60,8 @@ export function plainArrayEqual<T extends string | number>(
 
 /**
  * Simple object deep equality check using JSON stringification.
+ * This will also compare order of keys, so make sure both objects are
+ * ordered. Otherwise use lodash isEqual or similar for a more robust solution.
  *
  * @param a Object 1
  * @param b Object 2

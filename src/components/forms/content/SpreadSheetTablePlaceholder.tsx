@@ -15,13 +15,13 @@ export default function SpreadSheetTablePlaceholder({
 
   return (
     <table className="w-full border-separate border-spacing-0 rounded-lg overflow-hidden border border-[#EAE9E9]">
-      <thead>
-        <tr className="bg-[#FBFBFB] text-[#5C5E63] font-medium text-left text-xs">
+      <thead className="">
+        <tr className="bg-[#FBFBFB] text-[#5C5E63] font-medium text-left text-[13px]">
           <th className="w-7 border-r border-b border-[#EAE9E9] first:rounded-tl-[6px]"></th>
           {columns.map((col, index) => (
             <th
               key={col.order}
-              className={`border-r border-b border-[#EAE9E9] p-2.5 ${
+              className={`border-r border-b border-[#EAE9E9] p-2 pt-2.5 ${
                 index === columns.length - 1
                   ? "rounded-tr-[6px] border-r-0"
                   : ""
