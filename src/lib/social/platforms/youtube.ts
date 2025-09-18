@@ -4,7 +4,7 @@
 
    import type {
     PlatformOperations, SocialAccount, SocialPage,
-    PostHistory, SocialPlatformConfig, PostContent, PublishOptions
+    PostHistory, PostHistoryResponse, SocialPlatformConfig, PostContent, PublishOptions
   } from "./platform-types";
   import { BasePlatform } from "./base-platform";
 import { supabase } from "@/lib/supabase/client";
@@ -292,52 +292,181 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
       };
     }
   
-    /* optional stubs */
-    async getPostHistory(pg: SocialPage, limit = 20): Promise<PostHistory[]> {
-        /* ① discover "uploads" playlist once per hot-reload */
-        if (!(globalThis as any)._yt_uploads) {
-          const ch = await ytFetch<{
-            items: { contentDetails: { relatedPlaylists: { uploads: string } } }[];
-          }>(
-            `${cfg.baseUrl}/channels?part=contentDetails&id=${pg.pageId}`,
-            { headers: { Authorization: `Bearer ${pg.authToken}` } },
-          );
-          (globalThis as any)._yt_uploads =
-            ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    /* 5 — get post history using videos.list API */
+    async getPostHistory(pg: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
+      if (IS_BROWSER) {
+        const res = await fetch("/api/social/youtube/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            page: pg,
+            limit,
+            nextPage,
+          })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+
+      try {
+        const token = await this.getToken(pg.id);
+        if (!token) {
+          throw new Error("Token not found");
         }
-        const uploads = (globalThis as any)._yt_uploads;
-        if (!uploads) return [];
-      
-        /* ② fetch latest videos from that playlist */
-        const vids = await ytFetch<{
-          items: {
+
+        // First, get the uploads playlist ID for the channel
+        const channelResponse = await ytFetch<{
+          items: Array<{
+            contentDetails: {
+              relatedPlaylists: {
+                uploads: string;
+              };
+            };
+          }>;
+        }>(
+          `${cfg.baseUrl}/channels?part=contentDetails&id=${pg.pageId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!channelResponse.items || channelResponse.items.length === 0) {
+          throw new Error('Channel not found');
+        }
+
+        const uploadsPlaylistId = channelResponse.items[0].contentDetails.relatedPlaylists.uploads;
+
+        // Now get videos from the uploads playlist
+        const response = await ytFetch<{
+          kind: string;
+          etag: string;
+          nextPageToken?: string;
+          prevPageToken?: string;
+          pageInfo: {
+            totalResults: number;
+            resultsPerPage: number;
+          };
+          items: Array<{
             id: string;
             snippet: {
-              title: string;
               publishedAt: string;
-              /** present when part=snippet — TS just didn't know about it */
-              resourceId?: { videoId: string };
+              channelId: string;
+              title: string;
+              description: string;
+              thumbnails: {
+                default: { url: string; width: number; height: number };
+                medium: { url: string; width: number; height: number };
+                high: { url: string; width: number; height: number };
+              };
+              channelTitle: string;
+              resourceId: {
+                videoId: string;
+              };
             };
-          }[];
+          }>;
         }>(
-          `${cfg.baseUrl}/playlistItems` +
-          `?part=snippet&playlistId=${uploads}&maxResults=${limit}`,
-          { headers: { Authorization: `Bearer ${pg.authToken}` } },
+          `${cfg.baseUrl}/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=${Math.min(limit, 50)}${nextPage ? `&pageToken=${nextPage}` : ''}`,
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-      
-        return vids.items.map(v => ({
-          id         : v.id,
-          postId     : v.id,
-          pageId     : pg.id,
-          content    : v.snippet.title,
-          mediaUrls  : [
-            `https://www.youtube.com/watch?v=${
-              v.snippet.resourceId?.videoId ?? v.id
-            }`,
-          ],
-          status     : "published",
-          publishedAt: new Date(v.snippet.publishedAt),
+
+        // Get video IDs to fetch detailed statistics
+        const videoIds = response.items.map(item => item.snippet.resourceId.videoId).join(',');
+
+        // Fetch detailed video information including statistics, status, and contentDetails
+        // https://developers.google.com/youtube/v3/docs/videos/list
+        const videosResponse = await ytFetch<{
+          items: Array<{
+            id: string;
+            snippet: {
+              publishedAt: string;
+              channelId: string;
+              title: string;
+              description: string;
+              thumbnails: {
+                default: { url: string; width: number; height: number };
+                medium: { url: string; width: number; height: number };
+                high: { url: string; width: number; height: number };
+              };
+              channelTitle: string;
+              tags?: string[];
+              categoryId: string;
+              liveBroadcastContent: string;
+            };
+            statistics: {
+              viewCount: string;
+              likeCount: string;
+              dislikeCount: string;
+              favoriteCount: string;
+              commentCount: string;
+            };
+            status: {
+              uploadStatus: string;
+              privacyStatus: string;
+              license: string;
+              embeddable: boolean;
+              publicStatsViewable: boolean;
+              madeForKids: boolean;
+            };
+            contentDetails: {
+              duration: string;
+              dimension: string;
+              definition: string;
+              caption: string;
+              licensedContent: boolean;
+              projection: string;
+            };
+          }>;
+        }>(
+          `${cfg.baseUrl}/videos?part=snippet,statistics,status,contentDetails&id=${videoIds}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const channelVideos = videosResponse.items || [];
+
+        const posts = channelVideos.map(video => ({
+          id: video.id,
+          postId: video.id,
+          pageId: pg.id,
+          content: video.snippet.title,
+          mediaUrls: [`https://www.youtube.com/watch?v=${video.id}`],
+          status: "published" as const,
+          publishedAt: new Date(video.snippet.publishedAt),
+          analytics: {
+            views: parseInt(video.statistics.viewCount || '0'),
+            likes: parseInt(video.statistics.likeCount || '0'),
+            comments: parseInt(video.statistics.commentCount || '0'),
+            metadata: {
+              youtubeVideoId: video.id,
+              description: video.snippet.description,
+              channelTitle: video.snippet.channelTitle,
+              channelId: video.snippet.channelId,
+              thumbnailUrl: video.snippet.thumbnails.high?.url || video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url,
+              tags: video.snippet.tags || [],
+              categoryId: video.snippet.categoryId,
+              liveBroadcastContent: video.snippet.liveBroadcastContent,
+              platform: 'youtube',
+              duration: video.contentDetails.duration,
+              privacyStatus: video.status.privacyStatus,
+              madeForKids: video.status.madeForKids,
+              uploadStatus: video.status.uploadStatus,
+              embeddable: video.status.embeddable,
+              publicStatsViewable: video.status.publicStatsViewable,
+              dimension: video.contentDetails.dimension,
+              definition: video.contentDetails.definition,
+              caption: video.contentDetails.caption,
+              licensedContent: video.contentDetails.licensedContent,
+              favoriteCount: parseInt(video.statistics.favoriteCount || '0'),
+              dislikeCount: parseInt(video.statistics.dislikeCount || '0'),
+            }
+          }
         }));
+
+        return { 
+          posts, 
+          nextPage: response.nextPageToken || undefined 
+        };
+      } catch (error) {
+        console.error('[YouTube] Failed to get post history:', error);
+        return { posts: [], nextPage: undefined };
+      }
     }
     async getPostAnalytics(){ return {}; }
     async deletePost() {}
