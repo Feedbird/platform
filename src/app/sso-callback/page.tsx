@@ -19,8 +19,8 @@ export default function SSOCallbackPage() {
       try {
         // Check if user is signed in after OAuth redirect
         if (isSignedIn) {
-          // User successfully authenticated, redirect to home
-          router.push('/')
+          const workspaceId = searchParams?.get('workspaceId')
+          router.push(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
         } else {
           // Authentication failed, route based on originating flow
           const from = searchParams?.get('from')

@@ -5,6 +5,7 @@ import { useAuth, useSignIn, useSignUp } from '@clerk/nextjs'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import PlatformPreview from '@/components/platform-preview/platform-preview'
 
@@ -14,6 +15,8 @@ type LeftContentProps = {
   title: string
   email: string
   setEmail: (v: string) => void
+  agreeToTerms: boolean
+  setAgreeToTerms: (v: boolean) => void
   password: string
   setPassword: (v: string) => void
   firstName: string
@@ -24,7 +27,6 @@ type LeftContentProps = {
   error: string
   showPassword: boolean
   setShowPassword: (v: boolean) => void
-  onOpenOnboarding: () => void
   onForgotPassword: () => void
   onSignupSubmit: (e: React.FormEvent) => void
   onSigninSubmit: (e: React.FormEvent) => void
@@ -47,6 +49,8 @@ function LeftContent(props: LeftContentProps) {
     title,
     email,
     setEmail,
+    agreeToTerms,
+    setAgreeToTerms,
     password,
     setPassword,
     firstName,
@@ -57,7 +61,6 @@ function LeftContent(props: LeftContentProps) {
     error,
     showPassword,
     setShowPassword,
-    onOpenOnboarding,
     onForgotPassword,
     onSignupSubmit,
     onSigninSubmit,
@@ -80,11 +83,70 @@ function LeftContent(props: LeftContentProps) {
               <Input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" required className="w-full rounded-md" />
               <Input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" required className="w-full rounded-md" />
             </div>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required minLength={8} className="w-full rounded-md" />
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium" disabled={isLoading}>{isLoading ? 'Signing Up...' : 'Sign Up'}</Button>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                required
+                minLength={8}
+                className="w-full rounded-md pr-10"
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                disabled={isLoading}
+              >
+                {showPassword ? (
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.05 8.05m1.829 1.829l4.242 4.242M12 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-1.563 3.029m-5.858-.908a3 3 0 01-4.243-4.243" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {/* Terms of Service Agreement */}
+            <div className="flex items-start text-sm text-darkGrey font-normal pt-2">
+              <Checkbox
+                id="terms"
+                checked={agreeToTerms}
+                onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+                className="mt-0.5 mr-3 flex-shrink-0"
+              />
+              <div className="leading-relaxed break-words">
+                I have read and agree to the{' '}
+                <button
+                  type="button"
+                  className="text-blue-600 hover:text-blue-700 underline font-medium cursor-pointer"
+                  onClick={() => window.open('/terms-of-service', '_blank')}
+                >
+                  Terms of Service
+                </button>
+                {' '}and{' '}
+                <button
+                  type="button"
+                  className="text-blue-600 hover:text-blue-700 underline font-medium cursor-pointer"
+                  onClick={() => window.open('/privacy-policy', '_blank')}
+                >
+                  Privacy Policy
+                </button>
+                .
+              </div>
+            </div>
+
+            {/* Clerk CAPTCHA Element */}
+            <div id="clerk-captcha" className="flex justify-center"></div>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium cursor-pointer" disabled={isLoading || !agreeToTerms}>{isLoading ? 'Signing Up...' : 'Sign Up'}</Button>
           </form>
-          <div id="clerk-captcha" className="flex justify-center"></div>
-          <Button onClick={onGoogle} variant="outline" className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 rounded-md font-medium flex items-center justify-center gap-3">
+          <Button onClick={onGoogle} variant="outline" className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 rounded-md font-medium flex items-center justify-center gap-3 cursor-pointer">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -93,11 +155,8 @@ function LeftContent(props: LeftContentProps) {
             </svg>
             Sign up with Google
           </Button>
-          <p className="mt-6 text-xs text-darkGrey">
-            By continuing, you agree to the Terms of Service and Privacy Policy.
-          </p>
           <div className="mt-8 text-center text-sm">
-            Already have an account? <button onClick={onSwitchToSignIn} className="text-main font-semibold">Login</button>
+            Already have an account? <button onClick={onSwitchToSignIn} className="text-main font-semibold cursor-pointer">Login</button>
           </div>
         </div>
       )
@@ -110,7 +169,7 @@ function LeftContent(props: LeftContentProps) {
         </div>
         <ErrorBanner error={error} />
         <div className="rounded-xl border border-elementStroke shadow-sm p-5">
-          <Button onClick={()=> location.assign('/client-onboarding' + (typeof window !== 'undefined' && window.location.search ? window.location.search : ''))} className="w-full bg-main hover:bg-main/80 text-white py-2.5 text-white text-sm font-medium rounded-md cursor-pointer">Sign up with email & password</Button>
+          <Button onClick={() => location.assign('/client-onboarding' + (typeof window !== 'undefined' && window.location.search ? window.location.search : ''))} className="w-full bg-main hover:bg-main/80 text-white py-2.5 text-white text-sm font-medium rounded-md cursor-pointer">Sign up with email & password</Button>
           <div className="flex items-center gap-4 text-darkGrey text-sm font-normal my-6"><span className="flex-1 h-px bg-elementStroke" />or<span className="flex-1 h-px bg-elementStroke" /></div>
           {/* Clerk CAPTCHA Element */}
           <div id="clerk-captcha" className="flex justify-center"></div>
@@ -237,7 +296,6 @@ export default function AcceptInvitePage() {
   const { isLoaded: signUpLoaded, signUp, setActive: setActiveSignUp } = useSignUp()
 
   const [view, setView] = useState<'signup' | 'signin'>('signup')
-  const [openOnboarding, setOpenOnboarding] = useState(false)
 
   const testimonials = [
     {
@@ -305,6 +363,7 @@ export default function AcceptInvitePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [agreeToTerms, setAgreeToTerms] = useState(false)
 
   const title = "You've been invited to join workspace on Feedbird"
 
@@ -317,14 +376,14 @@ export default function AcceptInvitePage() {
       await signUp.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: `/sso-callback?from=accept-invite&flow=signup${roleParam}${wsParam}`,
-        redirectUrlComplete: '/',
+        redirectUrlComplete: workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/',
       })
     } else {
       if (!signInLoaded) return
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: `/sso-callback?from=accept-invite&flow=signin${roleParam}${wsParam}`,
-        redirectUrlComplete: '/',
+        redirectUrlComplete: workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/',
       })
     }
   }
@@ -337,11 +396,17 @@ export default function AcceptInvitePage() {
       if (!signUpLoaded) throw new Error('Auth not ready')
       await signUp.create({ emailAddress: email, password, firstName, lastName })
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
-      // After email signup, open onboarding for client immediately
-      if (role === 'client') setOpenOnboarding(true)
-      else router.push('/verify-email')
+      // After email signup, redirect to the corresponding workspace or verify email
+      const roleParam = `?role=${encodeURIComponent('team')}`
+      const wsParam = workspaceId ? `${roleParam ? '&' : '?'}workspaceId=${encodeURIComponent(workspaceId)}` : ''
+      router.push(`/verify-email${roleParam}${wsParam}`)
     } catch (err: any) {
       setError(err?.errors?.[0]?.message || 'Failed to sign up')
+      // On failure, stay on accept-invite page with signup view and team role
+      const roleParam = `role=${encodeURIComponent('team')}`
+      const wsParam = workspaceId ? `&workspaceId=${encodeURIComponent(workspaceId)}` : ''
+      const viewParam = '&view=signup'
+      router.replace(`/accept-invite?${roleParam}${wsParam}${viewParam}`)
     } finally {
       setIsLoading(false)
     }
@@ -391,7 +456,7 @@ export default function AcceptInvitePage() {
     }
   }, [searchParams])
 
-  
+
 
   return (
     <div className="min-h-screen flex">
@@ -411,6 +476,8 @@ export default function AcceptInvitePage() {
               title={title}
               email={email}
               setEmail={setEmail}
+              agreeToTerms={agreeToTerms}
+              setAgreeToTerms={setAgreeToTerms}
               password={password}
               setPassword={setPassword}
               firstName={firstName}
@@ -421,13 +488,12 @@ export default function AcceptInvitePage() {
               error={error}
               showPassword={showPassword}
               setShowPassword={setShowPassword}
-              onOpenOnboarding={() => setOpenOnboarding(true)}
               onForgotPassword={() => router.push('/forgot-password')}
               onSignupSubmit={handleSignupEmailPwd}
               onSigninSubmit={handleSignin}
               onGoogle={handleGoogle}
-              onSwitchToSignIn={() => setView('signin')}
-              onSwitchToSignUp={() => setView('signup')}
+              onSwitchToSignIn={() => { setError(''); setView('signin') }}
+              onSwitchToSignUp={() => { setError(''); setView('signup') }}
             />
           </div>
         </div>

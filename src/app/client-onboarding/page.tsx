@@ -81,6 +81,8 @@ export default function ClientOnboardingPage() {
     const handleOAuthSuccess = useFeedbirdStore(s => s.handleOAuthSuccess)
   
   const workspaces = useFeedbirdStore(s => s.workspaces)
+  const user = useFeedbirdStore(s => s.user)
+
     const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp()
     const router = useRouter()
 
@@ -271,11 +273,6 @@ export default function ClientOnboardingPage() {
     }
 
     const saveWorkspaceSettings = async () => {
-        console.log('saveWorkspaceSettings🔍');
-        console.log('workspaceId🔍', workspaceId);
-        console.log('timezone🔍', timezone);
-        console.log('weekStart🔍', weekStart);
-        console.log('timeFormat🔍', timeFormat);
         if (!workspaceId) return;
         setSaving(true)
         try {
@@ -580,7 +577,6 @@ export default function ClientOnboardingPage() {
                                         .filter((e) => e.email !== '')
                                     if (emails.length > 0) {
                                         const orgId = workspaces.find(w => w.id === workspaceId)?.clerk_organization_id
-                                        const user = useFeedbirdStore(s => s.user)
                                         await Promise.all(
                                             emails.map(({ email, role }) =>
                                               (role === 'Client'
@@ -589,14 +585,14 @@ export default function ClientOnboardingPage() {
                                                     workspaceId: workspaceId,
                                                     actorId: user?.id,
                                                     organizationId: orgId,
-                                                    first_name: firstName,
+                                                    first_name: user?.firstName,
                                                   })
                                                 : inviteApi.inviteTeam({
                                                     email,
                                                     workspaceId: workspaceId,
                                                     actorId: user?.id,
                                                     organizationId: orgId,
-                                                    first_name: firstName,
+                                                    first_name: user?.firstName,
                                                   })
                                               )
                                             )

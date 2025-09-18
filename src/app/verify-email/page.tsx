@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSignUp } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,19 +13,29 @@ export default function VerifyEmailPage() {
   const [error, setError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const { isLoaded, signUp, setActive } = useSignUp()
+
+  // Get URL parameters
+  const role = searchParams.get('role')
+  const workspaceId = searchParams.get('workspaceId')
 
   useEffect(() => {
     if (!isLoaded) return
 
-    // If the user is already verified, redirect to home
+    // If the user is already verified, redirect to appropriate destination
     if (signUp.status === 'complete') {
       setActive({ session: signUp.createdSessionId })
-      router.push('/')
+      // Redirect to workspace if workspaceId exists, otherwise to home
+      if (workspaceId) {
+        router.push(`/${workspaceId}`)
+      } else {
+        router.push('/')
+      }
       return
     }
-  }, [isLoaded, signUp, setActive, router])
+  }, [isLoaded, signUp, setActive, router, workspaceId])
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +55,12 @@ export default function VerifyEmailPage() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
-        router.push('/')
+        // Redirect to workspace if workspaceId exists, otherwise to home
+        if (workspaceId) {
+          router.push(`/${workspaceId}`)
+        } else {
+          router.push('/')
+        }
       } else {
         setError('Invalid verification code. Please try again.')
       }
@@ -141,7 +156,14 @@ export default function VerifyEmailPage() {
 
           <div className="mt-4 text-center">
             <button
-              onClick={() => router.push('/signup')}
+              onClick={() => {
+                // Preserve context when going back
+                const roleParam = role ? `role=${encodeURIComponent(role)}` : ''
+                const wsParam = workspaceId ? `${roleParam ? '&' : ''}workspaceId=${encodeURIComponent(workspaceId)}` : ''
+                const viewParam = `${roleParam || wsParam ? '&' : ''}view=signup`
+                const params = [roleParam, wsParam, viewParam].filter(Boolean).join('&')
+                router.push(`${params ? `/accept-invite?${params}` : '/signup'}`)
+              }}
               className="text-gray-600 hover:text-gray-700 text-sm"
             >
               ← Back to Sign Up
