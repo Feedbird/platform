@@ -904,12 +904,19 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 };
                 let postContent: any;
 
-                if (['tiktok', 'linkedin', 'facebook', 'instagram', 'google'].includes(page.platform)) {
+                if (['tiktok', 'linkedin', 'facebook', 'instagram', 'google', 'youtube'].includes(page.platform)) {
                   
                   // Use TikTok settings if available, otherwise use defaults
                   if (post.settings?.tiktok) {
                     const tiktokOptions = mapTikTokSettingsToPublishOptions(post.settings.tiktok);
                     publishOptions = { ...publishOptions, ...tiktokOptions };
+                  }
+                  
+                  // Use YouTube settings if available, otherwise use defaults
+                  if (post.settings?.youtube) {
+                    const { mapYouTubeSettingsToPublishOptions } = await import('@/lib/utils/youtube-settings-mapper');
+                    const youtubeOptions = mapYouTubeSettingsToPublishOptions(post.settings.youtube);
+                    publishOptions = { ...publishOptions, ...youtubeOptions };
                   }
 
                   // Format content for platform API

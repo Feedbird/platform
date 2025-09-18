@@ -27,10 +27,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, AtSign, Image as ImageIcon, X, AlertCircle } from "lucide-react";
-import type { PostSettings, Platform, TikTokSettings, GoogleBusinessSettings } from "@/lib/social/platforms/platform-types";
+import type { PostSettings, Platform, TikTokSettings, GoogleBusinessSettings, YouTubeSettings } from "@/lib/social/platforms/platform-types";
 import { TikTokSettingsPanel } from '../post-record-modal/tiktok-settings';
 import { GoogleBusinessSettingsPanel } from '../post-record-modal/google-business-settings';
+import { YouTubeSettingsPanel } from '../post-record-modal/youtube-settings';
 import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-settings-mapper';
+import { getDefaultYouTubeSettings } from '@/lib/utils/youtube-settings-mapper';
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 /* ------------------------------------------------------------ */
@@ -43,6 +45,7 @@ type SettingFlags = {
   thumbnail  : boolean;
   tiktok     : boolean;
   google     : boolean;
+  youtube    : boolean;
 };
 
 const DEFAULT_FLAGS: SettingFlags = {
@@ -51,6 +54,7 @@ const DEFAULT_FLAGS: SettingFlags = {
   thumbnail: false,
   tiktok: false,
   google: false,
+  youtube: false,
 };
 
 const LABELS: Record<keyof SettingFlags, string> = {
@@ -59,6 +63,7 @@ const LABELS: Record<keyof SettingFlags, string> = {
   thumbnail  : "Custom Thumbnail",
   tiktok     : "TikTok Settings",
   google     : "Google Business Settings",
+  youtube    : "YouTube Settings",
 };
 
 const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
@@ -67,6 +72,7 @@ const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
   thumbnail  : <Image src={`/images/settings/image.svg`} alt="Thumbnail" width={16} height={16} />,
   tiktok     : <Image src={`/images/platforms/tiktok.svg`} alt="TikTok" width={16} height={16} />,
   google     : <Image src={`/images/platforms/google.svg`} alt="Google Business" width={16} height={16} />,
+  youtube    : <Image src={`/images/platforms/youtube.svg`} alt="YouTube" width={16} height={16} />,
 };
 
 const iconClass = (active: boolean) =>
@@ -114,6 +120,15 @@ export function SettingsEditCell({
     return googlePage?.id || null;
   }, [platforms, ws?.socialPages]);
 
+  // Get the first YouTube page ID if YouTube is selected
+  const youtubePageId = React.useMemo(() => {
+    if (!platforms.includes('youtube') || !ws?.socialPages) return null;
+    const youtubePage = ws.socialPages.find(page => 
+      page.platform === 'youtube' && page.connected
+    );
+    return youtubePage?.id || null;
+  }, [platforms, ws?.socialPages]);
+
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
     privacyLevel: 'SELF_ONLY',
@@ -134,12 +149,16 @@ export function SettingsEditCell({
   // Default Google Business settings
   const defaultGoogleBusinessSettings: GoogleBusinessSettings = getDefaultGoogleBusinessSettings();
 
+  // Default YouTube settings
+  const defaultYouTubeSettings: YouTubeSettings = getDefaultYouTubeSettings();
+
   const initial = React.useMemo<PostSettings>(() => ({
     locationTags: value?.locationTags ?? [],
     taggedAccounts: value?.taggedAccounts ?? [],
     thumbnail: value?.thumbnail ?? false,
     tiktok: value?.tiktok ?? defaultTikTokSettings,
     google: value?.google ?? defaultGoogleBusinessSettings,
+    youtube: value?.youtube ?? defaultYouTubeSettings,
   }), [value]);
 
   const [local, setLocal] = React.useState<PostSettings>(initial);
@@ -147,6 +166,7 @@ export function SettingsEditCell({
   // Validation states
   const [tiktokValidation, setTiktokValidation] = React.useState(true);
   const [googleValidation, setGoogleValidation] = React.useState(true);
+  const [youtubeValidation, setYoutubeValidation] = React.useState(true);
 
   /* Helper booleans for UI */
   const activeFlags: SettingFlags = {
@@ -155,6 +175,7 @@ export function SettingsEditCell({
     thumbnail: local.thumbnail,
     tiktok: platforms.includes('tiktok'),
     google: platforms.includes('google'),
+    youtube: platforms.includes('youtube'),
   } as const;
 
   type FlagKey = keyof typeof activeFlags;
@@ -173,6 +194,11 @@ export function SettingsEditCell({
           return prev;
         case 'google':
           // Google Business settings are managed by platform selection, not toggleable here
+          return prev;
+        case 'youtube':
+          // YouTube settings are managed by platform selection, not toggleable here
+          return prev;
+        default:
           return prev;
       }
     });
@@ -209,7 +235,8 @@ export function SettingsEditCell({
                   {(Object.keys(ICONS) as (keyof SettingFlags)[])
                     .filter(k => 
                       (k !== 'tiktok' || platforms.includes('tiktok')) &&
-                      (k !== 'google' || platforms.includes('google'))
+                      (k !== 'google' || platforms.includes('google')) &&
+                      (k !== 'youtube' || platforms.includes('youtube'))
                     )
                     .map((k) => (
                     <Tooltip key={k}>
@@ -237,7 +264,8 @@ export function SettingsEditCell({
             {(Object.keys(LABELS) as (keyof SettingFlags)[])
               .filter(k => 
                 (k !== 'tiktok' || platforms.includes('tiktok')) &&
-                (k !== 'google' || platforms.includes('google'))
+                (k !== 'google' || platforms.includes('google')) &&
+                (k !== 'youtube' || platforms.includes('youtube'))
               )
               .map((k) => (
               <label key={k} className="flex items-center justify-between py-[8px] gap-2 cursor-pointer">
@@ -247,8 +275,8 @@ export function SettingsEditCell({
                 </div>
                 <Checkbox 
                   checked={activeFlags[k as FlagKey]} 
-                  onCheckedChange={() => k !== 'tiktok' && k !== 'google' && toggleFlag(k as FlagKey)}
-                  disabled={k === 'tiktok' || k === 'google'}
+                  onCheckedChange={() => k !== 'tiktok' && k !== 'google' && k !== 'youtube' && toggleFlag(k as FlagKey)}
+                  disabled={k === 'tiktok' || k === 'google' || k === 'youtube'}
                   className={cn(
                     // base
                     "h-4 w-4 rounded-none border border-[#D0D5DD] transition-colors duration-150 ease-in-out rounded-[3px]",
@@ -305,6 +333,7 @@ export function SettingsEditCell({
           <Tabs defaultValue={
             platforms.includes('tiktok') ? 'tiktok' : 
             platforms.includes('google') ? 'google' : 
+            platforms.includes('youtube') ? 'youtube' : 
             'location'
           } className="w-full mt-0 flex flex-col gap-6 flex-1 min-h-0">
             <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
@@ -316,6 +345,11 @@ export function SettingsEditCell({
               {platforms.includes('google') && (
                 <TabsTrigger value="google" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
                   {ICONS.google} Google
+                </TabsTrigger>
+              )}
+              {platforms.includes('youtube') && (
+                <TabsTrigger value="youtube" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                  {ICONS.youtube} YouTube
                 </TabsTrigger>
               )}
               <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
@@ -357,6 +391,22 @@ export function SettingsEditCell({
                     }
                     onValidationChange={(isValid) => {
                       setGoogleValidation(isValid);
+                    }}
+                  />
+                </TabsContent>
+              )}
+
+              {/* YouTube Tab */}
+              {platforms.includes('youtube') && (
+                <TabsContent value="youtube" className="space-y-4 m-0 h-full">
+                  <YouTubeSettingsPanel
+                    pageId={youtubePageId}
+                    settings={local.youtube!}
+                    onChange={(youtubeSettings) => 
+                      setLocal(prev => ({ ...prev, youtube: youtubeSettings }))
+                    }
+                    onValidationChange={(isValid) => {
+                      setYoutubeValidation(isValid);
                     }}
                   />
                 </TabsContent>
@@ -431,12 +481,13 @@ export function SettingsEditCell({
                   taggedAccounts: local.taggedAccounts,
                   thumbnail: local.thumbnail,
                   ...(platforms.includes('tiktok') && { tiktok: local.tiktok }),
-                  ...(platforms.includes('google') && { google: local.google })
+                  ...(platforms.includes('google') && { google: local.google }),
+                  ...(platforms.includes('youtube') && { youtube: local.youtube })
                 };
                 onChange(updatedSettings);
                 setModalOpen(false);
               }}
-              disabled={(platforms.includes('tiktok') && !tiktokValidation) || (platforms.includes('google') && !googleValidation)}
+              disabled={(platforms.includes('tiktok') && !tiktokValidation) || (platforms.includes('google') && !googleValidation) || (platforms.includes('youtube') && !youtubeValidation)}
               className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Changes

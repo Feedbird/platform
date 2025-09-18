@@ -100,7 +100,7 @@ import {
 } from "@/components/ui/dialog";
 import { format, parse } from "date-fns";
 import Papa from "papaparse";
-import { Platform } from "@/lib/social/platforms/platform-types";
+import { Platform, SocialPage } from "@/lib/social/platforms/platform-types";
 import { RowHeightType, getRowHeightPixels } from "@/lib/utils";
 import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 import { Switch } from "@/components/ui/switch";
@@ -2635,10 +2635,17 @@ export function PostTable({
         enableGrouping: false,
         cell: ({ row, isFocused, isEditing, enterEdit, exitEdit }: FocusCellContext<Post>) => {
           const post = row.original;
+          
+          // Derive platforms from selected pages
+          const selectedPages: SocialPage[] = (ws?.socialPages || []).filter((page: SocialPage) => 
+            post.pages.includes(page.id)
+          );
+          const derivedPlatforms: Platform[] = selectedPages.map(page => page.platform);
+          
           return (
             <SettingsEditCell
               value={post.settings as any}
-              platforms={post.platforms}
+              platforms={derivedPlatforms}
               isFocused={isFocused}
               isEditing={isEditing}
               enterEdit={enterEdit}

@@ -323,6 +323,10 @@ export interface PublishOptions {
   };
   privacyLevel?: TikTokPrivacyLevel;
   
+  // YouTube-specific options
+  madeForKids?: boolean;
+  description?: string;
+  
   // General settings object that can contain platform-specific settings
   settings?: any;
 }
@@ -441,6 +445,13 @@ export interface GoogleBusinessSettings {
   };
 }
 
+// YouTube-specific settings
+export interface YouTubeSettings {
+  privacyStatus: 'public' | 'private' | 'unlisted';
+  madeForKids: boolean;
+  description?: string;
+}
+
 // Post Settings Structure (includes platform-specific settings)
 export interface PostSettings {
   locationTags: string[];
@@ -448,6 +459,7 @@ export interface PostSettings {
   thumbnail: boolean;
   tiktok?: TikTokSettings;
   google?: GoogleBusinessSettings;
+  youtube?: YouTubeSettings;
 }
 
 
