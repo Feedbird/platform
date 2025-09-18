@@ -2065,6 +2065,36 @@ export const inviteApi = {
       }
     );
   },
+  inviteClient: async (payload: {
+    email: string;
+    workspaceId: string;
+    actorId?: string;
+    organizationId?: string;
+    first_name?: string;
+  }) => {
+    return apiRequest<{ message: string; details?: string; warning?: boolean }>(
+      "/invite/client",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+  inviteTeam: async (payload: {
+    email: string;
+    workspaceId: string;
+    actorId?: string;
+    organizationId?: string;
+    first_name?: string;
+  }) => {
+    return apiRequest<{ message: string; details?: string; warning?: boolean }>(
+      "/invite/team",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  },
 };
 
 // Comment API functions

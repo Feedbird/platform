@@ -22,7 +22,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
       // If user is not signed in and trying to access protected routes, redirect to landing
-      else if (!isSignedIn && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback' && pathname !== '/accept-invite') {
+      else if (!isSignedIn && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback' && pathname !== '/accept-invite' && pathname !== '/client-onboarding') {
         console.log('AuthGuard: Redirecting unsigned user to landing');
         router.replace('/landing');
         return;
@@ -65,6 +65,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       const SSOCallbackPage = require('@/app/sso-callback/page').default;
       return <SSOCallbackPage />;
     }
+    if (pathname === '/client-onboarding') {
+      const ClientOnboardingPage = require('@/app/client-onboarding/page').default;
+      return <ClientOnboardingPage />;
+    }
     if (pathname === '/accept-invite') {
       const AcceptInvitePage = require('@/app/accept-invite/page').default;
       return <AcceptInvitePage />;
@@ -74,9 +78,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // If user is signed in, show the main app with authenticated layout
   // Only render authenticated layout if we have a user object and are on a protected route
-  if (isSignedIn && user && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback') {
+  if (isSignedIn && user && pathname !== '/landing' && pathname !== '/signup' && pathname !== '/signin' && pathname !== '/verify-email' && pathname !== '/sso-callback' && pathname !== '/client-onboarding') {
     console.log('AuthGuard: User signed in, showing authenticated layout');
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+  }
+
+  // If user is signed in and on client-onboarding, render onboarding directly (no app layout)
+  if (isSignedIn && pathname === '/client-onboarding') {
+    const ClientOnboardingPage = require('@/app/client-onboarding/page').default;
+    return <ClientOnboardingPage />;
   }
 
   // If user is signed in but we're on landing, signup, signin, verify-email, or sso-callback page, show loading until redirect completes

@@ -78,8 +78,7 @@ export async function getUserFromDatabase(email: string) {
       .from('users')
       .select('*')
       .eq('email', email)
-      .single()
-
+      .maybeSingle()
     if (error) {
       console.error('Error fetching user from database:', error)
       throw error

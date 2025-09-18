@@ -149,13 +149,10 @@ export default function WorkspaceSwitcher() {
         if (emails.length) {
           await Promise.all(
             emails.map(email =>
-              inviteApi.inviteMembers({
+              inviteApi.inviteClient({
                 email,
-                workspaceIds: [wsId],
-                boardIds: [],
+                workspaceId: wsId,
                 actorId: user?.id,
-                role: 'org:member',
-                memberRole: 'client',
                 organizationId: orgId,
                 first_name: user?.firstName,
               })

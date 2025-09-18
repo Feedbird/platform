@@ -7,7 +7,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import PlatformPreview from '@/components/platform-preview/platform-preview'
-import { ClientOnboardingModal } from '@/components/workspace/client-onboarding-modal'
 
 type LeftContentProps = {
   view: 'signup' | 'signin'
@@ -70,7 +69,7 @@ function LeftContent(props: LeftContentProps) {
   if (view === 'signup') {
     if (role === 'team') {
       return (
-        <>
+        <div className='max-w-[380px]'>
           <div className="flex justify-center mb-8">
             <h1 className="text-2xl font-semibold text-black text-center max-w-[380px]">{title}</h1>
           </div>
@@ -84,6 +83,7 @@ function LeftContent(props: LeftContentProps) {
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required minLength={8} className="w-full rounded-md" />
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium" disabled={isLoading}>{isLoading ? 'Signing Up...' : 'Sign Up'}</Button>
           </form>
+          <div id="clerk-captcha" className="flex justify-center"></div>
           <Button onClick={onGoogle} variant="outline" className="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 mt-4 py-2 rounded-md font-medium flex items-center justify-center gap-3">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -99,7 +99,7 @@ function LeftContent(props: LeftContentProps) {
           <div className="mt-8 text-center text-sm">
             Already have an account? <button onClick={onSwitchToSignIn} className="text-main font-semibold">Login</button>
           </div>
-        </>
+        </div>
       )
     }
     // client
@@ -110,7 +110,7 @@ function LeftContent(props: LeftContentProps) {
         </div>
         <ErrorBanner error={error} />
         <div className="rounded-xl border border-elementStroke shadow-sm p-5">
-          <Button onClick={onOpenOnboarding} className="w-full bg-main hover:bg-main/80 text-white py-2.5 text-white text-sm font-medium rounded-md cursor-pointer">Sign up with email & password</Button>
+          <Button onClick={()=> location.assign('/client-onboarding' + (typeof window !== 'undefined' && window.location.search ? window.location.search : ''))} className="w-full bg-main hover:bg-main/80 text-white py-2.5 text-white text-sm font-medium rounded-md cursor-pointer">Sign up with email & password</Button>
           <div className="flex items-center gap-4 text-darkGrey text-sm font-normal my-6"><span className="flex-1 h-px bg-elementStroke" />or<span className="flex-1 h-px bg-elementStroke" /></div>
           {/* Clerk CAPTCHA Element */}
           <div id="clerk-captcha" className="flex justify-center"></div>
@@ -518,14 +518,7 @@ export default function AcceptInvitePage() {
         </div>
       </div>
 
-      {/* Client onboarding modal */}
-      {role === 'client' && (
-        <ClientOnboardingModal
-          open={openOnboarding}
-          onClose={() => setOpenOnboarding(false)}
-          workspaceId={workspaceId}
-        />
-      )}
+      {/* Client onboarding moved to a dedicated page */}
     </div>
   )
 }
