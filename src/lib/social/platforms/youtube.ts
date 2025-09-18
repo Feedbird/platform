@@ -292,7 +292,49 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
       };
     }
   
-    /* 5 — get post history using videos.list API */
+    /* 5 — delete a YouTube video */
+    async deletePost(page: SocialPage, postId: string): Promise<void> {
+      if (IS_BROWSER) {
+        const res = await fetch('/api/social/youtube/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page, postId }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return;
+      }
+
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No token found for page');
+      }
+
+      // YouTube Data API v3 - Videos: delete
+      // https://developers.google.com/youtube/v3/docs/videos/delete
+      const response = await fetch(`${cfg.baseUrl}/videos?id=${encodeURIComponent(postId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[YouTube] Delete video failed: ${response.status} - ${errorText}`);
+        
+        if (response.status === 403) {
+          throw new Error('Video cannot be deleted. You may not have permission to delete this video.');
+        } else if (response.status === 404) {
+          throw new Error('Video not found. It may have already been deleted.');
+        } else {
+          throw new Error(`Failed to delete YouTube video: ${response.status} - ${errorText}`);
+        }
+      }
+
+      console.log(`[YouTube] Successfully deleted video ${postId}`);
+    }
+
+    /* 6 — get post history using videos.list API */
     async getPostHistory(pg: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
       if (IS_BROWSER) {
         const res = await fetch("/api/social/youtube/history", {
@@ -469,7 +511,6 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
       }
     }
     async getPostAnalytics(){ return {}; }
-    async deletePost() {}
 
     // Get file info (size and MIME type) from URL
     async getFileInfo(url: string): Promise<{ fileSize: number; mimeType: string }> {
