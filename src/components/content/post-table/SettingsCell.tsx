@@ -235,7 +235,8 @@ export function SettingsEditCell({
                   {(Object.keys(ICONS) as (keyof SettingFlags)[])
                     .filter(k => 
                       (k !== 'tiktok' || platforms.includes('tiktok')) &&
-                      (k !== 'google' || platforms.includes('google'))
+                      (k !== 'google' || platforms.includes('google')) &&
+                      (k !== 'youtube' || platforms.includes('youtube'))
                     )
                     .map((k) => (
                     <Tooltip key={k}>
