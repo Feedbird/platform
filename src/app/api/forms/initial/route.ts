@@ -9,7 +9,7 @@ const CreateFormSchema = z.object({
   title: z.string().min(4),
   thumbnail_url: z.string().url().optional(),
   cover_url: z.string().url().optional(),
-  description: z.string().max(900).optional(),
+  description: z.string().max(900).optional().default("Add description here"),
   location_tags: z.array(z.string()).default([]),
   account_tags: z.array(z.string()).default([]),
   createdBy: z.string().email(),

@@ -51,7 +51,8 @@ export default function FormCanvas({
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [editingDescription, setEditingDescription] = React.useState(false);
 
-  const { setActiveForm, activeForm } = useForms();
+  const { setActiveForm, activeForm, unsavedChanges, setUnsavedChanges } =
+    useForms();
   const { setFilesToUpload } = useFormEditor();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -68,6 +69,9 @@ export default function FormCanvas({
           description: description ?? prev?.description,
         } as TableForm)
     );
+    if (!unsavedChanges) {
+      setUnsavedChanges(true);
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,7 +180,7 @@ export default function FormCanvas({
                   className="text-sm text-[#5C5E63] font-normal"
                   onDoubleClick={() => setEditingDescription(true)}
                 >
-                  {form.description ?? "Add description here"}
+                  {form.description}
                 </p>
               )}
             </div>

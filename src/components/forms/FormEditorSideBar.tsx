@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useForms } from "@/contexts/FormsContext";
 import { useFormEditor } from "@/contexts/FormEditorContext";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { TableForm } from "./content/forms-table";
 
 type FormEditorSideBarProps = {
   onAddField?: (fieldType: FormFieldType) => void;
@@ -24,7 +25,7 @@ export default function FormEditorSideBar({
   formId,
 }: FormEditorSideBarProps) {
   const { activeWorkspaceId } = useFeedbirdStore();
-  const { setUnsavedChanges } = useForms();
+  const { setUnsavedChanges, activeForm, setActiveForm } = useForms();
   const [loading, isLoading] = React.useState(false);
   const { filesToUpload } = useFormEditor();
 
@@ -35,10 +36,15 @@ export default function FormEditorSideBar({
       if (filesToUpload.length > 0) {
         await handleImageUpload();
       }
-      toast.success("Form fields updated");
+      await formsApi.updateForm(formId, {
+        title: activeForm?.title,
+        description: activeForm?.description,
+        cover_url: activeForm?.cover_url,
+      });
+      toast.success("Form saved");
       setUnsavedChanges(false);
     } catch (e) {
-      toast.error("Failed to update form fields. Please try again.");
+      toast.error("Failed to save form. Please try again.");
     } finally {
       isLoading(false);
     }
@@ -46,7 +52,7 @@ export default function FormEditorSideBar({
 
   const handleImageUpload = async () => {
     try {
-      const updates = [];
+      const updates: { path: string; url: string }[] = [];
       for (const fileData of filesToUpload) {
         const { path, file } = fileData;
         // TODO Migrate this to mediaApi instead of front calling It here
@@ -81,9 +87,14 @@ export default function FormEditorSideBar({
 
         updates.push({ path, url: publicUrl });
       }
-      console.log("Updates to perform after image upload:", updates);
 
-      await formsApi.updateForm(formId, { cover_url: updates[0].url });
+      setActiveForm(
+        (prev) =>
+          ({
+            ...prev,
+            cover_url: updates[0].url || null,
+          } as TableForm)
+      );
     } catch (e) {
       console.error(e);
       toast.error(
