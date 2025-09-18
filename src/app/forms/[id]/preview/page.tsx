@@ -88,7 +88,7 @@ export default function Page() {
       </div>
       <div className="flex justify-center p-5 pb-12">
         <div className="w-full max-w-[900px] flex flex-col gap-5">
-          <div className="flex flex-col p-3 gap-2 px-6 py-3">
+          <div className="flex flex-col pr-3 pl-0 py-3 gap-2">
             <span className="font-semibold text-[18px] text-[#1C1D1F]">
               Onboarding Questionnaire
             </span>
@@ -152,7 +152,7 @@ export default function Page() {
                             ]?.config.description.value || ""}
                       </p>
                     </div>
-                    <div className="flex flex-col gap-6">
+                    <div className="space-y-8">
                       {page.map((field, index) => (
                         <FieldRenderWrapper
                           pageNumber={pageIndex + 1}

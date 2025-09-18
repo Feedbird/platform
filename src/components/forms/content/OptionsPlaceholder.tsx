@@ -6,18 +6,25 @@ import {
 import Image from "next/image";
 import React from "react";
 
-type Props = {
+type MainProps = {
   config: FieldTypeEntitlements;
+};
+
+type OptionCardProps = {
+  isSelected: boolean;
+  handleSelection: (value: string) => void;
+  option: ComplexObjectType & { image?: string };
+  totalItems: number;
+  isMultipleSelection?: boolean;
 };
 
 function OptionCard({
   option,
+  isSelected,
+  handleSelection,
   totalItems,
-}: {
-  option: ComplexObjectType & { image?: string };
-  totalItems: number;
-}) {
-  const [selected, isSelected] = React.useState(false);
+  isMultipleSelection = false,
+}: OptionCardProps) {
   const getWidthClass = () => {
     if (totalItems === 1) return "w-full";
     if (totalItems === 2) return "w-[calc(50%-0.375rem)]";
@@ -29,10 +36,12 @@ function OptionCard({
     <div
       onClick={(e) => {
         e.stopPropagation();
-        isSelected(!selected);
+        handleSelection(option.value);
       }}
       className={`border-1 hover:cursor-pointer items-center ${
-        selected ? "bg-[#EDF6FF] border-[#4670F9]" : "bg-white border-[#D3D3D3]"
+        isSelected
+          ? "bg-[#EDF6FF] border-[#4670F9]"
+          : "bg-white border-[#D3D3D3]"
       } rounded-[6px] p-2 flex flex-row justify-between ${getWidthClass()}`}
     >
       {option.image && (
@@ -45,12 +54,35 @@ function OptionCard({
         />
       )}
       <span className="text-[#1C1D1F] font-normal text-sm">{option.value}</span>
-      <Checkbox checked={selected} className="bg-white rounded-full size-5" />
+      <Checkbox
+        checked={isSelected}
+        className={`bg-white ${
+          isMultipleSelection ? "rounded-[3px]" : "rounded-full"
+        } size-5`}
+      />
     </div>
   );
 }
 
-export default function OptionsPlaceholder({ config }: Props) {
+export default function OptionsPlaceholder({ config }: MainProps) {
+  const [optionsChecked, setCheckedOptions] = React.useState<string[]>([]);
+
+  const handleOptionsCheck = (value: string) => {
+    if (config?.allowMultipleSelection?.value) {
+      setCheckedOptions((prev) => {
+        if (prev.includes(value)) {
+          return prev.filter((v) => v !== value);
+        }
+        return [...prev, value];
+      });
+    } else {
+      if (optionsChecked.includes(value)) {
+        setCheckedOptions([]);
+        return;
+      }
+      setCheckedOptions([value]);
+    }
+  };
   const options = React.useMemo(
     () =>
       config.optionItems?.optionValues?.length
@@ -59,10 +91,23 @@ export default function OptionsPlaceholder({ config }: Props) {
     [config]
   );
 
+  React.useEffect(() => {
+    setCheckedOptions([]);
+  }, [config.allowMultipleSelection?.value]);
+
   return (
     <div className="flex flex-wrap gap-3">
       {options.map((opt) => (
-        <OptionCard key={opt.order} option={opt} totalItems={options.length} />
+        <OptionCard
+          isMultipleSelection={
+            (config?.allowMultipleSelection?.value as boolean) || false
+          }
+          key={opt.order}
+          option={opt}
+          totalItems={options.length}
+          handleSelection={handleOptionsCheck}
+          isSelected={optionsChecked.includes(opt.value)}
+        />
       ))}
     </div>
   );

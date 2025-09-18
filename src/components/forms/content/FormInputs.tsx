@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
+import OptionalInputChip from "./OptionalInputChip";
 
 export type CommonProps = {
   config: any;
@@ -26,8 +27,9 @@ export function SingleTextInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-col gap-1">
-        <label className="block text-base text-[#1C1D1F]">
+        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
           {config.title.value}
+          {!config.isRequired.value && <OptionalInputChip />}
         </label>
         {config.description && (
           <p className="text-sm text-[#838488] font-normal">
@@ -48,8 +50,9 @@ export function TextAreaInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
-        <label className="block text-base text-[#1C1D1F]">
+        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
           {config.title.value}
+          {!config.isRequired.value && <OptionalInputChip />}
         </label>
         {config.description && (
           <p className="text-sm text-[#838488] font-normal">
@@ -91,8 +94,9 @@ export function CheckboxInput({ config, isPreview }: CommonProps) {
         }}
       />
       <div className="flex flex-col gap-0.5">
-        <label className="block text-base text-[#1C1D1F]">
+        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
           {config.title.value}
+          {!config.isRequired.value && <OptionalInputChip />}
         </label>
         {config.description && (
           <p className="text-sm text-[#838488] font-normal">
@@ -110,8 +114,9 @@ export function DropdownInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
-        <label className="block text-base text-[#1C1D1F]">
+        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
           {config.title.value}
+          {!config.isRequired.value && <OptionalInputChip />}
         </label>
         {config.helpText && (
           <p className="text-sm text-[#838488] font-normal">
@@ -174,8 +179,9 @@ export function SectionBreakInput({ config }: CommonProps) {
 export function AttachmentInput({ config, isPreview }: CommonProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="block text-base text-[#1C1D1F]">
+      <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
         {config.title.value}
+        {!config.isRequired.value && <OptionalInputChip />}
       </label>
       {config.description && (
         <p className="text-sm text-[#838488] font-normal">
@@ -220,8 +226,9 @@ export function AttachmentInput({ config, isPreview }: CommonProps) {
 export function SpreadSheetInput({ config, isPreview }: CommonProps) {
   return (
     <div className="flex flex-col gap-3">
-      <label className="block text-base text-[#1C1D1F]">
+      <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
         {config.title.value}
+        {!config.isRequired.value && <OptionalInputChip />}
       </label>
       {config.description && (
         <p className="text-sm text-[#838488] font-normal">
@@ -240,8 +247,9 @@ export function OptionInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <label className="block text-base text-[#1C1D1F]">
+        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
           {config.title.value}
+          {!config.isRequired.value && <OptionalInputChip />}
         </label>
         {config.description && (
           <p className="text-sm text-[#838488] font-normal">
