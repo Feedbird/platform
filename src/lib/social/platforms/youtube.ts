@@ -8,13 +8,16 @@
   } from "./platform-types";
   import { BasePlatform } from "./base-platform";
 import { supabase } from "@/lib/supabase/client";
+import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
   
   /* —— static meta —— */
   const cfg: SocialPlatformConfig = {
     name   : "YouTube",
     channel: "youtube",
     icon   : "/images/platforms/youtube.svg",
+    // https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps#httprest_1
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+    // https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps#identify-access-scopes
     scopes : [
       "https://www.googleapis.com/auth/youtube",
       "https://www.googleapis.com/auth/youtube.upload",
@@ -230,6 +233,7 @@ import { supabase } from "@/lib/supabase/client";
           body: JSON.stringify({
             page,
             post: {
+              id: content.id,
               content: content.text,
               mediaUrls: content.media?.urls
             },
@@ -239,6 +243,7 @@ import { supabase } from "@/lib/supabase/client";
         if (!res.ok) throw new Error(await res.text());
         return res.json();
       }
+      
   
       if (!content.media?.urls[0]) {
         throw new Error("YouTube API needs a video file URL.");
@@ -250,12 +255,6 @@ import { supabase } from "@/lib/supabase/client";
         throw new Error('No auth token available');
       }
   
-      /* a) pull raw bytes */
-      const bytes = await fetch(content.media.urls[0]).then(r => r.arrayBuffer());
-  
-      /* b) multipart via FormData (boundary handled automatically) */
-      const form = new FormData();
-      
       // Build snippet with settings from options
       const snippet: any = {
         title: content.title?.slice(0, 100) || content.text.slice(0, 100) || "Untitled",
@@ -266,22 +265,19 @@ import { supabase } from "@/lib/supabase/client";
         privacyStatus: options?.visibility || "public",
         selfDeclaredMadeForKids: options?.madeForKids || false,
       };
-      
-      form.append("snippet", new Blob([JSON.stringify({
-        snippet,
-        status,
-      })], { type: "application/json" }));
-      form.append("video", new Blob([bytes], { type: "video/*" }));
-  
-      /* c) upload */
-      const vid = await ytFetch<{ id: string }>(
-        "https://www.googleapis.com/upload/youtube/v3/videos" +
-        "?part=snippet,status&uploadType=multipart",
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
+
+      let vid: { id: string };
+      vid = await this.resumableUpload(token, content.media.urls[0], snippet, status);
+
+      // Save the published post ID to the platform_post_ids column
+      try {
+
+        await updatePlatformPostId(content.id!, 'youtube', vid.id, page.id);
+      } catch (error) {
+        console.warn('Failed to save YouTube post ID:', error);
+        // Don't fail the publish if saving the ID fails
+      }
+     
 
 
       return {
@@ -345,6 +341,187 @@ import { supabase } from "@/lib/supabase/client";
     }
     async getPostAnalytics(){ return {}; }
     async deletePost() {}
+
+    // Get file info (size and MIME type) from URL
+    async getFileInfo(url: string): Promise<{ fileSize: number; mimeType: string }> {
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        const fileSize = parseInt(response.headers.get('content-length') || '0', 10);
+        const mimeType = response.headers.get('content-type') || 'video/*';
+        
+        if (fileSize === 0) {
+          console.warn('Could not determine file size, defaulting to 10MB');
+          return { fileSize: 10 * 1024 * 1024, mimeType };
+        }
+        
+        return { fileSize, mimeType };
+      } catch (error) {
+        console.warn('Error getting file info, using defaults:', error);
+        return { fileSize: 10 * 1024 * 1024, mimeType: 'video/*' };
+      }
+    }
+
+    // Initialize resumable upload session
+    async initializeResumableUpload(
+      token: string,
+      snippet: any,
+      status: any,
+      fileSize: number,
+      mimeType: string
+    ): Promise<string> {
+      const url = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status";
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Length": fileSize.toString(),
+        "X-Upload-Content-Type": mimeType,
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ snippet, status }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error starting resumable session:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Failed to initialize resumable upload: ${response.status} ${errorText}`);
+      }
+
+      const uploadUrl = response.headers.get('location');
+      if (!uploadUrl) {
+        throw new Error('Failed to get upload URL from resumable upload initialization');
+      }
+
+      return uploadUrl;
+    }
+
+    // Download a specific chunk of the video using HTTP Range requests
+    async downloadChunk(videoUrl: string, startByte: number, endByte: number): Promise<Uint8Array> {
+      try {
+        console.log(`Downloading chunk from ${startByte} to ${endByte}`);
+        const response = await fetch(videoUrl, {
+          headers: {
+            Range: `bytes=${startByte}-${endByte}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to download chunk: ${response.status} ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        return new Uint8Array(arrayBuffer);
+      } catch (error) {
+        console.error(`Error downloading chunk from ${startByte} to ${endByte}:`, error);
+        throw error;
+      }
+    }
+
+    // Upload video in chunks using HTTP Range requests (based on working reference code)
+    async uploadVideoInChunks(
+      token: string,
+      uploadUrl: string,
+      videoUrl: string,
+      fileSize: number,
+      mimeType: string
+    ): Promise<{ id: string }> {
+      try {
+        console.log("Uploading video in chunks...");
+
+        const chunkSize = 10 * 1024 * 1024; // 10MB per chunk (multiple of 256KB)
+        let startByte = 0;
+        let endByte = Math.min(chunkSize - 1, fileSize - 1);
+        let videoId: string | undefined;
+
+        // Loop through the video in chunks
+        while (startByte < fileSize) {
+          const chunk = await this.downloadChunk(videoUrl, startByte, endByte);
+          console.log("Chunk Downloaded:", chunk.length, "bytes");
+
+          // Set the upload headers (matching your working code exactly)
+          const headers = {
+            Authorization: `Bearer ${token}`,
+            "Content-Length": chunk.length.toString(),
+            "Content-Type": mimeType,
+            "Content-Range": `bytes ${startByte}-${endByte}/${fileSize}`,
+          };
+
+          console.log("Uploading chunk from", startByte, "to", endByte);
+          const uploadResponse = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers,
+            body: chunk,
+          });
+
+          console.log(`Uploaded chunk ${startByte} to ${endByte}, status: ${uploadResponse.status}`);
+
+          // Handle different response codes
+          if (uploadResponse.status === 200) {
+            // Upload completed successfully
+            const result = await uploadResponse.json();
+            videoId = result.id;
+            console.log("Upload completed successfully:", result);
+            break;
+          } else if (uploadResponse.status === 308) {
+            // 308 Resume Incomplete - this is normal, upload is progressing
+            console.log(`Chunk uploaded successfully (308): bytes ${startByte}-${endByte}`);
+            // Continue to next chunk
+          } else if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            console.error('Upload chunk failed:', {
+              status: uploadResponse.status,
+              statusText: uploadResponse.statusText,
+              error: errorText,
+              startByte,
+              endByte,
+              chunkSize: chunk.length
+            });
+            throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+          }
+
+          // Move to next chunk
+          startByte = endByte + 1;
+          endByte = Math.min(startByte + chunkSize - 1, fileSize - 1);
+        }
+
+        if (!videoId) {
+          throw new Error('Upload completed but no video ID returned');
+        }
+
+        return { id: videoId };
+      } catch (error) {
+        console.error("Error uploading video in chunks:", error);
+        throw error;
+      }
+    }
+
+    // Resumable upload 
+    async resumableUpload(
+      token: string, 
+      videoUrl: string, 
+      snippet: any, 
+      status: any
+    ): Promise<{ id: string }> {
+      console.log('Starting resumable upload...');
+      
+      // Get file size and MIME type
+      const { fileSize, mimeType } = await this.getFileInfo(videoUrl);
+      console.log(`File size: ${fileSize} bytes, MIME type: ${mimeType}`);
+      
+      // Initialize resumable upload
+      const uploadUrl = await this.initializeResumableUpload(token, snippet, status, fileSize, mimeType);
+      console.log('Resumable upload initialized:', { uploadUrl });
+      
+      // Upload in chunks using HTTP Range requests
+      return await this.uploadVideoInChunks(token, uploadUrl, videoUrl, fileSize, mimeType);
+    }
 
 
     async createPost(

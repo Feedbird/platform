@@ -9,27 +9,21 @@
    
    const Body = z.object({
      page: z.any(),                    // Use flexible validation like other platforms
-     post: z.object({
-       content  : z.string().min(1),
-       mediaUrls: z.array(z.string().url()).nonempty(),
-     }),
-     options: z.object({
-       visibility: z.enum(["public", "private", "unlisted"]).optional(),
-       madeForKids: z.boolean().optional(),
-       description: z.string().optional(),
-     }).optional(),
+     post: z.any(),
+     options: z.any().optional(),
    });
    
    export async function POST(req: NextRequest) {
      try {
        const { page, post, options } = Body.parse(await req.json());
-       const res = await ops.publishPost(page as any, {
-         text: post.content,
-         media: {
-           type: "video",
-           urls: post.mediaUrls
-         }
-       }, options);
+      const res = await ops.publishPost(page as any, {
+        id: post.id,
+        text: post.content,
+        media: {
+          type: "video",
+          urls: post.mediaUrls
+        }
+      }, options);
        return Response.json(res);                       // 200
      } catch (e: any) {
        console.error("[YouTube publish]", e);
