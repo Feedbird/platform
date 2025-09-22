@@ -40,10 +40,11 @@ export class FormHandler {
 
   static async fetchFormById(formId: string): Promise<Form> {
     try {
+      // include nested service_plans for each service and return only the first plan
       const { data, error } = await supabase
         .from("forms")
         .select(
-          `*, services:services(id, name, pricing, qty_indicator, quantity)`
+          `*, services:services(id, name, service_plans:service_plans(*))`
         )
         .eq("id", formId)
         .single();

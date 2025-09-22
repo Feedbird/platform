@@ -101,8 +101,9 @@ export default function Page() {
                   <p className="min-w-[170px]">{service.name}</p>
                   <Divider orientation="vertical" />
                   <p>
-                    Quantity: {service.quantity} {service.qty_indicator} - $
-                    {service.pricing}/mo
+                    Quantity: {service.service_plans?.[0]?.quantity ?? 0}{" "}
+                    {service.service_plans?.[0]?.qty_indicator ?? "Not set"} - $
+                    {service.service_plans?.[0]?.price ?? 0}/mo
                   </p>
                 </div>
               ))}

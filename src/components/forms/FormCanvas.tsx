@@ -13,6 +13,13 @@ import FieldRenderWrapper from "./content/FieldRenderWrapper";
 import { useForms } from "@/contexts/FormsContext";
 import { TableForm } from "./content/forms-table";
 import { useFormEditor } from "@/contexts/FormEditorContext";
+import { Popover, PopoverTrigger } from "../ui/popover";
+import { PopoverContent, PopoverPortal } from "@radix-ui/react-popover";
+import {
+  FormFieldsArray,
+  FormFieldType,
+  UIFormFieldDefaults,
+} from "@/lib/forms/fields";
 
 export interface CanvasFormField {
   id: string;
@@ -50,6 +57,7 @@ export default function FormCanvas({
   });
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [editingDescription, setEditingDescription] = React.useState(false);
+  const [popoverOpen, setPopoverOpen] = React.useState(false);
 
   const { setActiveForm, activeForm } = useForms();
   const { setFilesToUpload } = useFormEditor();
@@ -81,6 +89,23 @@ export default function FormCanvas({
       // Keep track of files to upload and path to update form accordingly
       setFilesToUpload((prev) => [...prev, { path: "form/cover_url", file }]);
     }
+  };
+
+  const addNewField = (fieldType: FormFieldType) => {
+    const newField: CanvasFormField = {
+      id: crypto.randomUUID(),
+      position: formFields.length,
+      type: fieldType.toLowerCase(),
+      config: UIFormFieldDefaults[fieldType].config,
+    };
+
+    setFormFields((prev) => {
+      const updated = [...prev, newField];
+      return updated;
+    });
+
+    // Close the popover after adding a field
+    setPopoverOpen(false);
   };
 
   const fieldIds = formFields.map((f) => f.id);
@@ -231,13 +256,38 @@ export default function FormCanvas({
               )}
             </div>
 
-            {/* Fixed +Add Components footer - always present */}
             <div className="p-3 w-full">
-              <div className="bg-[#EDF6FF] w-full h-[36px] border-[#4670F9] border-1 border-dashed rounded-[3px]">
-                <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
-                  +Add Components
-                </span>
-              </div>
+              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                <PopoverTrigger className="w-full">
+                  <div className="bg-[#EDF6FF] w-full h-[52px] border-[#4670F9] border-1 border-dashed rounded-[3px] hover:cursor-pointer hover:bg-[#E1EFFF] transition-colors">
+                    <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
+                      +Add Components
+                    </span>
+                  </div>
+                </PopoverTrigger>
+                <PopoverPortal>
+                  <PopoverContent
+                    side="right"
+                    className="mt-1 rounded-sm border-1 bg-white border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 w-42"
+                  >
+                    {FormFieldsArray.map((field) => (
+                      <div
+                        onClick={() => addNewField(field.type)}
+                        key={field.label}
+                        className="flex flex-row p-1 gap-2 hover:bg-[#EDF6FF] hover:cursor-pointer rounded-sm"
+                      >
+                        <Image
+                          src={field.iconPath}
+                          alt={`${field.label}_icon`}
+                          width={14}
+                          height={14}
+                        />
+                        <span>{field.label}</span>
+                      </div>
+                    ))}
+                  </PopoverContent>
+                </PopoverPortal>
+              </Popover>
             </div>
 
             <div className="flex flex-row py-6 px-3 gap-3 items-center">

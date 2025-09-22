@@ -183,9 +183,22 @@ export interface Service {
   workspace_id: string;
   form_id: string | null;
   name: string;
-  pricing: number;
-  qty_indicator: string;
+  brief: string | null;
+  description: string | null;
+  folder_id: string;
+  service_plans?: ServicePlan[];
+}
+
+export interface ServicePlan {
+  id: string;
+  created_at: string;
+  period: string;
+  price: number;
+  service_id: string;
   quantity: number;
+  qty_indicator: string;
+  currency: string;
+  updated_at: string;
 }
 
 export interface FormField {
