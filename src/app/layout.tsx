@@ -41,13 +41,7 @@ const inter = Inter({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      signInUrl="/signin"
-      signUpUrl="/signup"
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
-    >
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" suppressHydrationWarning>
         <head>
           <link rel="icon" type="image/svg+xml" href="/images/logo/logo.svg" />
