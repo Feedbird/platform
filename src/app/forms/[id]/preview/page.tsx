@@ -132,7 +132,12 @@ export default function Page() {
                         alt="form_cover_image"
                         width={920}
                         height={160}
-                        className="w-full h-full object-cover object-top z-10"
+                        style={{
+                          objectPosition: `50% ${
+                            activeForm?.cover_offset ?? 50
+                          }%`,
+                        }}
+                        className="w-full h-full object-cover z-10"
                       />
                     </div>
                   )}

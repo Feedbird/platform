@@ -174,6 +174,7 @@ export interface Form {
   created_at: string;
   updated_at: string;
   has_branding: boolean;
+  cover_offset: number | null;
   services?: Service[];
 }
 
