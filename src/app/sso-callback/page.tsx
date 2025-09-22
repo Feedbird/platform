@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useAuth, useSignIn, useSignUp, AuthenticateWithRedirectCallback  } from '@clerk/nextjs'
+import { useAuth, useSignIn, useSignUp } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function SSOCallbackPage() {
@@ -22,58 +22,68 @@ export default function SSOCallbackPage() {
       console.log('signUpLoaded', signUpLoaded)
 
       try {
-        // Check if user is signed in after OAuth redirect
-        if (isSignedIn) {
-          const workspaceId = searchParams?.get('workspaceId')
-          const ticket = searchParams?.get('__clerk_ticket') || searchParams?.get('ticket') || searchParams?.get('invitation_token')
+        const workspaceId = searchParams?.get('workspaceId')
+        const ticket = searchParams?.get('__clerk_ticket') || searchParams?.get('ticket') || searchParams?.get('invitation_token')
+        const status = searchParams.get('__clerk_status')
 
-          console.log('ticket', ticket)
+        console.log('ticket', ticket)
+        console.log('status', status)
 
-          if (ticket && (signInLoaded || signUpLoaded)) {
-            try {
-              const resIn: any = await signIn.create({ strategy: 'ticket', ticket })
-              console.log('resIn', resIn)
-              if (resIn?.status === 'complete' && resIn?.createdSessionId) {
-                await setActiveSignIn({ session: resIn.createdSessionId })
-              }
-            } catch {}
-
-            try {
-              const resUp: any = await signUp.create({ strategy: 'ticket', ticket })
-              console.log('resUp', resUp)
-              if (resUp?.status === 'complete' && resUp?.createdSessionId) {
-                await setActiveSignUp({ session: resUp.createdSessionId })
-              }
-            } catch {}
+        // If Clerk returned a ticket, complete the flow regardless of current sign-in state
+        if (ticket) {
+          if (status === 'sign_in') {
+            console.log('sign_in')
+            const res = await signIn.create({ strategy: 'ticket', ticket })
+            if (res?.status === 'complete' && res.createdSessionId) {
+              await setActiveSignIn({ session: res.createdSessionId })
+            }
+          } else if (status === 'sign_up') {
+            console.log('sign_up')
+            const res = await signUp.create({ strategy: 'ticket', ticket })
+            console.log('res', res)
+            if (res?.status === 'complete' && res.createdSessionId) {
+              await setActiveSignUp({ session: res.createdSessionId })
+            }
+          } else {
+            // Fallback: attempt sign-in by default
+            const res = await signIn.create({ strategy: 'ticket', ticket })
+            if (res?.status === 'complete' && res.createdSessionId) {
+              await setActiveSignIn({ session: res.createdSessionId })
+            }
           }
 
           router.push(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
+          return
+        }
+
+        // No ticket present
+        if (isSignedIn) {
+          router.push(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
+          return
+        }
+
+        console.log('Authentication failed, route based on originating flow')
+        // Authentication failed, route based on originating flow
+        const from = searchParams?.get('from')
+        const flow = searchParams?.get('flow')
+        const role = searchParams?.get('role')
+
+        if (from === 'accept-invite') {
+          console.log('from', from)
+          console.log('flow', flow)
+          console.log('role', role)
+
+          const base = `/accept-invite?view=${flow === 'signin' ? 'signin' : 'signup'}`
+          const notice = flow === 'signin' ? 'not-registered' : 'already-registered'
+          const roleParam = role ? `&role=${encodeURIComponent(role)}` : ''
+          const wsParam = workspaceId ? `&workspaceId=${encodeURIComponent(workspaceId)}` : ''
+          router.push(`${base}&notice=${notice}${roleParam}${wsParam}`)
+        } else if (from === 'signin') {
+          router.push('/signin?notice=not-registered')
+        } else if (from === 'signup') {
+          router.push('/signup?notice=already-registered')
         } else {
-          console.log('Authentication failed, route based on originating flow')
-          // Authentication failed, route based on originating flow
-          const from = searchParams?.get('from')
-          const flow = searchParams?.get('flow')
-          const role = searchParams?.get('role')
-          const workspaceId = searchParams?.get('workspaceId')
-
-          if (from === 'accept-invite') {
-            console.log('from', from)
-            console.log('flow', flow)
-            console.log('role', role)
-            console.log('workspaceId', workspaceId)
-
-            const base = `/accept-invite?view=${flow === 'signin' ? 'signin' : 'signup'}`
-            const notice = flow === 'signin' ? 'not-registered' : 'already-registered'
-            const roleParam = role ? `&role=${encodeURIComponent(role)}` : ''
-            const wsParam = workspaceId ? `&workspaceId=${encodeURIComponent(workspaceId)}` : ''
-            router.push(`${base}&notice=${notice}${roleParam}${wsParam}`)
-          } else if (from === 'signin') {
-            router.push('/signin?notice=not-registered')
-          } else if (from === 'signup') {
-            router.push('/signup?notice=already-registered')
-          } else {
-            router.push('/signin?notice=not-registered')
-          }
+          router.push('/signin?notice=not-registered')
         }
       } catch (err) {
         console.log('err', err)
@@ -116,3 +126,4 @@ export default function SSOCallbackPage() {
     </div>
   )
 }
+
