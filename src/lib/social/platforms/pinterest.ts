@@ -1,7 +1,8 @@
 /* ────────────────────────────────────────────────────────────
    lib/social/platforms/pinterest.ts      ◇ SERVER-ONLY DRIVER
    ──────────────────────────────────────────────────────────── */
-   import type {
+   import { supabase } from '@/lib/supabase/client'
+import type {
     PlatformOperations,
     SocialAccount,
     SocialPage,
@@ -79,21 +80,24 @@
   
     /* 1 – consent URL (popup) */
     getAuthUrl() {
+      // https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/#step-1-redirect-the-user-to-the-pinterest-oauth-page
       const u = new URL(cfg.authUrl);
       u.searchParams.set('client_id', this.clientId);
       u.searchParams.set('redirect_uri', this.redirectUri);
       u.searchParams.set('scope', cfg.scopes.join(','));
       u.searchParams.set('response_type', 'code');
-      u.searchParams.set('state', crypto.randomUUID());
       return u.toString();
     }
   
     /* 2 – code → tokens + profile */
     async connectAccount(code: string): Promise<SocialAccount> {
+
+      // https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/#step-2-receive-the-authorization-code-with-your-redirect-uri
       const tok = await pinFetch<{
         access_token: string;
         refresh_token: string;
         expires_in: number;
+        refresh_token_expires_in: number;
       }>(`${this.baseUrl}/oauth/token`, {
         method: 'POST',
         headers: {
@@ -113,7 +117,7 @@
         `${this.baseUrl}/user_account`,
         { headers: { Authorization: `Bearer ${tok.access_token}` } },
       );
-  
+        
       return {
         id: crypto.randomUUID(),
         platform: 'pinterest',
@@ -121,24 +125,21 @@
         accountId: me.id,
         authToken: tok.access_token,
         refreshToken: tok.refresh_token,
+        refreshTokenExpiresAt: new Date(Date.now() + tok.refresh_token_expires_in * 1_000),
         accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
+        tokenIssuedAt: new Date(),
         connected: true,
         status: 'active',
         metadata: {},
       };
     }
-  
-    async getAccountInfo(authToken: string): Promise<any> {
-      const profile = await this.fetchJSON<{ username: string; account_type: string }>(
-        `${this.baseUrl}/user_account`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      )
-      return { name: profile.username, accountType: profile.account_type }
-    }
+
   
     /* 3 – silent refresh */
     async refreshToken(acc: SocialAccount): Promise<SocialAccount> {
-      const tok = await pinFetch<{ access_token: string; refresh_token: string; expires_in: number }>(
+
+      // https://developers.pinterest.com/docs/api/v5/oauth-token
+      const tok = await pinFetch<{ access_token: string; refresh_token: string; expires_in: number; refresh_token_expires_in: number }>(
         `${cfg.baseUrl}/v5/oauth/token`, {
         method: 'POST',
         headers: {
@@ -155,67 +156,139 @@
         ...acc, // Spread the existing account properties
         authToken: tok.access_token,
         refreshToken: tok.refresh_token,
+        refreshTokenExpiresAt: new Date(Date.now() + tok.refresh_token_expires_in * 1_000),
         accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
+        tokenIssuedAt: new Date(),
         status: 'active', // Reset status on successful refresh
       };
     }
     async disconnectAccount(a: SocialAccount){ a.connected=false; a.status='disconnected' }
   
-    /* 4 – Boards ⇄ Pages */
+    /* 4 – Profile as Social Page */
     async listPages(acc: SocialAccount): Promise<SocialPage[]> {
-      type Boards = { items: { id: string; name: string }[] }
-      const data: Boards = await this.fetchJSON(
-        `${this.baseUrl}/boards?page_size=100`,
+      // Get user profile information
+      // https://developers.pinterest.com/docs/api/v5/user_account-get
+      const profile = await this.fetchJSON<{ 
+        id: string; 
+        username: string; 
+        account_type: string;
+        profile_image?: string;
+        follower_count?: number;
+        following_count?: number;
+      }>(
+        `${this.baseUrl}/user_account`,
         { headers: { Authorization: `Bearer ${acc.authToken || ''}` } }
       )
   
-      return data.items.map((b) => ({
+      // Return the profile as the social page (not boards)
+      return [{
         id        : crypto.randomUUID(),
         platform  : 'pinterest',
-        entityType: 'board',
-        name      : b.name,
-        pageId    : b.id,
+        entityType: 'profile',
+        name      : profile.username,
+        pageId    : profile.id,
         authToken : acc.authToken || '',
-        connected : false,
+        connected : true,
         status    : 'active',
         accountId : acc.id,
-        statusUpdatedAt:new Date(),
+        statusUpdatedAt: new Date(),
         postCount: 0,
-        followerCount: 0,
-        metadata  : {}
-      }))
+        followerCount: profile.follower_count || 0,
+        metadata  : {
+          account_type: profile.account_type,
+          profile_image: profile.profile_image,
+          following_count: profile.following_count
+        }
+      }]
     }
+
+    async getToken(pageId: string): Promise<string> {
+
+      // get token from database
+      const { data, error } = await supabase
+        .from('social_pages')
+        .select('auth_token, auth_token_expires_at, account_id')
+        .eq('id', pageId)
+        .single();
+    
+      if (error) {
+        throw new Error('Failed to get Pinterest token. Please reconnect your Pinterest account.');
+      }
+
+      // check if the token is expired
+      const now = new Date();
+      const expiresAt = data?.auth_token_expires_at ? new Date(data.auth_token_expires_at) : null;
+      if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
+        return data?.auth_token;
+      }
+
+      // refresh the token
+      const refreshedToken = await this.refreshToken(data?.account_id);
+      if (!refreshedToken?.authToken) {
+        throw new Error('Failed to refresh Pinterest token. Please reconnect your Pinterest account.');
+      }
+
+      // update the token in the database
+      await supabase
+        .from('social_pages')
+        .update({ auth_token: refreshedToken.authToken, auth_token_expires_at: refreshedToken.accessTokenExpiresAt })
+        .eq('id', pageId);
+
+      return refreshedToken.authToken;
+    }
+    
+
+
   
-    /* connectPage = instant client-side move */
-    async connectPage(acc: SocialAccount, board_id: string): Promise<SocialPage> {
+    /* connectPage = connect profile page */
+    async connectPage(acc: SocialAccount, profile_id: string): Promise<SocialPage> {
       if (IS_BROWSER) {
-        const res = await fetch('/api/social/pinterest/board', {
+        const res = await fetch('/api/social/pinterest/profile', {
           method : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body   : JSON.stringify({ token: acc.authToken || '', board_id }),
+          body   : JSON.stringify({ token: acc.authToken || '', profile_id }),
         })
         if (!res.ok) throw new Error(await res.text())
         return res.json()
       }
+      
+      if (!acc.authToken) {
+        throw new Error('No auth token available');
+      }
   
-      const b = await pinFetch<{ id:string; name:string }>(
-        `${this.baseUrl}/boards/${encodeURIComponent(board_id)}`,
+      // Get profile information
+      const profile = await pinFetch<{ 
+        id: string; 
+        username: string; 
+        account_type: string;
+        profile_image?: string;
+        follower_count?: number;
+        following_count?: number;
+      }>(
+        `${this.baseUrl}/user_account`,
         { headers:{ Authorization:`Bearer ${acc.authToken || ''}` } },
       )
   
       return {
         id        : crypto.randomUUID(),
         platform  : 'pinterest',
-        entityType: 'board',
-        name      : b.name,
-        pageId    : b.id,
+        entityType: 'profile',
+        name      : profile.username,
+        pageId    : profile.id,
         authToken : acc.authToken || '',
         connected : true,
         status    : 'active',
         accountId : acc.id,
         statusUpdatedAt: new Date(),
+        followerCount: profile.follower_count || 0,
+        metadata  : {
+          account_type: profile.account_type,
+          profile_image: profile.profile_image,
+          following_count: profile.following_count
+        }
       }
     }
+    
     async disconnectPage(p: SocialPage){ p.connected=false; p.status='disconnected' }
     async checkPageStatus(p: SocialPage){ return { ...p } }
   
@@ -231,7 +304,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            board: page,
+            profile: page,
             post: {
               content: content.text,
               mediaUrls: content.media?.urls ?? []
@@ -245,6 +318,19 @@
       if (!content.media?.urls.length) {
         throw new Error('Pinterest requires at least one media URL');
       }
+
+      // Get user's boards to find a board to pin to
+      const boards = await pinFetch<{ items: { id: string; name: string }[] }>(
+        `${this.baseUrl}/boards?page_size=1`,
+        { headers: { Authorization: `Bearer ${page.authToken || ''}` } }
+      );
+
+      if (!boards.items.length) {
+        throw new Error('No boards found. Please create a board on Pinterest first.');
+      }
+
+      // Use the first available board
+      const boardId = boards.items[0].id;
   
       const pin = await pinFetch<{ id: string }>(`${this.baseUrl}/pins`, {
         method: 'POST',
@@ -253,7 +339,7 @@
           Authorization: `Bearer ${page.authToken || ''}`
         },
         body: JSON.stringify({
-          board_id: page.pageId,
+          board_id: boardId,
           media_source: {
             source_type: 'image_url',
             url: content.media.urls[0]
@@ -275,26 +361,27 @@
       };
     }
   
-    /* 6 – latest pins on a board */
-    async getPostHistory(board: SocialPage, limit = 20): Promise<PostHistory[]> {
+    /* 6 – latest pins from profile */
+    async getPostHistory(profile: SocialPage, limit = 20): Promise<PostHistory[]> {
       if (IS_BROWSER) {
         const res = await fetch('/api/social/pinterest/history', {
           method :'POST',
           headers:{ 'Content-Type':'application/json' },
-          body   : JSON.stringify({ board, limit }),
+          body   : JSON.stringify({ profile, limit }),
         })
         if (!res.ok) throw new Error(await res.text())
         return res.json()
       }
   
+      // Get user's pins (not board-specific)
       const pins = await pinFetch<{
         items:{
           id:string; title:string; created_at:string;
           media?:{images?:Record<string,{url:string}>};
         }[]
       }>(
-        `${this.baseUrl}/boards/${encodeURIComponent(board.pageId)}/pins?page_size=${limit}`,
-        { headers:{ Authorization:`Bearer ${board.authToken || ''}` } },
+        `${this.baseUrl}/pins?page_size=${limit}`,
+        { headers:{ Authorization:`Bearer ${profile.authToken || ''}` } },
       )
   
       return pins.items.map(p => {
@@ -310,7 +397,7 @@
         return {
           id         : p.id,
           postId     : p.id,
-          pageId     : board.id,
+          pageId     : profile.id,
           content    : p.title,
           mediaUrls  : url ? [url] : [],
           status     : 'published',
@@ -320,12 +407,12 @@
     }
   
     /* 7 – delete pin */
-    async deletePost(board: SocialPage, pinId: string) {
+    async deletePost(profile: SocialPage, pinId: string) {
       if (IS_BROWSER) {
         const res = await fetch('/api/social/pinterest/delete', {
           method :'POST',
           headers:{ 'Content-Type':'application/json' },
-          body   : JSON.stringify({ board, pinId }),
+          body   : JSON.stringify({ profile, pinId }),
         })
         if (!res.ok) throw new Error(await res.text())
         return
@@ -334,7 +421,7 @@
       await pinFetch(
         `${this.baseUrl}/pins/${encodeURIComponent(pinId)}`, {
           method:'DELETE',
-          headers:{ Authorization:`Bearer ${board.authToken || ''}` },
+          headers:{ Authorization:`Bearer ${profile.authToken || ''}` },
         })
     }
   
