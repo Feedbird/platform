@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
       let redirectUrl = process.env.CLERK_INVITE_REDIRECT_URL
       const hasValidRedirect = !!(redirectUrl && /^https?:\/\//i.test(redirectUrl))
-
+      console.log("hasValidRedirect", hasValidRedirect)
       // Resolve Clerk organizationId from: explicit -> workspace mapping
       let organizationId = (body.organizationId as string | undefined) || ''
       const targetWorkspaceId: string | undefined = workspaceId
@@ -71,9 +71,11 @@ export async function POST(req: NextRequest) {
           })(),
           publicMetadata: { inviter_name: inviterName },
         }
+        console.log("clerk client invite params", params)
         await clerk.organizations.createOrganizationInvitation(params)
         clerkInvitationSent = true
       } catch (inviteErr: any) {
+        console.log("clerk client invite error", inviteErr)
         const clerkErrors = inviteErr?.errors as Array<{ code?: string; message?: string }> | undefined
         const hasRedirectIssue = Array.isArray(clerkErrors) && clerkErrors.some(e => (e.code || '').toLowerCase().includes('redirect') || (e.message || '').toLowerCase().includes('redirect'))
         if (hasRedirectIssue && hasValidRedirect) {
@@ -83,17 +85,22 @@ export async function POST(req: NextRequest) {
             role: requestedRole,
             publicMetadata: { inviter_name: inviterName },
           }
+          console.log("hasRedirectIsse, retryparams", retryParams)
           await clerk.organizations.createOrganizationInvitation(retryParams)
           clerkInvitationSent = true
         } else if (inviteErr?.status === 409 || (inviteErr?.message || '').toLowerCase().includes('already')) {
+          console.log("already")
           clerkInvitationSent = true
         } else if (inviteErr?.status === 403) {
+          console.log("forbidden")
           return NextResponse.json({ error: 'Forbidden creating organization invitation', clerk: clerkErrors || [{ message: inviteErr?.message }] }, { status: 403 })
         } else {
+          console.log("unknown error")
           return NextResponse.json({ error: 'Failed to create organization invitation', details: (Array.isArray(clerkErrors) && clerkErrors[0]?.message) || inviteErr?.message || 'Unknown error' }, { status: 500 })
         }
       }
     } catch (err) {
+      console.log("!!!!!!error", err)
       // Continue to DB even if Clerk fails
     }
 

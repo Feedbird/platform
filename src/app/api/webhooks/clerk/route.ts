@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { syncUserToDatabase, updateUserInDatabase } from '@/lib/supabase/user-sync'
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
+import { clerkClient } from '@clerk/nextjs/server'
+import { supabase } from '@/lib/supabase/client'
 
 // Webhook secret from Clerk
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
@@ -119,6 +121,74 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+    } else if (eventType === 'organizationInvitation.accepted') {
+      console.log('🔔 organizationInvitation.accepted')
+      // Keep DB in sync when an invitation is accepted in Clerk
+      // try {
+      //   const orgId = evt?.data?.organization_id || evt?.data?.organizationId
+      //   const email = evt?.data?.email_address || evt?.data?.emailAddress
+      //   if (orgId && email) {
+      //     const { data: wsRow, error: wsErr } = await supabase
+      //       .from('workspaces')
+      //       .select('id')
+      //       .eq('clerk_organization_id', orgId)
+      //       .single()
+      //     if (!wsErr && wsRow?.id) {
+      //       // Ensure a members row exists for workspace-level access
+      //       const { data: existing, error: exErr } = await supabase
+      //         .from('members')
+      //         .select('id')
+      //         .eq('email', email as string)
+      //         .eq('workspace_id', wsRow.id)
+      //         .is('board_id', null)
+      //         .maybeSingle()
+      //       if (!existing && !exErr) {
+      //         await supabase.from('members').insert([{ email, workspace_id: wsRow.id, board_id: null, is_workspace: true }])
+      //       }
+      //     }
+      //   }
+      // } catch (invAcceptedErr) {
+      //   console.warn('⚠️ Failed to sync on organizationInvitation.accepted:', invAcceptedErr)
+      // }
+    } else if (eventType === 'organizationMembership.created') {
+      console.log('🔔 organizationMembership.created')
+      // Backfill our members table when Clerk creates a membership
+      // try {
+      //   const orgId = evt?.data?.organization_id || evt?.data?.organizationId
+      //   const clerkUserId = evt?.data?.public_user_data?.user_id || evt?.data?.user_id || evt?.data?.userId
+      //   if (orgId && clerkUserId) {
+      //     const clerk = await clerkClient()
+      //     let email: string | undefined
+      //     try {
+      //       const user = await (clerk.users as any).getUser(clerkUserId)
+      //       const primaryEmailId = user?.primaryEmailAddressId
+      //       const primary = (user?.emailAddresses || []).find((e: any) => e.id === primaryEmailId) || user?.emailAddresses?.[0]
+      //       email = primary?.emailAddress || primary?.email_address
+      //     } catch {}
+
+      //     if (email) {
+      //       const { data: wsRow, error: wsErr } = await supabase
+      //         .from('workspaces')
+      //         .select('id')
+      //         .eq('clerk_organization_id', orgId)
+      //         .single()
+      //       if (!wsErr && wsRow?.id) {
+      //         const { data: existing, error: exErr } = await supabase
+      //           .from('members')
+      //           .select('id')
+      //           .eq('email', email)
+      //           .eq('workspace_id', wsRow.id)
+      //           .is('board_id', null)
+      //           .maybeSingle()
+      //         if (!existing && !exErr) {
+      //           await supabase.from('members').insert([{ email, workspace_id: wsRow.id, board_id: null, is_workspace: true }])
+      //         }
+      //       }
+      //     }
+      //   }
+      // } catch (mCreatedErr) {
+      //   console.warn('⚠️ Failed to backfill on organizationMembership.created:', mCreatedErr)
+      // }
     }
 
     return NextResponse.json({ success: true })

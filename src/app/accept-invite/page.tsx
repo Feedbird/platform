@@ -344,16 +344,28 @@ export default function AcceptInvitePage() {
 
   const role = (searchParams.get('role') as 'client' | 'team' | null) || 'team'
   const workspaceId = searchParams.get('workspaceId') || undefined
+  const ticket = searchParams.get('__clerk_ticket') || searchParams.get('ticket') || searchParams.get('invitation_token')
+  const status = searchParams.get('__clerk_status') || searchParams.get('status')
   // If already authenticated, go to workspace directly
   useEffect(() => {
-    if (!authLoaded) return
+    const handleAcceptInvite = async () => {
+    if (!authLoaded || !signIn || !ticket) return
     if (isSignedIn) {
+      try {
+        // Try to complete via sign-in ticket first
+        const resIn: any = await signIn.create({ strategy: 'ticket', ticket })
+        if (resIn?.status === 'complete' && resIn?.createdSessionId) {
+          await setActiveSignIn({ session: resIn.createdSessionId })
+        }
+      } catch {}
       if (workspaceId) {
         router.replace(`/${workspaceId}`)
       }
       else router.replace('/')
     }
-  }, [authLoaded, isSignedIn, workspaceId, router])
+  }
+  handleAcceptInvite()
+  }, [authLoaded, isSignedIn, workspaceId, router, signIn, setActiveSignIn])
 
   // Form state (only used in signin variant)
   const [email, setEmail] = useState('')
@@ -371,19 +383,24 @@ export default function AcceptInvitePage() {
     setError('')
     const roleParam = role ? `&role=${encodeURIComponent(role)}` : ''
     const wsParam = workspaceId ? `&workspaceId=${encodeURIComponent(workspaceId)}` : ''
+    
+    const ticketParam = ticket ? `&__clerk_ticket=${encodeURIComponent(ticket)}` : ''
+    const statusParam = status ? `&__clerk_status=${encodeURIComponent(status)}` : ''
+    const redirectUrl = `/sso-callback?from=accept-invite&flow=${view}${roleParam}${wsParam}${ticketParam}${statusParam}`;
+
     if (view === 'signup') {
       if (!signUpLoaded) return
       await signUp.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: `/sso-callback?from=accept-invite&flow=signup${roleParam}${wsParam}`,
-        redirectUrlComplete: workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/',
+        redirectUrl: redirectUrl,
+        redirectUrlComplete: redirectUrl,
       })
     } else {
       if (!signInLoaded) return
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: `/sso-callback?from=accept-invite&flow=signin${roleParam}${wsParam}`,
-        redirectUrlComplete: workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/',
+        redirectUrl: redirectUrl,
+        redirectUrlComplete: redirectUrl,
       })
     }
   }
