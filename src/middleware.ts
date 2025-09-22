@@ -1,8 +1,22 @@
-import { clerkMiddleware } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-// Make sure that the `/api/webhooks/(.*)` route is not protected here
-export default clerkMiddleware({
-  domain: 'app.feedbird.com',
+const isPublicRoute = createRouteMatcher([
+  '/landing',
+  '/signin(.*)',
+  '/signup(.*)',
+  '/verify-email(.*)',
+  '/sso-callback(.*)',
+  '/accept-invite(.*)',
+  '/client-onboarding(.*)',
+  '/api/webhooks/(.*)'
+])
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isPublicRoute(req)) return
+  const { userId, redirectToSignIn } = await auth()
+  if (!userId) {
+    return redirectToSignIn({ returnBackUrl: req.url })
+  }
 })
 
 export const config = {

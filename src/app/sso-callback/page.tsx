@@ -22,33 +22,38 @@ export default function SSOCallbackPage() {
       console.log('signUpLoaded', signUpLoaded)
 
       try {
-        // Check if user is signed in after OAuth redirect
-        if (isSignedIn) {
-          const workspaceId = searchParams?.get('workspaceId')
-          const ticket = searchParams?.get('__clerk_ticket') || searchParams?.get('ticket') || searchParams?.get('invitation_token')
+        // Always attempt to consume ticket first, regardless of current sign-in state
+        const workspaceId = searchParams?.get('workspaceId')
+        const ticket = searchParams?.get('__clerk_ticket') || searchParams?.get('ticket') || searchParams?.get('invitation_token')
+        const status = searchParams?.get('__clerk_status') || searchParams?.get('status')
 
-          console.log('ticket', ticket)
+        console.log('ticket', ticket, 'status', status)
 
-          if (ticket && (signInLoaded || signUpLoaded)) {
-            try {
-              const resIn: any = await signIn.create({ strategy: 'ticket', ticket })
-              console.log('resIn', resIn)
-              if (resIn?.status === 'complete' && resIn?.createdSessionId) {
-                await setActiveSignIn({ session: resIn.createdSessionId })
-              }
-            } catch {}
+        if (ticket && (signInLoaded || signUpLoaded)) {
+          try {
+            const resIn: any = await signIn.create({ strategy: 'ticket', ticket })
+            console.log('resIn', resIn)
+            if (resIn?.status === 'complete' && resIn?.createdSessionId) {
+              await setActiveSignIn({ session: resIn.createdSessionId })
+            }
+          } catch {}
 
-            try {
-              const resUp: any = await signUp.create({ strategy: 'ticket', ticket })
-              console.log('resUp', resUp)
-              if (resUp?.status === 'complete' && resUp?.createdSessionId) {
-                await setActiveSignUp({ session: resUp.createdSessionId })
-              }
-            } catch {}
-          }
+          try {
+            const resUp: any = await signUp.create({ strategy: 'ticket', ticket })
+            console.log('resUp', resUp)
+            if (resUp?.status === 'complete' && resUp?.createdSessionId) {
+              await setActiveSignUp({ session: resUp.createdSessionId })
+            }
+          } catch {}
+        }
 
+        if (isSignedIn || (await new Promise((r) => setTimeout(r, 0)))) {
+          // After attempting ticket consumption, go to workspace or home
           router.push(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
-        } else {
+          return
+        }
+
+        {
           console.log('Authentication failed, route based on originating flow')
           // Authentication failed, route based on originating flow
           const from = searchParams?.get('from')
