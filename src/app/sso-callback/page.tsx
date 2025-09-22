@@ -42,26 +42,13 @@ export default function SSOCallbackPage() {
             }
           }
 
-          if (status === 'sign_in') {
-            console.log('sign_in')
-            const res = await signIn.create({ strategy: 'ticket', ticket })
-            if (res?.status === 'complete' && res.createdSessionId) {
-              await setActiveSignIn({ session: res.createdSessionId })
-            }
-          } else if (status === 'sign_up') {
-            console.log('sign_up')
-            const res = await signUp.create({ strategy: 'ticket', ticket })
-            console.log('res', res)
-            if (res?.status === 'complete' && res.createdSessionId) {
-              await setActiveSignUp({ session: res.createdSessionId })
-            }
-          } else {
+         
             // Fallback: attempt sign-in by default
             const res = await signIn.create({ strategy: 'ticket', ticket })
             if (res?.status === 'complete' && res.createdSessionId) {
               await setActiveSignIn({ session: res.createdSessionId })
             }
-          }
+          
 
           router.push(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
           return
