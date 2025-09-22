@@ -16,42 +16,50 @@ const publicRoutes = [
 const initialRoutes = ["/accept-invite", "/client-onboarding", "/checkout"];
 
 export function PublicPageWrapper({ pathname }: { pathname: string }) {
-  switch (pathname) {
-    case "/signup":
-      // Import the signup page dynamically to avoid circular imports
-      const SignUpPage = require("@/app/signup/page").default;
-      return <SignUpPage />;
+  const getPageComponent = () => {
+    switch (pathname) {
+      case "/signup":
+        // Import the signup page dynamically to avoid circular imports
+        const SignUpPage = require("@/app/signup/page").default;
+        return <SignUpPage />;
 
-    case "/signin":
-      // Import the signin page dynamically to avoid circular imports
-      const SignInPage = require("@/app/signin/page").default;
-      return <SignInPage />;
+      case "/signin":
+        // Import the signin page dynamically to avoid circular imports
+        const SignInPage = require("@/app/signin/page").default;
+        return <SignInPage />;
 
-    case "/verify-email":
-      // Import the verify-email page dynamically to avoid circular imports
-      const VerifyEmailPage = require("@/app/verify-email/page").default;
-      return <VerifyEmailPage />;
+      case "/verify-email":
+        // Import the verify-email page dynamically to avoid circular imports
+        const VerifyEmailPage = require("@/app/verify-email/page").default;
+        return <VerifyEmailPage />;
 
-    case "/sso-callback":
-      // Import the sso-callback page dynamically to avoid circular imports
-      const SSOCallbackPage = require("@/app/sso-callback/page").default;
-      return <SSOCallbackPage />;
+      case "/sso-callback":
+        // Import the sso-callback page dynamically to avoid circular imports
+        const SSOCallbackPage = require("@/app/sso-callback/page").default;
+        return <SSOCallbackPage />;
 
-    case "/client-onboarding":
-      const ClientOnboardingPage =
-        require("@/app/client-onboarding/page").default;
-      return <ClientOnboardingPage />;
+      case "/client-onboarding":
+        const ClientOnboardingPage =
+          require("@/app/client-onboarding/page").default;
+        return <ClientOnboardingPage />;
 
-    case "/accept-invite":
-      const AcceptInvitePage = require("@/app/accept-invite/page").default;
-      return <AcceptInvitePage />;
+      case "/accept-invite":
+        const AcceptInvitePage = require("@/app/accept-invite/page").default;
+        return <AcceptInvitePage />;
 
-    case "/checkout":
-      const CheckoutPage = require("@/app/checkout/page").default;
-      return <CheckoutPage />;
-    default:
-      return <LandingPage />;
-  }
+      case "/checkout":
+        const CheckoutPage = require("@/app/checkout/page").default;
+        return <CheckoutPage />;
+      default:
+        return <LandingPage />;
+    }
+  };
+
+  return (
+    <div className="w-full h-full min-h-screen overflow-auto">
+      {getPageComponent()}
+    </div>
+  );
 }
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
