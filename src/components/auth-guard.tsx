@@ -89,8 +89,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return <ClientOnboardingPage />;
   }
 
-  // If user is signed in but we're on landing, signup, signin, verify-email, or sso-callback page, show loading until redirect completes
-  if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email' || pathname === '/sso-callback')) {
+  // If user is signed in and on sso-callback, render sso-callback directly (no app layout)
+  if (isSignedIn && pathname === '/sso-callback') {
+    const SSOCallbackPage = require('@/app/sso-callback/page').default;
+    return <SSOCallbackPage />;
+  }
+
+  // If user is signed in but we're on landing, signup, signin, verify-email, show loading until redirect completes
+  if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email')) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="flex flex-col items-center space-y-4">
