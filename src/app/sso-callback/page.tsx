@@ -50,13 +50,13 @@ export default function SSOCallbackPage() {
             }
           
 
-          router.push(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
+          router.replace(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
           return
         }
 
         // No ticket present
         if (isSignedIn) {
-          router.push(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
+          router.replace(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
           return
         }
 
@@ -75,13 +75,13 @@ export default function SSOCallbackPage() {
           const notice = flow === 'signin' ? 'not-registered' : 'already-registered'
           const roleParam = role ? `&role=${encodeURIComponent(role)}` : ''
           const wsParam = workspaceId ? `&workspaceId=${encodeURIComponent(workspaceId)}` : ''
-          router.push(`${base}&notice=${notice}${roleParam}${wsParam}`)
+          router.replace(`${base}&notice=${notice}${roleParam}${wsParam}`)
         } else if (from === 'signin') {
-          router.push('/signin?notice=not-registered')
+          router.replace('/signin?notice=not-registered')
         } else if (from === 'signup') {
-          router.push('/signup?notice=already-registered')
+          router.replace('/signup?notice=already-registered')
         } else {
-          router.push('/signin?notice=not-registered')
+          router.replace('/signin?notice=not-registered')
         }
       } catch (err: any) {
         console.log('err', err)
@@ -105,13 +105,13 @@ export default function SSOCallbackPage() {
           const notice = flow === 'signin' ? 'not-registered' : 'already-registered'
           const roleParam = role ? `&role=${encodeURIComponent(role)}` : ''
           const wsParam = workspaceId ? `&workspaceId=${encodeURIComponent(workspaceId)}` : ''
-          router.push(`${base}&notice=${notice}${roleParam}${wsParam}`)
+          router.replace(`${base}&notice=${notice}${roleParam}${wsParam}`)
         } else if (from === 'signin') {
-          router.push('/signin?notice=not-registered')
+          router.replace('/signin?notice=not-registered')
         } else if (from === 'signup') {
-          router.push('/signup?notice=already-registered')
+          router.replace('/signup?notice=already-registered')
         } else {
-          router.push('/signin?notice=not-registered')
+          router.replace('/signin?notice=not-registered')
         }
       }
     }
