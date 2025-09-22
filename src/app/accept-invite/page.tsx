@@ -288,7 +288,6 @@ function LeftContent(props: LeftContentProps) {
 }
 
 export default function AcceptInvitePage() {
-  console.log("@@@@@@@@@@@@@@@@@@@@@@@accept-invite")
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isSignedIn, isLoaded: authLoaded } = useAuth()

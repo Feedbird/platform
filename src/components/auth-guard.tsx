@@ -16,8 +16,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (isLoaded) {
       // If user is signed in and trying to access landing, signup, signin, verify-email, or sso-callback page, redirect to home
-      if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email' || pathname === '/sso-callback')) {
-        console.log('AuthGuard: Redirecting signed-in user from landing/signup/signin/verify-email/sso-callback to home');
+      if (isSignedIn && (pathname === '/landing' || pathname === '/signup' || pathname === '/signin' || pathname === '/verify-email')) {
+        console.log('AuthGuard: Redirecting signed-in user from landing/signup/signin/verify-email to home');
         router.replace('/');
         return;
       }
