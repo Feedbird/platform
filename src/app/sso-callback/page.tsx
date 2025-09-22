@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useAuth, useSignIn, useSignUp } from '@clerk/nextjs'
+import { useAuth, useSignIn, useSignUp, useClerk } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function SSOCallbackPage() {
   const { isSignedIn, isLoaded: authLoaded } = useAuth()
   const { signIn, isLoaded: signInLoaded, setActive: setActiveSignIn } = useSignIn()
   const { signUp, isLoaded: signUpLoaded, setActive: setActiveSignUp } = useSignUp()
+  const { signOut } = useClerk()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -29,8 +30,18 @@ export default function SSOCallbackPage() {
         console.log('ticket', ticket)
         console.log('status', status)
 
-        // If Clerk returned a ticket, complete the flow regardless of current sign-in state
+        // If Clerk returned a ticket, complete the flow
         if (ticket) {
+          // If a session already exists, sign out first so the ticket can be consumed
+          if (isSignedIn) {
+            try {
+              await signOut({ redirectUrl: window.location.href })
+              return
+            } catch (e) {
+              console.error('Sign out before ticket exchange failed', e)
+            }
+          }
+
           if (status === 'sign_in') {
             console.log('sign_in')
             const res = await signIn.create({ strategy: 'ticket', ticket })
@@ -85,8 +96,18 @@ export default function SSOCallbackPage() {
         } else {
           router.push('/signin?notice=not-registered')
         }
-      } catch (err) {
+      } catch (err: any) {
         console.log('err', err)
+        // If the error indicates an existing session, sign out and retry via redirect
+        const message = err?.errors?.[0]?.message || ''
+        if (typeof message === 'string' && message.toLowerCase().includes('already signed in')) {
+          try {
+            await signOut({ redirectUrl: window.location.href })
+            return
+          } catch (e) {
+            console.error('Sign out after already-signed-in error failed', e)
+          }
+        }
         const from = searchParams?.get('from')
         const flow = searchParams?.get('flow')
         const role = searchParams?.get('role')
