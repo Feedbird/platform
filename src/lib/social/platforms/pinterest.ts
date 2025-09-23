@@ -2,6 +2,7 @@
    lib/social/platforms/pinterest.ts      ◇ SERVER-ONLY DRIVER
    ──────────────────────────────────────────────────────────── */
    import { supabase } from '@/lib/supabase/client'
+import { updatePlatformPostId } from '@/lib/utils/platform-post-ids'
 import type {
     PlatformOperations,
     SocialAccount,
@@ -136,7 +137,7 @@ import type {
 
   
     /* 3 – silent refresh */
-    async refreshToken(acc: SocialAccount): Promise<SocialAccount> {
+    async refreshToken(acc: any): Promise<SocialAccount> {
 
       // https://developers.pinterest.com/docs/api/v5/oauth-token
       const tok = await pinFetch<{ access_token: string; refresh_token: string; expires_in: number; refresh_token_expires_in: number }>(
@@ -148,7 +149,7 @@ import type {
         },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
-          refresh_token: acc.refreshToken!,
+          refresh_token: acc.refresh_token!,
         }),
       });
   
@@ -222,8 +223,18 @@ import type {
         return data?.auth_token;
       }
 
+      // fetch the account from the database
+      const {data: account, error: accountError} = await supabase
+        .from('social_accounts')
+        .select('*')
+        .eq('id', data?.account_id)
+        .single();
+        
+      if (accountError) {
+        throw new Error('Failed to get account');
+      }
       // refresh the token
-      const refreshedToken = await this.refreshToken(data?.account_id);
+      const refreshedToken = await this.refreshToken(account as any);
       if (!refreshedToken?.authToken) {
         throw new Error('Failed to refresh Pinterest token. Please reconnect your Pinterest account.');
       }
@@ -298,31 +309,86 @@ import type {
       content: PostContent,
       options?: PublishOptions
     ): Promise<PostHistory> {
-      /* client-side ⇒ proxy route (bypass CORS) */
+      // Prevent browser calls - route to API endpoint (like Facebook)
       if (IS_BROWSER) {
         const res = await fetch('/api/social/pinterest/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            profile: page,
-            post: {
-              content: content.text,
-              mediaUrls: content.media?.urls ?? []
-            }
-          })
+            page,
+            content,
+            options,
+          }),
         });
         if (!res.ok) throw new Error(await res.text());
         return res.json();
       }
-  
-      if (!content.media?.urls.length) {
-        throw new Error('Pinterest requires at least one media URL');
-      }
 
+      try {
+        // Get secure token from database (like Facebook)
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        // Validate content
+        if (!content.media?.urls.length) {
+          throw new Error('Pinterest requires at least one media URL');
+        }
+
+
+        // Determine media type and route accordingly (like Facebook)
+        const mediaUrls = content.media?.urls || [];
+        const mediaType = content.media?.type;
+
+        let postedResponse : any = null;
+
+        // 1. Single image post
+        if (mediaType === 'image' && mediaUrls.length === 1) {
+          postedResponse = await this.publishImagePin(page, content, token, options);
+        }
+
+        // 2. Single video post
+        if (mediaType === 'video' && mediaUrls.length === 1) {
+          postedResponse = await this.publishVideoPin(page, content, token, options);
+        }
+
+        // 3. Multiple images (Pinterest supports multiple images in a single pin)
+        if ((mediaType === 'image' || mediaType === 'carousel') && mediaUrls.length > 1) {
+          postedResponse = await this.publishMultiImagePin(page, content, token, options);
+        }
+
+        if(!postedResponse) {
+          throw new Error('Unsupported media configuration for Pinterest');
+        }
+
+        // save the post id to the database
+        try {
+          console.log('Saving Pinterest post ID:', postedResponse.id);
+          await updatePlatformPostId(content.id!, 'pinterest', postedResponse.id, page.id);
+        } catch (error) {
+          console.warn('Failed to save Pinterest post ID:', error);
+          // Don't fail the publish if saving the ID fails
+        }
+
+        return postedResponse;
+        
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    // 1. Single image pin
+    private async publishImagePin(
+      page: SocialPage,
+      content: PostContent,
+      token: string,
+      options?: PublishOptions
+    ): Promise<PostHistory> {
       // Get user's boards to find a board to pin to
       const boards = await pinFetch<{ items: { id: string; name: string }[] }>(
         `${this.baseUrl}/boards?page_size=1`,
-        { headers: { Authorization: `Bearer ${page.authToken || ''}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (!boards.items.length) {
@@ -332,19 +398,146 @@ import type {
       // Use the first available board
       const boardId = boards.items[0].id;
   
+      // https://developers.pinterest.com/docs/api/v5/pins-create
       const pin = await pinFetch<{ id: string }>(`${this.baseUrl}/pins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${page.authToken || ''}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           board_id: boardId,
           media_source: {
             source_type: 'image_url',
-            url: content.media.urls[0]
+            url: content.media!.urls[0]
           },
-          title: content.title,
+          title: 'Pin' + new Date().getTime(),
+          description: content.text
+        })
+      });
+      
+  
+      return {
+        id: pin.id,
+        pageId: page.id,
+        postId: pin.id,
+        publishId: pin.id,
+        content: content.text,
+        mediaUrls: content.media!.urls,
+        status: 'published' as any,
+        publishedAt: new Date()
+      };
+    }
+
+    // 2. Single video pin
+    private async publishVideoPin(
+      page: SocialPage,
+      content: PostContent,
+      token: string,
+      options?: PublishOptions
+    ): Promise<PostHistory> {
+      // Get user's boards to find a board to pin to
+      const boards = await pinFetch<{ items: { id: string; name: string }[] }>(
+        `${this.baseUrl}/boards?page_size=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!boards.items.length) {
+        throw new Error('No boards found. Please create a board on Pinterest first.');
+      }
+
+      // Use the first available board
+      const boardId = boards.items[0].id;
+
+      // Step 1: Register media upload for video
+      // https://developers.pinterest.com/docs/api/v5/media-create
+      const mediaUpload = await pinFetch<{
+        media_id: string;
+        media_type: string;
+        upload_parameters: Record<string, string>;
+        upload_url: string;
+      }>(`${this.baseUrl}/media`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          media_type: 'video'
+        })
+      });
+
+      // Step 2: Upload video to Pinterest's S3 bucket
+      // https://developers.pinterest.com/docs/work-with-organic-content-and-users/create-boards-and-pins/#creating-video-pins
+      const videoUrl = content.media!.urls[0];
+      const videoResponse = await fetch(videoUrl);
+      if (!videoResponse.ok) {
+        throw new Error('Failed to fetch video from URL');
+      }
+      const videoBuffer = await videoResponse.arrayBuffer();
+
+      // Upload to Pinterest's S3 bucket
+      const formData = new FormData();
+      
+      // Add all upload parameters as form fields (not headers)
+      Object.entries(mediaUpload.upload_parameters).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+      
+      // Add the video file
+      formData.append('file', new Blob([videoBuffer]), 'video.mp4');
+      
+      const uploadResponse = await fetch(mediaUpload.upload_url, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload video to Pinterest');
+      }
+
+      // Step 3: Confirm upload status
+      let uploadStatus = 'pending';
+      let attempts = 0;
+      const maxAttempts = 30; // Maximum 10 attempts (10 seconds)
+      
+      while (uploadStatus !== 'succeeded' && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const statusResponse = await pinFetch<{
+          status: string;
+          media_id: string;
+          media_type: string;
+        }>(`${this.baseUrl}/media/${mediaUpload.media_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        uploadStatus = statusResponse.status;
+        attempts++;
+        
+        console.log(`Upload status check ${attempts}: ${uploadStatus}`);
+      }
+      
+      if (uploadStatus !== 'succeeded') {
+        throw new Error(`Video upload failed. Status: ${uploadStatus} after ${attempts} attempts`);
+      }
+
+      // Step 4: Create pin with media_id
+      // https://developers.pinterest.com/docs/api/v5/pins-create
+      const pin = await pinFetch<{ id: string }>(`${this.baseUrl}/pins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          board_id: boardId,
+          media_source: {
+            source_type: 'video_id',
+            media_id: mediaUpload.media_id,
+            cover_image_key_frame_time: 1.0 // Extract frame at 1 second as cover image
+          },
+          title: 'Pin' + new Date().getTime(),
           description: content.text
         })
       });
@@ -353,11 +546,64 @@ import type {
         id: pin.id,
         pageId: page.id,
         postId: pin.id,
+        publishId: pin.id,
         content: content.text,
-        mediaUrls: content.media.urls,
-        status: 'published',
-        publishedAt: new Date(),
-        analytics: {}
+        mediaUrls: content.media!.urls,
+        status: 'published' as any,
+        publishedAt: new Date()
+      };
+    }
+
+    // 3. Multiple images pin (Pinterest supports multiple images in a single pin)
+    private async publishMultiImagePin(
+      page: SocialPage,
+      content: PostContent,
+      token: string,
+      options?: PublishOptions
+    ): Promise<PostHistory> {
+      // Get user's boards to find a board to pin to
+      const boards = await pinFetch<{ items: { id: string; name: string }[] }>(
+        `${this.baseUrl}/boards?page_size=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!boards.items.length) {
+        throw new Error('No boards found. Please create a board on Pinterest first.');
+      }
+
+      // Use the first available board
+      const boardId = boards.items[0].id;
+  
+      // Pinterest supports multiple images using multiple_image_urls
+      // https://developers.pinterest.com/docs/api/v5/pins-create
+      const pin = await pinFetch<{ id: string }>(`${this.baseUrl}/pins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          board_id: boardId,
+          media_source: {
+            source_type: 'multiple_image_urls',
+            items: content.media!.urls.map((url, index) => ({
+              url: url
+            }))
+          },
+          title: 'Pin' + new Date().getTime(),
+          description: content.text
+        })
+      });
+  
+      return {
+        id: pin.id,
+        pageId: page.id,
+        postId: pin.id,
+        publishId: pin.id,
+        content: content.text,
+        mediaUrls: content.media!.urls,
+        status: 'published' as any,
+        publishedAt: new Date()
       };
     }
   
