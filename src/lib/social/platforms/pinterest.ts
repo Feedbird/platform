@@ -30,7 +30,9 @@ import type {
       'pins:read',   'pins:write',
       'user_accounts:read',
       'boards:read_secret',
-      'pins:read_secret'
+      'pins:read_secret',
+      'boards:write_secret',
+      'pins:write_secret'
     ],
     apiVersion: 'v5',
     baseUrl   : process.env.PINTEREST_API_BASE || 'https://api.pinterest.com',
