@@ -122,7 +122,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (
     isSignedIn &&
     user &&
-    ![...publicRoutes, "/client-onboarding"].includes(pathname)
+    ![...publicRoutes, "/checkout", "/client-onboarding"].includes(pathname)
   ) {
     console.log("AuthGuard: User signed in, showing authenticated layout");
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
@@ -133,6 +133,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const ClientOnboardingPage =
       require("@/app/client-onboarding/page").default;
     return <ClientOnboardingPage />;
+  } else if (isSignedIn && pathname === "/checkout") {
+    const CheckoutPage = require("@/app/checkout/page").default;
+    return (
+      <div className="w-full h-full min-h-screen overflow-auto">
+        <CheckoutPage />
+      </div>
+    );
   }
 
   // If user is signed in and on sso-callback, render sso-callback directly (no app layout)

@@ -202,6 +202,15 @@ export interface ServicePlan {
   updated_at: string;
 }
 
+export interface ServiceFolder {
+  id: string;
+  created_at: string;
+  name: string;
+  description: string | null;
+  workspace_id: string;
+  services?: Service[];
+}
+
 export interface FormField {
   id: string;
   form_id: string;

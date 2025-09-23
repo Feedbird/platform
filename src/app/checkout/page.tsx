@@ -1,19 +1,49 @@
 "use client";
 import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
+import ServiceCard from "@/components/checkout/ServiceCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ServiceFolder } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
 import { TabsContent } from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { toast } from "sonner";
 
+//! TODO Split into smaller components
 export default function Checkout() {
   // TODO Ensure that If uses goes to login, they are redirected back to checkout
   const router = useRouter();
+  const [serviceFolders, setServiceFolders] = React.useState<ServiceFolder[]>(
+    []
+  );
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchServiceFolders = async () => {
+      setLoading(true);
+      // TODO ENHANCE TO USE API structure
+      try {
+        const response = await fetch("/api/services/folders");
+        if (!response.ok) {
+          toast.error("Failed to fetch service folders");
+          return;
+        }
+        const data = await response.json();
+        setServiceFolders(data.data);
+      } catch (error) {
+        toast.error("An error occurred while fetching service folders");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServiceFolders();
+  }, []);
   return (
     <main className="bg-[#F7F7F8] min-h-screen overflow-auto">
       <div className="w-full h-20 px-16 flex flex-row justify-between max-w-[1440px] mx-auto">
@@ -41,9 +71,9 @@ export default function Checkout() {
       <div className="w-full max-w-[1440px] mx-auto flex justify-between px-20 pt-4 gap-14 pb-20">
         {/* TODO: Make this responsive, not fixed w */}
         <div className="flex flex-col w-full max-w-[726px]">
-          <h1 className="text-[20px] text-[#1C1D1F] font-medium pb-6">
+          <h2 className="text-[20px] text-[#1C1D1F] font-medium pb-6">
             1. Enter an email address for your Feedbird Account
-          </h1>
+          </h2>
           <div className="rounded-[8px] w-full px-5 py-4 bg-white border-1 border-[#E2E2E4] flex flex-col gap-4">
             <div className="flex flex-col gap-3">
               <div className="flex justify-between">
@@ -61,6 +91,36 @@ export default function Checkout() {
               You’ll be able to change notification settings for Nord services
               marketing emails in your Nord Account.
             </p>
+          </div>
+          <div className="mt-10">
+            <h2 className="text-[20px] text-[#1C1D1F] font-medium pb-3">
+              2. Select services
+            </h2>
+            {loading && (
+              <div className="w-full h-full flex items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                <span className="ml-3 text-gray-600">Loading services...</span>
+              </div>
+            )}
+            {!loading && serviceFolders.length === 0 && (
+              <div className="w-full h-full flex items-center justify-center min-h-[400px]">
+                <span className="text-gray-600">No services available</span>
+              </div>
+            )}
+            {serviceFolders &&
+              serviceFolders.map((folder, index) => (
+                <div key={index}>
+                  <h3 className="text-base text-[#1C1D1F] font-medium py-5">
+                    {folder.name}
+                  </h3>
+                  <div className="flex flex-row flex-wrap gap-4">
+                    {folder.services?.map((service) => (
+                      <ServiceCard key={service.id} service={service} />
+                    ))}
+                  </div>
+                  <Divider className="pt-5" />
+                </div>
+              ))}
           </div>
         </div>
         <div className="flex flex-col w-full max-w-[480px]">
