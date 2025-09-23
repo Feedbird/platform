@@ -9,7 +9,7 @@ export class ServicesHandler {
     try {
       let query = supabase
         .from("services")
-        .select("*")
+        .select("*, service_plans(*)")
         .eq("workspace_id", workspaceId);
 
       if (available === true) {

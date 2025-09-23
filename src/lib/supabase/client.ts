@@ -174,6 +174,7 @@ export interface Form {
   created_at: string;
   updated_at: string;
   has_branding: boolean;
+  cover_offset: number | null;
   services?: Service[];
 }
 
@@ -183,9 +184,31 @@ export interface Service {
   workspace_id: string;
   form_id: string | null;
   name: string;
-  pricing: number;
-  qty_indicator: string;
+  brief: string | null;
+  description: string | null;
+  folder_id: string;
+  service_plans?: ServicePlan[];
+}
+
+export interface ServicePlan {
+  id: string;
+  created_at: string;
+  period: string;
+  price: number;
+  service_id: string;
   quantity: number;
+  qty_indicator: string;
+  currency: string;
+  updated_at: string;
+}
+
+export interface ServiceFolder {
+  id: string;
+  created_at: string;
+  name: string;
+  description: string | null;
+  workspace_id: string;
+  services?: Service[];
 }
 
 export interface FormField {

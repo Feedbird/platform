@@ -24,7 +24,7 @@ export default function FormEditorSideBar({
   formId,
 }: FormEditorSideBarProps) {
   const { activeWorkspaceId } = useFeedbirdStore();
-  const { setUnsavedChanges } = useForms();
+  const { setUnsavedChanges, activeForm } = useForms();
   const [loading, isLoading] = React.useState(false);
   const { filesToUpload } = useFormEditor();
 
@@ -83,7 +83,10 @@ export default function FormEditorSideBar({
       }
       console.log("Updates to perform after image upload:", updates);
 
-      await formsApi.updateForm(formId, { cover_url: updates[0].url });
+      await formsApi.updateForm(formId, {
+        cover_url: updates[0].url,
+        cover_offset: activeForm?.cover_offset || 0,
+      });
     } catch (e) {
       console.error(e);
       toast.error(

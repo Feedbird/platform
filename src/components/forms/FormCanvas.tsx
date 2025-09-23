@@ -13,6 +13,13 @@ import FieldRenderWrapper from "./content/FieldRenderWrapper";
 import { useForms } from "@/contexts/FormsContext";
 import { TableForm } from "./content/forms-table";
 import { useFormEditor } from "@/contexts/FormEditorContext";
+import { Popover, PopoverTrigger } from "../ui/popover";
+import { PopoverContent, PopoverPortal } from "@radix-ui/react-popover";
+import {
+  FormFieldsArray,
+  FormFieldType,
+  UIFormFieldDefaults,
+} from "@/lib/forms/fields";
 
 export interface CanvasFormField {
   id: string;
@@ -50,13 +57,58 @@ export default function FormCanvas({
   });
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [editingDescription, setEditingDescription] = React.useState(false);
+  const [popoverOpen, setPopoverOpen] = React.useState(false);
 
   const { setActiveForm, activeForm } = useForms();
   const { setFilesToUpload } = useFormEditor();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const coverRef = React.useRef<HTMLDivElement | null>(null);
+  const [coverOffset, setCoverOffset] = React.useState<number>(
+    (activeForm?.cover_offset as number) ?? 50
+  );
+  const [isDraggingCover, setIsDraggingCover] = React.useState(false);
 
   const handleCoverImageClick = () => {
     fileInputRef.current?.click();
+  };
+
+  React.useEffect(() => {
+    // keep local offset in sync with activeForm (when switching forms)
+    setCoverOffset((activeForm?.cover_offset as number) ?? 50);
+  }, [activeForm?.cover_url, activeForm?.cover_offset]);
+
+  const clamp = (v: number, a = 0, b = 100) => Math.max(a, Math.min(b, v));
+
+  const handleCoverPointerDown = (e: React.PointerEvent) => {
+    // start drag on handle
+    const el = coverRef.current;
+    if (!el) return;
+    (e.target as Element).setPointerCapture(e.pointerId);
+    setIsDraggingCover(true);
+  };
+
+  const handleCoverPointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingCover) return;
+    const el = coverRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    // compute percentage (0 = top, 100 = bottom)
+    const y = e.clientY - rect.top;
+    const percent = clamp((y / rect.height) * 100, 0, 100);
+    setCoverOffset(percent);
+    setActiveForm(
+      (prev) => ({ ...(prev as TableForm), cover_offset: percent } as TableForm)
+    );
+  };
+
+  const handleCoverPointerUp = (e: React.PointerEvent) => {
+    try {
+      (e.target as Element).releasePointerCapture(e.pointerId);
+    } catch (err) {
+      /* ignore */
+    }
+    setIsDraggingCover(false);
+    // final value already set during move; could trigger save here if desired
   };
 
   const handleFormValuesChange = (title?: string, description?: string) => {
@@ -83,6 +135,22 @@ export default function FormCanvas({
     }
   };
 
+  const addNewField = (fieldType: FormFieldType) => {
+    const newField: CanvasFormField = {
+      id: crypto.randomUUID(),
+      position: formFields.length,
+      type: fieldType.toLowerCase(),
+      config: UIFormFieldDefaults[fieldType].config,
+    };
+
+    setFormFields((prev) => {
+      const updated = [...prev, newField];
+      return updated;
+    });
+
+    setPopoverOpen(false);
+  };
+
   const fieldIds = formFields.map((f) => f.id);
 
   return (
@@ -96,18 +164,100 @@ export default function FormCanvas({
           >
             {activeForm?.cover_url ? (
               <>
-                <Image
-                  src={activeForm.cover_url}
-                  alt="form_cover_image"
-                  width={920}
-                  height={160}
-                  className="w-full h-full object-cover object-top z-10"
-                />
                 <div
-                  onClick={handleCoverImageClick}
-                  className={`absolute w-full h-full bg-transparent transition-all duration-100 content-center text-center z-20 text-transparent hover:bg-black/20 hover:backdrop-blur-xs hover:text-gray-500 font-semibold hover:cursor-pointer`}
+                  ref={coverRef}
+                  className="w-full h-full relative overflow-hidden"
                 >
-                  Change cover
+                  <Image
+                    src={activeForm.cover_url}
+                    alt="form_cover_image"
+                    width={920}
+                    height={160}
+                    style={{ objectPosition: `50% ${coverOffset}%` }}
+                    className="w-full h-full object-cover z-10"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveForm(
+                        (prev) =>
+                          ({
+                            ...(prev as TableForm),
+                            cover_url: undefined,
+                            cover_offset: 50,
+                          } as TableForm)
+                      );
+                    }}
+                    className="absolute right-2 top-2 z-40 bg-white/90 p-1 rounded-md hover:bg-white border border-gray-200 hover:cursor-pointer"
+                    aria-label="Remove cover"
+                  >
+                    <Image
+                      src="/images/forms/delete-red.svg"
+                      alt="delete_cover_icon"
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+
+                  {/* small circular draggable handle left-aligned */}
+                  <div
+                    role="slider"
+                    aria-label="Adjust cover vertical position"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(coverOffset)}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      handleCoverPointerDown(e);
+                    }}
+                    onPointerMove={(e) => {
+                      e.stopPropagation();
+                      handleCoverPointerMove(e);
+                    }}
+                    onPointerUp={(e) => {
+                      e.stopPropagation();
+                      handleCoverPointerUp(e);
+                    }}
+                    onPointerCancel={(e) => {
+                      e.stopPropagation();
+                      handleCoverPointerUp(e);
+                    }}
+                    className="absolute left-6 z-30"
+                    style={{
+                      top: `${coverOffset}%`,
+                      transform: "translateY(-50%)",
+                    }}
+                  >
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center shadow border ${
+                        isDraggingCover ? "bg-blue-500" : "bg-white"
+                      } cursor-row-resize`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3 text-gray-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 10l5 5 5-5"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={handleCoverImageClick}
+                    className={`absolute w-full h-full bg-transparent transition-all duration-100 content-center text-center z-20 text-transparent hover:bg-black/20 hover:backdrop-blur-xs hover:text-gray-500 font-semibold hover:cursor-pointer`}
+                  >
+                    Change cover
+                  </div>
                 </div>
               </>
             ) : (
@@ -231,13 +381,38 @@ export default function FormCanvas({
               )}
             </div>
 
-            {/* Fixed +Add Components footer - always present */}
             <div className="p-3 w-full">
-              <div className="bg-[#EDF6FF] w-full h-[36px] border-[#4670F9] border-1 border-dashed rounded-[3px]">
-                <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
-                  +Add Components
-                </span>
-              </div>
+              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                <PopoverTrigger className="w-full">
+                  <div className="bg-[#EDF6FF] w-full h-[52px] border-[#4670F9] border-1 border-dashed rounded-[3px] hover:cursor-pointer hover:bg-[#E1EFFF] transition-colors">
+                    <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
+                      +Add Components
+                    </span>
+                  </div>
+                </PopoverTrigger>
+                <PopoverPortal>
+                  <PopoverContent
+                    side="right"
+                    className="mt-1 rounded-sm border-1 bg-white border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 w-42"
+                  >
+                    {FormFieldsArray.map((field) => (
+                      <div
+                        onClick={() => addNewField(field.type)}
+                        key={field.label}
+                        className="flex flex-row p-1 gap-2 hover:bg-[#EDF6FF] hover:cursor-pointer rounded-sm"
+                      >
+                        <Image
+                          src={field.iconPath}
+                          alt={`${field.label}_icon`}
+                          width={14}
+                          height={14}
+                        />
+                        <span>{field.label}</span>
+                      </div>
+                    ))}
+                  </PopoverContent>
+                </PopoverPortal>
+              </Popover>
             </div>
 
             <div className="flex flex-row py-6 px-3 gap-3 items-center">
