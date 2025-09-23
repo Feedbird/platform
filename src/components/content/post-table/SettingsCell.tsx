@@ -27,10 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, AtSign, Image as ImageIcon, X, AlertCircle } from "lucide-react";
-import type { PostSettings, Platform, TikTokSettings, GoogleBusinessSettings, YouTubeSettings } from "@/lib/social/platforms/platform-types";
+import type { PostSettings, Platform, TikTokSettings, GoogleBusinessSettings, YouTubeSettings, PinterestSettings } from "@/lib/social/platforms/platform-types";
 import { TikTokSettingsPanel } from '../post-record-modal/tiktok-settings';
 import { GoogleBusinessSettingsPanel } from '../post-record-modal/google-business-settings';
 import { YouTubeSettingsPanel } from '../post-record-modal/youtube-settings';
+import { PinterestSettingsPanel } from '../post-record-modal/pinterest-settings';
 import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-settings-mapper';
 import { getDefaultYouTubeSettings } from '@/lib/utils/youtube-settings-mapper';
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
@@ -46,6 +47,7 @@ type SettingFlags = {
   tiktok     : boolean;
   google     : boolean;
   youtube    : boolean;
+  pinterest  : boolean;
 };
 
 const DEFAULT_FLAGS: SettingFlags = {
@@ -55,6 +57,7 @@ const DEFAULT_FLAGS: SettingFlags = {
   tiktok: false,
   google: false,
   youtube: false,
+  pinterest: false,
 };
 
 const LABELS: Record<keyof SettingFlags, string> = {
@@ -64,6 +67,7 @@ const LABELS: Record<keyof SettingFlags, string> = {
   tiktok     : "TikTok Settings",
   google     : "Google Business Settings",
   youtube    : "YouTube Settings",
+  pinterest  : "Pinterest Settings",
 };
 
 const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
@@ -73,6 +77,7 @@ const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
   tiktok     : <Image src={`/images/platforms/tiktok.svg`} alt="TikTok" width={16} height={16} />,
   google     : <Image src={`/images/platforms/google.svg`} alt="Google Business" width={16} height={16} />,
   youtube    : <Image src={`/images/platforms/youtube.svg`} alt="YouTube" width={16} height={16} />,
+  pinterest  : <Image src={`/images/platforms/pinterest.svg`} alt="Pinterest" width={16} height={16} />,
 };
 
 const iconClass = (active: boolean) =>
@@ -129,6 +134,15 @@ export function SettingsEditCell({
     return youtubePage?.id || null;
   }, [platforms, ws?.socialPages]);
 
+  // Get the first Pinterest page ID if Pinterest is selected
+  const pinterestPageId = React.useMemo(() => {
+    if (!platforms.includes('pinterest') || !ws?.socialPages) return null;
+    const pinterestPage = ws.socialPages.find(page => 
+      page.platform === 'pinterest' && page.connected
+    );
+    return pinterestPage?.id || null;
+  }, [platforms, ws?.socialPages]);
+
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
     privacyLevel: 'SELF_ONLY',
@@ -152,6 +166,12 @@ export function SettingsEditCell({
   // Default YouTube settings
   const defaultYouTubeSettings: YouTubeSettings = getDefaultYouTubeSettings();
 
+  // Default Pinterest settings
+  const defaultPinterestSettings: PinterestSettings = {
+    boardId: '',
+    boardName: ''
+  };
+
   const initial = React.useMemo<PostSettings>(() => ({
     locationTags: value?.locationTags ?? [],
     taggedAccounts: value?.taggedAccounts ?? [],
@@ -159,6 +179,7 @@ export function SettingsEditCell({
     tiktok: value?.tiktok ?? defaultTikTokSettings,
     google: value?.google ?? defaultGoogleBusinessSettings,
     youtube: value?.youtube ?? defaultYouTubeSettings,
+    pinterest: value?.pinterest ?? defaultPinterestSettings,
   }), [value]);
 
   const [local, setLocal] = React.useState<PostSettings>(initial);
@@ -167,6 +188,7 @@ export function SettingsEditCell({
   const [tiktokValidation, setTiktokValidation] = React.useState(true);
   const [googleValidation, setGoogleValidation] = React.useState(true);
   const [youtubeValidation, setYoutubeValidation] = React.useState(true);
+  const [pinterestValidation, setPinterestValidation] = React.useState(true);
 
   /* Helper booleans for UI */
   const activeFlags: SettingFlags = {
@@ -176,6 +198,7 @@ export function SettingsEditCell({
     tiktok: platforms.includes('tiktok'),
     google: platforms.includes('google'),
     youtube: platforms.includes('youtube'),
+    pinterest: platforms.includes('pinterest'),
   } as const;
 
   type FlagKey = keyof typeof activeFlags;
@@ -236,7 +259,8 @@ export function SettingsEditCell({
                     .filter(k => 
                       (k !== 'tiktok' || platforms.includes('tiktok')) &&
                       (k !== 'google' || platforms.includes('google')) &&
-                      (k !== 'youtube' || platforms.includes('youtube'))
+                      (k !== 'youtube' || platforms.includes('youtube')) &&
+                      (k !== 'pinterest' || platforms.includes('pinterest'))
                     )
                     .map((k) => (
                     <Tooltip key={k}>
@@ -265,7 +289,8 @@ export function SettingsEditCell({
               .filter(k => 
                 (k !== 'tiktok' || platforms.includes('tiktok')) &&
                 (k !== 'google' || platforms.includes('google')) &&
-                (k !== 'youtube' || platforms.includes('youtube'))
+                (k !== 'youtube' || platforms.includes('youtube')) &&
+                (k !== 'pinterest' || platforms.includes('pinterest'))
               )
               .map((k) => (
               <label key={k} className="flex items-center justify-between py-[8px] gap-2 cursor-pointer">
@@ -311,7 +336,9 @@ export function SettingsEditCell({
           {(Object.keys(LABELS) as (keyof SettingFlags)[])
             .filter(k => 
               (k !== 'tiktok' || platforms.includes('tiktok')) &&
-              (k !== 'google' || platforms.includes('google'))
+              (k !== 'google' || platforms.includes('google')) &&
+              (k !== 'youtube' || platforms.includes('youtube')) &&
+              (k !== 'pinterest' || platforms.includes('pinterest'))
             )
             .map((k) => (
             <li key={k} className="flex items-center gap-2">
@@ -334,6 +361,7 @@ export function SettingsEditCell({
             platforms.includes('tiktok') ? 'tiktok' : 
             platforms.includes('google') ? 'google' : 
             platforms.includes('youtube') ? 'youtube' : 
+            platforms.includes('pinterest') ? 'pinterest' : 
             'location'
           } className="w-full mt-0 flex flex-col gap-6 flex-1 min-h-0">
             <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
@@ -350,6 +378,11 @@ export function SettingsEditCell({
               {platforms.includes('youtube') && (
                 <TabsTrigger value="youtube" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
                   {ICONS.youtube} YouTube
+                </TabsTrigger>
+              )}
+              {platforms.includes('pinterest') && (
+                <TabsTrigger value="pinterest" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                  {ICONS.pinterest} Pinterest
                 </TabsTrigger>
               )}
               <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
@@ -407,6 +440,22 @@ export function SettingsEditCell({
                     }
                     onValidationChange={(isValid) => {
                       setYoutubeValidation(isValid);
+                    }}
+                  />
+                </TabsContent>
+              )}
+
+              {/* Pinterest Tab */}
+              {platforms.includes('pinterest') && (
+                <TabsContent value="pinterest" className="space-y-4 m-0 h-full">
+                  <PinterestSettingsPanel
+                    pageId={pinterestPageId}
+                    settings={local.pinterest!}
+                    onChange={(pinterestSettings) => 
+                      setLocal(prev => ({ ...prev, pinterest: pinterestSettings }))
+                    }
+                    onValidationChange={(isValid) => {
+                      setPinterestValidation(isValid);
                     }}
                   />
                 </TabsContent>
@@ -482,12 +531,13 @@ export function SettingsEditCell({
                   thumbnail: local.thumbnail,
                   ...(platforms.includes('tiktok') && { tiktok: local.tiktok }),
                   ...(platforms.includes('google') && { google: local.google }),
-                  ...(platforms.includes('youtube') && { youtube: local.youtube })
+                  ...(platforms.includes('youtube') && { youtube: local.youtube }),
+                  ...(platforms.includes('pinterest') && { pinterest: local.pinterest })
                 };
                 onChange(updatedSettings);
                 setModalOpen(false);
               }}
-              disabled={(platforms.includes('tiktok') && !tiktokValidation) || (platforms.includes('google') && !googleValidation) || (platforms.includes('youtube') && !youtubeValidation)}
+              disabled={(platforms.includes('tiktok') && !tiktokValidation) || (platforms.includes('google') && !googleValidation) || (platforms.includes('youtube') && !youtubeValidation) || (platforms.includes('pinterest') && !pinterestValidation)}
               className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Changes

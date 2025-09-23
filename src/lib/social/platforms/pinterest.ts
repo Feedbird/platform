@@ -18,15 +18,19 @@ import type {
   const log   = (...a: unknown[]) => DEBUG && console.log('[Pinterest]', ...a)
   
   /* static metadata */
+  // https://developers.pinterest.com/docs/work-with-organic-content-and-users/create-boards-and-pins/
   const cfg: SocialPlatformConfig = {
     name   : 'Pinterest',
     channel: 'pinterest',
     icon   : '/images/platforms/pinterest.svg',
     authUrl: 'https://www.pinterest.com/oauth/',
+    // https://developers.pinterest.com/apps/1520535/
     scopes : [
       'boards:read', 'boards:write',
       'pins:read',   'pins:write',
       'user_accounts:read',
+      'boards:read_secret',
+      'pins:read_secret'
     ],
     apiVersion: 'v5',
     baseUrl   : process.env.PINTEREST_API_BASE || 'https://api.pinterest.com',
@@ -302,6 +306,101 @@ import type {
     
     async disconnectPage(p: SocialPage){ p.connected=false; p.status='disconnected' }
     async checkPageStatus(p: SocialPage){ return { ...p } }
+
+    /* 4 – get user's boards with pagination */
+    async getBoards(page: SocialPage): Promise<{ id: string; name: string; description?: string; privacy: string }[]> {
+      if (IS_BROWSER) {
+        const res = await fetch('/api/social/pinterest/boards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        return data.boards;
+      }
+
+      try {
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        // Fetch all boards using pagination
+        const allBoards: any[] = [];
+        let bookmark: string | null = null;
+        const pageSize = 250; // Maximum page size allowed by Pinterest
+        let pageCount = 0;
+        const maxPages = 50; // Safety limit to prevent infinite loops
+
+        do {
+          // Safety check to prevent infinite loops
+          if (pageCount >= maxPages) {
+            console.warn(`Reached maximum page limit (${maxPages}). Stopping pagination.`);
+            break;  
+          }
+
+          // Build URL with pagination parameters
+          let url = `${this.baseUrl}/boards?page_size=${pageSize}`;
+          if (bookmark) {
+            url += `&bookmark=${encodeURIComponent(bookmark)}`;
+          }
+
+          console.log(`Fetching Pinterest boards page ${pageCount + 1} with bookmark: ${bookmark || 'none'}`);
+
+          const response = await pinFetch<{ 
+            items: { 
+              id: string; 
+              name: string; 
+              description?: string;
+              privacy: 'PUBLIC' | 'PRIVATE' | 'SECRET';
+              pin_count?: number;
+              follower_count?: number;
+            }[];
+            bookmark: string | null;
+          }>(
+            url,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          // Validate response structure
+          if (!response.items || !Array.isArray(response.items)) {
+            console.error('Invalid response structure from Pinterest API:', response);
+            throw new Error('Invalid response structure from Pinterest API');
+          }
+
+          // Add items from this page to our collection
+          allBoards.push(...response.items);
+          
+          // Update bookmark for next iteration
+          bookmark = response.bookmark;
+          pageCount++;
+          
+          console.log(`Fetched ${response.items.length} boards on page ${pageCount}, total so far: ${allBoards.length}, bookmark: ${bookmark}`);
+
+          // Small delay between requests to be respectful to Pinterest's API
+          if (bookmark !== null) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+        } while (bookmark !== null);
+
+        console.log(`Finished fetching Pinterest boards. Total boards: ${allBoards.length}`);
+
+        return allBoards.map(board => ({
+          id: board.id,
+          name: board.name,
+          description: board.description,
+          privacy: board.privacy,
+          pin_count: board.pin_count,
+          follower_count: board.follower_count
+        }));
+        
+      } catch (error) {
+        console.error('Pinterest getBoards error:', error);
+        throw error;
+      }
+    }
   
     /* 5 – publish pin */
     async publishPost(
@@ -329,6 +428,11 @@ import type {
         const token = await this.getToken(page.id);
         if (!token) {
           throw new Error('No auth token available');
+        }
+
+        // Validate that a board is selected (required for Pinterest)
+        if (!options?.settings?.pinterest?.boardId) {
+          throw new Error('Pinterest requires a board to be selected. Please select a board in the settings.');
         }
 
         // Validate content
@@ -385,18 +489,8 @@ import type {
       token: string,
       options?: PublishOptions
     ): Promise<PostHistory> {
-      // Get user's boards to find a board to pin to
-      const boards = await pinFetch<{ items: { id: string; name: string }[] }>(
-        `${this.baseUrl}/boards?page_size=1`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!boards.items.length) {
-        throw new Error('No boards found. Please create a board on Pinterest first.');
-      }
-
-      // Use the first available board
-      const boardId = boards.items[0].id;
+      // Board ID is now compulsory and validated at the top level
+      const boardId = options?.settings?.pinterest?.boardId!;
   
       // https://developers.pinterest.com/docs/api/v5/pins-create
       const pin = await pinFetch<{ id: string }>(`${this.baseUrl}/pins`, {
@@ -436,19 +530,9 @@ import type {
       token: string,
       options?: PublishOptions
     ): Promise<PostHistory> {
-      // Get user's boards to find a board to pin to
-      const boards = await pinFetch<{ items: { id: string; name: string }[] }>(
-        `${this.baseUrl}/boards?page_size=1`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!boards.items.length) {
-        throw new Error('No boards found. Please create a board on Pinterest first.');
-      }
-
-      // Use the first available board
-      const boardId = boards.items[0].id;
-
+      // Board ID is now compulsory and validated at the top level
+      const boardId = options?.settings?.pinterest?.boardId!;
+      
       // Step 1: Register media upload for video
       // https://developers.pinterest.com/docs/api/v5/media-create
       const mediaUpload = await pinFetch<{
@@ -561,18 +645,9 @@ import type {
       token: string,
       options?: PublishOptions
     ): Promise<PostHistory> {
-      // Get user's boards to find a board to pin to
-      const boards = await pinFetch<{ items: { id: string; name: string }[] }>(
-        `${this.baseUrl}/boards?page_size=1`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!boards.items.length) {
-        throw new Error('No boards found. Please create a board on Pinterest first.');
-      }
-
-      // Use the first available board
-      const boardId = boards.items[0].id;
+      // Board ID is now compulsory and validated at the top level
+      const boardId = options?.settings?.pinterest?.boardId!;
+     
   
       // Pinterest supports multiple images using multiple_image_urls
       // https://developers.pinterest.com/docs/api/v5/pins-create

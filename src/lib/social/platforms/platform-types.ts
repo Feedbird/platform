@@ -232,6 +232,7 @@ export interface PostContent {
 
 // Platform Operations Interface
 export interface PlatformOperations {
+  getBoards?(page: SocialPage): unknown;
   checkPostStatusAndUpdate?: (publishId: string, pageId: string, postId: string) => Promise<void>;
   // Auth operations
   getAuthUrl(): string;
@@ -312,6 +313,12 @@ export interface PublishOptions {
   allowStitch?: boolean;
   allowDuet?: boolean;
   videoCoverTimestampMs?: number;
+  
+  // Pinterest-specific options
+  pinterest?: {
+    boardId: string;
+    boardName: string;
+  };
   isAigc?: boolean;
   videoCovers?: {
     coverImageId?: string;
@@ -452,6 +459,11 @@ export interface YouTubeSettings {
   description?: string;
 }
 
+export interface PinterestSettings {
+  boardId: string;
+  boardName: string;
+}
+
 // Post Settings Structure (includes platform-specific settings)
 export interface PostSettings {
   locationTags: string[];
@@ -459,6 +471,7 @@ export interface PostSettings {
   thumbnail: boolean;
   tiktok?: TikTokSettings;
   google?: GoogleBusinessSettings;
+  pinterest?: PinterestSettings;
   youtube?: YouTubeSettings;
 }
 

@@ -23,6 +23,13 @@ export async function POST(req: NextRequest) {
     const content = body.content as PostContent;
     const options = body.options as PublishOptions;
 
+    // Validate that a board is selected for Pinterest
+    if (!options?.settings?.pinterest?.boardId) {
+      return NextResponse.json({
+        error: 'Pinterest requires a board to be selected. Please select a board in the settings.'
+      }, { status: 400 });
+    }
+
     const pin = await ops.publishPost(page, content, options);
 
     return NextResponse.json(pin);
@@ -30,6 +37,15 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     console.error("[API] pinterest/publish error:", e);
 
-    return new Response(e.message ?? "Internal error", { status: 500 });
+    // Return structured error response
+    if (e.message && e.message.includes('board')) {
+      return NextResponse.json({
+        error: e.message
+      }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      error: e.message ?? "Internal error"
+    }, { status: 500 });
   }
 }
