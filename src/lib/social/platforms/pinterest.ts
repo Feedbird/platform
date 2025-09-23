@@ -100,12 +100,16 @@ import type {
     async connectAccount(code: string): Promise<SocialAccount> {
 
       // https://developers.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/#step-2-receive-the-authorization-code-with-your-redirect-uri
-      const tok = await pinFetch<{
-        access_token: string;
-        refresh_token: string;
-        expires_in: number;
-        refresh_token_expires_in: number;
-      }>(`${this.baseUrl}/oauth/token`, {
+        const tok = await pinFetch<{ 
+          access_token: string; 
+          refresh_token: string; 
+          expires_in: number; 
+          refresh_token_expires_in: number;
+          refresh_token_expires_at?: number; // For continuous refresh tokens
+          response_type: string;
+          token_type: string;
+          scope: string;
+        }>(`${this.baseUrl}/oauth/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -115,16 +119,21 @@ import type {
           grant_type: 'authorization_code',
           code,
           redirect_uri: this.redirectUri,
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
+          continuous_refresh: 'true', // Enable continuous refresh tokens (60-day expiry)
         }),
       });
+
   
       const me = await pinFetch<{ id: string; username: string }>(
         `${this.baseUrl}/user_account`,
         { headers: { Authorization: `Bearer ${tok.access_token}` } },
       );
         
+      // Calculate refresh token expiration - use expires_at if available (continuous refresh tokens)
+      const refreshTokenExpiresAt = tok.refresh_token_expires_at 
+        ? new Date(tok.refresh_token_expires_at * 1000)
+        : new Date(Date.now() + tok.refresh_token_expires_in * 1_000);
+
       return {
         id: crypto.randomUUID(),
         platform: 'pinterest',
@@ -132,7 +141,7 @@ import type {
         accountId: me.id,
         authToken: tok.access_token,
         refreshToken: tok.refresh_token,
-        refreshTokenExpiresAt: new Date(Date.now() + tok.refresh_token_expires_in * 1_000),
+        refreshTokenExpiresAt,
         accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
         tokenIssuedAt: new Date(),
         connected: true,
@@ -144,30 +153,49 @@ import type {
   
     /* 3 – silent refresh */
     async refreshToken(acc: any): Promise<SocialAccount> {
-
-      // https://developers.pinterest.com/docs/api/v5/oauth-token
-      const tok = await pinFetch<{ access_token: string; refresh_token: string; expires_in: number; refresh_token_expires_in: number }>(
-        `${cfg.baseUrl}/v5/oauth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: 'Basic ' + Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64'),
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: acc.refresh_token!,
-        }),
-      });
+      try {
+        
+        // https://developers.pinterest.com/docs/api/v5/oauth-token
+        const tok = await pinFetch<{ 
+          access_token: string; 
+          refresh_token: string; 
+          expires_in: number; 
+          refresh_token_expires_in: number;
+          refresh_token_expires_at?: number; // For continuous refresh tokens
+          response_type: string;
+          token_type: string;
+          scope: string;
+        }>(
+          `${cfg.baseUrl}/v5/oauth/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Authorization: 'Basic ' + Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64'),
+          },
+          body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: acc.refresh_token!,
+          }),
+        });
   
-      return {
-        ...acc, // Spread the existing account properties
-        authToken: tok.access_token,
-        refreshToken: tok.refresh_token,
-        refreshTokenExpiresAt: new Date(Date.now() + tok.refresh_token_expires_in * 1_000),
-        accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
-        tokenIssuedAt: new Date(),
-        status: 'active', // Reset status on successful refresh
-      };
+        // Calculate refresh token expiration - use expires_at if available (continuous refresh tokens)
+        const refreshTokenExpiresAt = tok.refresh_token_expires_at 
+          ? new Date(tok.refresh_token_expires_at * 1000)
+          : new Date(Date.now() + tok.refresh_token_expires_in * 1_000);
+
+        return {
+          ...acc, // Spread the existing account properties
+          authToken: tok.access_token,
+          refreshToken: tok.refresh_token,
+          refreshTokenExpiresAt,
+          accessTokenExpiresAt: new Date(Date.now() + tok.expires_in * 1_000),
+          tokenIssuedAt: new Date(),
+          status: 'active', // Reset status on successful refresh
+        };
+      } catch (error) {
+        console.error('Failed to refresh Pinterest token:', error);
+        throw new Error(`Failed to refresh Pinterest token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
     async disconnectAccount(a: SocialAccount){ a.connected=false; a.status='disconnected' }
   
@@ -195,6 +223,7 @@ import type {
         name      : profile.username,
         pageId    : profile.id,
         authToken : acc.authToken || '',
+        authTokenExpiresAt: acc.accessTokenExpiresAt,
         connected : true,
         status    : 'active',
         accountId : acc.id,
@@ -246,11 +275,26 @@ import type {
       }
 
       // update the token in the database
-      await supabase
-        .from('social_pages')
-        .update({ auth_token: refreshedToken.authToken, auth_token_expires_at: refreshedToken.accessTokenExpiresAt })
-        .eq('id', pageId);
+        await supabase
+          .from('social_pages')
+          .update({ 
+            auth_token: refreshedToken.authToken, 
+            auth_token_expires_at: refreshedToken.accessTokenExpiresAt,
+          })
+          .eq('id', pageId);
 
+          // update the social_accounts table with the new token
+          if (data?.account_id) {
+          await supabase
+            .from('social_accounts')
+            .update({
+              auth_token: refreshedToken.authToken,
+              access_token_expires_at: refreshedToken.accessTokenExpiresAt,
+              refresh_token: refreshedToken.refreshToken,
+              refresh_token_expires_at: refreshedToken.refreshTokenExpiresAt
+            })
+            .eq('id', data?.account_id);
+          }
       return refreshedToken.authToken;
     }
     
