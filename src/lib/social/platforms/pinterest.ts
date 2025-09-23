@@ -551,7 +551,7 @@ import type {
             source_type: 'image_url',
             url: content.media!.urls[0]
           },
-          title: 'Pin' + new Date().getTime(),
+            title: options?.settings?.pinterest?.title || 'Pin' + new Date().getTime(),
           description: content.text
         })
       });
@@ -667,7 +667,7 @@ import type {
             media_id: mediaUpload.media_id,
             cover_image_key_frame_time: 1.0 // Extract frame at 1 second as cover image
           },
-          title: 'Pin' + new Date().getTime(),
+            title: options?.settings?.pinterest?.title || 'Pin' + new Date().getTime(),
           description: content.text
         })
       });
@@ -711,7 +711,7 @@ import type {
               url: url
             }))
           },
-          title: 'Pin' + new Date().getTime(),
+            title: options?.settings?.pinterest?.title || 'Pin' + new Date().getTime(),
           description: content.text
         })
       });

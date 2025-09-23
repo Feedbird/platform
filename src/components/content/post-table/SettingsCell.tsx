@@ -169,7 +169,8 @@ export function SettingsEditCell({
   // Default Pinterest settings
   const defaultPinterestSettings: PinterestSettings = {
     boardId: '',
-    boardName: ''
+    boardName: '',
+    title: ''
   };
 
   const initial = React.useMemo<PostSettings>(() => ({

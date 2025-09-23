@@ -365,7 +365,8 @@ function SettingsEditor({ post }: { post: Post }) {
   // Default Pinterest settings
   const defaultPinterestSettings: PinterestSettings = {
     boardId: '',
-    boardName: ''
+    boardName: '',
+    title: ''
   };
 
   // Local state for all settings

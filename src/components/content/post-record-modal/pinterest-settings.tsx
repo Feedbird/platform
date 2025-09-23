@@ -3,6 +3,7 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { AlertCircle, Info, RefreshCw, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePinterestBoards } from '@/hooks/use-pinterest-boards';
@@ -189,6 +190,32 @@ export function PinterestSettingsPanel({
           </SelectContent>
         </Select>
         
+        {/* Pin Title */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium">Pin Title</Label>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="h-4 w-4 text-blue-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Custom title for your Pinterest pin (optional)</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          
+          <Input
+            value={settings.title || ''}
+            onChange={(e) => updateSetting('title', e.target.value)}
+            placeholder="Enter a custom title for your pin..."
+            disabled={disabled}
+            className="w-full"
+          />
+          
+          <div className="text-xs text-gray-500">
+            Leave empty to use default title: "Pin" + timestamp
+          </div>
+        </div>
         
         {settings.boardId && (
           <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">

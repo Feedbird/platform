@@ -462,6 +462,7 @@ export interface YouTubeSettings {
 export interface PinterestSettings {
   boardId: string;
   boardName: string;
+  title?: string;
 }
 
 // Post Settings Structure (includes platform-specific settings)
