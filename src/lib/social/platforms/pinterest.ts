@@ -393,7 +393,6 @@ import type {
             url += `&bookmark=${encodeURIComponent(bookmark)}`;
           }
 
-          console.log(`Fetching Pinterest boards page ${pageCount + 1} with bookmark: ${bookmark || 'none'}`);
 
           const response = await pinFetch<{ 
             items: { 
@@ -423,7 +422,6 @@ import type {
           bookmark = response.bookmark;
           pageCount++;
           
-          console.log(`Fetched ${response.items.length} boards on page ${pageCount}, total so far: ${allBoards.length}, bookmark: ${bookmark}`);
 
           // Small delay between requests to be respectful to Pinterest's API
           if (bookmark !== null) {
@@ -432,7 +430,6 @@ import type {
 
         } while (bookmark !== null);
 
-        console.log(`Finished fetching Pinterest boards. Total boards: ${allBoards.length}`);
 
         return allBoards.map(board => ({
           id: board.id,
@@ -515,7 +512,6 @@ import type {
 
         // save the post id to the database
         try {
-          console.log('Saving Pinterest post ID:', postedResponse.id);
           await updatePlatformPostId(content.id!, 'pinterest', postedResponse.id, page.id);
         } catch (error) {
           console.warn('Failed to save Pinterest post ID:', error);
@@ -767,7 +763,6 @@ import type {
             const parts = nextPage.toString().replace('board-pagination-', '').split('-');
             boardBookmark = parts[0] || null;
             boardStartIndex = parseInt(parts[1] || '0', 10);
-            console.log(`[Pinterest] Resuming board pagination: bookmark=${boardBookmark}, startIndex=${boardStartIndex}`);
           } else {
             console.log(`[Pinterest] Starting fresh board pagination`);
           }
@@ -799,7 +794,6 @@ import type {
                 headers: { Authorization: `Bearer ${token}` }
               });
               
-              console.log(`[Pinterest] Board "${board.name}" (${board.privacy}): ${boardPinsResponse.items.length} pins`);
               allPins.push(...boardPinsResponse.items);
               
               // Small delay between board requests
@@ -875,7 +869,6 @@ import type {
         }
 
         const posts = response.items.map(pin => {
-          console.log(pin,888888888)
           // Extract media URLs based on media type
           let mediaUrls: string[] = [];
           
