@@ -756,46 +756,13 @@ import type {
         const queryParams = new URLSearchParams({
           page_size: limit.toString(),
           pin_metrics: 'true',
+          include_protected_pins: 'true', // Include secret/private pins
           ...(nextPage && { bookmark: nextPage.toString() })
         });
 
         // https://developers.pinterest.com/docs/api/v5/pins-list
         const response = await pinFetch<{
-          items: Array<{
-            id: string;
-            title?: string;
-            description?: string;
-            created_at: string;
-            creative_type?: string;
-            media?: {
-              media_type: 'image' | 'video' | 'multiple_images';
-              images?: Record<string, { url: string; width: number; height: number }>;
-              cover_image_url?: string;
-              items?: Array<{
-                images?: Record<string, { url: string; width: number; height: number }>;
-                item_type?: string;
-              }>;
-            };
-            board_id?: string;
-            board_owner?: {
-              username: string;
-            };
-            link?: string;
-            pin_metrics?: {
-              '90d'?: {
-                pin_click: number;
-                impression: number;
-                clickthrough: number;
-              };
-              lifetime_metrics?: {
-                pin_click: number;
-                impression: number;
-                clickthrough: number;
-                reaction: number;
-                comment: number;
-              };
-            };
-          }>;
+          items: any[];
           bookmark: string | null;
         }>(`${this.baseUrl}/pins?${queryParams}`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -852,9 +819,12 @@ import type {
             const imgs = pin.media.images;
             const url = imgs.originals?.url
               ?? (imgs as any).original?.url
-              ?? imgs['1200x']?.url
-              ?? imgs['600x']?.url
-              ?? Object.values(imgs)[0]?.url;
+              ?? (typeof imgs['1200x'] === 'object' && imgs['1200x'] && 'url' in imgs['1200x'] ? (imgs['1200x'] as any).url : undefined)
+              ?? (typeof imgs['600x'] === 'object' && imgs['600x'] && 'url' in imgs['600x'] ? (imgs['600x'] as any).url : undefined)
+              ?? (() => {
+                const firstImg = Object.values(imgs)[0];
+                return firstImg && typeof firstImg === 'object' && 'url' in firstImg ? (firstImg as any).url : undefined;
+              })();
             if (url) mediaUrls = [url];
           } else if (pin.media?.cover_image_url) {
             // Handle video pins with cover image
@@ -880,11 +850,14 @@ import type {
           // Get board information
           const boardInfo = pin.board_id ? boardInfoMap.get(pin.board_id) : null;
 
+          const content = pin.description || pin.title || '';
           return {
             id: pin.id,
             postId: pin.id,
             pageId: page.id,
-            content: pin.description || pin.title || '',
+            title: pin.title,
+            description: pin.description,
+            content,
             mediaUrls,
             status: 'published' as const,
             publishedAt: new Date(pin.created_at),
