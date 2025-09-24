@@ -904,7 +904,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 };
                 let postContent: any;
 
-                if (['tiktok', 'linkedin', 'facebook', 'instagram', 'google', 'youtube'].includes(page.platform)) {
+                if (['tiktok', 'linkedin', 'facebook', 'instagram', 'google', 'youtube', 'pinterest'].includes(page.platform)) {
                   
                   // Use TikTok settings if available, otherwise use defaults
                   if (post.settings?.tiktok) {

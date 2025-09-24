@@ -84,7 +84,8 @@ import { ImageConfigContext } from "next/dist/shared/lib/image-config-context.sh
 import { TikTokSettingsPanel } from './tiktok-settings';
 import { GoogleBusinessSettingsPanel } from './google-business-settings';
 import { YouTubeSettingsPanel } from './youtube-settings';
-import type { TikTokSettings, GoogleBusinessSettings, YouTubeSettings } from '@/lib/social/platforms/platform-types';
+import { PinterestSettingsPanel } from './pinterest-settings';
+import type { TikTokSettings, GoogleBusinessSettings, YouTubeSettings, PinterestSettings } from '@/lib/social/platforms/platform-types';
 import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-settings-mapper';
 import { getDefaultYouTubeSettings } from '@/lib/utils/youtube-settings-mapper';
 
@@ -329,6 +330,15 @@ function SettingsEditor({ post }: { post: Post }) {
     return youtubePage?.id || null;
   }, [post.platforms, ws?.socialPages]);
 
+  // Get the first Pinterest page ID if Pinterest is selected
+  const pinterestPageId = React.useMemo(() => {
+    if (!post.platforms.includes('pinterest') || !ws?.socialPages) return null;
+    const pinterestPage = ws.socialPages.find(page => 
+      page.platform === 'pinterest' && page.connected
+    );
+    return pinterestPage?.id || null;
+  }, [post.platforms, ws?.socialPages]);
+
   // Default TikTok settings
   const defaultTikTokSettings: TikTokSettings = {
     privacyLevel: 'SELF_ONLY',
@@ -352,6 +362,13 @@ function SettingsEditor({ post }: { post: Post }) {
   // Default YouTube settings
   const defaultYouTubeSettings: YouTubeSettings = getDefaultYouTubeSettings();
 
+  // Default Pinterest settings
+  const defaultPinterestSettings: PinterestSettings = {
+    boardId: '',
+    boardName: '',
+    title: ''
+  };
+
   // Local state for all settings
   const [local, setLocal] = React.useState({
     locationTags: post.settings?.locationTags ?? [],
@@ -360,12 +377,15 @@ function SettingsEditor({ post }: { post: Post }) {
     tiktok: post.settings?.tiktok ?? defaultTikTokSettings,
     google: post.settings?.google ?? defaultGoogleBusinessSettings,
     youtube: post.settings?.youtube ?? defaultYouTubeSettings,
+    pinterest: post.settings?.pinterest ?? defaultPinterestSettings,
   });
+
 
   // Validation states
   const [tiktokValidation, setTiktokValidation] = React.useState(true);
   const [googleValidation, setGoogleValidation] = React.useState(true);
   const [youtubeValidation, setYoutubeValidation] = React.useState(true);
+  const [pinterestValidation, setPinterestValidation] = React.useState(true);
 
   // Helper booleans for UI
   const activeFlags = {
@@ -375,6 +395,7 @@ function SettingsEditor({ post }: { post: Post }) {
     tiktok: post.platforms.includes('tiktok'),
     google: post.platforms.includes('google'),
     youtube: post.platforms.includes('youtube'),
+    pinterest: post.platforms.includes('pinterest'),
   };
 
   const LABELS = {
@@ -384,6 +405,7 @@ function SettingsEditor({ post }: { post: Post }) {
     tiktok: "TikTok Settings",
     google: "Google Business Settings",
     youtube: "YouTube Settings",
+    pinterest: "Pinterest Settings",
   };
 
   const ICONS = {
@@ -393,6 +415,7 @@ function SettingsEditor({ post }: { post: Post }) {
     tiktok: <Image src={`/images/platforms/tiktok.svg`} alt="TikTok" width={16} height={16} />,
     google: <Image src={`/images/platforms/google.svg`} alt="Google Business" width={16} height={16} />,
     youtube: <Image src={`/images/platforms/youtube.svg`} alt="YouTube" width={16} height={16} />,
+    pinterest: <Image src={`/images/platforms/pinterest.svg`} alt="Pinterest" width={16} height={16} />,
   };
 
   const iconClass = (active: boolean) =>
@@ -545,6 +568,7 @@ function SettingsEditor({ post }: { post: Post }) {
             post.platforms.includes('tiktok') ? 'tiktok' : 
             post.platforms.includes('google') ? 'google' : 
             post.platforms.includes('youtube') ? 'youtube' : 
+            post.platforms.includes('pinterest') ? 'pinterest' : 
             'location'
           } className="w-full mt-0 flex flex-col gap-6 flex-1 min-h-0">
             <TabsList className="flex p-[2px] items-center gap-1 rounded-[6px] bg-[#F4F5F6] w-full">
@@ -561,6 +585,11 @@ function SettingsEditor({ post }: { post: Post }) {
               {post.platforms.includes('youtube') && (
                 <TabsTrigger value="youtube" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
                   {ICONS.youtube} YouTube
+                </TabsTrigger>
+              )}
+              {post.platforms.includes('pinterest') && (
+                <TabsTrigger value="pinterest" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
+                  {ICONS.pinterest} Pinterest
                 </TabsTrigger>
               )}
               <TabsTrigger value="location" className="flex flex-1 items-center justify-center gap-[6px] p-2 rounded-[6px] text-sm text-black font-medium">
@@ -618,6 +647,22 @@ function SettingsEditor({ post }: { post: Post }) {
                     }
                     onValidationChange={(isValid) => {
                       setYoutubeValidation(isValid);
+                    }}
+                  />
+                </TabsContent>
+              )}
+
+              {/* Pinterest Tab */}
+              {post.platforms.includes('pinterest') && (
+                <TabsContent value="pinterest" className="space-y-4 m-0 h-full">
+                  <PinterestSettingsPanel
+                    pageId={pinterestPageId}
+                    settings={local.pinterest}
+                    onChange={(pinterestSettings) => 
+                      setLocal(prev => ({ ...prev, pinterest: pinterestSettings }))
+                    }
+                    onValidationChange={(isValid) => {
+                      setPinterestValidation(isValid);
                     }}
                   />
                 </TabsContent>
@@ -693,12 +738,13 @@ function SettingsEditor({ post }: { post: Post }) {
                   thumbnail: local.thumbnail,
                   ...(post.platforms.includes('tiktok') && { tiktok: local.tiktok }),
                   ...(post.platforms.includes('google') && { google: local.google }),
-                  ...(post.platforms.includes('youtube') && { youtube: local.youtube })
+                  ...(post.platforms.includes('youtube') && { youtube: local.youtube }),
+                  ...(post.platforms.includes('pinterest') && { pinterest: local.pinterest })
                 };
                 updatePost(post.id, { settings: updatedSettings });
                 setModalOpen(false);
               }}
-              disabled={(post.platforms.includes('tiktok') && !tiktokValidation) || (post.platforms.includes('google') && !googleValidation) || (post.platforms.includes('youtube') && !youtubeValidation)}
+              disabled={(post.platforms.includes('tiktok') && !tiktokValidation) || (post.platforms.includes('google') && !googleValidation) || (post.platforms.includes('youtube') && !youtubeValidation) || (post.platforms.includes('pinterest') && !pinterestValidation)}
               className="flex px-4 justify-center items-center gap-2 rounded-[6px] bg-[#125AFF] text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Changes
@@ -726,6 +772,16 @@ function SettingsEditor({ post }: { post: Post }) {
               <AlertCircle className="h-3 w-3" />
               <span>
                 Google Business settings validation failed. Please check your configuration.
+              </span>
+            </div>
+          )}
+
+          {/* Pinterest validation error message - positioned below buttons */}
+          {post.platforms.includes('pinterest') && !pinterestValidation && (
+            <div className="flex items-center gap-2 text-xs text-red-600 mt-2">
+              <AlertCircle className="h-3 w-3" />
+              <span>
+                Please select a Pinterest board to continue.
               </span>
             </div>
           )}
