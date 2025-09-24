@@ -109,7 +109,6 @@ export async function GET(req: NextRequest) {
           accept: emailToAccept.get(email) ?? false,
         }
       })
-      console.log("user:", users)
     }
 
     return NextResponse.json({ users, creator_email: creatorEmail })
@@ -185,17 +184,10 @@ export async function PATCH(req: NextRequest) {
         } catch (e) {
           // No user yet (not registered) – skip Clerk role sync
         }
-
         if (clerkUserId) {
           try {
-            // 3) Find organization membership for this user in the target org
-            // Fallback to listing memberships for the org and filtering by user if API doesn't support direct lookup
-            const membershipsResp: any = await (clerk.organizations as any).getOrganizationMembershipList({ organizationId })
-            const membership: any = (membershipsResp?.data || membershipsResp || []).find((m: any) => m?.public_user_data?.user_id === clerkUserId || m?.userId === clerkUserId)
-            if (membership?.id) {
-              const clerkRole = role === 'client' ? 'org:admin' : 'org:member'
-              await (clerk.organizations as any).updateOrganizationMembership(membership.id, { role: clerkRole })
-            }
+            const clerkRole = role === 'client' ? 'org:admin' : 'org:member'
+            await (clerk.organizations as any).updateOrganizationMembership({ organizationId: organizationId, userId: clerkUserId, role: clerkRole })
           } catch (syncErr) {
             console.warn('Failed to sync Clerk org role:', syncErr)
           }
