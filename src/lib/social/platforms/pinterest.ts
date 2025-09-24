@@ -790,7 +790,7 @@ import type {
               const boardPinsResponse = await pinFetch<{
                 items: any[];
                 bookmark: string | null;
-              }>(`${this.baseUrl}/boards/${board.id}/pins?page_size=10`, {
+              }>(`${this.baseUrl}/boards/${board.id}/pins?page_size=10&include_hidden_pins=true&pin_metrics=true`, {
                 headers: { Authorization: `Bearer ${token}` }
               });
               
