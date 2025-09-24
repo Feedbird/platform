@@ -55,6 +55,20 @@ export default function FormCanvas({
       type: "form-area",
     },
   });
+
+  const { setNodeRef: setCoverDropRef, isOver: isCoverOver } = useDroppable({
+    id: "form-cover-area",
+    data: {
+      type: "form-header",
+    },
+  });
+
+  const { setNodeRef: setTitleDropRef, isOver: isTitleOver } = useDroppable({
+    id: "form-title-area",
+    data: {
+      type: "form-header",
+    },
+  });
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [editingDescription, setEditingDescription] = React.useState(false);
   const [popoverOpen, setPopoverOpen] = React.useState(false);
@@ -158,6 +172,7 @@ export default function FormCanvas({
       <div className="mx-auto max-w-[900px] p-4">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div
+            ref={setCoverDropRef}
             className={`w-full relative h-[160px] ${
               activeForm?.cover_url ? "" : "bg-[#F4F5F6]"
             } flex items-center justify-center`}
@@ -282,6 +297,7 @@ export default function FormCanvas({
                 </div>
               </div>
             )}
+
             <input
               ref={fileInputRef}
               type="file"
@@ -292,7 +308,7 @@ export default function FormCanvas({
           </div>
 
           <div className="flex flex-col gap-1 p-6">
-            <div className="flex flex-col gap-2 p-3">
+            <div ref={setTitleDropRef} className="flex flex-col gap-2 p-3">
               {editingTitle ? (
                 <input
                   type="text"
@@ -339,6 +355,13 @@ export default function FormCanvas({
                   <div className="h-[1px] bg-blue-400 rounded-full w-full transition-all duration-200" />
                 </div>
               )}
+
+              {/* Show insertion indicator at the top when dropping on cover or title areas */}
+              {formFields.length > 0 &&
+                activeId &&
+                (isCoverOver || isTitleOver) && (
+                  <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200 mb-3" />
+                )}
 
               {formFields.length > 0 ? (
                 <SortableContext

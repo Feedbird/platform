@@ -125,6 +125,12 @@ export default function FormInnerVisualizer() {
     if (active.data.current?.type === "template") {
       if (over.id === "form-canvas") {
         addNewField(active.id as FormFieldType);
+      } else if (
+        over.id === "form-cover-area" ||
+        over.id === "form-title-area"
+      ) {
+        // Add field at the beginning when dropping on cover or title area
+        addNewFieldAtPosition(active.id as FormFieldType, 0);
       } else if (formFields.find((f) => f.id === over.id)) {
         const targetIndex = formFields.findIndex((f) => f.id === over.id);
         addNewFieldAtPosition(active.id as FormFieldType, targetIndex);
