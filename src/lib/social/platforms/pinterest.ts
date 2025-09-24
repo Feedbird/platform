@@ -752,21 +752,97 @@ import type {
           throw new Error('No auth token available');
         }
 
-        // Build query parameters for Pinterest API v5
-        const queryParams = new URLSearchParams({
-          page_size: limit.toString(),
-          pin_metrics: 'true',
-          include_protected_pins: 'true', // Include secret/private pins
-          ...(nextPage && { bookmark: nextPage.toString() })
-        });
 
-        // https://developers.pinterest.com/docs/api/v5/pins-list
-        const response = await pinFetch<{
-          items: any[];
-          bookmark: string | null;
-        }>(`${this.baseUrl}/pins?${queryParams}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // Use board-level pagination for better performance
+        // This approach paginates boards first, then fetches pins from those boards
+        let response: { items: any[]; bookmark: string | null };
+        
+        try {
+          // Parse pagination state from nextPage
+          let boardBookmark: string | null = null;
+          let boardStartIndex = 0;
+          
+          if (nextPage && nextPage.toString().startsWith('board-pagination-')) {
+            // Extract board pagination info from bookmark
+            const parts = nextPage.toString().replace('board-pagination-', '').split('-');
+            boardBookmark = parts[0] || null;
+            boardStartIndex = parseInt(parts[1] || '0', 10);
+            console.log(`[Pinterest] Resuming board pagination: bookmark=${boardBookmark}, startIndex=${boardStartIndex}`);
+          } else {
+            console.log(`[Pinterest] Starting fresh board pagination`);
+          }
+          
+          // Fetch boards with pagination (smaller page size for better performance)
+          const boardsPerPage = 5; // Process 5 boards at a time
+          let boardsUrl = `${this.baseUrl}/boards?page_size=${boardsPerPage}`;
+          if (boardBookmark) {
+            boardsUrl += `&bookmark=${encodeURIComponent(boardBookmark)}`;
+          }
+          
+          const boardsResponse = await pinFetch<{
+            items: { id: string; name: string; privacy: string }[];
+            bookmark: string | null;
+          }>(boardsUrl, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          
+          // Fetch pins from current batch of boards
+          const allPins: any[] = [];
+          for (const board of boardsResponse.items) {
+            try {
+              // Fetch recent pins from this board (limit to avoid too many pins)
+              const boardPinsResponse = await pinFetch<{
+                items: any[];
+                bookmark: string | null;
+              }>(`${this.baseUrl}/boards/${board.id}/pins?page_size=10`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              
+              console.log(`[Pinterest] Board "${board.name}" (${board.privacy}): ${boardPinsResponse.items.length} pins`);
+              allPins.push(...boardPinsResponse.items);
+              
+              // Small delay between board requests
+              await new Promise(resolve => setTimeout(resolve, 50));
+            } catch (error) {
+              console.warn(`[Pinterest] Failed to fetch pins from board ${board.id}:`, error);
+            }
+          }
+          
+          // Sort pins by creation date (newest first)
+          allPins.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          
+          // Apply pin-level pagination within current board batch
+          const endIndex = Math.min(boardStartIndex + limit, allPins.length);
+          const paginatedPins = allPins.slice(boardStartIndex, endIndex);
+                    
+          // Determine next page bookmark
+          let nextBookmark: string | null = null;
+          
+          if (endIndex < allPins.length) {
+            // More pins available in current board batch
+            nextBookmark = `board-pagination-${boardBookmark || 'start'}-${endIndex}`;
+          } else if (boardsResponse.bookmark) {
+            // More boards available, start fresh with next board batch
+            nextBookmark = `board-pagination-${boardsResponse.bookmark}-0`;
+          } else {
+            // No more boards or pins available
+            nextBookmark = null;
+          }
+          
+          response = {
+            items: paginatedPins,
+            bookmark: nextBookmark
+          };
+        } catch (error) {
+          console.warn('[Pinterest] Board-level pagination failed:', error);
+          // Fallback to empty response
+          response = {
+            items: [],
+            bookmark: null
+          };
+        }
+
 
         // Fetch board information for all pins
         const boardInfoMap = new Map<string, { name: string; privacy: string }>();
@@ -799,6 +875,7 @@ import type {
         }
 
         const posts = response.items.map(pin => {
+          console.log(pin,888888888)
           // Extract media URLs based on media type
           let mediaUrls: string[] = [];
           

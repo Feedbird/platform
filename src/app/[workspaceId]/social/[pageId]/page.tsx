@@ -214,7 +214,7 @@ export default function SocialPagePosts() {
         )}
 
         {/* Load More Button */}
-        {history.length > 0 && (
+        {history.length > 0 && nextPage && (
           <div className="flex justify-center mt-6">
             <Button
               variant="outline"
