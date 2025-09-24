@@ -111,9 +111,10 @@ export async function POST(req: NextRequest) {
       board_id: string | null
       is_workspace: boolean
       role: 'client' | 'team'
+      accept: boolean
     }
     const rows: MemberInsert[] = [
-      { email, workspace_id: workspaceId, board_id: null, is_workspace: true, role: memberRole }
+      { email, workspace_id: workspaceId, board_id: null, is_workspace: true, role: memberRole, accept: false }
     ]
 
     if (rows.length === 0) {

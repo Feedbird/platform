@@ -153,6 +153,7 @@ export interface Member {
   board_id?: string | null;
   is_workspace: boolean;
   role: "client" | "team";
+  accept: boolean;
   created_at: string;
   updated_at: string;
 }

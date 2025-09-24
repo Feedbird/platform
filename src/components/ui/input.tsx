@@ -11,10 +11,16 @@ interface InputProps extends React.ComponentProps<"input"> {
     options?: SelectorValue[]
     className?: string
   }
+  endButton?: {
+    onClick: () => void
+    label?: string
+    className?: string
+    disabled?: boolean
+  }
 }
 
-function Input({ className, type, endSelect, ...props }: InputProps) {
-  if (!endSelect) {
+function Input({ className, type, endSelect, endButton, ...props }: InputProps) {
+  if (!endSelect && !endButton) {
     return (
       <input
         type={type}
@@ -30,7 +36,7 @@ function Input({ className, type, endSelect, ...props }: InputProps) {
     )
   }
 
-  const options: SelectorValue[] = endSelect.options && endSelect.options.length > 0 ? endSelect.options : ["Team", "Client"]
+  const options: SelectorValue[] = endSelect && endSelect.options && endSelect.options.length > 0 ? endSelect.options : ["Team", "Client"]
 
   const [isOpen, setIsOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement | null>(null)
@@ -46,6 +52,8 @@ function Input({ className, type, endSelect, ...props }: InputProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  const rightPaddingClass = endSelect && endButton ? "pr-44" : (endSelect || endButton) ? "pr-24" : undefined
+
   return (
     <div className="relative w-full" ref={containerRef}>
       <input
@@ -55,38 +63,55 @@ function Input({ className, type, endSelect, ...props }: InputProps) {
           "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
           "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
           "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-          "pr-24",
+          rightPaddingClass,
           className
         )}
         {...props}
       />
-      <div className={cn("absolute inset-y-0 right-3 flex items-center", endSelect.className)}>
-        <button
-          type="button"
-          onClick={() => setIsOpen((v) => !v)}
-          className="h-7 inline-flex items-center gap-[5px] text-xs text-darkGrey font-medium cursor-pointer"
-        >
-          <span>{endSelect.value}</span>
-          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-            <path d="M5 7L10 12L15 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        {isOpen && (
-          <div className="absolute right-0 top-[110%] z-10 w-28 rounded-md border border-input bg-white shadow-md">
-            {options.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => { endSelect.onChange(opt); setIsOpen(false) }}
-                className={cn(
-                  "w-full text-left px-3 py-2 text-sm cursor-pointer hover:bg-gray-50",
-                  opt === endSelect.value ? "text-black" : "text-darkGrey"
-                )}
-              >
-                {opt}
-              </button>
-            ))}
+      <div className={cn("absolute inset-y-0 right-3 flex items-center gap-2", endButton ? "right-[5px]" : "right-3")}>
+        {endSelect && (
+          <div className={cn("relative", endSelect.className)}>
+            <button
+              type="button"
+              onClick={() => setIsOpen((v) => !v)}
+              className="h-7 inline-flex items-center gap-[5px] text-xs text-darkGrey font-medium cursor-pointer"
+            >
+              <span>{endSelect.value}</span>
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                <path d="M5 7L10 12L15 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {isOpen && (
+              <div className="absolute right-0 top-[110%] z-10 w-20 p-1 rounded-md border border-input bg-white shadow-md">
+                {options.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => { endSelect.onChange(opt); setIsOpen(false) }}
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 text-sm !leading-[14px] font-medium text-black cursor-pointer rounded-md",
+                      opt === endSelect.value ? "bg-accent" : ""
+                    )}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+        )}
+        {endButton && (
+          <button
+            type="button"
+            onClick={endButton.onClick}
+            disabled={endButton.disabled}
+            className={cn(
+              "h-6.5 px-2.5 inline-flex items-center justify-center cursor-pointer rounded-[4px] bg-main text-white text-sm font-medium shadow-sm transition-colors hover:bg-main/80 disabled:opacity-50 disabled:cursor-not-allowed",
+              endButton.className
+            )}
+          >
+            {endButton.label ?? "Invite"}
+          </button>
         )}
       </div>
     </div>

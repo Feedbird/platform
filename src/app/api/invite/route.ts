@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
       board_id: string | null
       is_workspace: boolean
       role: 'client' | 'team'
+      accept: boolean
     }
 
     const rows: MemberInsert[] = []
@@ -173,6 +174,7 @@ export async function POST(req: NextRequest) {
         board_id: null,
         is_workspace: true,
         role: memberRole,
+        accept: false,
       })
     }
 
@@ -198,6 +200,7 @@ export async function POST(req: NextRequest) {
             board_id: b.id,
             is_workspace: false,
             role: memberRole,
+            accept: false,
           })
         }
       })

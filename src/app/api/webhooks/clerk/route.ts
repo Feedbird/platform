@@ -138,6 +138,19 @@ export async function POST(req: NextRequest) {
             console.error('Workspace lookup failed', wsErr)
           } else if (wsRow?.id) {
             console.log('Workspace found', wsRow.id)
+            // Mark corresponding member records as accepted
+            try {
+              const { error: updateErr } = await supabase
+                .from('members')
+                .update({ accept: true })
+                .eq('workspace_id', wsRow.id)
+                .eq('email', email)
+              if (updateErr) {
+                console.error('Failed to update members.accept to true', updateErr)
+              }
+            } catch (e) {
+              console.error('Unexpected error updating members.accept', e)
+            }
             const { data: userRow, error: userErr } = await supabase
               .from('users')
               .select('id')

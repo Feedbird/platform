@@ -7,11 +7,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import * as React from "react";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { inviteApi } from "@/lib/api/api-service";
+import { inviteApi, workspaceHelperApi } from "@/lib/api/api-service";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 interface InviteMembersModalProps {
   open: boolean;
@@ -20,62 +23,38 @@ interface InviteMembersModalProps {
 
 export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
   const user = useFeedbirdStore((s) => s.user);
-  const workspaces = useFeedbirdStore((s) => s.workspaces);
+  const activeWorkspaceId = useFeedbirdStore((s) => s.activeWorkspaceId);
 
   const [email, setEmail] = React.useState("");
-  const [selectedWorkspaces, setSelectedWorkspaces] = React.useState<Set<string>>(new Set());
-  const [selectedBoards, setSelectedBoards] = React.useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = React.useState(false);
+  const [members, setMembers] = React.useState<{ email: string; first_name?: string; image_url?: string; role?: 'admin' | 'client' | 'team'; accept?: boolean }[]>([]);
+  const [loadingMembers, setLoadingMembers] = React.useState(false);
+  const [updatingEmail, setUpdatingEmail] = React.useState<string | null>(null);
+  const [role, setRole] = React.useState<"Client" | "Team">("Client");
 
   React.useEffect(() => {
     if (!open) {
       setEmail("");
-      setSelectedWorkspaces(new Set());
-      setSelectedBoards(new Set());
       setSubmitting(false);
     }
   }, [open]);
 
-  /* -----------------------------
-   *  Selection helpers
-   * ---------------------------*/
-  const toggleWorkspace = (wsId: string) => {
-    const newSet = new Set(selectedWorkspaces);
-    if (newSet.has(wsId)) {
-      newSet.delete(wsId);
-      // also remove boards of workspace
-      const ws = workspaces.find((w) => w.id === wsId);
-      ws?.boards.forEach((b) => selectedBoards.delete(b.id));
-    } else {
-      newSet.add(wsId);
-      // add all boards
-      const ws = workspaces.find((w) => w.id === wsId);
-      ws?.boards.forEach((b) => selectedBoards.add(b.id));
-    }
-    setSelectedWorkspaces(newSet);
-    setSelectedBoards(new Set(selectedBoards));
-  };
-
-  const findWsIdForBoard = (id: string): string | undefined => {
-    for (const ws of workspaces) {
-      if (ws.boards.some(b => b.id === id)) return ws.id;
-    }
-    return undefined;
-  };
-
-  const toggleBoard = (board_id: string) => {
-    // board disabled if its workspace selected
-    const board = workspaces.flatMap((w) => w.boards).find((b) => b.id === board_id);
-    if (!board) return;
-    const wsId = findWsIdForBoard(board_id);
-    if (wsId && selectedWorkspaces.has(wsId)) {
-      return; // ignore when parent workspace selected
-    }
-    const newSet = new Set(selectedBoards);
-    if (newSet.has(board_id)) newSet.delete(board_id);
-    else newSet.add(board_id);
-    setSelectedBoards(newSet);
-  };
+  // Load current workspace members
+  React.useEffect(() => {
+    const loadMembers = async () => {
+      if (!open || !activeWorkspaceId) return;
+      setLoadingMembers(true);
+      try {
+        const res = await workspaceHelperApi.getWorkspaceMembers(activeWorkspaceId);
+        setMembers(res.users || []);
+      } catch (e) {
+        setMembers([]);
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+    loadMembers();
+  }, [open, activeWorkspaceId]);
 
   /* -----------------------------
    *  Submit
@@ -86,28 +65,23 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
       return;
     }
 
-    if (selectedWorkspaces.size === 0 && selectedBoards.size === 0) {
-      toast.error("Please select at least one workspace or board");
+    if (!activeWorkspaceId) {
+      toast.error("No active workspace selected");
       return;
     }
 
     setSubmitting(true);
     try {
-      const response = await inviteApi.inviteMembers({
+      const payload = {
         email: email.trim(),
-        workspaceIds: Array.from(selectedWorkspaces),
-        boardIds: Array.from(selectedBoards).filter((bid) => {
-          // ensure its workspace not selected
-          const board = workspaces.flatMap((w) => w.boards).find((b) => b.id === bid);
-          if (!board) return false;
-          const wsId = findWsIdForBoard(bid);
-          return !selectedWorkspaces.has(wsId ?? '');
-        }),
+        workspaceId: activeWorkspaceId,
         actorId: user?.id, // Pass current user ID for activity logging
         first_name: user?.firstName,
-        role: 'org:client',
-      });
-      
+      };
+      const response = role === 'Team'
+        ? await inviteApi.inviteTeam(payload)
+        : await inviteApi.inviteClient(payload);
+
       // Handle different response types
       if (response.warning) {
         toast.warning(response.message, {
@@ -125,8 +99,15 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
           duration: 3000
         });
       }
-      
+
       onClose();
+      // Refresh members list after inviting
+      try {
+        if (activeWorkspaceId) {
+          const res = await workspaceHelperApi.getWorkspaceMembers(activeWorkspaceId);
+          setMembers(res.users || []);
+        }
+      } catch { }
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Failed to send invite");
@@ -140,64 +121,105 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
    * ---------------------------*/
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg px-0 pt-4 pb-0 gap-0">
         <DialogHeader>
-          <DialogTitle>Invite members</DialogTitle>
+          <DialogTitle className="text-base font-semibold text-black px-4">Workspace members</DialogTitle>
         </DialogHeader>
-
+    
         {/* Email input */}
-        <div className="space-y-2 py-2">
-          <label htmlFor="invite-email" className="text-sm font-medium">
-            Gmail address
-          </label>
+        <div className="space-y-2 mt-4 px-4">
           <Input
             id="invite-email"
-            placeholder="example@gmail.com"
+            placeholder="Emails, comma separated"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             type="email"
             autoFocus
+            endSelect={{ value: role, onChange: setRole, options: ["Client", "Team"] }}
+            endButton={{ onClick: handleSend, label: "Invite", disabled: submitting || !email.trim() }}
           />
         </div>
 
-        {/* Workspace & boards */}
-        <div className="max-h-60 overflow-y-auto space-y-4 mt-4">
-          {workspaces.map((ws) => {
-            const wsChecked = selectedWorkspaces.has(ws.id);
-            return (
-              <div key={ws.id}>
-                <div className="flex items-center gap-2">
-                  <Checkbox checked={wsChecked} onCheckedChange={() => toggleWorkspace(ws.id)} />
-                  <span className="font-semibold">{ws.name}</span>
+        {/* Current workspace members */}
+        <div className="mt-2 px-4 pb-2">
+          <div className="border-b border-elementStroke py-2">
+            <div className="text-xs font-normal text-darkGrey">Members</div>
+          </div>
+          <div className="max-h-60 overflow-y-auto">
+            {loadingMembers && (
+              <p className="text-xs font-normal text-darkGrey py-1.5">Loading members...</p>
+            )}
+            {!loadingMembers && members.length === 0 && (
+              <p className="text-xs font-normal text-darkGrey py-1.5">No members yet.</p>
+            )}
+            {!loadingMembers && [...members].sort((a, b) => {
+              const sa = a.accept === false ? 1 : 0
+              const sb = b.accept === false ? 1 : 0
+              return sa - sb
+            }).map((m) => (
+              <div key={m.email} className="flex items-center justify-between py-1.5">
+                <div className="flex items-center gap-2.5">
+                  <Avatar className="size-7">
+                    <AvatarImage src={m.image_url || undefined} alt={m.first_name || m.email} />
+                    <AvatarFallback>{(m.first_name || m.email || '?').slice(0, 1).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex">
+                    <span className="text-xs font-normal text-darkGrey leading-none">{m.first_name || m.email}{m.accept === false ? ' (Pending)' : ''}</span>
+                  </div>
                 </div>
-                <div className="pl-6 mt-1 space-y-1">
-                  {ws.boards.map((b) => {
-                    const boardDisabled = wsChecked;
-                    const boardChecked = wsChecked || selectedBoards.has(b.id);
-                    return (
-                      <label key={b.id} className={`flex items-center gap-2 text-sm ${boardDisabled ? 'opacity-60' : ''}`}>
-                        <Checkbox
-                          checked={boardChecked}
-                          disabled={boardDisabled}
-                          onCheckedChange={() => toggleBoard(b.id)}
-                        />
-                        {b.name}
-                      </label>
-                    );
-                  })}
+                <div className="flex items-center w-20 justify-between px-2">
+                  <span className={cn("text-xs font-medium text-muted-foreground capitalize px-1 rounded-[4px]",
+                    m.role === 'admin' ? 'bg-[#D7E9FF] text-main'
+                      : m.role === 'client' ? 'bg-backgroundHover text-darkGrey' 
+                        : m.role === 'team' ? 'bg-grey text-white' : '')}>
+                    {m.role}
+                  </span>
+                  {m.role === 'admin' || m.accept === false ? null : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div className="cursor-pointer">
+                        <svg width="12" height="12" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                          <path d="M5 7L10 12L15 7" stroke="#75777C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="!min-w-[80px]" align="end">
+                        {(['client', 'team'] as const).map((roleOpt) => (
+                          <DropdownMenuItem
+                            key={roleOpt}
+                            onClick={async () => {
+                              if (!activeWorkspaceId) return;
+                              if (m.role === roleOpt) return;
+                              try {
+                                setUpdatingEmail(m.email);
+                                await workspaceHelperApi.updateWorkspaceMemberRole(activeWorkspaceId, m.email, roleOpt);
+                                setMembers((prev) => prev.map((u) => u.email === m.email ? { ...u, role: roleOpt } : u));
+                                toast.success('Role updated');
+                              } catch (e: any) {
+                                toast.error(e?.message || 'Failed to update role');
+                              } finally {
+                                setUpdatingEmail(null);
+                              }
+                            }}
+                            className={cn("cursor-pointer", 
+                              roleOpt === m.role ? 'bg-accent' : undefined)}
+                          >
+                            <span className="text-sm font-medium text-black leading-none capitalize">{roleOpt}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
-            );
-          })}
-          {workspaces.length === 0 && <p className="text-sm text-muted-foreground">No workspaces created yet.</p>}
+            ))}
+          </div>
         </div>
 
-        <DialogFooter className="pt-6">
-          <Button variant="outline" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSend} disabled={submitting} className="text-white bg-main hover:bg-main/90">
-            {submitting ? "Sending..." : "Send invite"}
+        <DialogFooter className="flex mt-2 py-2 px-4 bg-backgroundHover !justify-start">
+          <Button variant="outline" className="cursor-pointer px-3 text-sm text-black font-medium py-1.5">
+            <img src="/images/icons/link.svg" alt="copy"/>
+            Copy link 
           </Button>
         </DialogFooter>
       </DialogContent>

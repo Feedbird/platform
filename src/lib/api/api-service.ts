@@ -244,13 +244,24 @@ export const workspaceHelperApi = {
   getWorkspaceMembers: async (
     workspace_id: string
   ): Promise<{
-    users: { email: string; first_name?: string; image_url?: string }[];
+    users: { email: string; first_name?: string; image_url?: string; role?: 'admin' | 'client' | 'team'; accept?: boolean }[];
   }> => {
     const searchParams = new URLSearchParams();
     searchParams.append("workspace_id", workspace_id);
     return apiRequest<{
-      users: { email: string; first_name?: string; image_url?: string }[];
+      users: { email: string; first_name?: string; image_url?: string; role?: 'admin' | 'client' | 'team'; accept?: boolean }[];
     }>(`/workspace/members?${searchParams.toString()}`);
+  },
+  // Update a member's role within a workspace
+  updateWorkspaceMemberRole: async (
+    workspace_id: string,
+    email: string,
+    role: 'client' | 'team'
+  ): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(`/workspace/members`, {
+      method: 'PATCH',
+      body: JSON.stringify({ workspace_id, email, role })
+    });
   },
 };
 
