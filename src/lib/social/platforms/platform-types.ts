@@ -188,6 +188,8 @@ export interface PostHistory {
   pageId: string;
   publishId?: string;
   content: string;
+  title?: string;
+  description?: string;
   mediaUrls: string[];
   status: PostStatus;
   publishedAt: Date;
