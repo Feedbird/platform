@@ -34,13 +34,13 @@ function FormsHeaderContent() {
   const [loading, isLoading] = React.useState(false);
 
   const router = useRouter();
-  const { user, activeWorkspaceId } = useFeedbirdStore();
+  const { user, activeWorkspaceId, unsavedFormChanges } = useFeedbirdStore();
   const { createInitialForm } = useFormStore();
-  const { activeForm, setActiveForm, isEditing, unsavedChanges, isPreview } =
-    useForms();
+  const { activeForm, setActiveForm, isEditing, isPreview } = useForms();
 
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
   const [alertModalOpen, setAlertModalOpen] = React.useState(false);
+  const [alertType, setAlertType] = React.useState<string>("");
 
   const [formLink, setFormLink] = React.useState(
     "https://nazmijavier.feedbird.com/form/a59b8a7c-2a8f-473a-aea0-648170827cff"
@@ -102,7 +102,14 @@ function FormsHeaderContent() {
           {isEditing && activeForm ? (
             <div className="flex flex-row items-center gap-1.5">
               <span
-                onClick={() => router.push("/forms")}
+                onClick={() => {
+                  if (unsavedFormChanges) {
+                    setAlertModalOpen(true);
+                    setAlertType("navigate");
+                  } else {
+                    router.push("/forms");
+                  }
+                }}
                 className="text-[#5C5E63] text-sm font-normal cursor-pointer"
               >
                 Form
@@ -216,9 +223,10 @@ function FormsHeaderContent() {
                             activeForm.status === "published" || loading
                           }
                           onClick={() => {
-                            if (unsavedChanges) {
+                            if (unsavedFormChanges) {
                               setIsDropdownOpen(false);
                               setAlertModalOpen(true);
+                              setAlertType("publish");
                             } else {
                               handleFormPublish();
                             }
@@ -270,7 +278,11 @@ function FormsHeaderContent() {
           title="You have unsaved changes"
           onClose={() => setAlertModalOpen(false)}
           message="If you publish this form, your changes will be lost. Are you sure you want to continue?"
-          action={handleFormPublish}
+          action={
+            alertType === "publish"
+              ? handleFormPublish
+              : () => router.push("/forms")
+          }
         />
       </header>
       {activeForm && isEditing && (
