@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
 import { getUserFromDatabase } from '@/lib/supabase/user-sync';
@@ -6,15 +6,22 @@ import { getUserFromDatabase } from '@/lib/supabase/user-sync';
 export function useClerkUserSync() {
   const { user, isLoaded } = useUser();
   const { setUser, clearUser, loadUserWorkspaces } = useFeedbirdStore();
+  const didSyncRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
 
     if (user) {
       const userEmail = user.emailAddresses[0]?.emailAddress || '';
+      const userId = user.id;
+      const store = useFeedbirdStore.getState();
+
+      // Skip if we've already synced for this user in this session
+      if (didSyncRef.current && lastUserIdRef.current === userId) return;
       
       setUser({
-        id: user.id,
+        id: userId,
         email: userEmail,
         firstName: user.firstName || undefined,
         lastName: user.lastName || undefined,
@@ -46,12 +53,18 @@ export function useClerkUserSync() {
             console.error('Failed to fetch user data from database:', error);
           });
 
-        // Load user's workspaces
-        loadUserWorkspaces(userEmail).catch(error => {
-          console.error('Failed to load user workspaces:', error);
-        });
+        // Load user's workspaces only if not initialized yet
+        if (!store.workspacesInitialized) {
+          loadUserWorkspaces(userEmail).catch(error => {
+            console.error('Failed to load user workspaces:', error);
+          });
+        }
+        didSyncRef.current = true;
+        lastUserIdRef.current = userId;
       }
     } else {
+      didSyncRef.current = false;
+      lastUserIdRef.current = null;
       clearUser();
     }
   }, [user, isLoaded, setUser, clearUser, loadUserWorkspaces]);
