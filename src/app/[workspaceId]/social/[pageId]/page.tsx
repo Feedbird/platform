@@ -214,7 +214,7 @@ export default function SocialPagePosts() {
         )}
 
         {/* Load More Button */}
-        {history.length > 0 && (
+        {history.length > 0 && nextPage && (
           <div className="flex justify-center mt-6">
             <Button
               variant="outline"
@@ -454,9 +454,32 @@ function PostCard({
       {renderMedia}
 
       {/* text --------------------------------------------------------- */}
-      <p className="text-sm text-gray-800 mb-3 whitespace-pre-wrap">
-        {post.content || "(no text)"}
-      </p>
+      {post.analytics?.metadata?.platform === 'pinterest' ? (
+        <div className="mb-3">
+          {/* Pinterest Title */}
+          {post.title && (
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              {post.title}
+            </h3>
+          )}
+          {/* Pinterest Description */}
+          {post.description && (
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">
+              {post.description}
+            </p>
+          )}
+          {/* Fallback if no title or description */}
+          {!post.title && !post.description && (
+            <p className="text-sm text-gray-500 italic">
+              (no content)
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-800 mb-3 whitespace-pre-wrap">
+          {post.content || "(no text)"}
+        </p>
+      )}
 
       {/* analytics ----------------------------------------------------- */}
       {post.analytics && (post.analytics.metadata?.platform === 'facebook' || post.analytics.metadata?.platform === 'instagram' || post.analytics.metadata?.platform === 'youtube' || post.analytics.metadata?.platform === 'pinterest') && (

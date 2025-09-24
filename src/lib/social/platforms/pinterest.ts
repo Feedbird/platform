@@ -393,7 +393,6 @@ import type {
             url += `&bookmark=${encodeURIComponent(bookmark)}`;
           }
 
-          console.log(`Fetching Pinterest boards page ${pageCount + 1} with bookmark: ${bookmark || 'none'}`);
 
           const response = await pinFetch<{ 
             items: { 
@@ -423,7 +422,6 @@ import type {
           bookmark = response.bookmark;
           pageCount++;
           
-          console.log(`Fetched ${response.items.length} boards on page ${pageCount}, total so far: ${allBoards.length}, bookmark: ${bookmark}`);
 
           // Small delay between requests to be respectful to Pinterest's API
           if (bookmark !== null) {
@@ -432,7 +430,6 @@ import type {
 
         } while (bookmark !== null);
 
-        console.log(`Finished fetching Pinterest boards. Total boards: ${allBoards.length}`);
 
         return allBoards.map(board => ({
           id: board.id,
@@ -515,7 +512,6 @@ import type {
 
         // save the post id to the database
         try {
-          console.log('Saving Pinterest post ID:', postedResponse.id);
           await updatePlatformPostId(content.id!, 'pinterest', postedResponse.id, page.id);
         } catch (error) {
           console.warn('Failed to save Pinterest post ID:', error);
@@ -752,54 +748,95 @@ import type {
           throw new Error('No auth token available');
         }
 
-        // Build query parameters for Pinterest API v5
-        const queryParams = new URLSearchParams({
-          page_size: limit.toString(),
-          pin_metrics: 'true',
-          ...(nextPage && { bookmark: nextPage.toString() })
-        });
 
-        // https://developers.pinterest.com/docs/api/v5/pins-list
-        const response = await pinFetch<{
-          items: Array<{
-            id: string;
-            title?: string;
-            description?: string;
-            created_at: string;
-            creative_type?: string;
-            media?: {
-              media_type: 'image' | 'video' | 'multiple_images';
-              images?: Record<string, { url: string; width: number; height: number }>;
-              cover_image_url?: string;
-              items?: Array<{
-                images?: Record<string, { url: string; width: number; height: number }>;
-                item_type?: string;
-              }>;
-            };
-            board_id?: string;
-            board_owner?: {
-              username: string;
-            };
-            link?: string;
-            pin_metrics?: {
-              '90d'?: {
-                pin_click: number;
-                impression: number;
-                clickthrough: number;
-              };
-              lifetime_metrics?: {
-                pin_click: number;
-                impression: number;
-                clickthrough: number;
-                reaction: number;
-                comment: number;
-              };
-            };
-          }>;
-          bookmark: string | null;
-        }>(`${this.baseUrl}/pins?${queryParams}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // Use board-level pagination for better performance
+        // This approach paginates boards first, then fetches pins from those boards
+        let response: { items: any[]; bookmark: string | null };
+        
+        try {
+          // Parse pagination state from nextPage
+          let boardBookmark: string | null = null;
+          let boardStartIndex = 0;
+          
+          if (nextPage && nextPage.toString().startsWith('board-pagination-')) {
+            // Extract board pagination info from bookmark
+            const parts = nextPage.toString().replace('board-pagination-', '').split('-');
+            boardBookmark = parts[0] || null;
+            boardStartIndex = parseInt(parts[1] || '0', 10);
+          } else {
+            console.log(`[Pinterest] Starting fresh board pagination`);
+          }
+          
+          // Fetch boards with pagination (smaller page size for better performance)
+          const boardsPerPage = 5; // Process 5 boards at a time
+          let boardsUrl = `${this.baseUrl}/boards?page_size=${boardsPerPage}`;
+          if (boardBookmark) {
+            boardsUrl += `&bookmark=${encodeURIComponent(boardBookmark)}`;
+          }
+          
+          const boardsResponse = await pinFetch<{
+            items: { id: string; name: string; privacy: string }[];
+            bookmark: string | null;
+          }>(boardsUrl, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          
+          // Fetch pins from current batch of boards
+          const allPins: any[] = [];
+          for (const board of boardsResponse.items) {
+            try {
+              // Fetch recent pins from this board (limit to avoid too many pins)
+              const boardPinsResponse = await pinFetch<{
+                items: any[];
+                bookmark: string | null;
+              }>(`${this.baseUrl}/boards/${board.id}/pins?page_size=10&include_hidden_pins=true&pin_metrics=true`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              
+              allPins.push(...boardPinsResponse.items);
+              
+              // Small delay between board requests
+              await new Promise(resolve => setTimeout(resolve, 50));
+            } catch (error) {
+              console.warn(`[Pinterest] Failed to fetch pins from board ${board.id}:`, error);
+            }
+          }
+          
+          // Sort pins by creation date (newest first)
+          allPins.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          
+          // Apply pin-level pagination within current board batch
+          const endIndex = Math.min(boardStartIndex + limit, allPins.length);
+          const paginatedPins = allPins.slice(boardStartIndex, endIndex);
+                    
+          // Determine next page bookmark
+          let nextBookmark: string | null = null;
+          
+          if (endIndex < allPins.length) {
+            // More pins available in current board batch
+            nextBookmark = `board-pagination-${boardBookmark || 'start'}-${endIndex}`;
+          } else if (boardsResponse.bookmark) {
+            // More boards available, start fresh with next board batch
+            nextBookmark = `board-pagination-${boardsResponse.bookmark}-0`;
+          } else {
+            // No more boards or pins available
+            nextBookmark = null;
+          }
+          
+          response = {
+            items: paginatedPins,
+            bookmark: nextBookmark
+          };
+        } catch (error) {
+          console.warn('[Pinterest] Board-level pagination failed:', error);
+          // Fallback to empty response
+          response = {
+            items: [],
+            bookmark: null
+          };
+        }
+
 
         // Fetch board information for all pins
         const boardInfoMap = new Map<string, { name: string; privacy: string }>();
@@ -852,9 +889,12 @@ import type {
             const imgs = pin.media.images;
             const url = imgs.originals?.url
               ?? (imgs as any).original?.url
-              ?? imgs['1200x']?.url
-              ?? imgs['600x']?.url
-              ?? Object.values(imgs)[0]?.url;
+              ?? (typeof imgs['1200x'] === 'object' && imgs['1200x'] && 'url' in imgs['1200x'] ? (imgs['1200x'] as any).url : undefined)
+              ?? (typeof imgs['600x'] === 'object' && imgs['600x'] && 'url' in imgs['600x'] ? (imgs['600x'] as any).url : undefined)
+              ?? (() => {
+                const firstImg = Object.values(imgs)[0];
+                return firstImg && typeof firstImg === 'object' && 'url' in firstImg ? (firstImg as any).url : undefined;
+              })();
             if (url) mediaUrls = [url];
           } else if (pin.media?.cover_image_url) {
             // Handle video pins with cover image
@@ -880,11 +920,14 @@ import type {
           // Get board information
           const boardInfo = pin.board_id ? boardInfoMap.get(pin.board_id) : null;
 
+          const content = pin.description || pin.title || '';
           return {
             id: pin.id,
             postId: pin.id,
             pageId: page.id,
-            content: pin.description || pin.title || '',
+            title: pin.title,
+            description: pin.description,
+            content,
             mediaUrls,
             status: 'published' as const,
             publishedAt: new Date(pin.created_at),
