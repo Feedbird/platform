@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useSignUp } from '@clerk/nextjs'
+import { useAuth, useSignIn, useSignUp, useClerk } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -49,6 +49,8 @@ const PLATFORM_CONNECT_OPTIONS = {
 export default function ClientOnboardingPage() {
     const search = useSearchParams()
     const workspaceId = search.get('workspaceId') || undefined
+    const ticket = React.useMemo(() => search.get('__clerk_ticket') || search.get('ticket') || search.get('invitation_token'), [search])
+    const wasSignedOutForTicket = React.useMemo(() => search.get('signed_out') === '1', [search])
     const initialStep = React.useMemo(() => {
         const s = Number(search.get('step'))
         return Number.isFinite(s) && s >= 1 && s <= 4 ? s : 1
@@ -84,16 +86,20 @@ export default function ClientOnboardingPage() {
   const user = useFeedbirdStore(s => s.user)
 
     const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp()
+    const { isSignedIn, isLoaded: authLoaded } = useAuth()
+    const { isLoaded: signInLoaded, signIn, setActive: setActiveSignIn } = useSignIn()
+    const { signOut } = useClerk()
     const router = useRouter()
+    const isProcessingRef = React.useRef(false)
 
-    // Keep URL step param in sync when step changes
+    // Keep URL step param in sync when step changes (skip while in signed_out loading state)
     React.useEffect(() => {
+        if (wasSignedOutForTicket) return
         const params = new URLSearchParams(Array.from(search.entries()))
         params.set('step', String(step))
         const qs = params.toString()
-        // Use replace to avoid polluting history when stepping
         router.replace(`/client-onboarding?${qs}`)
-    }, [step, search, router])
+    }, [step, search, router, wasSignedOutForTicket])
 
     // Initialize invite emails once
     React.useEffect(() => {
@@ -228,24 +234,40 @@ export default function ClientOnboardingPage() {
             const result = await signUp.attemptEmailAddressVerification({ code: verificationCode })
             if (result.status === 'complete') {
                 // Ensure the user exists in Supabase before proceeding
-                const existing = await getUserFromDatabase(email)
-                if (!existing) {
-                    await syncUserToDatabase({
-                        email,
-                        first_name: firstName || undefined,
-                        last_name: lastName || undefined,
-                        image_url: undefined,
-                    }).catch(()=>{})
-                }
+                // const existing = await getUserFromDatabase(email)
+                // if (!existing) {
+                //     await syncUserToDatabase({
+                //         email,
+                //         first_name: firstName || undefined,
+                //         last_name: lastName || undefined,
+                //         image_url: undefined,
+                //     }).catch(()=>{})
+                // }
                 if (result.createdSessionId) {
                     await setActive?.({ session: result.createdSessionId })
                 }
-                // Move to step 2 explicitly and reflect this in URL
+                // After verification: if there's a ticket, sign out and come back to consume it; otherwise go to step 2 directly
                 setVerificationRequired(false)
-                setStep(2)
-                const params = new URLSearchParams(Array.from(search.entries()))
-                params.set('step', '2')
-                router.replace(`/client-onboarding?${params.toString()}`)
+                if (ticket) {
+                    try {
+                        const current = typeof window !== 'undefined' ? new URL(window.location.href) : null
+                        if (current) {
+                            current.searchParams.set('signed_out', '1')
+                            await signOut({ redirectUrl: current.toString() })
+                            return
+                        } else {
+                            await signOut({ redirectUrl: window.location.href })
+                            return
+                        }
+                    } catch (e) {
+                        console.log('signOut error after verification', e)
+                    }
+                } else {
+                    setStep(2)
+                    const params = new URLSearchParams(Array.from(search.entries()))
+                    params.set('step', '2')
+                    router.replace(`/client-onboarding?${params.toString()}`)
+                }
             } else {
                 setSignUpError('Verification failed. Please check the code and try again.')
             }
@@ -622,6 +644,97 @@ export default function ClientOnboardingPage() {
             case 4: return renderStep4()
             default: return renderStep1()
         }
+    }
+
+    // Accept-invite style ticket consumption flow
+    React.useEffect(() => {
+        const handleTicketSignIn = async () => {
+            if (!authLoaded || !signIn || !ticket) return
+            if (isProcessingRef.current) return
+            isProcessingRef.current = true
+            if (isSignedIn) {
+                try {
+                    const current = typeof window !== 'undefined' ? new URL(window.location.href) : null
+                    if (current) {
+                        current.searchParams.set('signed_out', '1')
+                        await signOut({ redirectUrl: current.toString() })
+                        return
+                    } else {
+                        await signOut({ redirectUrl: window.location.href })
+                        return
+                    }
+                } catch (e) {
+                    console.log('signOut error before ticket sign-in', e)
+                }
+            }
+
+            // Only attempt ticket sign-in if we explicitly signed the user out first
+            if (!wasSignedOutForTicket || isSignedIn) return
+
+            try {
+                const resIn: any = await signIn.create({ strategy: 'ticket', ticket })
+                if (resIn?.status === 'complete' && resIn?.createdSessionId) {
+                    // Do not await – schedule redirect immediately to avoid races where the promise never resolves in this effect tick
+                    setActiveSignIn({ session: resIn.createdSessionId }).catch(() => {})
+                    setStep(2)
+                    const params = new URLSearchParams(Array.from(search.entries()))
+                    params.set('step', '2')
+                    params.delete('signed_out')
+                    params.delete('__clerk_ticket')
+                    params.delete('ticket')
+                    params.delete('invitation_token')
+                    const target = `/client-onboarding?${params.toString()}`
+                    if (typeof window !== 'undefined') {
+                        setTimeout(() => { window.location.replace(target) }, 0)
+                        return
+                    }
+                }
+            } catch {
+                console.log('ticket signIn.create error')
+            }
+            // Fallback: client-side navigate to step 2
+            const params = new URLSearchParams(Array.from(search.entries()))
+            params.set('step', '2')
+            params.delete('signed_out')
+            params.delete('__clerk_ticket')
+            params.delete('ticket')
+            params.delete('invitation_token')
+            router.replace(`/client-onboarding?${params.toString()}`)
+        }
+
+        handleTicketSignIn()
+    }, [authLoaded, isSignedIn, wasSignedOutForTicket, router, signIn, setActiveSignIn, signOut, ticket, search, setStep])
+
+    // Post-activation cleanup: if session became active after ticket sign-in, advance to step 2 and clean URL
+    React.useEffect(() => {
+        if (!authLoaded) return
+        if (!wasSignedOutForTicket) return
+        if (!isSignedIn) return
+        setStep(2)
+        const params = new URLSearchParams(Array.from(search.entries()))
+
+        params.set('step', '2')
+        params.delete('signed_out')
+        params.delete('__clerk_ticket')
+        params.delete('ticket')
+        params.delete('invitation_token')
+        router.replace(`/client-onboarding?${params.toString()}`)
+    }, [authLoaded, wasSignedOutForTicket, isSignedIn, search, router])
+
+    if (wasSignedOutForTicket) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        Completing authentication
+                    </h2>
+                    <p className="text-gray-600">
+                        Please wait while we finish your authentication...
+                    </p>
+                </div>
+            </div>
+        )
     }
 
     return (

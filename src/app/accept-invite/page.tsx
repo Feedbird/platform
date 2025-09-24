@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useAuth, useSignIn, useSignUp } from '@clerk/nextjs'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAuth, useSignIn, useSignUp, useClerk } from '@clerk/nextjs'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -293,6 +293,8 @@ export default function AcceptInvitePage() {
   const { isSignedIn, isLoaded: authLoaded } = useAuth()
   const { isLoaded: signInLoaded, signIn, setActive: setActiveSignIn } = useSignIn()
   const { isLoaded: signUpLoaded, signUp, setActive: setActiveSignUp } = useSignUp()
+  const { signOut } = useClerk()
+  const isProcessingRef = useRef(false)
 
   const [view, setView] = useState<'signup' | 'signin'>('signup')
 
@@ -345,26 +347,51 @@ export default function AcceptInvitePage() {
   const workspaceId = searchParams.get('workspaceId') || undefined
   const ticket = searchParams.get('__clerk_ticket') || searchParams.get('ticket') || searchParams.get('invitation_token')
   const status = searchParams.get('__clerk_status') || searchParams.get('status')
+  const wasSignedOutForTicket = searchParams.get('signed_out') === '1'
   // If already authenticated, go to workspace directly
   useEffect(() => {
     const handleAcceptInvite = async () => {
-    if (!authLoaded || !signIn || !ticket) return
-    if (isSignedIn) {
+      if (!authLoaded || !signIn || !ticket) return
+      if (isProcessingRef.current) return
+      isProcessingRef.current = true
+      if (isSignedIn) {
+        try {
+          // Append a flag so we know to consume the ticket on reload
+          const current = typeof window !== 'undefined' ? new URL(window.location.href) : null
+          if (current) {
+            current.searchParams.set('signed_out', '1')
+            await signOut({ redirectUrl: current.toString() })
+            return;
+          } else {
+            await signOut({ redirectUrl: window.location.href })
+            return;
+          }
+          return
+        } catch (e) {
+          console.log('signOut error before ticket sign-in', e)
+        }
+      }
+
+      // Only attempt ticket sign-in if we explicitly signed the user out first
+      if (!wasSignedOutForTicket || isSignedIn) return
+
       try {
-        // Try to complete via sign-in ticket first
         const resIn: any = await signIn.create({ strategy: 'ticket', ticket })
         if (resIn?.status === 'complete' && resIn?.createdSessionId) {
           await setActiveSignIn({ session: resIn.createdSessionId })
         }
-      } catch {}
-      if (workspaceId) {
-        router.replace(`/${workspaceId}`)
+      } catch {
+        console.log('ticket signIn.create error')
       }
-      else router.replace('/')
+      if (workspaceId) {
+        window.location.replace(`/${workspaceId}`)
+      } else {
+        window.location.replace('/')
+      }
     }
-  }
-  handleAcceptInvite()
-  }, [authLoaded, isSignedIn, workspaceId, router, signIn, setActiveSignIn])
+
+    handleAcceptInvite()
+  }, [authLoaded, isSignedIn, wasSignedOutForTicket, workspaceId, router, signIn, setActiveSignIn, signOut])
 
   // Form state (only used in signin variant)
   const [email, setEmail] = useState('')
@@ -437,6 +464,22 @@ export default function AcceptInvitePage() {
       const res = await signIn.create({ identifier: email, password })
       if (res.status === 'complete') {
         await setActiveSignIn({ session: res.createdSessionId })
+        // If an invite ticket is present, sign out and let the ticket flow consume it
+        if (ticket) {
+          try {
+            const current = typeof window !== 'undefined' ? new URL(window.location.href) : null
+            if (current) {
+              current.searchParams.set('signed_out', '1')
+              await signOut({ redirectUrl: current.toString() })
+              return
+            } else {
+              await signOut({ redirectUrl: window.location.href })
+              return
+            }
+          } catch (e) {
+            console.log('signOut error before ticket sign-in', e)
+          }
+        }
         if (workspaceId) router.replace(`/${workspaceId}`)
         else router.replace('/')
       }
@@ -474,7 +517,19 @@ export default function AcceptInvitePage() {
 
 
 
-  return (
+  return wasSignedOutForTicket ? (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          Completing authentication
+        </h2>
+        <p className="text-gray-600">
+          Please wait while we finish your authentication...
+        </p>
+      </div>
+    </div>
+  ) : (
     <div className="min-h-screen flex">
       {/* Left Side */}
       <div className="flex-[11] flex flex-col items-center bg-white px-8 py-8 pt-16">

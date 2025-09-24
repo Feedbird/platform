@@ -122,34 +122,49 @@ export async function POST(req: NextRequest) {
         }
       }
     } else if (eventType === 'organizationInvitation.accepted') {
-      console.log('🔔 organizationInvitation.accepted')
-      // Keep DB in sync when an invitation is accepted in Clerk
-      // try {
-      //   const orgId = evt?.data?.organization_id || evt?.data?.organizationId
-      //   const email = evt?.data?.email_address || evt?.data?.emailAddress
-      //   if (orgId && email) {
-      //     const { data: wsRow, error: wsErr } = await supabase
-      //       .from('workspaces')
-      //       .select('id')
-      //       .eq('clerk_organization_id', orgId)
-      //       .single()
-      //     if (!wsErr && wsRow?.id) {
-      //       // Ensure a members row exists for workspace-level access
-      //       const { data: existing, error: exErr } = await supabase
-      //         .from('members')
-      //         .select('id')
-      //         .eq('email', email as string)
-      //         .eq('workspace_id', wsRow.id)
-      //         .is('board_id', null)
-      //         .maybeSingle()
-      //       if (!existing && !exErr) {
-      //         await supabase.from('members').insert([{ email, workspace_id: wsRow.id, board_id: null, is_workspace: true }])
-      //       }
-      //     }
-      //   }
-      // } catch (invAcceptedErr) {
-      //   console.warn('⚠️ Failed to sync on organizationInvitation.accepted:', invAcceptedErr)
-      // }
+      console.log('🔔 organizationInvitation.accepted', evt?.data)
+      try {
+        const orgId = evt?.data?.organization_id || evt?.data?.organizationId
+        const email = evt?.data?.email_address || evt?.data?.emailAddress
+        if (!orgId || !email) {
+          console.warn('organizationInvitation.accepted missing orgId or email', { orgId, email })
+        } else {
+          const { data: wsRow, error: wsErr } = await supabase
+            .from('workspaces')
+            .select('id')
+            .eq('clerk_organization_id', orgId)
+            .single()
+          if (wsErr) {
+            console.error('Workspace lookup failed', wsErr)
+          } else if (wsRow?.id) {
+            console.log('Workspace found', wsRow.id)
+            const { data: userRow, error: userErr } = await supabase
+              .from('users')
+              .select('id')
+              .eq('email', email)
+              .single()
+            if (userErr) {
+              console.error('User lookup failed', userErr)
+            } else if (userRow?.id) {
+              console.log('User found', userRow.id)
+              const { error: actErr } = await supabase
+                .from('activities')
+                .insert({
+                  workspace_id: wsRow.id,
+                  post_id: null,
+                  type: 'workspace_invited_accepted',
+                  actor_id: userRow.id,
+                  metadata: { email, organization_id: orgId, workspaceId: wsRow.id },
+                })
+              if (actErr) {
+                console.error('Failed to insert activity for invite acceptance', actErr)
+              }
+            }
+          }
+        }
+      } catch (invAcceptedErr) {
+        console.warn('⚠️ Failed to process organizationInvitation.accepted:', invAcceptedErr)
+      }
     } else if (eventType === 'organizationMembership.created') {
       console.log('🔔 organizationMembership.created')
       // Backfill our members table when Clerk creates a membership

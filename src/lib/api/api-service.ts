@@ -2301,7 +2301,8 @@ export const activityApi = {
       | "failed_publishing"
       | "comment"
       | "workspace_invited_sent"
-      | "board_invited_sent";
+      | "board_invited_sent"
+      | "workspace_invited_accepted";
     metadata?: any;
   }) => {
     return apiRequest<any>("/post/activity", {

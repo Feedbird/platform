@@ -45,6 +45,7 @@ interface Notification {
 	type: string
 	timestamp: Date
 	read: boolean
+	workspaceId?: string
 	metadata?: {
 		postId?: string
 		post?: Post
@@ -189,7 +190,8 @@ export default function NotificationsPane() {
 			id: `activity-${activity.id}`,
 			type: activity.type,
 			timestamp: new Date(activity.created_at),
-			read: !isUnread, // Set read to opposite of isUnread
+			read: !isUnread, // Set read to opposite of 
+			workspaceId: activity.workspace_id,
 			metadata: {
 				postId: activity.post_id,
 				post: activity.post,
@@ -551,6 +553,15 @@ export default function NotificationsPane() {
 						<span className="text-darkGrey"> board</span>
 					</>
 				)
+			case 'workspace_invited_accepted':
+				return (
+					<>
+						<span className="text-black">{actor}</span>
+						<span className="text-darkGrey"> accepted the invitation to join the </span>
+						<span className="text-black">{getWorkspaceName(workspaceId)}</span>
+						<span className="text-darkGrey"> workspace.</span>
+					</>
+				)
 			default:
 				return (
 					<>
@@ -778,10 +789,10 @@ export default function NotificationsPane() {
 														{/* Icon/Avatar */}
 														<div className="flex-shrink-0 mr-3 relative">
 															{/* Show workspace/board icon for invitation activities */}
-															{(notification.type === 'workspace_invited_sent' || notification.type === 'board_invited_sent') ? (
-																notification.type === 'workspace_invited_sent' ? (
+															{(notification.type === 'workspace_invited_sent' || notification.type === 'workspace_invited_accepted' || notification.type === 'board_invited_sent') ? (
+																notification.type === 'workspace_invited_sent' || notification.type === 'workspace_invited_accepted' ? (
 																	(() => {
-																		const workspace = workspaces.find(w => w.id === notification.metadata?.workspaceId)
+																		const workspace = workspaces.find(w => w.id === notification.workspaceId)
 																		const workspaceName = workspace?.name || 'Workspace'
 																		const hasLogo = workspace?.logo
 																		
@@ -867,7 +878,7 @@ export default function NotificationsPane() {
 																			notification.type, 
 																			notification.metadata.authorName,
 																			notification.metadata.invitedEmail,
-																			notification.metadata.workspaceId,
+																			notification.workspaceId,
 																			notification.metadata.boardId
 																		) : 
 																		""

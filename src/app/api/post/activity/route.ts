@@ -6,7 +6,7 @@ import { z } from 'zod'
 const CreateActivitySchema = z.object({
   workspace_id: z.string().uuid('Invalid workspace ID'),
   post_id: z.string().uuid('Invalid post ID').optional(),
-  type: z.enum(['revision_request','revised','approved','scheduled','published','failed_publishing', 'comment', 'workspace_invited_sent', 'board_invited_sent']),
+  type: z.enum(['revision_request','revised','approved','scheduled','published','failed_publishing', 'comment', 'workspace_invited_sent', 'board_invited_sent', 'workspace_invited_accepted']),
   actor_id: z.string().min(1, 'Actor ID is required'),
   metadata: z.any().optional()
 })

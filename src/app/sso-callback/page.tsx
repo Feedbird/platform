@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAuth, useSignIn, useSignUp, useClerk } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -11,6 +11,7 @@ export default function SSOCallbackPage() {
   const { signOut } = useClerk()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const isProcessingRef = useRef(false)
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -18,37 +19,28 @@ export default function SSOCallbackPage() {
       // Wait for all auth resources to be loaded
       if (!authLoaded || !signInLoaded || !signUpLoaded) return
 
-      console.log('authLoaded', authLoaded)
-      console.log('signInLoaded', signInLoaded)
-      console.log('signUpLoaded', signUpLoaded)
+      // Prevent concurrent processing within the same mount
+      if (isProcessingRef.current) return
+      isProcessingRef.current = true
 
       try {
         const workspaceId = searchParams?.get('workspaceId')
         const ticket = searchParams?.get('__clerk_ticket') || searchParams?.get('ticket') || searchParams?.get('invitation_token')
         const status = searchParams.get('__clerk_status')
 
-        console.log('ticket', ticket)
-        console.log('status', status)
-
         // If Clerk returned a ticket, complete the flow
         if (ticket) {
-          // If a session already exists, sign out first so the ticket can be consumed
+          // If already signed in, sign out first so the ticket can be consumed cleanly
           if (isSignedIn) {
-            try {
-              await signOut({ redirectUrl: window.location.href })
-              return
-            } catch (e) {
-              console.error('Sign out before ticket exchange failed', e)
-            }
+            await signOut({ redirectUrl: window.location.href })
+            return
           }
 
-         
-            // Fallback: attempt sign-in by default
-            const res = await signIn.create({ strategy: 'ticket', ticket })
-            if (res?.status === 'complete' && res.createdSessionId) {
-              await setActiveSignIn({ session: res.createdSessionId })
-            }
-          
+          // Attempt sign-in using the ticket
+          const res = await signIn.create({ strategy: 'ticket', ticket })
+          if (res?.status === 'complete' && res.createdSessionId) {
+            await setActiveSignIn({ session: res.createdSessionId })
+          }
 
           router.replace(workspaceId ? `/${encodeURIComponent(workspaceId)}` : '/')
           return
@@ -86,7 +78,7 @@ export default function SSOCallbackPage() {
       } catch (err: any) {
         console.log('err', err)
         // If the error indicates an existing session, sign out and retry via redirect
-        const message = err?.errors?.[0]?.message || ''
+        const message = err?.errors?.[0]?.message || err?.message || (typeof err === 'string' ? err : '')
         if (typeof message === 'string' && message.toLowerCase().includes('already signed in')) {
           try {
             await signOut({ redirectUrl: window.location.href })
@@ -113,6 +105,9 @@ export default function SSOCallbackPage() {
         } else {
           router.replace('/signin?notice=not-registered')
         }
+      } finally {
+        // Allow re-processing if we remain on this page
+        isProcessingRef.current = false
       }
     }
 
