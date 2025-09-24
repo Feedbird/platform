@@ -256,6 +256,64 @@ function PostCard({
         {post.mediaUrls.map((url, idx) => {
           const isVideo  = post?.analytics?.metadata?.platform === 'instagram' && post?.analytics?.metadata?.mediaType?.toLowerCase() === 'video' ? true : isVideoUrl(url);
           
+          /* ——— PINTEREST MEDIA ——— */
+          if (post.analytics?.metadata?.platform === 'pinterest') {
+            const isCarousel = post.analytics?.metadata?.mediaType === 'multiple_images';
+            const isVideo = post.analytics?.metadata?.mediaType === 'video';
+            
+            if (isVideo) {
+              return (
+                <div key={idx} className="relative w-full h-auto">
+                  <img
+                    src={url}
+                    alt={`Pinterest video thumbnail ${idx + 1}`}
+                    width={600}
+                    height={400}
+                    className="object-cover rounded-md"
+                    style={{ maxHeight: 400, width: "100%", height: "auto" }}
+                    loading="lazy"
+                    onError={(e) => {
+                      console.error('Failed to load Pinterest video thumbnail:', url);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  {/* Video indicator */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-black/50 rounded-full p-3">
+                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
+              <div key={idx} className="relative w-full h-auto">
+                <img
+                  src={url}
+                  alt={`Pinterest ${isCarousel ? 'carousel' : 'pin'} ${idx + 1}`}
+                  width={600}
+                  height={400}
+                  className="object-cover rounded-md"
+                  style={{ maxHeight: 400, width: "100%", height: "auto" }}
+                  loading="lazy"
+                  onError={(e) => {
+                    console.error('Failed to load Pinterest image:', url);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                {/* Carousel indicator */}
+                {isCarousel && post.mediaUrls.length > 1 && (
+                  <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-md text-xs">
+                    {idx + 1}/{post.mediaUrls.length}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           /* ——— LINKEDIN MEDIA (using metadata) ——— */
           if (post.analytics?.metadata?.platform === 'linkedin' || post.analytics?.metadata?.platform === 'google') {
             const mediaType = post.analytics?.metadata?.mediaTypes?.[idx];
@@ -401,7 +459,7 @@ function PostCard({
       </p>
 
       {/* analytics ----------------------------------------------------- */}
-      {post.analytics && (post.analytics.metadata?.platform === 'facebook' || post.analytics.metadata?.platform === 'instagram' || post.analytics.metadata?.platform === 'youtube') && (
+      {post.analytics && (post.analytics.metadata?.platform === 'facebook' || post.analytics.metadata?.platform === 'instagram' || post.analytics.metadata?.platform === 'youtube' || post.analytics.metadata?.platform === 'pinterest') && (
         <div className="mb-3 p-3 bg-gray-50 rounded-md">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium text-gray-700">Analytics</h4>
@@ -489,6 +547,35 @@ function PostCard({
                 </div>
               </>
             )}
+
+            {/* Pinterest analytics */}
+            {post.analytics.metadata?.platform === 'pinterest' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3 text-gray-500" />
+                    <span className="text-gray-600">Views</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.views?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <svg className="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                    </svg>
+                    <span className="text-gray-600">Clicks</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.clicks?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 text-red-500" />
+                    <span className="text-gray-600">Engagement</span>
+                  </div>
+                  <span className="font-medium">{post.analytics.engagement?.toLocaleString() || 0}</span>
+                </div>
+              </>
+            )}
           </div>
       
         </div>
@@ -506,6 +593,35 @@ function PostCard({
           <p className="text-xs text-blue-600 whitespace-pre-wrap">
             {post.analytics.metadata.description}
           </p>
+        </div>
+      )}
+
+      {/* Pinterest board information display */}
+      {post.analytics?.metadata?.platform === 'pinterest' && post.analytics.metadata?.board && (
+        <div className="mb-3 p-3 bg-red-50 rounded-md">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="h-4 w-4 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 19c-3.859 0-7-3.141-7-7s3.141-7 7-7 7 3.141 7 7-3.141 7-7 7zm0-12c-2.757 0-5 2.243-5 5s2.243 5 5 5 5-2.243 5-5-2.243-5-5-5z"/>
+            </svg>
+            <h4 className="text-sm font-medium text-red-700">Pinterest Board</h4>
+            {post.analytics.metadata.board.isSecret && (
+              <svg className="h-3 w-3 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+              </svg>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-red-800">{post.analytics.metadata.board.name}</span>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              post.analytics.metadata.board.isSecret 
+                ? 'bg-yellow-100 text-yellow-800' 
+                : post.analytics.metadata.board.isPrivate 
+                  ? 'bg-gray-100 text-gray-800'
+                  : 'bg-green-100 text-green-800'
+            }`}>
+              {post.analytics.metadata.board.privacy?.toLowerCase() || 'public'}
+            </span>
+          </div>
         </div>
       )}
 

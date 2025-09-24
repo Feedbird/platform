@@ -8,6 +8,7 @@ import type {
     SocialAccount,
     SocialPage,
     PostHistory,
+    PostHistoryResponse,
     SocialPlatformConfig,
     PostContent,
     PublishOptions
@@ -43,7 +44,7 @@ import type {
       analytics: true,
       deletion: true,
       mediaTypes: ['image', 'video'],
-      maxMediaCount: 1, // Pinterest only supports single media per pin
+      maxMediaCount: 10, // Pinterest supports multiple images in a single pin (up to 10)
       characterLimits: {
         content: 500, // Pinterest description limit
         title: 100,  // Board title limit
@@ -728,71 +729,289 @@ import type {
       };
     }
   
-    /* 6 – latest pins from profile */
-    async getPostHistory(profile: SocialPage, limit = 20): Promise<PostHistory[]> {
+    /* 6 – latest pins from profile with proper pagination */
+    async getPostHistory(page: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
       if (IS_BROWSER) {
         const res = await fetch('/api/social/pinterest/history', {
-          method :'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body   : JSON.stringify({ profile, limit }),
-        })
-        if (!res.ok) throw new Error(await res.text())
-        return res.json()
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page,
+            limit,
+            ...(nextPage && { nextPage }),
+          }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
       }
-  
-      // Get user's pins (not board-specific)
-      const pins = await pinFetch<{
-        items:{
-          id:string; title:string; created_at:string;
-          media?:{images?:Record<string,{url:string}>};
-        }[]
-      }>(
-        `${this.baseUrl}/pins?page_size=${limit}`,
-        { headers:{ Authorization:`Bearer ${profile.authToken || ''}` } },
-      )
-  
-      return pins.items.map(p => {
-        /* ------- pick the best available image URL ------------- */
-        let url: string | undefined
-        if (p.media?.images) {
-          const imgs = p.media.images
-          url = imgs.originals?.url       // preferred key
-             ?? (imgs as any).original?.url // legacy spelling
-             ?? Object.values(imgs)[0]?.url // fallback first size
+
+      try {
+        // Get secure token from database (like other platforms)
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
         }
-  
-        return {
-          id         : p.id,
-          postId     : p.id,
-          pageId     : profile.id,
-          content    : p.title,
-          mediaUrls  : url ? [url] : [],
-          status     : 'published',
-          publishedAt: new Date(p.created_at),
+
+        // Build query parameters for Pinterest API v5
+        const queryParams = new URLSearchParams({
+          page_size: limit.toString(),
+          pin_metrics: 'true',
+          ...(nextPage && { bookmark: nextPage.toString() })
+        });
+
+        // https://developers.pinterest.com/docs/api/v5/pins-list
+        const response = await pinFetch<{
+          items: Array<{
+            id: string;
+            title?: string;
+            description?: string;
+            created_at: string;
+            creative_type?: string;
+            media?: {
+              media_type: 'image' | 'video' | 'multiple_images';
+              images?: Record<string, { url: string; width: number; height: number }>;
+              cover_image_url?: string;
+              items?: Array<{
+                images?: Record<string, { url: string; width: number; height: number }>;
+                item_type?: string;
+              }>;
+            };
+            board_id?: string;
+            board_owner?: {
+              username: string;
+            };
+            link?: string;
+            pin_metrics?: {
+              '90d'?: {
+                pin_click: number;
+                impression: number;
+                clickthrough: number;
+              };
+              lifetime_metrics?: {
+                pin_click: number;
+                impression: number;
+                clickthrough: number;
+                reaction: number;
+                comment: number;
+              };
+            };
+          }>;
+          bookmark: string | null;
+        }>(`${this.baseUrl}/pins?${queryParams}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Fetch board information for all pins
+        const boardInfoMap = new Map<string, { name: string; privacy: string }>();
+        
+        // Get unique board IDs
+        const boardIds = [...new Set(response.items.map(pin => pin.board_id).filter((id): id is string => Boolean(id)))];
+        
+        // Fetch board details for each unique board
+        for (const boardId of boardIds) {
+          try {
+            const boardResponse = await pinFetch<{
+              id: string;
+              name: string;
+              privacy: 'PUBLIC' | 'PRIVATE' | 'SECRET';
+            }>(`${this.baseUrl}/boards/${boardId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            boardInfoMap.set(boardId, {
+              name: boardResponse.name,
+              privacy: boardResponse.privacy
+            });
+          } catch (error) {
+            console.warn(`[Pinterest] Failed to fetch board info for ${boardId}:`, error);
+            // Set fallback info
+            boardInfoMap.set(boardId, {
+              name: 'Unknown Board',
+              privacy: 'PUBLIC'
+            });
+          }
         }
-      })
+
+        const posts = response.items.map(pin => {
+          // Extract media URLs based on media type
+          let mediaUrls: string[] = [];
+          
+          if (pin.media?.media_type === 'multiple_images' && pin.media?.items) {
+            // Handle carousel pins - extract all images
+            pin.media.items.forEach((item: any) => {
+              if (item.images) {
+                const imgs = item.images;
+                const url = imgs['1200x']?.url
+                  ?? imgs['600x']?.url
+                  ?? imgs['400x300']?.url
+                  ?? (Object.values(imgs)[0] as any)?.url;
+                if (url) mediaUrls.push(url);
+              }
+            });
+          } else if (pin.media?.images) {
+            // Handle single image/video pins
+            const imgs = pin.media.images;
+            const url = imgs.originals?.url
+              ?? (imgs as any).original?.url
+              ?? imgs['1200x']?.url
+              ?? imgs['600x']?.url
+              ?? Object.values(imgs)[0]?.url;
+            if (url) mediaUrls = [url];
+          } else if (pin.media?.cover_image_url) {
+            // Handle video pins with cover image
+            mediaUrls = [pin.media.cover_image_url];
+          }
+
+          // Extract analytics if available
+          const analytics: PostHistory['analytics'] = {};
+          if (pin.pin_metrics?.lifetime_metrics) {
+            const metrics = pin.pin_metrics.lifetime_metrics;
+            analytics.views = metrics.impression;
+            analytics.clicks = metrics.pin_click;
+            analytics.engagement = metrics.reaction + metrics.comment;
+            analytics.comments = metrics.comment;
+            analytics.metadata = {
+              platform: 'pinterest',
+              clickthrough_rate: metrics.clickthrough,
+              reactions: metrics.reaction,
+              comments: metrics.comment
+            };
+          }
+
+          // Get board information
+          const boardInfo = pin.board_id ? boardInfoMap.get(pin.board_id) : null;
+
+          return {
+            id: pin.id,
+            postId: pin.id,
+            pageId: page.id,
+            content: pin.description || pin.title || '',
+            mediaUrls,
+            status: 'published' as const,
+            publishedAt: new Date(pin.created_at),
+            analytics: {
+              ...analytics,
+              metadata: {
+                platform: 'pinterest',
+                mediaType: pin.media?.media_type || 'image',
+                creativeType: pin.creative_type,
+                board: boardInfo ? {
+                  id: pin.board_id,
+                  name: boardInfo.name,
+                  privacy: boardInfo.privacy,
+                  isSecret: boardInfo.privacy === 'SECRET',
+                  isPrivate: boardInfo.privacy === 'PRIVATE'
+                } : null,
+                ...analytics.metadata
+              }
+            }
+          };
+        });
+
+        return { 
+          posts, 
+          nextPage: response.bookmark || undefined 
+        };
+      } catch (error) {
+        console.error('[Pinterest] Failed to get post history:', error);
+        throw error;
+      }
     }
   
     /* 7 – delete pin */
-    async deletePost(profile: SocialPage, pinId: string) {
+    async deletePost(page: SocialPage, postId: string): Promise<void> {
       if (IS_BROWSER) {
         const res = await fetch('/api/social/pinterest/delete', {
-          method :'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body   : JSON.stringify({ profile, pinId }),
-        })
-        if (!res.ok) throw new Error(await res.text())
-        return
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page, postId }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return;
       }
-  
-      await pinFetch(
-        `${this.baseUrl}/pins/${encodeURIComponent(pinId)}`, {
-          method:'DELETE',
-          headers:{ Authorization:`Bearer ${profile.authToken || ''}` },
-        })
+
+      try {
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        // https://developers.pinterest.com/docs/api/v5/pins-delete
+        const response = await fetch(
+          `${this.baseUrl}/pins/${encodeURIComponent(postId)}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Pinterest API error: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+
+        // Pinterest delete returns 204 No Content, so no JSON to parse
+
+        console.log('[Pinterest] Successfully deleted post:', postId);
+      } catch (error) {
+        console.error('[Pinterest] Failed to delete post:', error);
+        throw new Error(`Failed to delete Pinterest post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
   
-    async getPostAnalytics(){ return {} } // not exposed in v5
+    async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> {
+      if (IS_BROWSER) {
+        const res = await fetch('/api/social/pinterest/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page, postId }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+
+      try {
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        // https://developers.pinterest.com/docs/api/v5/pins-analytics
+        const response = await pinFetch<{
+          '90d': {
+            pin_click: number;
+            impression: number;
+            clickthrough: number;
+          };
+          lifetime_metrics: {
+            pin_click: number;
+            impression: number;
+            clickthrough: number;
+            reaction: number;
+            comment: number;
+          };
+        }>(`${this.baseUrl}/pins/${encodeURIComponent(postId)}/analytics`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const metrics = response.lifetime_metrics || response['90d'];
+        if (!metrics) {
+          return {};
+        }
+
+        return {
+          views: metrics.impression,
+          clicks: metrics.pin_click,
+          engagement: metrics.reaction + metrics.comment,
+          metadata: {
+            clickthrough_rate: metrics.clickthrough,
+            reactions: metrics.reaction,
+            comments: metrics.comment
+          }
+        };
+      } catch (error) {
+        console.error('[Pinterest] Failed to get post analytics:', error);
+        return {};
+      }
+    }
   
     async createPost(
       page: SocialPage,

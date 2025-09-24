@@ -1,24 +1,41 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
+import { NextRequest, NextResponse } from "next/server";
 import { getPlatformOperations } from "@/lib/social/platforms";
-
-const ops = getPlatformOperations("pinterest")!;
-
-const Body = z.object({
-  board: z.any(),
-  pinId: z.string().min(1),
-});
 
 export async function POST(req: NextRequest) {
   try {
-    const body = Body.parse(await req.json());
-    console.log("[API] delete → body", body);
+    const { page, postId } = await req.json();
 
-    await ops.deletePost(body.board, body.pinId);
-    return new Response("OK");
+    if (!page || !postId) {
+      return NextResponse.json(
+        { error: "Missing required fields: page, postId" },
+        { status: 400 }
+      );
+    }
 
-  } catch (e: any) {
-    console.error("[API] delete error\n", e);
-    return new Response(e.message ?? "Internal error", { status: 500 });
+    const ops = getPlatformOperations("pinterest");
+    if (!ops) {
+      return NextResponse.json(
+        { error: "Pinterest platform operations not available" },
+        { status: 400 }
+      );
+    }
+
+    await ops.deletePost(page, postId);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Pinterest delete error:", error);
+    
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to delete Pinterest post" },
+      { status: 500 }
+    );
   }
 }
