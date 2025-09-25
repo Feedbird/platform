@@ -23,8 +23,8 @@ export default function FormEditorSideBar({
   formFields,
   formId,
 }: FormEditorSideBarProps) {
-  const { activeWorkspaceId } = useFeedbirdStore();
-  const { setUnsavedChanges, activeForm } = useForms();
+  const { activeWorkspaceId, setUnsavedFormChanges } = useFeedbirdStore();
+  const { activeForm } = useForms();
   const [loading, isLoading] = React.useState(false);
   const { filesToUpload } = useFormEditor();
 
@@ -36,7 +36,7 @@ export default function FormEditorSideBar({
         await handleImageUpload();
       }
       toast.success("Form fields updated");
-      setUnsavedChanges(false);
+      setUnsavedFormChanges(false);
     } catch (e) {
       toast.error("Failed to update form fields. Please try again.");
     } finally {

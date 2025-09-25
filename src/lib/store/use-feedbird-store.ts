@@ -345,6 +345,9 @@ export interface FeedbirdStore {
   /** Current channel being viewed */
   currentChannelId?: string;
 
+  /** Form related Out of context */
+  unsavedFormChanges: boolean;
+
   // User management
   setUser: (user: User | null) => void;
   updateUserNotificationSettings: (notificationSettings: NotificationSettings[]) => void;
@@ -443,6 +446,8 @@ export interface FeedbirdStore {
     revisionRequested?: boolean
   ) => Promise<string>;
   addActivity: (act: Omit<Activity, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  // Forms
+  setUnsavedFormChanges: (unsaved: boolean) => void;
 }
 
 const defaultPlatformNav: NavLink[] = [
@@ -748,6 +753,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         channelMessagesByChannelId: {},
         syncingPostHistory: {},
         nextPage: {},
+        unsavedFormChanges: false,
         // getters
         getActiveWorkspace: () => {
           const workspace = get().workspaces.find((w) => w.id === get().activeWorkspaceId);
@@ -1497,7 +1503,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           }
         },
 
-
+        // Forms
+        setUnsavedFormChanges: (unsaved: boolean) => {
+          set(() => ({ unsavedFormChanges: unsaved }));
+        },
         getPageCounts: () => {
           const ws = get().getActiveWorkspace();
           const platforms = [

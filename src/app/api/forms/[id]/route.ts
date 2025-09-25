@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FormHandler } from "./handlers";
 import { ApiHandlerError } from "../../shared";
+import { FormFieldsHandler } from "../fields/handler";
 
 export async function GET(
   req: NextRequest,
@@ -17,7 +18,15 @@ export async function GET(
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const includeFields = searchParams.get("include_fields") === "1";
+
     const data = await FormHandler.fetchFormById(formId);
+
+    if (includeFields) {
+      const fields = await FormFieldsHandler.fetchFormFields(formId);
+      (data as any).formFields = fields;
+    }
 
     return NextResponse.json({ data });
   } catch (error) {

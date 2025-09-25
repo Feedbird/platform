@@ -1,9 +1,11 @@
 import { CanvasFormField } from "@/components/forms/FormCanvas";
+import { Form } from "@/lib/supabase/client";
 import React, { useContext } from "react";
 
 interface FormEditorState {
   formFields: CanvasFormField[];
   originalFields: CanvasFormField[];
+  originalForm: Form | null;
   filesToUpload: { path: string; file: File }[];
 }
 
@@ -13,6 +15,7 @@ interface FormEditorContextType extends FormEditorState {
   setFilesToUpload: React.Dispatch<
     React.SetStateAction<{ path: string; file: File }[]>
   >;
+  setOriginalForm: React.Dispatch<React.SetStateAction<Form | null>>;
 }
 
 const FormEditorContext = React.createContext<
@@ -28,6 +31,7 @@ export function FormEditorProvider({
   const [originalFields, setOriginalFields] = React.useState<CanvasFormField[]>(
     []
   );
+  const [originalForm, setOriginalForm] = React.useState<Form | null>(null);
   const [filesToUpload, setFilesToUpload] = React.useState<
     { path: string; file: File }[]
   >([]);
@@ -35,6 +39,8 @@ export function FormEditorProvider({
   return (
     <FormEditorContext.Provider
       value={{
+        originalForm,
+        setOriginalForm,
         filesToUpload,
         setFilesToUpload,
         originalFields,
