@@ -55,6 +55,34 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    const r2Public = process.env.R2_PUBLIC_URL;
+    if (!r2Public) return [];
+    return [
+      {
+        source: '/r2/:path*',
+        destination: `${r2Public}/:path*`,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+        ],
+      },
+      {
+        source: '/ffmpeg/(.*)',
+        headers: [
+          // Allow the worker/wasm/js to be loaded with COEP
+          { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

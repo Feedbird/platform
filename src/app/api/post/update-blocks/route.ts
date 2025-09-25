@@ -16,7 +16,8 @@ const UpdatePostBlocksSchema = z.object({
       caption: z.string(),
       file: z.object({
         kind: z.enum(['image', 'video']),
-        url: z.string().url()
+        url: z.string().url(),
+        thumbnailUrl: z.string().url().optional()
       }),
       comments: z.array(z.any()).optional()
     })),

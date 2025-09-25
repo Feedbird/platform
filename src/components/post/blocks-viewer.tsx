@@ -28,7 +28,7 @@ export function BlocksViewer({ blocks, onExpandBlock, onRemoveBlock }: BlocksVie
       if (!current) return;
       if (current.file.kind === "image" && current.file.url) {
         const img = new Image();
-        img.src = current.file.url;
+        img.src = `/api/proxy?url=${encodeURIComponent(current.file.url)}`;
         img.onload = () => {
           setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: img.naturalWidth, h: img.naturalHeight } }));
         };
@@ -74,18 +74,24 @@ export function BlocksViewer({ blocks, onExpandBlock, onRemoveBlock }: BlocksVie
               {/* media */}
               {isVideo ? (
                 <>
-                  <video
-                    src={current.file.url}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    className="absolute inset-0 w-full h-full object-cover"
-                    onLoadedMetadata={(e) => {
-                      const el = e.currentTarget as HTMLVideoElement;
-                      if (!el.videoWidth || !el.videoHeight) return;
-                      setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: el.videoWidth, h: el.videoHeight } }));
-                    }}
-                  />
+                  {current.file.thumbnailUrl ? (
+                    <img
+                      src={`/api/proxy?url=${encodeURIComponent(current.file.thumbnailUrl)}`}
+                      alt="video thumbnail"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onLoad={(e) => {
+                        const el = e.currentTarget as HTMLImageElement;
+                        if (!el.naturalWidth || !el.naturalHeight) return;
+                        setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: el.naturalWidth, h: el.naturalHeight } }));
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={current.file.url}
+                      alt="video"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
                   {/* Center play icon overlay */}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                     <div className="h-8 w-8 rounded-sm flex items-center justify-center overflow-hidden drop-shadow" style={{ background: "#1C1D1FCC" }}>
@@ -96,8 +102,8 @@ export function BlocksViewer({ blocks, onExpandBlock, onRemoveBlock }: BlocksVie
                   </div>
                 </>
               ) : (
-                <img
-                  src={current.file.url}
+                  <img
+                    src={`/api/proxy?url=${encodeURIComponent(current.file.url)}`}
                   alt="preview"
                   className="absolute inset-0 w-full h-full object-cover"
                 />

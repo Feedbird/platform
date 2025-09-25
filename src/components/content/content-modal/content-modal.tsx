@@ -691,14 +691,14 @@ export function ContentModal({ postId, block, onClose, initialVersionId }: Conte
               >
                 {isVideo ? (
                   <video
-                    src={version.file.url}
+                    src={`/api/proxy?url=${encodeURIComponent(version.file.url)}`}
                     controls
                     draggable={false}
                     className="max-w-[80vw] max-h-[80vh] object-contain"
                   />
                 ) : (
                   <img
-                    src={version.file.url}
+                    src={`/api/proxy?url=${encodeURIComponent(version.file.url)}`}
                     draggable={false}
                     className="max-w-[80vw] max-h-[80vh] object-contain"
                   />

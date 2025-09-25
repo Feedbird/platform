@@ -130,6 +130,7 @@ export interface Version {
   file: {
     kind: FileKind;
     url: string;
+    thumbnailUrl?: string;
   };
   media?: {
     kind: FileKind;
