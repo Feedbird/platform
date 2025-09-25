@@ -30,8 +30,6 @@ interface FormsContextType {
 
   // Helper functions
   selectFormForEditing: (form: TableForm) => void;
-  unsavedChanges: boolean;
-  setUnsavedChanges: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const FormsContext = createContext<FormsContextType | undefined>(undefined);
@@ -41,7 +39,6 @@ export function FormsProvider({ children }: { children: ReactNode }) {
   const [activeForm, setActiveForm] = useState<TableForm | null>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
 
   const selectFormForEditing = (form: TableForm) => {
@@ -55,8 +52,6 @@ export function FormsProvider({ children }: { children: ReactNode }) {
         isPreview,
         setIsPreview,
         forms,
-        unsavedChanges,
-        setUnsavedChanges,
         setForms,
         activeForm,
         setActiveForm,

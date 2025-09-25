@@ -18,7 +18,7 @@ type OptionCardProps = {
   isMultipleSelection?: boolean;
 };
 
-function OptionCard({
+export function OptionCard({
   option,
   isSelected,
   handleSelection,

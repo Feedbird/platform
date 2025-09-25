@@ -44,7 +44,7 @@ export default function SpreadSheetTablePlaceholder({
               >
                 {rowIndex + 1}
               </td>
-              {columns.map((col, idx) => (
+              {columns.map((_, idx) => (
                 <td
                   key={idx + 7}
                   className={`px-2.5 border-r border-b border-[#EAE9E9] bg-white ${

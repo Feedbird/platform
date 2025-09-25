@@ -26,6 +26,7 @@ import Loading from "./loading";
 import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
 import { useFormEditor } from "@/contexts/FormEditorContext";
 import { formFieldSorter, nestedObjectEqual } from "@/lib/utils/transformers";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 type SelectedField = {
   id: string;
@@ -34,8 +35,8 @@ type SelectedField = {
 };
 
 export default function FormInnerVisualizer() {
-  const { setIsEditing, setActiveForm, activeForm, setUnsavedChanges } =
-    useForms();
+  const { setIsEditing, setActiveForm, activeForm } = useForms();
+  const { setUnsavedFormChanges } = useFeedbirdStore();
   const params = useParams();
   const formId = params.id as string;
 
@@ -43,8 +44,14 @@ export default function FormInnerVisualizer() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const { formFields, setFormFields, setOriginalFields, originalFields } =
-    useFormEditor();
+  const {
+    formFields,
+    setFormFields,
+    setOriginalFields,
+    originalFields,
+    setOriginalForm,
+    originalForm,
+  } = useFormEditor();
 
   const [activeId, setActiveId] = React.useState<string | null>(null); // For drag operations
   const [overId, setOverId] = React.useState<string | null>(null);
@@ -74,6 +81,7 @@ export default function FormInnerVisualizer() {
         submissions_count: 0,
         fields_count: 0,
       };
+      setOriginalForm(tableForm);
       setActiveForm(tableForm);
       setIsEditing(true);
     } catch (err) {
@@ -94,11 +102,13 @@ export default function FormInnerVisualizer() {
 
   React.useEffect(() => {
     if (!nestedObjectEqual(formFields, originalFields)) {
-      setUnsavedChanges(true);
+      setUnsavedFormChanges(true);
+    } else if (!nestedObjectEqual(activeForm, originalForm)) {
+      setUnsavedFormChanges(true);
     } else {
-      setUnsavedChanges(false);
+      setUnsavedFormChanges(false);
     }
-  }, [formFields]);
+  }, [formFields, activeForm]);
 
   React.useEffect(() => {
     setForm(activeForm);
@@ -115,6 +125,12 @@ export default function FormInnerVisualizer() {
     if (active.data.current?.type === "template") {
       if (over.id === "form-canvas") {
         addNewField(active.id as FormFieldType);
+      } else if (
+        over.id === "form-cover-area" ||
+        over.id === "form-title-area"
+      ) {
+        // Add field at the beginning when dropping on cover or title area
+        addNewFieldAtPosition(active.id as FormFieldType, 0);
       } else if (formFields.find((f) => f.id === over.id)) {
         const targetIndex = formFields.findIndex((f) => f.id === over.id);
         addNewFieldAtPosition(active.id as FormFieldType, targetIndex);
