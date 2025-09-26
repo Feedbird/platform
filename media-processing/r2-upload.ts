@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs";
@@ -102,6 +103,28 @@ export async function uploadToR2(
       }
     });
   }
+}
+
+/**
+ * Deletes an object from Cloudflare R2 by key or full URL.
+ */
+export async function deleteFromR2ByKeyOrUrl(keyOrUrl: string): Promise<void> {
+  // Derive key from public URL if necessary
+  let key = keyOrUrl;
+  if (keyOrUrl.startsWith("http")) {
+    const possiblePrefixes: string[] = [];
+    if (R2_PUBLIC_URL) possiblePrefixes.push(R2_PUBLIC_URL.replace(/\/$/, "") + "/");
+    // Also consider endpoint/bucket form
+    possiblePrefixes.push(`${R2_ENDPOINT?.replace(/\/$/, "")}/${R2_BUCKET_NAME}/`);
+    const match = possiblePrefixes.find((p) => keyOrUrl.startsWith(p));
+    if (match) {
+      key = keyOrUrl.substring(match.length);
+    }
+  }
+  if (!key) throw new Error("Missing R2 object key");
+
+  const cmd = new DeleteObjectCommand({ Bucket: R2_BUCKET_NAME!, Key: key });
+  await r2Client.send(cmd);
 }
 
 /**

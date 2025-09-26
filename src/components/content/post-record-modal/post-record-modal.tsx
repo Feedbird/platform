@@ -1321,6 +1321,7 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
                 {/* Second row: Blocks viewer */}
                 <div className="pb-4">
                   <BlocksViewer
+                    postId={post.id}
                     blocks={post.blocks}
                     onExpandBlock={(b)=>setActiveBlock(b)}
                     onRemoveBlock={handleRemoveBlock}
