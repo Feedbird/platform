@@ -310,17 +310,37 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
   }
 
   useEffect(() => {
-    // Preload dimensions for image blocks
+    // Preload dimensions: images measured via <img>, videos measured off-DOM from metadata
     blocks.forEach((block) => {
-      if (blockDimensions[block.id]) return;
       const current = block.versions.find((v) => v.id === block.currentVersionId);
       if (!current) return;
       if (current.file.kind === "image" && current.file.url) {
+        if (blockDimensions[block.id]) return;
         const img = new Image();
         img.src = `/api/proxy?url=${encodeURIComponent(current.file.url)}`;
         img.onload = () => {
           setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: img.naturalWidth, h: img.naturalHeight } }));
         };
+      } else if (current.file.kind === "video" && current.file.url) {
+        if (blockDimensions[block.id]) return;
+        const videoEl = document.createElement("video");
+        videoEl.preload = "metadata";
+        videoEl.crossOrigin = "anonymous";
+        videoEl.src = `/api/proxy?url=${encodeURIComponent(current.file.url)}`;
+        const onMeta = () => {
+          const w = videoEl.videoWidth;
+          const h = videoEl.videoHeight;
+          if (w && h) {
+            setBlockDimensions((prev) => {
+              const cur = prev[block.id];
+              if (cur && cur.w === w && cur.h === h) return prev;
+              return { ...prev, [block.id]: { w, h } };
+            });
+          }
+          videoEl.removeEventListener("loadedmetadata", onMeta);
+          videoEl.src = "";
+        };
+        videoEl.addEventListener("loadedmetadata", onMeta);
       }
     });
   }, [blocks, blockDimensions]);
@@ -342,7 +362,8 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
           if (!current) return null;
 
           const isVideo = current.file.kind === "video";
-          const dims = blockDimensions[block.id];
+          // Always prefer video intrinsic dimensions for videos; fallback to stored or image
+          let dims = blockDimensions[block.id];
 
           // Target display height; width adjusts based on nearest supported ratio (1:1, 4:5, 9:16)
           const targetHeight = 480;
@@ -401,19 +422,6 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                     </>
                   ) : (
                     <>
-                      {/* Hidden video to capture dimensions */}
-                      <video
-                        src={`/api/proxy?url=${encodeURIComponent(current.file.url)}`}
-                        className="hidden"
-                        playsInline
-                        muted
-                        onLoadedMetadata={(e) => {
-                          const v = e.currentTarget;
-                          if (!v.videoWidth || !v.videoHeight) return;
-                          // Use video dimensions for aspect ratio calculation
-                          setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: v.videoWidth, h: v.videoHeight } }));
-                        }}
-                      />
                       {current.file.thumbnailUrl ? (
                         <img
                           src={`/api/proxy?url=${encodeURIComponent(current.file.thumbnailUrl)}`}
@@ -480,7 +488,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                         setThumbnailSelectFor(block.id);
                         setSelectedTime(0);
                         // Attempt initial draw shortly after to catch metadata
-                        setTimeout(() => drawFrameToCanvas(block.id), 100);
+                        setTimeout(() => drawFrameToCanvas(block.id), 150);
                       }}
                     >
                       <ImageIcon className="w-4 h-4 text-white" />
@@ -594,11 +602,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                   ) : (
                     <>
                       {customThumbPreview && (
-                        <img 
-                          src={customThumbPreview} 
-                          alt="custom thumbnail" 
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <img src={customThumbPreview} alt="custom thumbnail" className="absolute inset-0 w-full h-full object-cover" />
                       )}
                       <div className="absolute top-[20px] right-[20px] ">
                         <Tooltip content="Cancel">
