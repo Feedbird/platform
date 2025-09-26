@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <html lang="en" suppressHydrationWarning>
         <head>
           <link rel="icon" type="image/svg+xml" href="/images/logo/logo.svg" />
-          <link rel="alternate icon" href="//images/logo/logo.svg" />
+          <link rel="alternate icon" href="/images/logo/logo.svg" />
           <link rel="apple-touch-icon" href="/images/logo/logo.svg" />
           <link rel="manifest" href="/manifest.json" />
         </head>

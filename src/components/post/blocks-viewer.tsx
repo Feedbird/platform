@@ -1,9 +1,107 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Block, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { Paperclip, Maximize2, MessageCircleMore, ImageIcon, Trash2, Play, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
 import { storeApi } from "@/lib/api/api-service";
+
+// Custom Tooltip Component
+interface TooltipProps {
+  children: React.ReactNode;
+  content: string;
+  className?: string;
+}
+
+function Tooltip({ children, content, className }: TooltipProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
+  const [arrowClass, setArrowClass] = useState('');
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  const updateTooltipPosition = () => {
+    if (!triggerRef.current) return;
+
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const tooltipHeight = 28; // Approximate tooltip height
+    const tooltipWidth = content.length * 7 + 16; // Approximate tooltip width
+    
+    // Calculate position - center horizontally, above the element
+    const left = triggerRect.left + triggerRect.width / 2 - tooltipWidth / 2;
+    const top = triggerRect.top - tooltipHeight - 8; // Position above with 8px gap
+    
+    // Check if tooltip would be clipped at the top
+    const spaceAbove = triggerRect.top;
+    const spaceBelow = window.innerHeight - triggerRect.bottom;
+    
+    let finalTop = top;
+    let arrowPosition = 'bottom';
+    
+    if (spaceAbove < tooltipHeight + 16) {
+      // Position below if not enough space above
+      finalTop = triggerRect.bottom + 8;
+      arrowPosition = 'top';
+    }
+    
+    // Ensure tooltip doesn't go off screen horizontally
+    const finalLeft = Math.max(8, Math.min(left, window.innerWidth - tooltipWidth - 8));
+    
+    setTooltipStyle({
+      position: 'fixed',
+      left: finalLeft,
+      top: finalTop,
+      zIndex: 9999,
+      transform: 'none',
+    });
+
+    // Set arrow class based on position
+    if (arrowPosition === 'top') {
+      // Tooltip is below element, arrow points UP
+      setArrowClass('absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900');
+    } else {
+      // Tooltip is above element, arrow points DOWN
+      setArrowClass('absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900');
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible) {
+      updateTooltipPosition();
+      // Update position on scroll/resize
+      const handleUpdate = () => updateTooltipPosition();
+      window.addEventListener('scroll', handleUpdate, true);
+      window.addEventListener('resize', handleUpdate);
+      return () => {
+        window.removeEventListener('scroll', handleUpdate, true);
+        window.removeEventListener('resize', handleUpdate);
+      };
+    }
+  }, [isVisible, content]);
+
+  const tooltipElement = isVisible ? (
+    <div
+      style={tooltipStyle}
+      className="px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg whitespace-nowrap pointer-events-none relative"
+    >
+      {content}
+      <div className={arrowClass}></div>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <div 
+        ref={triggerRef}
+        className={cn("relative inline-block", className)}
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      {typeof window !== 'undefined' && tooltipElement && createPortal(tooltipElement, document.body)}
+    </>
+  );
+}
 
 interface BlocksViewerProps {
   postId: string;
@@ -228,7 +326,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
   }, [blocks, blockDimensions]);
 
   return (
-    <div className="flex flex-col p-3 rounded-md border border-buttonStroke gap-2">
+    <div className="flex flex-col p-3 rounded-md border border-buttonStroke gap-2 overflow-visible">
       {/* header row: attachment icon + “Visual” label */}
       <div className="flex items-center gap-2 text-sm font-medium mb-2">
         <ImageIcon className="w-4 h-4 text-gray-600" />
@@ -236,7 +334,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
       </div>
 
       {/* row of big previews */}
-      <div className="w-full overflow-x-auto flex gap-4">
+      <div className="w-full overflow-x-auto overflow-y-visible flex gap-4">
         {blocks.map((block) => {
           const versions = block.versions.length;
           const comments = block.comments.length;
@@ -303,16 +401,24 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                     </>
                   ) : (
                     <>
+                      {/* Hidden video to capture dimensions */}
+                      <video
+                        src={`/api/proxy?url=${encodeURIComponent(current.file.url)}`}
+                        className="hidden"
+                        playsInline
+                        muted
+                        onLoadedMetadata={(e) => {
+                          const v = e.currentTarget;
+                          if (!v.videoWidth || !v.videoHeight) return;
+                          // Use video dimensions for aspect ratio calculation
+                          setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: v.videoWidth, h: v.videoHeight } }));
+                        }}
+                      />
                       {current.file.thumbnailUrl ? (
                         <img
                           src={`/api/proxy?url=${encodeURIComponent(current.file.thumbnailUrl)}`}
                           alt="video thumbnail"
                           className="absolute inset-0 w-full h-full object-cover"
-                          onLoad={(e) => {
-                            const el = e.currentTarget as HTMLImageElement;
-                            if (!el.naturalWidth || !el.naturalHeight) return;
-                            setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: el.naturalWidth, h: el.naturalHeight } }));
-                          }}
                         />
                       ) : (
                         <img
@@ -366,18 +472,20 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
               {/* Top-left small image icon */}
               {isVideo && !inThumbSelect && (
                 <div className="absolute top-[20px] left-[20px] ">
-                  <div
-                    className="px-3 py-1 rounded-full flex items-center justify-center bg-[#101828dd] cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setThumbnailSelectFor(block.id);
-                      setSelectedTime(0);
-                      // Attempt initial draw shortly after to catch metadata
-                      setTimeout(() => drawFrameToCanvas(block.id), 100);
-                    }}
-                  >
-                    <ImageIcon className="w-4 h-4 text-white" />
-                  </div>
+                  <Tooltip content="Select thumbnail">
+                    <div
+                      className="px-3 py-1 rounded-full flex items-center justify-center bg-[#101828dd] cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setThumbnailSelectFor(block.id);
+                        setSelectedTime(0);
+                        // Attempt initial draw shortly after to catch metadata
+                        setTimeout(() => drawFrameToCanvas(block.id), 100);
+                      }}
+                    >
+                      <ImageIcon className="w-4 h-4 text-white" />
+                    </div>
+                  </Tooltip>
                 </div>
               )}
 
@@ -387,35 +495,37 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                   {/* Go back (arrow icon with tooltip) */}
                   <div className="absolute top-[20px] left-[20px] ">
                     <div className="relative">
-                      <button
-                        className="flex items-center px-2 py-1 rounded-full bg-[#101828dd] text-white cursor-pointer"
-                        title="Go back"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setThumbnailSelectFor(null);
-                        }}
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                      </button>
+                      <Tooltip content="Go back">
+                        <button
+                          className="flex items-center px-2 py-1 rounded-full bg-[#101828dd] text-white cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setThumbnailSelectFor(null);
+                          }}
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
                     </div>
                   </div>
                   {/* Add Custom Thumbnail (icon triggers file picker) */}
                   <div className="absolute top-[20px] right-[20px] ">
                     <div className="relative">
-                      <button
-                        className="flex items-center px-2 py-1 rounded-full bg-[#101828dd] text-white cursor-pointer"
-                        title="Add Custom Thumbnail"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCustomThumbFor(block.id);
-                          setTimeout(() => {
-                            const input = document.getElementById(`custom-thumb-input-${block.id}`) as HTMLInputElement | null;
-                            input?.click();
-                          }, 0);
-                        }}
-                      >
-                        <ImagePlus className="w-4 h-4" />
-                      </button>
+                      <Tooltip content="Add Custom Thumbnail">
+                        <button
+                          className="flex items-center px-2 py-1 rounded-full bg-[#101828dd] text-white cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCustomThumbFor(block.id);
+                            setTimeout(() => {
+                              const input = document.getElementById(`custom-thumb-input-${block.id}`) as HTMLInputElement | null;
+                              input?.click();
+                            }, 0);
+                          }}
+                        >
+                          <ImagePlus className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
                     </div>
                   </div>
                   {/* hidden file input for picking custom thumbnail */}
@@ -484,21 +594,26 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                   ) : (
                     <>
                       {customThumbPreview && (
-                        <img src={customThumbPreview} alt="custom thumbnail" className="absolute inset-0 w-full h-full object-cover" />
+                        <img 
+                          src={customThumbPreview} 
+                          alt="custom thumbnail" 
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
                       )}
                       <div className="absolute top-[20px] right-[20px] ">
-                        <button
-                          className="flex items-center px-2 py-1 rounded-full bg-[#101828dd] text-white cursor-pointer"
-                          title="Cancel"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (customThumbPreview) URL.revokeObjectURL(customThumbPreview);
-                            setCustomThumbFile(null);
-                            setCustomThumbPreview(null);
-                          }}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <Tooltip content="Cancel">
+                          <button
+                            className="flex items-center px-2 py-1 rounded-full bg-[#101828dd] text-white cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (customThumbPreview) URL.revokeObjectURL(customThumbPreview);
+                              setCustomThumbFile(null);
+                              setCustomThumbPreview(null);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                       </div>
                       <div className="absolute left-0 right-0 bottom-0 px-4 py-3 bg-gradient-to-t from-black/60 to-transparent">
                         <div className="flex items-center gap-3 overflow-hidden">
@@ -539,16 +654,17 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
               {/* bottom-right overlay: trash icon */}
               {onRemoveBlock && !inThumbSelect && (
                 <div className="absolute bottom-[20px] right-[20px] px-2 py-1">
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveBlock(block.id);
-                    }}
-                    className="rounded-full px-3 py-1 bg-[#101828dd] text-white font-bold cursor-pointer"
-                    title="Remove block"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </div>
+                  <Tooltip content="Remove block">
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveBlock(block.id);
+                      }}
+                      className="rounded-full px-3 py-1 bg-[#101828dd] text-white font-bold cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </div>
+                  </Tooltip>
                 </div>
               )}
             </div>

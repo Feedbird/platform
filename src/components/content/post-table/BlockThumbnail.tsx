@@ -28,7 +28,7 @@ export function BlockThumbnail({ block, height, rowHeight }: { block: Block; hei
     }
   }, [currentVer]);
 
-  // Determine aspect ratio for videos via metadata
+  // Determine aspect ratio for videos via video metadata (not thumbnail)
   useEffect(() => {
     if (!currentVer || currentVer.file.kind !== "video") return;
 
@@ -38,20 +38,27 @@ export function BlockThumbnail({ block, height, rowHeight }: { block: Block; hei
       const finalThumb = currentVer.file.thumbnailUrl || null;
       if (!cancelled && finalThumb) {
         setThumbUrl(finalThumb);
-        const img = new Image();
-        img.src = `/api/proxy?url=${encodeURIComponent(finalThumb)}`;
-        img.onload = () => {
-          if (cancelled) return;
-          const aspectType = getAspectRatioType(img.naturalWidth, img.naturalHeight);
-          setAspectRatioType(aspectType);
-          setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
-        };
       }
     };
 
+    // Get video dimensions for aspect ratio calculation
+    const videoEl = document.createElement("video");
+    videoEl.preload = "metadata";
+    videoEl.muted = true;
+    videoEl.src = `/api/proxy?url=${encodeURIComponent(currentVer.file.url)}`;
+    videoEl.addEventListener("loadedmetadata", () => {
+      if (cancelled) return;
+      const aspectType = getAspectRatioType(videoEl.videoWidth, videoEl.videoHeight);
+      setAspectRatioType(aspectType);
+      setDimensions({ width: videoEl.videoWidth, height: videoEl.videoHeight });
+    });
+
     useThumb();
 
-    return () => { cancelled = true; };
+    return () => { 
+      cancelled = true;
+      videoEl.removeEventListener("loadedmetadata", () => {});
+    };
   }, [currentVer]);
 
 
