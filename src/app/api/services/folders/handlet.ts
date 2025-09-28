@@ -6,7 +6,9 @@ export class ServiceFolderHandler {
     try {
       const { data, error } = await supabase
         .from("service_folders")
-        .select("*, services(*, service_plans(*))");
+        .select(
+          "*, services(*, service_plans(*), channels:service_channels(*))"
+        );
 
       if (error) {
         throw new ApiHandlerError("Database error: " + error.message);
