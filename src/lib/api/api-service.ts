@@ -54,13 +54,13 @@ async function apiRequest<T>(
   const url = `${API_BASE}${endpoint}`;
 
   // Attempt to attach Clerk session token on the client if available
-  let authHeader: Record<string, string> = {}
-  if (typeof window !== 'undefined') {
+  let authHeader: Record<string, string> = {};
+  if (typeof window !== "undefined") {
     try {
-      const maybeClerk: any = (window as any).Clerk
-      const token: string | undefined = await maybeClerk?.session?.getToken?.()
-      if (token && !('Authorization' in (options.headers || {} as any))) {
-        authHeader = { Authorization: `Bearer ${token}` }
+      const maybeClerk: any = (window as any).Clerk;
+      const token: string | undefined = await maybeClerk?.session?.getToken?.();
+      if (token && !("Authorization" in (options.headers || ({} as any)))) {
+        authHeader = { Authorization: `Bearer ${token}` };
       }
     } catch {
       // no-op; continue without Authorization header
@@ -69,7 +69,7 @@ async function apiRequest<T>(
 
   const response = await fetch(url, {
     // Ensure auth cookies are sent to API routes
-    credentials: 'include',
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...authHeader,
@@ -244,23 +244,35 @@ export const workspaceHelperApi = {
   getWorkspaceMembers: async (
     workspace_id: string
   ): Promise<{
-    users: { email: string; first_name?: string; image_url?: string; role?: 'admin' | 'client' | 'team'; accept?: boolean }[];
+    users: {
+      email: string;
+      first_name?: string;
+      image_url?: string;
+      role?: "admin" | "client" | "team";
+      accept?: boolean;
+    }[];
   }> => {
     const searchParams = new URLSearchParams();
     searchParams.append("workspace_id", workspace_id);
     return apiRequest<{
-      users: { email: string; first_name?: string; image_url?: string; role?: 'admin' | 'client' | 'team'; accept?: boolean }[];
+      users: {
+        email: string;
+        first_name?: string;
+        image_url?: string;
+        role?: "admin" | "client" | "team";
+        accept?: boolean;
+      }[];
     }>(`/workspace/members?${searchParams.toString()}`);
   },
   // Update a member's role within a workspace
   updateWorkspaceMemberRole: async (
     workspace_id: string,
     email: string,
-    role: 'client' | 'team'
+    role: "client" | "team"
   ): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/workspace/members`, {
-      method: 'PATCH',
-      body: JSON.stringify({ workspace_id, email, role })
+      method: "PATCH",
+      body: JSON.stringify({ workspace_id, email, role }),
     });
   },
 };
@@ -314,6 +326,27 @@ export const formsApi = {
       body: JSON.stringify({ formId, formFields: fields }),
     });
   },
+  submitForm: async ({
+    formId,
+    workspaceId,
+    submissions,
+    schema,
+  } : {
+    formId: string,
+    workspaceId: string,
+    submissions: Record<string, any>,
+    schema: Record<string, string>
+  }) => {
+    return apiRequest<{ data: any }>(`/forms/submission`, {
+      method: "POST",
+      body: JSON.stringify({
+        formId,
+        workspaceId,
+        answers: submissions,
+        snapshot: schema,
+      }),
+    });
+  },
 };
 
 export const servicesApi = {
@@ -339,11 +372,14 @@ export const workspaceApi = {
   },
 
   // Create new workspace
-  createWorkspace: async (workspaceData: {
-    name: string;
-    logo?: string;
-    email: string;
-  }, authToken?: string): Promise<Workspace> => {
+  createWorkspace: async (
+    workspaceData: {
+      name: string;
+      logo?: string;
+      email: string;
+    },
+    authToken?: string
+  ): Promise<Workspace> => {
     console.log("workspaceData", workspaceData);
     return apiRequest<Workspace>("/workspace", {
       method: "POST",
@@ -359,8 +395,8 @@ export const workspaceApi = {
       name?: string;
       logo?: string;
       timezone?: string;
-      week_start?: 'monday' | 'sunday';
-      time_format?: '24h' | '12h';
+      week_start?: "monday" | "sunday";
+      time_format?: "24h" | "12h";
     }
   ): Promise<Workspace> => {
     return apiRequest<Workspace>(`/workspace?id=${id}`, {
@@ -765,7 +801,7 @@ export const storeApi = {
       useFeedbirdStore.setState({ workspacesLoading: true });
 
       if (!email) {
-        console.warn('No email provided for loading workspaces');
+        console.warn("No email provided for loading workspaces");
         useFeedbirdStore.setState({
           workspaces: [],
           workspacesLoading: false,
@@ -778,7 +814,7 @@ export const storeApi = {
       const store = useFeedbirdStore.getState();
 
       if (!workspaces || workspaces.length === 0) {
-        console.warn('No workspaces found for user:', email);
+        console.warn("No workspaces found for user:", email);
         useFeedbirdStore.setState({
           workspaces: [],
           workspacesLoading: false,
@@ -812,44 +848,54 @@ export const storeApi = {
           boards,
           brand: undefined, // Will be populated below
           // Map workspace.social_accounts (from API) to client shape
-          socialAccounts: ((ws as any).social_accounts || []).map((acc: any) => ({
-            id: acc.id,
-            platform: acc.platform,
-            name: acc.name,
-            accountId: acc.account_id,
-            connected: acc.connected,
-            status: acc.status,
-            socialPages: (acc.social_pages || []).map((p: any) => ({
+          socialAccounts: ((ws as any).social_accounts || []).map(
+            (acc: any) => ({
+              id: acc.id,
+              platform: acc.platform,
+              name: acc.name,
+              accountId: acc.account_id,
+              connected: acc.connected,
+              status: acc.status,
+              socialPages: (acc.social_pages || []).map((p: any) => ({
+                id: p.id,
+                platform: p.platform,
+                entityType: p.entity_type || "page",
+                name: p.name,
+                pageId: p.page_id,
+                connected: p.connected,
+                status: p.status,
+                accountId: acc.id,
+                statusUpdatedAt: p.status_updated_at
+                  ? new Date(p.status_updated_at)
+                  : undefined,
+                lastSyncAt: p.last_sync_at
+                  ? new Date(p.last_sync_at)
+                  : undefined,
+                followerCount: p.follower_count,
+                postCount: p.post_count,
+                metadata: p.metadata,
+              })),
+            })
+          ),
+          socialPages: ((ws as any).social_accounts || [])
+            .flatMap((acc: any) => acc.social_pages || [])
+            .map((p: any) => ({
               id: p.id,
               platform: p.platform,
-              entityType: p.entity_type || 'page',
+              entityType: p.entity_type || "page",
               name: p.name,
               pageId: p.page_id,
               connected: p.connected,
               status: p.status,
-              accountId: acc.id,
-              statusUpdatedAt: p.status_updated_at ? new Date(p.status_updated_at) : undefined,
+              accountId: p.account_id,
+              statusUpdatedAt: p.status_updated_at
+                ? new Date(p.status_updated_at)
+                : undefined,
               lastSyncAt: p.last_sync_at ? new Date(p.last_sync_at) : undefined,
               followerCount: p.follower_count,
               postCount: p.post_count,
               metadata: p.metadata,
             })),
-          })),
-          socialPages: (((ws as any).social_accounts || []).flatMap((acc: any) => acc.social_pages || [])).map((p: any) => ({
-            id: p.id,
-            platform: p.platform,
-            entityType: p.entity_type || 'page',
-            name: p.name,
-            pageId: p.page_id,
-            connected: p.connected,
-            status: p.status,
-            accountId: p.account_id,
-            statusUpdatedAt: p.status_updated_at ? new Date(p.status_updated_at) : undefined,
-            lastSyncAt: p.last_sync_at ? new Date(p.last_sync_at) : undefined,
-            followerCount: p.follower_count,
-            postCount: p.post_count,
-            metadata: p.metadata,
-          })),
         };
       });
 
@@ -892,7 +938,10 @@ export const storeApi = {
               updatedAt: c.updated_at ? new Date(c.updated_at) : new Date(),
             }));
           } catch (error) {
-            console.warn(`Failed to load channels for workspace ${ws.id}:`, error);
+            console.warn(
+              `Failed to load channels for workspace ${ws.id}:`,
+              error
+            );
             // Continue without channels data
           }
 
@@ -2065,7 +2114,7 @@ export const inviteApi = {
     actorId?: string;
     organizationId?: string;
     role?: string;
-    memberRole?: 'client' | 'team';
+    memberRole?: "client" | "team";
     first_name?: string;
   }) => {
     return apiRequest<{ message: string; details?: string; warning?: boolean }>(

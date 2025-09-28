@@ -304,6 +304,21 @@ export default function FormsTable({ forms }: FormsTableProps) {
                     <span>Share</span>
                   </button>
                   <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/test-submit/${row.original.id}`);
+                    }}
+                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+                  >
+                    <Image
+                      src="/images/forms/test.svg"
+                      alt="share_icon"
+                      width={14}
+                      height={14}
+                    />
+                    <span>Test Submit</span>
+                  </button>
+                  <button
                     className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -501,7 +516,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
       </div>
       <div
         className={`bg-background border-t-1 border-[#EAE9E9] overflow-auto max-h-full ${
-          tabledData.length === 0 ? "" : "mb-12"
+          tabledData.length === 0 ? "" : "pb-16"
         }`}
       >
         <table

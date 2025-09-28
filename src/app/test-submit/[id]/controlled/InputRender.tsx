@@ -13,11 +13,12 @@ import { FormSubmissionData } from "../_inner";
 import { SectionBreakInput } from "@/components/forms/content/FormInputs";
 
 type Props = {
+  parent: FormSubmissionData;
   setParent: React.Dispatch<React.SetStateAction<FormSubmissionData>>;
   fields: FormField[];
 };
 
-export default function InputRender({ fields, setParent }: Props) {
+export default function InputRender({ fields, setParent, parent }: Props) {
   const handleParenChange = (
     value: string | string[] | File,
     field: FormField
@@ -30,6 +31,7 @@ export default function InputRender({ fields, setParent }: Props) {
         <div key={`divider-${field.id}-${idx}`}>
           {field.type === "text" && (
             <SingleTextControlled
+              parentValue={parent[field.id]?.value || ""}
               key={`input-${field.type}-${idx}`}
               setParent={handleParenChange}
               field={field}
@@ -37,6 +39,7 @@ export default function InputRender({ fields, setParent }: Props) {
           )}
           {field.type === "textarea" && (
             <LongTextControlled
+              parentValue={parent[field.id]?.value || ""}
               key={`input-${field.type}-${idx}`}
               setParent={handleParenChange}
               field={field}
@@ -44,6 +47,7 @@ export default function InputRender({ fields, setParent }: Props) {
           )}
           {field.type === "checkbox" && (
             <CheckboxControlled
+              parentValue={parent[field.id]?.value || "no"}
               key={`input-${field.type}-${idx}`}
               setParent={handleParenChange}
               field={field}
@@ -51,6 +55,7 @@ export default function InputRender({ fields, setParent }: Props) {
           )}
           {field.type === "dropdown" && (
             <DropdownControlled
+              parentValue={parent[field.id]?.value || ""}
               key={`input-${field.type}-${idx}`}
               setParent={handleParenChange}
               field={field}
@@ -64,6 +69,7 @@ export default function InputRender({ fields, setParent }: Props) {
           )}
           {field.type === "option" && (
             <OptionsControlled
+              parentValue={parent[field.id]?.value || []}
               key={`input-${field.type}-${idx}`}
               setParent={handleParenChange}
               field={field}
@@ -71,6 +77,7 @@ export default function InputRender({ fields, setParent }: Props) {
           )}
           {field.type === "attachment" && (
             <AttachmentControlled
+              parentValue={parent[field.id]?.value || ""}
               key={`input-${field.type}-${idx}`}
               setParent={handleParenChange}
               field={field}
@@ -78,6 +85,7 @@ export default function InputRender({ fields, setParent }: Props) {
           )}
           {field.type === "spreadsheet" && (
             <SpreadSheetControlled
+              parentValue={parent[field.id]?.value || []}
               key={`input-${field.type}-${idx}`}
               setParent={handleParenChange}
               field={field}
