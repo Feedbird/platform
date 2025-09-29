@@ -67,13 +67,15 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      {
-        source: '/((?!api/oauth/).*)',
-        headers: [
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
-        ],
-      },
+
+      // don’t enable COOP: same-origin + COEP: require-corp globally. We can’t have a COEP-isolated app and a working OAuth popup that relies on window.opener.
+      // {
+      //   source: '/((?!api/oauth/).*)',
+      //   headers: [
+      //     { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+      //     { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+      //   ],
+      // },
       {
         source: '/ffmpeg/(.*)',
         headers: [
