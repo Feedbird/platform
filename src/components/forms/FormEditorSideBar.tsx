@@ -81,7 +81,6 @@ export default function FormEditorSideBar({
 
         updates.push({ path, url: publicUrl });
       }
-      console.log("Updates to perform after image upload:", updates);
 
       await formsApi.updateForm(formId, {
         cover_url: updates[0].url,

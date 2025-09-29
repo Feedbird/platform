@@ -70,7 +70,6 @@ export default function Checkout() {
     setTotal(total);
   }, [selectedPlans.size]);
 
-  console.log("Selected plans: ", selectedPlans);
   return (
     <main className="bg-[#F7F7F8] min-h-screen overflow-auto">
       <div className="w-full h-20 px-16 flex flex-row justify-between max-w-[1440px] mx-auto">
