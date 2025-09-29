@@ -115,5 +115,4 @@ CREATE TABLE form_submissions (
   schema_snapshot JSONB NOT NULL,               -- copy of fields (keys, types, rules) at submission time
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   FOREIGN KEY (workspace_id, form_id) REFERENCES forms(workspace_id, id) ON DELETE CASCADE,
-  CHECK (jsonb_typeof(answers) = 'array')
 );

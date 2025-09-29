@@ -1,17 +1,24 @@
 "use client";
+import PaymentForm from "@/components/checkout/PaymentForm";
 import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
-import ServiceCard from "@/components/checkout/ServiceCard";
+import ServiceCard, { mapPeriodicity } from "@/components/checkout/ServiceCard";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ServiceFolder } from "@/lib/supabase/client";
+import { ServiceFolder, ServicePlan } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
+import { AccordionItem } from "@radix-ui/react-accordion";
 import { TabsContent } from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { set } from "nprogress";
 import React from "react";
 import { toast } from "sonner";
 
@@ -23,6 +30,10 @@ export default function Checkout() {
     []
   );
   const [loading, setLoading] = React.useState(false);
+  const [selectedPlans, setSelectedPlans] = React.useState<
+    Map<string, ServicePlan>
+  >(new Map());
+  const [total, setTotal] = React.useState(0);
 
   React.useEffect(() => {
     const fetchServiceFolders = async () => {
@@ -44,6 +55,21 @@ export default function Checkout() {
     };
     fetchServiceFolders();
   }, []);
+
+  React.useEffect(() => {
+    let total = 0;
+    selectedPlans.forEach((plan, serviceId) => {
+      const service = serviceFolders
+        .flatMap((folder) => folder.services || [])
+        .find((s) => s.id === serviceId);
+
+      if (service) {
+        total += plan.price;
+      }
+    });
+    setTotal(total);
+  }, [selectedPlans.size]);
+
   return (
     <main className="bg-[#F7F7F8] min-h-screen overflow-auto">
       <div className="w-full h-20 px-16 flex flex-row justify-between max-w-[1440px] mx-auto">
@@ -109,18 +135,40 @@ export default function Checkout() {
             )}
             {serviceFolders &&
               serviceFolders.map((folder, index) => (
-                <div key={index}>
-                  <h3 className="text-base text-[#1C1D1F] font-medium py-5">
-                    {folder.name}
-                  </h3>
-                  <div className="flex flex-row flex-wrap gap-4">
-                    {folder.services?.map((service) => (
-                      <ServiceCard key={service.id} service={service} />
-                    ))}
-                  </div>
+                <>
+                  <Accordion
+                    key={`service-folder-${index}`}
+                    type="single"
+                    collapsible
+                  >
+                    <AccordionItem value={folder.name}>
+                      <AccordionTrigger className="h-12 cursor-pointer">
+                        <h3 className="text-base text-[#1C1D1F] font-medium py-5">
+                          {folder.name}
+                        </h3>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="flex flex-row flex-wrap gap-4">
+                          {folder.services?.map((service) => (
+                            <ServiceCard
+                              key={service.id}
+                              service={service}
+                              selector={setSelectedPlans}
+                            />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   <Divider className="pt-5" />
-                </div>
+                </>
               ))}
+          </div>
+          <div className="pt-8 flex flex-col gap-6">
+            <h2 className="text-[20px] text-[#1C1D1F] font-medium pb-3">
+              2. Payment method
+            </h2>
+            <PaymentForm />
           </div>
         </div>
         <div className="flex flex-col w-full max-w-[480px]">
@@ -159,12 +207,56 @@ export default function Checkout() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="monthly" className="flex flex-col gap-6">
-                <div className="flex flex-col"></div>
+                <div className="flex flex-col gap-6">
+                  {selectedPlans.size > 0 &&
+                    Array.from(selectedPlans.keys()).map((serviceId) => {
+                      const plan = selectedPlans.get(serviceId);
+                      const service = serviceFolders
+                        .flatMap((folder) => folder.services || [])
+                        .find((s) => s.id === serviceId);
+                      if (!service || !plan) return null;
+                      return (
+                        <div
+                          key={`${service.name}-${plan.id}`}
+                          className="flex flex-col gap-2"
+                        >
+                          <h3 className="text-[#1C1D1F] font-medium text-base">
+                            {service.name}
+                          </h3>
+                          <div className="flex flex-row justify-between text-sm">
+                            <div className="flex flex-col font-normal">
+                              <span className="text-[#1C1D1F]l">
+                                {plan.quantity} {plan.qty_indicator}
+                              </span>
+                              <p className="text-[#838488]">Facebook</p>
+                            </div>
+                            <span className="text-[#1C1D1F] font-medium text-sm">
+                              USD ${plan.price}/{mapPeriodicity(plan.period)}
+                            </span>
+                          </div>
+                          <span
+                            className="text-[#5C5E63] font-normal text-xs underline cursor-pointer"
+                            onClick={() => {
+                              setSelectedPlans((prev) => {
+                                const newMap = new Map(prev);
+                                newMap.delete(service.id);
+                                return newMap;
+                              });
+                            }}
+                          >
+                            Remove
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
                 <div className="flex flex-col">
                   <Divider className="bg-[#E2E2E4] h-[1px]" />
                   <div className="flex justify-between pt-6 text-[#1C1D1F]">
                     <p className="text-[14px] font-medium">Total</p>
-                    <span className="text-[18px] font-semibold">USD $0/mo</span>
+                    <span className="text-[18px] font-semibold">
+                      USD ${total}/mo
+                    </span>
                   </div>
                 </div>
               </TabsContent>

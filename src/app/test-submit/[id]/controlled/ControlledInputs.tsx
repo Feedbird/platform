@@ -4,20 +4,30 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/lib/supabase/client";
 import React from "react";
-import { Select, SelectContent, SelectItem } from "@radix-ui/react-select";
-import { SelectTrigger } from "@/components/ui/select";
+
 import { ComplexObjectType } from "@/lib/forms/field.config";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { OptionCard } from "@/components/forms/content/OptionsPlaceholder";
 import Image from "next/image";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 
 export type CommonProps = {
+  parentValue: string | string[] | File;
   setParent: (value: string | string[] | File, field: FormField) => void;
   field: FormField;
 };
 
-export function SingleTextControlled({ setParent, field }: CommonProps) {
-  const [value, setValue] = React.useState("");
+export function SingleTextControlled({
+  setParent,
+  field,
+  parentValue,
+}: CommonProps) {
+  const [value, setValue] = React.useState((parentValue as string) || "");
 
   const config = field.config;
 
@@ -49,8 +59,12 @@ export function SingleTextControlled({ setParent, field }: CommonProps) {
   );
 }
 
-export function LongTextControlled({ setParent, field }: CommonProps) {
-  const [value, setValue] = React.useState("");
+export function LongTextControlled({
+  setParent,
+  field,
+  parentValue,
+}: CommonProps) {
+  const [value, setValue] = React.useState((parentValue as string) || "");
 
   const config = field.config;
 
@@ -83,8 +97,12 @@ export function LongTextControlled({ setParent, field }: CommonProps) {
   );
 }
 
-export function CheckboxControlled({ setParent, field }: CommonProps) {
-  const [checked, setChecked] = React.useState(false);
+export function CheckboxControlled({
+  setParent,
+  field,
+  parentValue,
+}: CommonProps) {
+  const [checked, setChecked] = React.useState(parentValue === "yes");
 
   const config = field.config;
   const handleChange = () => {
@@ -121,8 +139,14 @@ export function CheckboxControlled({ setParent, field }: CommonProps) {
   );
 }
 
-export function DropdownControlled({ setParent, field }: CommonProps) {
-  const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
+export function DropdownControlled({
+  setParent,
+  field,
+  parentValue,
+}: CommonProps) {
+  const [selectedOptions, setSelectedOptions] = React.useState<string[]>(
+    (parentValue as string[]) || []
+  );
 
   const config = field.config;
 
@@ -191,8 +215,14 @@ export function DropdownControlled({ setParent, field }: CommonProps) {
   );
 }
 
-export function OptionsControlled({ field, setParent }: CommonProps) {
-  const [optionsChecked, setCheckedOptions] = React.useState<string[]>([]);
+export function OptionsControlled({
+  field,
+  setParent,
+  parentValue,
+}: CommonProps) {
+  const [optionsChecked, setCheckedOptions] = React.useState<string[]>(
+    (parentValue as string[]) || []
+  );
   const config = field.config;
 
   const handleOptionsCheck = (value: string) => {
@@ -255,8 +285,14 @@ export function OptionsControlled({ field, setParent }: CommonProps) {
   );
 }
 
-export function AttachmentControlled({ setParent, field }: CommonProps) {
-  const [file, setFile] = React.useState<File | null>(null);
+export function AttachmentControlled({
+  setParent,
+  field,
+  parentValue,
+}: CommonProps) {
+  const [file, setFile] = React.useState<File | null>(
+    (parentValue as File) ?? null
+  );
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const config = field.config;
@@ -360,13 +396,35 @@ export function AttachmentControlled({ setParent, field }: CommonProps) {
   );
 }
 
-export function SpreadSheetControlled({ field, setParent }: CommonProps) {
+export function SpreadSheetControlled({
+  field,
+  setParent,
+  parentValue,
+}: CommonProps) {
   const config = field.config;
   const columns: { value: string; order: number }[] =
     config.spreadsheetColumns?.columns || [];
   const sampleRows = config.allowedRows?.value || 2;
 
+  // Helper function to ensure we have enough rows for the UI
+  const ensureRowsExist = (data: string[]): string[] => {
+    if (data.length <= sampleRows) {
+      const result = [...data];
+      const rowsNeeded = sampleRows - (data.length - 1); // -1 for header row
+      for (let i = 0; i < rowsNeeded; i++) {
+        result.push(new Array(columns.length).fill("").join("|"));
+      }
+      return result;
+    }
+    return data;
+  };
+
   const [spreadsheetData, setSpreadsheetData] = React.useState<string[]>(() => {
+    // Use parentValue if it exists and is an array, otherwise initialize with default
+    if (parentValue && Array.isArray(parentValue)) {
+      return ensureRowsExist(parentValue as string[]);
+    }
+
     const columnHeaders = columns
       .sort((a, b) => a.order - b.order)
       .map((col) => col.value)
@@ -379,33 +437,22 @@ export function SpreadSheetControlled({ field, setParent }: CommonProps) {
     return initialData;
   });
 
-  const hasInitialized = React.useRef(false);
-
-  React.useEffect(() => {
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      setParent(spreadsheetData, field);
-    }
-  }, [spreadsheetData, field, setParent]);
-
   const handleCellChange = (
     rowIndex: number,
     columnIndex: number,
     value: string
   ) => {
-    setSpreadsheetData((prevData) => {
-      const newData = [...prevData];
-      const dataRowIndex = rowIndex + 1;
+    const newData = [...spreadsheetData];
+    const dataRowIndex = rowIndex + 1;
 
-      if (newData[dataRowIndex]) {
-        const rowValues = newData[dataRowIndex].split("|");
-        rowValues[columnIndex] = value;
-        newData[dataRowIndex] = rowValues.join("|");
-      }
+    if (newData[dataRowIndex]) {
+      const rowValues = newData[dataRowIndex].split("|");
+      rowValues[columnIndex] = value;
+      newData[dataRowIndex] = rowValues.join("|");
+    }
 
-      setParent(newData, field);
-      return newData;
-    });
+    setSpreadsheetData(newData);
+    setParent(newData, field);
   };
 
   const getCellValue = (rowIndex: number, columnIndex: number): string => {

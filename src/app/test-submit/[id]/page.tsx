@@ -1,12 +1,11 @@
 import SubmitFormVisualizer from "./_inner";
 
 export default async function SubmitPage({
-  searchParams,
+  params,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: Promise<{ id: string }>;
 }) {
-  const params = await searchParams;
-  const formId = params.form_id;
+  const { id: formId } = await params;
   if (!formId) {
     return <div>No form ID provided</div>;
   }
@@ -21,7 +20,5 @@ export default async function SubmitPage({
   }
 
   const { data: formData } = await data.json();
-  return (
-      <SubmitFormVisualizer formData={formData} />
-  );
+  return <SubmitFormVisualizer formData={formData} />;
 }

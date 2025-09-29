@@ -59,8 +59,6 @@ export default function ReviewsCarousel({
     return () => clearInterval(slideInterval);
   }, [autoSlide, interval]);
 
-  console.log(`Slide: ${slide}`);
-
   return (
     <div className="h-full mx-6 mt-8 overflow-hidden flex flex-col items-center gap-8">
       <div

@@ -188,6 +188,8 @@ export interface Service {
   brief: string | null;
   description: string | null;
   folder_id: string;
+  social_channels: boolean;
+  channels?: ServiceChannel[];
   service_plans?: ServicePlan[];
 }
 
@@ -201,6 +203,16 @@ export interface ServicePlan {
   qty_indicator: string;
   currency: string;
   updated_at: string;
+}
+
+export interface ServiceChannel {
+  id: string;
+  service_id: string;
+  created_at: string;
+  social_channel: string;
+  pricing: number;
+  updated_at: string;
+  default: boolean;
 }
 
 export interface ServiceFolder {
