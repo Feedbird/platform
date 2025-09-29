@@ -1,13 +1,20 @@
 "use client";
+import PaymentForm from "@/components/checkout/PaymentForm";
 import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
 import ServiceCard from "@/components/checkout/ServiceCard";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ServiceFolder } from "@/lib/supabase/client";
+import { ServiceFolder, ServicePlan } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
+import { AccordionItem } from "@radix-ui/react-accordion";
 import { TabsContent } from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -23,6 +30,7 @@ export default function Checkout() {
     []
   );
   const [loading, setLoading] = React.useState(false);
+  const [selectedPlans, setSelectedPlans] = React.useState<ServicePlan[]>([]);
 
   React.useEffect(() => {
     const fetchServiceFolders = async () => {
@@ -111,18 +119,32 @@ export default function Checkout() {
             )}
             {serviceFolders &&
               serviceFolders.map((folder, index) => (
-                <div key={index}>
-                  <h3 className="text-base text-[#1C1D1F] font-medium py-5">
-                    {folder.name}
-                  </h3>
-                  <div className="flex flex-row flex-wrap gap-4">
-                    {folder.services?.map((service) => (
-                      <ServiceCard key={service.id} service={service} />
-                    ))}
-                  </div>
+                <>
+                  <Accordion key={index} type="single" collapsible>
+                    <AccordionItem value={folder.name}>
+                      <AccordionTrigger className="h-12">
+                        <h3 className="text-base text-[#1C1D1F] font-medium py-5">
+                          {folder.name}
+                        </h3>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="flex flex-row flex-wrap gap-4">
+                          {folder.services?.map((service) => (
+                            <ServiceCard key={service.id} service={service} />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   <Divider className="pt-5" />
-                </div>
+                </>
               ))}
+          </div>
+          <div className="pt-8 flex flex-col gap-6">
+            <h2 className="text-[20px] text-[#1C1D1F] font-medium pb-3">
+              2. Payment method
+            </h2>
+            <PaymentForm />
           </div>
         </div>
         <div className="flex flex-col w-full max-w-[480px]">

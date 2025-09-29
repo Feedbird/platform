@@ -2,6 +2,7 @@ import { Service, ServicePlan } from "@/lib/supabase/client";
 import React from "react";
 import { Button } from "../ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";
+import Image from "next/image";
 
 type Props = {
   service: Service;
@@ -27,7 +28,20 @@ export default function ServiceCard({ service }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-[355px] gap-3 justify-between">
+    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-[355px] gap-3 justify-between relative">
+      {selectingMode && (
+        <div
+          className="absolute top-2 right-2"
+          onClick={() => setSelectingMode(false)}
+        >
+          <Image
+            src="/images/forms/delete-red.svg"
+            alt="Delete"
+            width={14}
+            height={14}
+          />
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         <div className="flex flex-row">
           <span className="text-[#1C1D1F] font-medium text-sm">
