@@ -3,37 +3,62 @@ import React from "react";
 import { Button } from "../ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";
 import Image from "next/image";
+import { Check } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   service: Service;
+  selector: React.Dispatch<React.SetStateAction<Map<string, ServicePlan>>>;
 };
 
-export default function ServiceCard({ service }: Props) {
+export const mapPeriodicity = (period: string | undefined | null) => {
+  switch (period) {
+    case "month":
+      return "mo";
+    case "year":
+      return "yr";
+    default:
+      return "n/a";
+  }
+};
+
+export default function ServiceCard({ service, selector }: Props) {
   const [selectingMode, setSelectingMode] = React.useState(false);
   const [planSelected, selectPlan] = React.useState<ServicePlan | null>(null);
+  const [added, isAdded] = React.useState(false);
 
   const plans = service.service_plans
     ? service.service_plans?.sort((a, b) => a.price - b.price)
     : [];
 
-  const mapPeriodicity = (period: string | undefined | null) => {
-    switch (period) {
-      case "month":
-        return "mo";
-      case "year":
-        return "yr";
-      default:
-        return "n/a";
+  const handleAdd = () => {
+    if (!planSelected) {
+      toast.error("Please select a plan first");
+      return;
     }
+    selector((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(service.id, planSelected);
+      return newMap;
+    });
+    isAdded(true);
+  };
+
+  const handleRemove = () => {
+    selector((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(service.id);
+      return newMap;
+    });
+    isAdded(false);
+    selectPlan(null);
+    setSelectingMode(false);
   };
 
   return (
     <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-[355px] gap-3 justify-between relative">
       {selectingMode && (
-        <div
-          className="absolute top-2 right-2"
-          onClick={() => setSelectingMode(false)}
-        >
+        <div className="absolute top-2 right-2" onClick={handleRemove}>
           <Image
             src="/images/forms/delete-red.svg"
             alt="Delete"
@@ -115,12 +140,20 @@ export default function ServiceCard({ service }: Props) {
                   )}`
                 : ""}
             </span>
-            <Button
-              variant="default"
-              className="text-white bg-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 w-[100px] px-4 py-2.5 border-1 flex items-center justify-center"
-            >
-              + Add
-            </Button>
+            {added ? (
+              <div className="bg-[#0A8550] rounded-full flex flex-row items-center py-2.5 px-4 gap-1">
+                <Check width={16} height={16} color="white" />
+                <span className="text-white font-medium text-sm">Added</span>
+              </div>
+            ) : (
+              <Button
+                onClick={handleAdd}
+                variant="default"
+                className="text-white bg-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 w-[100px] px-4 py-2.5 border-1 flex items-center justify-center"
+              >
+                + Add
+              </Button>
+            )}
           </div>
         </div>
       )}
