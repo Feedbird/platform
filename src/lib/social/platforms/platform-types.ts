@@ -234,6 +234,7 @@ export interface PostContent {
 
 // Platform Operations Interface
 export interface PlatformOperations {
+  getPageAnalytics?(page: any): unknown;
   getBoards?(page: SocialPage): unknown;
   checkPostStatusAndUpdate?: (publishId: string, pageId: string, postId: string) => Promise<void>;
   // Auth operations

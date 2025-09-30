@@ -6,23 +6,26 @@ const ops = getPlatformOperations("facebook")!;
 
 const Body = z.object({
   page: z.any(),
-  postId: z.string(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body: any = Body.parse(await req.json());
 
-    if (!body.page || !body.postId) {
-      return Response.json({ error: "Missing required fields: page and postId" }, { status: 400 });
+    if (!body.page) {
+      return Response.json({ error: "Missing required fields: page" }, { status: 400 });
+    }
+
+    if (!ops.getPageAnalytics) {
+      return Response.json({ error: "getPageAnalytics is not implemented" }, { status: 500 });
     }
     
-    const result = await ops.getPostAnalytics(body.page, body.postId);
+    const result = await ops.getPageAnalytics(body.page);
     
     return Response.json(result);
 
   } catch (e: any) {
-    console.error("[API] Facebook analytics error\n", e);
+    console.error("[API] Facebook page analytics error\n", e);
     return new Response(e.message ?? "Internal error", { status: 500 });
   }
 }
