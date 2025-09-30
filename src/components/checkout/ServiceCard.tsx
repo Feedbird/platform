@@ -5,6 +5,9 @@ import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";
 import Image from "next/image";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "../ui/checkbox";
+import { MultiSelect } from "../ui/multi-select";
+import MultiSelectDropdown from "./ChannelSelect";
 
 type Props = {
   service: Service;
@@ -25,8 +28,9 @@ export const mapPeriodicity = (period: string | undefined | null) => {
 
 export default function ServiceCard({ service, selector, isActivated }: Props) {
   const [selectingMode, setSelectingMode] = React.useState(false);
-  const [channelSelected, selectChannel] =
-    React.useState<ServiceChannel | null>(null);
+  const [channelsSelected, setChannelsSelected] = React.useState<
+    ServiceChannel[]
+  >([]);
   const [planSelected, selectPlan] = React.useState<ServicePlan | null>(null);
   const [added, isAdded] = React.useState(false);
 
@@ -66,6 +70,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
       isAdded(false);
       selectPlan(null);
       setSelectingMode(false);
+      setChannelsSelected([]);
     }
   }, [isActivated]);
 
@@ -108,7 +113,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1 text-[#1C1D1F]">
             <label className="font-medium text-sm">Plan</label>
             <Select
@@ -146,51 +151,10 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             </Select>
           </div>
           {channels.length > 0 && (
-            <Select
-              value={channelSelected ? channelSelected.id : undefined}
-              onValueChange={(value) => {
-                const selected = channels.find(
-                  (channel) => channel.id === value
-                );
-                if (selected) {
-                  selectChannel(selected);
-                }
-              }}
-            >
-              <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F] text-[13px]">
-                <span className="text-[#1C1D1F] font-medium text-[13px]">
-                  Select social channels
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <div className="flex flex-col gap-1">
-                  {channels.map((channel, index) => (
-                    <SelectItem
-                      value={channel.id}
-                      key={`channel_${index}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectChannel(channel);
-                      }}
-                      className="text-[#1C1D1F] text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
-                    >
-                      <div className="flex flex-row items-center gap-2">
-                        <Image
-                          src={`/images/checkout/channels/${channel.social_channel}.svg`}
-                          alt={`channel-${channel.social_channel}-image`}
-                          width={18}
-                          height={18}
-                        />
-                        <span className="text-[#1C1D1F] font-medium text-[13px]">
-                          {channel.social_channel.slice(0, 1).toUpperCase() +
-                            channel.social_channel.slice(1)}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </div>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1 text-[#1C1D1F]">
+              <label className="font-medium text-sm">Social channels</label>
+              <MultiSelectDropdown channels={channels} />
+            </div>
           )}
           <div className="flex flex-row items-center justify-between">
             <span className="text-[#1C1D1F] font-medium text-sm">

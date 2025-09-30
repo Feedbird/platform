@@ -1,4 +1,5 @@
 "use client";
+import CouponValidator from "@/components/checkout/CouponValidator";
 import PaymentForm from "@/components/checkout/PaymentForm";
 import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
 import ServiceCard, { mapPeriodicity } from "@/components/checkout/ServiceCard";
@@ -135,7 +136,11 @@ export default function Checkout() {
             {serviceFolders &&
               serviceFolders.map((folder, index) => (
                 <div key={`service-folder-${index}`}>
-                  <Accordion type="single" collapsible>
+                  <Accordion
+                    type="single"
+                    collapsible
+                    defaultValue={folder.name}
+                  >
                     <AccordionItem value={folder.name}>
                       <AccordionTrigger className="h-12 cursor-pointer">
                         <h3 className="py-5 text-base font-medium text-[#1C1D1F]">
@@ -260,9 +265,7 @@ export default function Checkout() {
             <div className="flex flex-col gap-6">
               <div className="flex flex-col">
                 <Divider className="h-[1px] bg-[#E2E2E4]" />
-                <p className="pt-[16px] text-[14px] font-normal text-[#1C1D1F] underline hover:cursor-pointer">
-                  Got a coupon?
-                </p>
+                <CouponValidator />
               </div>
               <div className="flex gap-2">
                 <Checkbox className="h-5 w-5 rounded-[5.13px]" />
