@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 type Props = {
   service: Service;
+  isActivated: boolean;
   selector: React.Dispatch<React.SetStateAction<Map<string, ServicePlan>>>;
 };
 
@@ -22,7 +23,7 @@ export const mapPeriodicity = (period: string | undefined | null) => {
   }
 };
 
-export default function ServiceCard({ service, selector }: Props) {
+export default function ServiceCard({ service, selector, isActivated }: Props) {
   const [selectingMode, setSelectingMode] = React.useState(false);
   const [planSelected, selectPlan] = React.useState<ServicePlan | null>(null);
   const [added, isAdded] = React.useState(false);
@@ -54,6 +55,14 @@ export default function ServiceCard({ service, selector }: Props) {
     selectPlan(null);
     setSelectingMode(false);
   };
+
+  React.useEffect(() => {
+    if (!isActivated) {
+      isAdded(false);
+      selectPlan(null);
+      setSelectingMode(false);
+    }
+  }, [isActivated]);
 
   return (
     <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-[355px] gap-3 justify-between relative">
