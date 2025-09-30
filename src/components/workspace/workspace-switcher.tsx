@@ -116,7 +116,8 @@ export default function WorkspaceSwitcher() {
   }): Promise<string> => {
     const userEmail = user?.email || 'demo@example.com'
 
-    const wsId = await addWorkspace(name, userEmail, logo ?? '')
+    const initialRules = additionalData?.boardRules
+    const wsId = await addWorkspace(name, userEmail, logo ?? '', initialRules)
     // Resolve Clerk organization ID for the newly created workspace
     const orgId = useFeedbirdStore.getState().workspaces.find(w => w.id === wsId)?.clerk_organization_id
 
@@ -257,7 +258,16 @@ export default function WorkspaceSwitcher() {
               </DropdownMenuItem>
 
               <DropdownMenuItem
-                onSelect={e => { e.preventDefault(); toast.info('Workspace settings (coming soon)') }}
+                onSelect={e => { 
+                  e.preventDefault(); 
+                  setMenuOpen(false);
+                  const id = active?.id || activeId;
+                  if (id) {
+                    router.push(`/${id}/settings`)
+                  } else {
+                    toast.info('Please select a workspace first')
+                  }
+                }}
                 className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
               >
                 <Settings className="size-4 text-black"/>

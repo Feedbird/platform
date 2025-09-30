@@ -60,25 +60,22 @@ export function PublishDateCell({
   const getStatusStyling = () => {
     if (isPublished) {
       return {
-        backgroundColor: "#DDF9E4",
+        backgroundColor: "#E5EEFF",
         borderColor: "rgba(28, 29, 31, 0.05)",
-        iconBackgroundColor: "#0DAD69",
-        iconSrc: "/images/publish/published.svg",
-        textColor: "#000000"
+        iconSrc: "/images/status/published.svg",
+        textColor: "#1C1D1F"
       };
     } else if (isFailedPublishing) {
       return {
         backgroundColor: "#F5EEFF",
         borderColor: "#EAE4F4",
-        iconBackgroundColor: "#A064F5",
-        iconSrc: "/images/publish/failed-published.svg",
-        textColor: "#000000"
+        iconSrc: "/images/status/failed-publishing.svg",
+        textColor: "#1C1D1F"
       };
     } else {
       return {
         backgroundColor: "#E5EEFF",
         borderColor: "rgba(28, 29, 31, 0.05)",
-        iconBackgroundColor: "#125AFF",
         iconSrc: "/images/columns/post-time.svg",
         textColor: "#133495"
       };
@@ -153,7 +150,7 @@ export function PublishDateCell({
                           /* If has time but not scheduled: show chip style with calendar icon + time */
                           <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
                             padding: "1px 6px 1px 4px",
-                            border: `1px solid ${statusStyling.borderColor}`,
+                            border: `1px solid #1C1D1F0D`,
                             backgroundColor: "#E5EEFF",
                             width: "fit-content"
                           }}>
@@ -357,33 +354,23 @@ export function PublishDateCell({
               </PopoverContent>
             </Popover>
           ) : (
-            /* If scheduled/published/failed publishing or has date: show status with icon + time below */
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex flex-col">
                     <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
-                      padding: "1px 6px 1px 4px",
+                      padding: "2px 6px 2px 3px",
                       border: `1px solid ${statusStyling.borderColor}`,
                       backgroundColor: statusStyling.backgroundColor,
                       width: "fit-content"
                     }}>
-                      <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
-                        backgroundColor: statusStyling.iconBackgroundColor
-                      }}>
                         <Image
                           src={statusStyling.iconSrc}
                           alt="Publish Date"
-                          width={12}
-                          height={12}
-                          className="filter brightness-0 invert"
-                          style={{ filter: 'brightness(0) invert(1)' }}
+                          width={16}
+                          height={16}
                         />
-                      </div>
-                      <span className="text-xs font-semibold whitespace-nowrap" style={{
-                        lineHeight: "18px",
-                        color: statusStyling.textColor
-                      }}>{displayText}</span>
+                      <span className="text-xs font-semibold whitespace-nowrap">{displayText}</span>
                     </div>
                   </div>
                 </TooltipTrigger>

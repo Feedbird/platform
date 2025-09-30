@@ -236,6 +236,11 @@ export interface Workspace {
   brand?: Brand; // Single brand per workspace (one-to-one relationship)
   socialAccounts?: SocialAccount[];
   socialPages?: SocialPage[];
+  default_board_rules?: Record<string, any>;
+  timezone?: string;
+  week_start?: 'monday' | 'sunday';
+  time_format?: '24h' | '12h';
+  allowed_posting_time?: Record<string, any>;
 }
 
 
@@ -380,7 +385,7 @@ export interface FeedbirdStore {
   getPost: (id: string) => Post | undefined;
   updatePost: (pid: string, data: Partial<Post>) => Promise<void>;
   updatePostStatusesBasedOnTime: () => void;
-  addWorkspace: (name: string, email: string, logo?: string) => Promise<string>;
+  addWorkspace: (name: string, email: string, logo?: string, default_board_rules?: Record<string, any>) => Promise<string>;
   removeWorkspace: (id: string) => Promise<void>;
   loadUserWorkspaces: (email: string) => Promise<void>;
   addBrand: (name: string, logo?: string, styleGuide?: Brand['styleGuide'], link?: string, voice?: string, prefs?: string) => Promise<string>;
@@ -1046,9 +1051,9 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
         },
 
         // workspace
-        addWorkspace: async (name, email, logo) => {
+        addWorkspace: async (name, email, logo, default_board_rules?) => {
           try {
-            const wid = await storeApi.createWorkspaceAndUpdateStore(name, email, logo)
+            const wid = await storeApi.createWorkspaceAndUpdateStore(name, email, logo, default_board_rules)
             return wid
           } catch (error) {
             console.error('Failed to add workspace:', error)

@@ -396,7 +396,9 @@ export default function ClientOnboardingPage() {
             <div className="bg-white rounded-xl border border-elementStroke shadow-sm p-5 space-y-6">
                 <div>
                     <div className="text-sm font-normal text-grey mb-2.5">Workspace timezone</div>
-                    <TimezonePicker value={timezone} onChange={setTimezone} />
+                    <div className="w-full border border-strokeButton rounded-[6px] text-sm text-black font-normal">
+                        <TimezonePicker value={timezone} onChange={setTimezone} />
+                    </div>
                 </div>
                 <div className="flex gap-4">
                     <div className="flex-1">

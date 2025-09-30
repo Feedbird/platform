@@ -76,7 +76,8 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
               pathname?.startsWith("/messages") ||
               pathname?.includes("/analytics") ||
               pathname?.includes("/messages") ||
-              pathname?.includes("/forms")
+              pathname?.includes("/forms") ||
+              pathname?.includes("/settings")
             ) && <AppHeader />}
             <Suspense fallback={null}>
               <main

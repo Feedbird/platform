@@ -11,6 +11,11 @@ const CreateWorkspaceSchema = z.object({
   logo: z.string().url().optional().or(z.literal('')),
   email: z.string().email('Valid email is required'),
   clerk_organization_id: z.string().regex(/^org_.*/).optional(),
+  default_board_rules: z.record(z.any()).optional(),
+  timezone: z.string().optional(),
+  week_start: z.enum(['monday','sunday']).optional(),
+  time_format: z.enum(['24h','12h']).optional(),
+  allowed_posting_time: z.record(z.any()).optional(),
 })
 
 const UpdateWorkspaceSchema = z.object({
@@ -20,6 +25,8 @@ const UpdateWorkspaceSchema = z.object({
   timezone: z.string().optional(),
   week_start: z.enum(['monday','sunday']).optional(),
   time_format: z.enum(['24h','12h']).optional(),
+  allowed_posting_time: z.record(z.any()).optional(),
+  default_board_rules: z.record(z.any()).optional(),
 })
 
 // GET - Get workspace by ID or list workspaces by creator
@@ -280,6 +287,11 @@ export async function POST(req: NextRequest) {
       logo: validatedData.logo,
       createdby: validatedData.email,
       clerk_organization_id: resolvedOrgId,
+      default_board_rules: validatedData.default_board_rules,
+      timezone: validatedData.timezone,
+      week_start: validatedData.week_start,
+      time_format: validatedData.time_format,
+      allowed_posting_time: validatedData.allowed_posting_time,
     }
     
     const { data, error } = await supabase

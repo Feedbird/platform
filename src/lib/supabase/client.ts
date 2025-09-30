@@ -61,6 +61,11 @@ export interface Workspace {
    * Boards visible to the current user. Empty when not prefetched by the API.
    */
   boards?: Board[];
+  default_board_rules?: Record<string, any>;
+  timezone?: string;
+  week_start?: 'monday' | 'sunday';
+  time_format?: '24h' | '12h';
+  allowed_posting_time?: Record<string, any>;
 }
 
 export interface Brand {

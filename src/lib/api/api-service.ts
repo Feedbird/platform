@@ -377,6 +377,11 @@ export const workspaceApi = {
       name: string;
       logo?: string;
       email: string;
+      default_board_rules?: Record<string, any>;
+      timezone?: string;
+      week_start?: 'monday' | 'sunday';
+      time_format?: '24h' | '12h';
+      allowed_posting_time?: Record<string, any>;
     },
     authToken?: string
   ): Promise<Workspace> => {
@@ -397,6 +402,8 @@ export const workspaceApi = {
       timezone?: string;
       week_start?: "monday" | "sunday";
       time_format?: "24h" | "12h";
+      allowed_posting_time?: Record<string, any>;
+      default_board_rules?: Record<string, any>;
     }
   ): Promise<Workspace> => {
     return apiRequest<Workspace>(`/workspace?id=${id}`, {
@@ -844,6 +851,11 @@ export const storeApi = {
           name: ws.name,
           logo: ws.logo,
           clerk_organization_id: (ws as any).clerk_organization_id,
+          default_board_rules: (ws as any).default_board_rules,
+          timezone: (ws as any).timezone,
+          week_start: (ws as any).week_start,
+          time_format: (ws as any).time_format,
+          allowed_posting_time: (ws as any).allowed_posting_time,
           role: ws.role, // Include the role from API
           boards,
           brand: undefined, // Will be populated below
@@ -1363,13 +1375,15 @@ export const storeApi = {
   createWorkspaceAndUpdateStore: async (
     name: string,
     email: string,
-    logo?: string
+    logo?: string,
+    default_board_rules?: Record<string, any>
   ) => {
     try {
       const workspace = await workspaceApi.createWorkspace({
         name,
         logo,
         email,
+        default_board_rules,
       });
       const store = useFeedbirdStore.getState();
 
@@ -1378,11 +1392,16 @@ export const storeApi = {
         name: workspace.name,
         logo: workspace.logo,
         clerk_organization_id: (workspace as any).clerk_organization_id,
+        default_board_rules: (workspace as any).default_board_rules,
+        timezone: (workspace as any).timezone,
+        week_start: (workspace as any).week_start,
+        time_format: (workspace as any).time_format,
+        allowed_posting_time: (workspace as any).allowed_posting_time,
         boards: [],
         brand: undefined,
         socialAccounts: [],
         socialPages: [],
-      };
+      } as any;
 
       store.workspaces = [...store.workspaces, newWorkspace];
       return workspace.id;

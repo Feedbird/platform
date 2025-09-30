@@ -286,6 +286,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const [isClient, setIsClient] = React.useState(false);
   const getActiveWorkspace = useFeedbirdStore(s => s.getActiveWorkspace);
   const activeWorkspace = React.useMemo(() => getActiveWorkspace(), [getActiveWorkspace]);
+  console.log("user", useFeedbirdStore.getState().user)
   const unread_msg = useFeedbirdStore(s => s.user?.unread_msg || []);
   const unread_notification = useFeedbirdStore(s => s.user?.unread_notification || []);
 
@@ -721,76 +722,120 @@ export function AppSidebar() {
       {/*  CONTENT                                                        */}
       {/* ---------------------------------------------------------------- */}
       <SidebarContent>
-
-        {/* -------------------- PLATFORM LINKS ----------------------- */}
-        <SidebarGroup>
-          <RenderNavItems items={platformNav} isBoard={false} />
-        </SidebarGroup>
-
-        {/* -------------------- BOARDS ------------------------------- */}
-        {isClient && (
-        <SidebarGroup>
-          {state === 'collapsed' ? (
-            <div className="px-1 py-1">
-              <SidebarSeparator className="bg-gray-200" />
-            </div>
-          ) : (
-            <SidebarGroupLabel>
-              <div className="flex items-center justify-between w-full">
-                <span className="text-xs font-medium text-[#75777C] tracking-wide">Boards</span>
-                <button onClick={() => setIsAddBoardModalOpen(!!activeWorkspace)} className="hover:bg-gray-100 rounded cursor-pointer  ">
-                  <Image
-                    src={`/images/sidebar/plus.svg`}
-                    alt="board plus"
-                    width={18}
-                    height={18}
-                  />
-                </button>
-              </div>
-            </SidebarGroupLabel>
-          )}
-
-          <div className="mt-1">
-            <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
-          </div>
-        </SidebarGroup>
-        )}
-
-        {/* -------------------- SOCIALS ------------------------------ */}
-        {isClient && (
-        <SidebarGroup>
-          {state === 'collapsed' ? (
-            <div className="px-1 py-1">
-              <SidebarSeparator className="bg-gray-200" />
-            </div>
-          ) : (
-            <SidebarGroupLabel>
-              <div className="flex items-center justify-between w-full cursor-pointer">
-                <div
-                  className="flex items-center text-[#75777C] gap-1.5"
-                  onClick={() => setSocialOpen((o) => !o)}
-                >
-                  {socialOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  <span className="text-xs font-medium tracking-wide">Socials</span>
+        {pathname.includes('/settings') ? (
+          <>
+            <SidebarGroup>
+              {state === 'collapsed' ? (
+                <div className="px-1 py-1">
+                  <SidebarSeparator className="bg-gray-200" />
                 </div>
-                <button onClick={() => setIsManageSocialsOpen(!!activeBrand)} className="hover:bg-gray-100 rounded">
-                  <Image
-                    src={`/images/sidebar/plus.svg`}
-                    alt="social plus"
-                    width={18}
-                    height={18}
-                  />
-                </button>
-              </div>
-            </SidebarGroupLabel>
-          )}
+              ) : (
+                <SidebarGroupLabel>
+                  <span className="text-xs font-medium text-[#75777C] tracking-wide">WORKSPACE</span>
+                </SidebarGroupLabel>
+              )}
+              <RenderNavItems
+                items={[
+                  { id: 'ws-workspace', label: 'Workspace', image: '/images/settings/workspace.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/workspace` : '/settings/workspace' },
+                  { id: 'ws-socials', label: 'Socials', image: '/images/settings/socials.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/socials` : '/settings/socials' },
+                  { id: 'ws-billing', label: 'Billing', image: '/images/settings/billing.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/billing` : '/settings/billing' },
+                  { id: 'ws-members', label: 'Members', image: '/images/settings/members.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/members` : '/settings/members' },
+                  { id: 'ws-integrations', label: 'Integrations', image: '/images/settings/integrations.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/integrations` : '/settings/integrations' },
+                ]}
+              />
+            </SidebarGroup>
 
-          {socialOpen && (
-            <SidebarMenu className="mt-1">
-              <SocialShortcuts />
-            </SidebarMenu>
-          )}
-        </SidebarGroup>
+            <SidebarGroup>
+              {state === 'collapsed' ? (
+                <div className="px-1 py-1">
+                  <SidebarSeparator className="bg-gray-200" />
+                </div>
+              ) : (
+                <SidebarGroupLabel>
+                  <span className="text-xs font-medium text-[#75777C] tracking-wide">ACCOUNT</span>
+                </SidebarGroupLabel>
+              )}
+              <RenderNavItems
+                items={[
+                  { id: 'acc-profile', label: 'Profile', image: '/images/settings/profile.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/profile` : '/settings/profile' },
+                  { id: 'acc-notifications', label: 'Notifications', image: '/images/settings/notifications.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/notifications` : '/settings/notifications' },
+                ]}
+              />
+            </SidebarGroup>
+          </>
+        ) : (
+          <>
+            {/* -------------------- PLATFORM LINKS ----------------------- */}
+            <SidebarGroup>
+              <RenderNavItems items={platformNav} isBoard={false} />
+            </SidebarGroup>
+
+            {/* -------------------- BOARDS ------------------------------- */}
+            {isClient && (
+            <SidebarGroup>
+              {state === 'collapsed' ? (
+                <div className="px-1 py-1">
+                  <SidebarSeparator className="bg-gray-200" />
+                </div>
+              ) : (
+                <SidebarGroupLabel>
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xs font-medium text-[#75777C] tracking-wide">Boards</span>
+                    <button onClick={() => setIsAddBoardModalOpen(!!activeWorkspace)} className="hover:bg-gray-100 rounded cursor-pointer  ">
+                      <Image
+                        src={`/images/sidebar/plus.svg`}
+                        alt="board plus"
+                        width={18}
+                        height={18}
+                      />
+                    </button>
+                  </div>
+                </SidebarGroupLabel>
+              )}
+
+              <div className="mt-1">
+                <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
+              </div>
+            </SidebarGroup>
+            )}
+
+            {/* -------------------- SOCIALS ------------------------------ */}
+            {isClient && (
+            <SidebarGroup>
+              {state === 'collapsed' ? (
+                <div className="px-1 py-1">
+                  <SidebarSeparator className="bg-gray-200" />
+                </div>
+              ) : (
+                <SidebarGroupLabel>
+                  <div className="flex items-center justify-between w-full cursor-pointer">
+                    <div
+                      className="flex items-center text-[#75777C] gap-1.5"
+                      onClick={() => setSocialOpen((o) => !o)}
+                    >
+                      {socialOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      <span className="text-xs font-medium tracking-wide">Socials</span>
+                    </div>
+                    <button onClick={() => setIsManageSocialsOpen(!!activeBrand)} className="hover:bg-gray-100 rounded">
+                      <Image
+                        src={`/images/sidebar/plus.svg`}
+                        alt="social plus"
+                        width={18}
+                        height={18}
+                      />
+                    </button>
+                  </div>
+                </SidebarGroupLabel>
+              )}
+
+              {socialOpen && (
+                <SidebarMenu className="mt-1">
+                  <SocialShortcuts />
+                </SidebarMenu>
+              )}
+            </SidebarGroup>
+            )}
+          </>
         )}
       </SidebarContent>
 
