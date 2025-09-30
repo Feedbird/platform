@@ -7,25 +7,22 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types based on the schema
 export interface NotificationSettings {
-  workspace_id: string;
-  settings: {
-    communication: {
-      enabled: boolean;
-      commentsAndMentions: boolean;
-    };
-    boards: {
-      enabled: boolean;
-      pendingApproval: boolean;
-      scheduled: boolean;
-      published: boolean;
-      boardInviteSent: boolean;
-      boardInviteAccepted: boolean;
-    };
-    workspaces: {
-      enabled: boolean;
-      workspaceInviteSent: boolean;
-      workspaceInviteAccepted: boolean;
-    };
+  communication: {
+    enabled: boolean;
+    commentsAndMentions: boolean;
+  };
+  boards: {
+    enabled: boolean;
+    pendingApproval: boolean;
+    scheduled: boolean;
+    published: boolean;
+    boardInviteSent: boolean;
+    boardInviteAccepted: boolean;
+  };
+  workspaces: {
+    enabled: boolean;
+    workspaceInviteSent: boolean;
+    workspaceInviteAccepted: boolean;
   };
 }
 
@@ -37,7 +34,7 @@ export interface User {
   image_url?: string;
   unread_msg?: string[];
   unread_notification: string[];
-  notification_settings?: NotificationSettings[];
+  notification_settings?: NotificationSettings;
   default_board_rules?: any;
   created_at: string;
   updated_at: string;

@@ -285,25 +285,22 @@ export interface MessageChannel {
 /*  Store Interface                                                  */
 /*─────────────────────────────────────────────────────────────────────*/
 export interface NotificationSettings {
-  workspace_id: string;
-  settings: {
-    communication: {
-      enabled: boolean;
-      commentsAndMentions: boolean;
-    };
-    boards: {
-      enabled: boolean;
-      pendingApproval: boolean;
-      scheduled: boolean;
-      published: boolean;
-      boardInviteSent: boolean;
-      boardInviteAccepted: boolean;
-    };
-    workspaces: {
-      enabled: boolean;
-      workspaceInviteSent: boolean;
-      workspaceInviteAccepted: boolean;
-    };
+  communication: {
+    enabled: boolean;
+    commentsAndMentions: boolean;
+  };
+  boards: {
+    enabled: boolean;
+    pendingApproval: boolean;
+    scheduled: boolean;
+    published: boolean;
+    boardInviteSent: boolean;
+    boardInviteAccepted: boolean;
+  };
+  workspaces: {
+    enabled: boolean;
+    workspaceInviteSent: boolean;
+    workspaceInviteAccepted: boolean;
   };
 }
 
@@ -315,7 +312,7 @@ export interface User {
   imageUrl?: string;
   unread_msg?: string[];
   unread_notification?: string[];
-  notification_settings?: NotificationSettings[];
+  notification_settings?: NotificationSettings;
   createdAt: Date;
 }
 
@@ -356,7 +353,7 @@ export interface FeedbirdStore {
 
   // User management
   setUser: (user: User | null) => void;
-  updateUserNotificationSettings: (notificationSettings: NotificationSettings[]) => void;
+  updateUserNotificationSettings: (notificationSettings: NotificationSettings) => void;
   clearUser: () => void;
   setCurrentChannelId: (channelId: string | undefined) => void;
   
@@ -2639,7 +2636,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           set({ user })
           // User is now set, unread messages will be handled through websocket events
         },
-        updateUserNotificationSettings: (notificationSettings: NotificationSettings[]) => {
+        updateUserNotificationSettings: (notificationSettings: NotificationSettings) => {
           set((state) => ({
             user: state.user ? {
               ...state.user,

@@ -106,7 +106,8 @@ export default function SettingsMembersPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto w-[610px] mx-auto pt-2">
+      <div className="w-full pt-2 flex flex-1 items-start justify-center overflow-y-auto">
+      <div className="w-[610px]">
         {/* Title and description */}
         <div className="mb-4">
           <div className="text-sm font-medium text-black">Members</div>
@@ -225,6 +226,7 @@ export default function SettingsMembersPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

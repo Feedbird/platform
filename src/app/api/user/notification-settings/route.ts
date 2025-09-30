@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
 
-// Validation schema for notification settings
+// Validation schema for notification settings (per user, no workspace)
 const NotificationSettingsSchema = z.object({
   user_email: z.string().email(),
-  workspace_id: z.string(),
   settings: z.object({
     communication: z.object({
       enabled: z.boolean(),
@@ -27,20 +26,20 @@ const NotificationSettingsSchema = z.object({
   }),
 })
 
-// POST - Update notification settings for a user in a specific workspace
+// POST - Update notification settings for a user
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const validatedData = NotificationSettingsSchema.parse(body)
 
-    // Get current user data
+    // Ensure user exists
     const { data: user, error: fetchError } = await supabase
       .from('users')
-      .select('id, notification_settings')
+      .select('id')
       .eq('email', validatedData.user_email)
       .single()
 
-    if (fetchError) {
+    if (fetchError || !user) {
       console.error('Error fetching user:', fetchError)
       return NextResponse.json(
         { error: 'User not found' },
@@ -48,33 +47,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Get existing notification settings or initialize empty array
-    const currentSettings = user.notification_settings || []
-    
-    // Find existing settings for this workspace
-    const existingSettingsIndex = currentSettings.findIndex(
-      (setting: any) => setting.workspace_id === validatedData.workspace_id
-    )
-
-    const newWorkspaceSettings = {
-      workspace_id: validatedData.workspace_id,
-      settings: validatedData.settings
-    }
-
-    let updatedSettings
-    if (existingSettingsIndex >= 0) {
-      // Update existing workspace settings
-      updatedSettings = [...currentSettings]
-      updatedSettings[existingSettingsIndex] = newWorkspaceSettings
-    } else {
-      // Add new workspace settings
-      updatedSettings = [...currentSettings, newWorkspaceSettings]
-    }
-
-    // Update user's notification settings
+    // Overwrite user's notification settings (single object)
     const { data: updatedUser, error: updateError } = await supabase
       .from('users')
-      .update({ notification_settings: updatedSettings })
+      .update({ notification_settings: validatedData.settings })
       .eq('email', validatedData.user_email)
       .select()
       .single()
@@ -104,12 +80,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET - Get notification settings for a user in a specific workspace
+// GET - Get notification settings for a user
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const userEmail = searchParams.get('user_email')
-    const workspaceId = searchParams.get('workspace_id')
 
     if (!userEmail) {
       return NextResponse.json(
@@ -118,7 +93,6 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Get user's notification settings
     const { data: user, error: fetchError } = await supabase
       .from('users')
       .select('notification_settings')
@@ -133,45 +107,25 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const notificationSettings = user.notification_settings || []
-
-    if (workspaceId) {
-      // Return settings for specific workspace
-      const workspaceSettings = notificationSettings.find(
-        (setting: any) => setting.workspace_id === workspaceId
-      )
-      
-      if (!workspaceSettings) {
-        // Return default settings if none exist for this workspace
-        return NextResponse.json({
-          workspace_id: workspaceId,
-          settings: {
-            communication: {
-              enabled: true,
-              commentsAndMentions: true
-            },
-            boards: {
-              enabled: true,
-              pendingApproval: true,
-              scheduled: true,
-              published: true,
-              boardInviteSent: true,
-              boardInviteAccepted: true
-            },
-            workspaces: {
-              enabled: true,
-              workspaceInviteSent: true,
-              workspaceInviteAccepted: true
-            }
-          }
-        })
-      }
-
-      return NextResponse.json(workspaceSettings)
-    } else {
-      // Return all notification settings
-      return NextResponse.json(notificationSettings)
+    const defaultSettings = {
+      communication: { enabled: true, commentsAndMentions: true },
+      boards: {
+        enabled: true,
+        pendingApproval: true,
+        scheduled: true,
+        published: true,
+        boardInviteSent: true,
+        boardInviteAccepted: true,
+      },
+      workspaces: {
+        enabled: true,
+        workspaceInviteSent: true,
+        workspaceInviteAccepted: true,
+      },
     }
+
+    const settings = user?.notification_settings || defaultSettings
+    return NextResponse.json(settings)
   } catch (error) {
     console.error('Error in GET /api/user/notification-settings:', error)
     return NextResponse.json(

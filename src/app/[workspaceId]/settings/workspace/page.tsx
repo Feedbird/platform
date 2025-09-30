@@ -147,14 +147,14 @@ export default function SettingsWorkspacePage() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col gap-4">
       {/* Topbar */}
       <div className="w-full border-b px-4 h-10 flex items-center justify-between">
         <div className="text-sm text-grey font-medium">Workspace</div>
       </div>
 
       {/* Main */}
-      <div className="w-full p-6 flex flex-1 items-start justify-center overflow-y-auto">
+      <div className="w-full pt-2 flex flex-1 items-start justify-center overflow-y-auto">
         <div className="w-[512px] space-y-6">
           {/* Section header */}
           <div className="border-b border-elementStroke pb-4">
@@ -162,7 +162,7 @@ export default function SettingsWorkspacePage() {
           </div>
 
           {/* Logo + Upload */}
-          <div className="flex gap-8 items-center">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-4">
               {logo ? (
                 <div className="relative size-12 rounded-[6px] overflow-hidden border-1 border-elementStroke">
@@ -179,7 +179,7 @@ export default function SettingsWorkspacePage() {
                 <div className="text-xs font-normal text-grey mt-1">Min. 200×200px, PNG or JPG</div>
               </div>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-4">
               <div onClick={handleRemoveLogo}
                 className={cn(
                   'text-sm text-[#D82A2A] font-medium cursor-pointer',

@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
       // Cloudflare R2 storage
       {
         protocol: 'https',
-        hostname: 'pub-7c697410bf9d4c77a76ef1d13d21f6b5.r2.dev'
+        hostname: 'upload.feedbird.com'
       },
       // TikTok
       {

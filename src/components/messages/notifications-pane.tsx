@@ -129,12 +129,12 @@ export default function NotificationsPane() {
 	// Load notification settings when dialog opens
 	useEffect(() => {
 		const loadNotificationSettings = async () => {
-			if (!isNotificationSettingsOpen || !user?.email || !activeWorkspace?.id) return
+			if (!isNotificationSettingsOpen || !user?.email) return
 
 			try {
 				setIsLoadingSettings(true)
 				const response = await fetch(
-					`/api/user/notification-settings?user_email=${encodeURIComponent(user.email)}&workspace_id=${activeWorkspace.id}`
+					`/api/user/notification-settings?user_email=${encodeURIComponent(user.email)}`
 				)
 				
 				if (response.ok) {
@@ -149,17 +149,16 @@ export default function NotificationsPane() {
 		}
 
 		loadNotificationSettings()
-	}, [isNotificationSettingsOpen, user?.email, activeWorkspace?.id])
+	}, [isNotificationSettingsOpen, user?.email])
 
 	// Save notification settings to database
 	const saveNotificationSettings = async () => {
-		if (!user?.email || !activeWorkspace?.id) return
+		if (!user?.email) return
 
 		try {
 			setIsSavingSettings(true)
 			const updatedUser = await userApi.updateNotificationSettings(
 				user.email,
-				activeWorkspace.id,
 				notificationSettings
 			)
 			

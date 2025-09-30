@@ -139,7 +139,6 @@ export const userApi = {
   // Update notification settings for a specific workspace
   updateNotificationSettings: async (
     userEmail: string,
-    workspaceId: string,
     settings: {
       communication: {
         enabled: boolean;
@@ -164,7 +163,6 @@ export const userApi = {
       method: "POST",
       body: JSON.stringify({
         user_email: userEmail,
-        workspace_id: workspaceId,
         settings,
       }),
     });
