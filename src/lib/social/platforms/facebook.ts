@@ -1285,6 +1285,8 @@ export class FacebookPlatform extends BasePlatform {
       }
 
       // https://developers.facebook.com/docs/graph-api/reference/post/insights/
+      // https://developers.facebook.com/docs/platforminsights/page#get-metrics-of-a-page-post
+      // https://developers.facebook.com/docs/graph-api/reference/v23.0/insights#page-posts
       const response = await this.fetchWithAuth<{
         data: Array<{
           name: string;
@@ -1360,6 +1362,66 @@ export class FacebookPlatform extends BasePlatform {
       return analyticsData;
     } catch (error) {
       this.handleApiError(error, 'get post analytics');
+    }
+  }
+
+  async getPageAnalytics(page: SocialPage): Promise<any> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/facebook/page-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      // Get secure token from database
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // https://developers.facebook.com/docs/graph-api/reference/page/insights/
+      const response = await this.fetchWithAuth<{
+        data: Array<{
+          name: string;
+          period: string;
+          values: Array<{ value: number | Record<string, number> }>;
+          title?: string;
+          description?: string;
+        }>;
+      }>(`${config.baseUrl}/${config.apiVersion}/${page.pageId}/insights`, {
+        token: token,
+        queryParams: {
+          metric: [
+            'page_impressions',
+            'page_fan_adds',
+            'page_views_total',
+            'page_posts_impressions',
+            'page_follows',
+          ].join(','),
+          period: 'day'
+        }
+      });
+
+      return {
+        pageId: page.pageId,
+        pageName: page.name,
+        analytics: response.data,
+        lastUpdated: new Date().toISOString()
+      };
+
+    } catch (error: any) {
+      console.error('Facebook page analytics error:', error);
+      throw new SocialAPIError(
+        `Failed to fetch page analytics: ${error.message}`,
+        'FACEBOOK_PAGE_ANALYTICS_ERROR'
+      );
     }
   }
 
