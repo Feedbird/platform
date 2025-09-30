@@ -151,7 +151,6 @@ export default function SettingsWorkspacePage() {
       {/* Topbar */}
       <div className="w-full border-b px-4 h-10 flex items-center justify-between">
         <div className="text-sm text-grey font-medium">Workspace</div>
-        <div className="flex items-center gap-2"></div>
       </div>
 
       {/* Main */}
