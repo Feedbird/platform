@@ -234,3 +234,14 @@ export interface FormField {
   description: string;
   required: boolean;
 }
+
+export interface Coupon {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  discount: number;
+  code: string;
+  expires_at: string | null;
+  usage_count: number;
+  usage_limit: number | null;
+}
