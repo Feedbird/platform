@@ -1,4 +1,4 @@
-import { Service, ServicePlan } from "@/lib/supabase/client";
+import { Service, ServiceChannel, ServicePlan } from "@/lib/supabase/client";
 import React from "react";
 import { Button } from "../ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";
@@ -25,12 +25,17 @@ export const mapPeriodicity = (period: string | undefined | null) => {
 
 export default function ServiceCard({ service, selector, isActivated }: Props) {
   const [selectingMode, setSelectingMode] = React.useState(false);
+  const [channelSelected, selectChannel] =
+    React.useState<ServiceChannel | null>(null);
   const [planSelected, selectPlan] = React.useState<ServicePlan | null>(null);
   const [added, isAdded] = React.useState(false);
 
   const plans = service.service_plans
     ? service.service_plans?.sort((a, b) => a.price - b.price)
     : [];
+
+  const channels =
+    service.social_channels && service.channels?.length ? service.channels : [];
 
   const handleAdd = () => {
     if (!planSelected) {
@@ -140,7 +145,53 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
               </SelectContent>
             </Select>
           </div>
-          {service.social_channels && service.channels?.length && <></>}
+          {channels.length > 0 && (
+            <Select
+              value={channelSelected ? channelSelected.id : undefined}
+              onValueChange={(value) => {
+                const selected = channels.find(
+                  (channel) => channel.id === value
+                );
+                if (selected) {
+                  selectChannel(selected);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F] text-[13px]">
+                <span className="text-[#1C1D1F] font-medium text-[13px]">
+                  Select social channels
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <div className="flex flex-col gap-1">
+                  {channels.map((channel, index) => (
+                    <SelectItem
+                      value={channel.id}
+                      key={`channel_${index}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectChannel(channel);
+                      }}
+                      className="text-[#1C1D1F] text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
+                    >
+                      <div className="flex flex-row items-center gap-2">
+                        <Image
+                          src={`/images/checkout/channels/${channel.social_channel}.svg`}
+                          alt={`channel-${channel.social_channel}-image`}
+                          width={18}
+                          height={18}
+                        />
+                        <span className="text-[#1C1D1F] font-medium text-[13px]">
+                          {channel.social_channel.slice(0, 1).toUpperCase() +
+                            channel.social_channel.slice(1)}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </div>
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex flex-row items-center justify-between">
             <span className="text-[#1C1D1F] font-medium text-sm">
               {planSelected
