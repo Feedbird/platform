@@ -19,7 +19,8 @@ export function BlockThumbnail({ block, height, rowHeight }: { block: Block; hei
 
     if (currentVer.file.kind === "image" && currentVer.file.url) {
       const img = new Image();
-      img.src = `/api/proxy?url=${encodeURIComponent(currentVer.file.url)}`;
+      //img.src = `/api/proxy?url=${encodeURIComponent(currentVer.file.url)}`;
+      img.src = currentVer.file.url;
       img.onload = () => {
         const aspectType = getAspectRatioType(img.naturalWidth, img.naturalHeight);
         setAspectRatioType(aspectType);
@@ -45,7 +46,8 @@ export function BlockThumbnail({ block, height, rowHeight }: { block: Block; hei
     const videoEl = document.createElement("video");
     videoEl.preload = "metadata";
     videoEl.muted = true;
-    videoEl.src = `/api/proxy?url=${encodeURIComponent(currentVer.file.url)}`;
+    //videoEl.src = `/api/proxy?url=${encodeURIComponent(currentVer.file.url)}`;
+    videoEl.src = currentVer.file.url;
     videoEl.addEventListener("loadedmetadata", () => {
       if (cancelled) return;
       const aspectType = getAspectRatioType(videoEl.videoWidth, videoEl.videoHeight);
@@ -109,7 +111,8 @@ export function BlockThumbnail({ block, height, rowHeight }: { block: Block; hei
           {thumbUrl ? (
             <img
               className="absolute inset-0 w-full h-full object-cover"
-              src={`/api/proxy?url=${encodeURIComponent(thumbUrl)}`}
+              //src={`/api/proxy?url=${encodeURIComponent(thumbUrl)}`}
+              src={thumbUrl}
               alt="video thumbnail"
               loading="lazy"
             />
@@ -128,7 +131,8 @@ export function BlockThumbnail({ block, height, rowHeight }: { block: Block; hei
       ) : (
         <img
           className="absolute inset-0 w-full h-full object-cover"
-          src={`/api/proxy?url=${encodeURIComponent(currentVer.file.url)}`}
+          //src={`/api/proxy?url=${encodeURIComponent(currentVer.file.url)}`}
+          src={currentVer.file.url}
           alt="preview"
           loading="lazy"
         />

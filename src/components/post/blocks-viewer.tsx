@@ -317,7 +317,8 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
       if (current.file.kind === "image" && current.file.url) {
         if (blockDimensions[block.id]) return;
         const img = new Image();
-        img.src = `/api/proxy?url=${encodeURIComponent(current.file.url)}`;
+        //img.src = `/api/proxy?url=${encodeURIComponent(current.file.url)}`;
+        img.src=current.file.url;
         img.onload = () => {
           setBlockDimensions((prev) => ({ ...prev, [block.id]: { w: img.naturalWidth, h: img.naturalHeight } }));
         };
@@ -326,7 +327,8 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
         const videoEl = document.createElement("video");
         videoEl.preload = "metadata";
         videoEl.crossOrigin = "anonymous";
-        videoEl.src = `/api/proxy?url=${encodeURIComponent(current.file.url)}`;
+        //videoEl.src = `/api/proxy?url=${encodeURIComponent(current.file.url)}`;
+        videoEl.src = current.file.url;
         const onMeta = () => {
           const w = videoEl.videoWidth;
           const h = videoEl.videoHeight;
@@ -395,7 +397,8 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                             el.crossOrigin = "anonymous";
                           }
                         }}
-                        src={`/api/proxy?url=${encodeURIComponent(current.file.url)}`}
+                        //src={`/api/proxy?url=${encodeURIComponent(current.file.url)}`}
+                        src={current.file.url}
                         className="hidden"
                         playsInline
                         muted
@@ -424,7 +427,8 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                     <>
                       {current.file.thumbnailUrl ? (
                         <img
-                          src={`/api/proxy?url=${encodeURIComponent(current.file.thumbnailUrl)}`}
+                          //src={`/api/proxy?url=${encodeURIComponent(current.file.thumbnailUrl)}`}
+                          src={current.file.thumbnailUrl}
                           alt="video thumbnail"
                           className="absolute inset-0 w-full h-full object-cover"
                         />
@@ -448,7 +452,8 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
                 </>
               ) : (
                 <img
-                  src={`/api/proxy?url=${encodeURIComponent(current.file.url)}`}
+                  //src={`/api/proxy?url=${encodeURIComponent(current.file.url)}`}
+                  src={current.file.url}
                   alt="preview"
                   className="absolute inset-0 w-full h-full object-cover"
                 />

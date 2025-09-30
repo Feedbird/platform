@@ -45,11 +45,16 @@ export function PublishDateCell({
   const isPublished = post.status === "Published";
   const isFailedPublishing = post.status === "Failed Publishing";
   const hasDate = !!savedDate;
-  const displayText = hasDate ? formatDateTime(savedDate!) : "No time is set yet";
-
-  const showClock = !isScheduled; // auto-schedule button
-  const showSend = hasDate;       // "publish now" button
-  const showClockOff = hasDate && isScheduled; // "unschedule" button
+  
+  // Set display text based on status
+  let displayText: string;
+  if (isPublished) {
+    displayText = "Published";
+  } else if (isFailedPublishing) {
+    displayText = "Failed Publishing";
+  } else {
+    displayText = hasDate ? formatDateTime(savedDate!) : "No time is set yet";
+  }
 
   // Helper functions to get styling based on status
   const getStatusStyling = () => {
@@ -118,17 +123,13 @@ export function PublishDateCell({
   function handleUnschedule() {
     // If it was scheduled, move to Approved; otherwise remain original status.
     const nextStatus = post.status === "Scheduled" ? "Approved" : post.status;
-    updatePost(post.id, { status: nextStatus, publish_date: undefined });
+    updatePost(post.id, { status: nextStatus, publish_date: null });
   }
 
   const handleSwitchToggle = (checked: boolean) => {
-    if (!checked) {
-      handleUnschedule();
+    if (checked) 
       return;
-    }
-    if (!isPublished && !isFailedPublishing) {
-      updatePost(post.id, { status: "Scheduled" });
-    }
+    handleUnschedule();
   };
 
   useEffect(() => {
@@ -141,57 +142,42 @@ export function PublishDateCell({
       <div className="flex items-center w-full min-w-0 max-w-full">
         <div className="flex-1 min-w-0">
           {/* Date/time popover - only if not scheduled/published/failed publishing */}
-          {!isScheduled && !isPublished && !isFailedPublishing ? (
+          {!isPublished && !isFailedPublishing ? (
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <TooltipProvider delayDuration={300}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
-                      <div className="cursor-pointer" style={{width: "fit-content"}}>
+                      <div className="cursor-pointer" style={{ width: "fit-content" }}>
                         {hasDate ? (
                           /* If has time but not scheduled: show chip style with calendar icon + time */
                           <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
                             padding: "1px 6px 1px 4px",
                             border: `1px solid ${statusStyling.borderColor}`,
-                            backgroundColor: showSwitchInsteadOfIcon ? "#E5EEFF" : statusStyling.backgroundColor,
+                            backgroundColor: "#E5EEFF",
                             width: "fit-content"
                           }}>
-                            {showSwitchInsteadOfIcon ? (
-                              <div
-                                className="px-0.5"
-                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                                onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                              >
-                                <Switch
-                                  checked={!!post.publish_date}
-                                  onCheckedChange={handleSwitchToggle}
-                                  className="h-3.5 w-6 rounded-full data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
-                                  icon={
-                                    <span className="flex items-center justify-center w-full h-full">
-                                      <img
-                                        src="/images/boards/stars-01.svg"
-                                        alt="star"
-                                        className="w-2.5 h-2.5"
-                                      />
-                                    </span>
-                                  }
-                                  />
-                              </div>
-                                  ) : (
-                              <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
-                                backgroundColor: statusStyling.iconBackgroundColor
-                              }}>
-                                <Image 
-                                  src={statusStyling.iconSrc} 
-                                  alt="Publish Date" 
-                                  width={12} 
-                                  height={12}
-                                  className="filter brightness-0 invert"
-                                  style={{ filter: 'brightness(0) invert(1)' }}
-                                />
-                                  </div>
-                              )}
+                            <div
+                              className="px-0.5"
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                              onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                              onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                            >
+                              <Switch
+                                checked={!!post.publish_date}
+                                onCheckedChange={handleSwitchToggle}
+                                className="h-3.5 w-6 rounded-full data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
+                                icon={
+                                  <span className="flex items-center justify-center w-full h-full">
+                                    <img
+                                      src="/images/boards/stars-01.svg"
+                                      alt="star"
+                                      className="w-2.5 h-2.5"
+                                    />
+                                  </span>
+                                }
+                              />
+                            </div>
                             <span className="text-xs text-[#133495] font-semibold whitespace-nowrap" style={{
                               lineHeight: "18px",
                             }}>{displayText}</span>
@@ -206,8 +192,8 @@ export function PublishDateCell({
                             </div>
                           ) : (
                             <div className="flex flex-row items-center gap-1 w-full cursor-pointer">
-                            <div className={cn(
-                              "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                              <div className={cn(
+                                "flex flex-row items-center gap-1 rounded-[4px] bg-white",
                               )} style={{
                                 padding: "3px 6px 3px 4px",
                                 boxShadow: "0px 0px 0px 1px #D3D3D3",
@@ -216,28 +202,28 @@ export function PublishDateCell({
                                 <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
                                   <Plus className={cn(
                                     "w-3 h-3 text-[#5C5E63]",
-                                  )}/>
+                                  )} />
                                 </div>
-                               <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
-                            </div>
+                                <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
+                              </div>
 
-                            {/* display publish now button */}
-                            <div 
-                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); publishPostToAllPages(post.id); }}
-                            className={cn(
-                              "flex flex-row items-center gap-1 rounded-[4px] bg-white",
-                              )} style={{
-                                padding: "3px 6px 3px 4px",
-                                boxShadow: "0px 0px 0px 1px #D3D3D3",
-                                width: "fit-content"
-                              }}>
+                              {/* display publish now button */}
+                              <div
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setConfirmPublishOpen(true); }}
+                                className={cn(
+                                  "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                                )} style={{
+                                  padding: "3px 6px 3px 4px",
+                                  boxShadow: "0px 0px 0px 1px #D3D3D3",
+                                  width: "fit-content"
+                                }}>
                                 <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
                                   <Send className={cn(
                                     "w-3 h-3 text-[#5C5E63]",
-                                  )}/>
+                                  )} />
                                 </div>
-                               <span className="text-xs text-[#5C5E63] font-semibold">Publish Now</span>
-                            </div>
+                                <span className="text-xs text-[#5C5E63] font-semibold">Publish Now</span>
+                              </div>
                             </div>
                           )
                         )}
@@ -263,18 +249,18 @@ export function PublishDateCell({
                 style={
                   (!hasDate && !showSelector && !showPostingPanel)
                     ? {
-                        display: "flex",
-                        width: "250px",
-                        padding: "4px 0px",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        borderRadius: "6px",
-                        background: "rgba(255, 255, 255, 0.95)",
-                        boxShadow:
-                          "0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.06), 0px 3px 3px -1.5px rgba(0, 0, 0, 0.06), 0px 6px 6px -3px rgba(0, 0, 0, 0.06), 0px 12px 12px -6px rgba(0, 0, 0, 0.04), 0px 24px 24px -12px rgba(0, 0, 0, 0.04)",
-                        backdropFilter: "blur(4px)",
-                      }
+                      display: "flex",
+                      width: "250px",
+                      padding: "4px 0px",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "6px",
+                      borderRadius: "6px",
+                      background: "rgba(255, 255, 255, 0.95)",
+                      boxShadow:
+                        "0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.06), 0px 3px 3px -1.5px rgba(0, 0, 0, 0.06), 0px 6px 6px -3px rgba(0, 0, 0, 0.06), 0px 12px 12px -6px rgba(0, 0, 0, 0.04), 0px 24px 24px -12px rgba(0, 0, 0, 0.04)",
+                      backdropFilter: "blur(4px)",
+                    }
                     : undefined
                 }
               >
@@ -379,45 +365,21 @@ export function PublishDateCell({
                     <div className="flex flex-row items-center gap-1 rounded-[4px]" style={{
                       padding: "1px 6px 1px 4px",
                       border: `1px solid ${statusStyling.borderColor}`,
-                      backgroundColor: showSwitchInsteadOfIcon ? "#E5EEFF" : statusStyling.backgroundColor,
+                      backgroundColor: statusStyling.backgroundColor,
                       width: "fit-content"
                     }}>
-                    {showSwitchInsteadOfIcon ? (
-                      <div
-                        className="px-0.5"
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                        onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                      >
-                        <Switch
-                          checked={!!post.publish_date}
-                          onCheckedChange={handleSwitchToggle}
-                          className="h-3.5 w-6 rounded-full data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
-                          icon={
-                            <span className="flex items-center justify-center w-full h-full">
-                              <img
-                                src="/images/boards/stars-01.svg"
-                                alt="star"
-                                className="w-2.5 h-2.5"
-                              />
-                            </span>
-                          }
-                        />
-                      </div>
-                      ) : (
                       <div className="flex flex-row items-center p-[1px] rounded-[3px]" style={{
                         backgroundColor: statusStyling.iconBackgroundColor
                       }}>
-                          <Image 
-                            src={statusStyling.iconSrc} 
-                            alt="Publish Date" 
-                            width={12} 
-                            height={12}
-                            className="filter brightness-0 invert"
-                            style={{ filter: 'brightness(0) invert(1)' }}
-                          />
+                        <Image
+                          src={statusStyling.iconSrc}
+                          alt="Publish Date"
+                          width={12}
+                          height={12}
+                          className="filter brightness-0 invert"
+                          style={{ filter: 'brightness(0) invert(1)' }}
+                        />
                       </div>
-                        )}
                       <span className="text-xs font-semibold whitespace-nowrap" style={{
                         lineHeight: "18px",
                         color: statusStyling.textColor
@@ -434,15 +396,14 @@ export function PublishDateCell({
         </div>
       </div>
       {/* Additional action icons */}
-      {hasDate && (
+      {hasDate && !isPublished && !isFailedPublishing && (
         <div className="flex flex-row gap-2 flex-shrink-0">
-          {/* Unschedule (only if status === "Scheduled" and not published/failed publishing) */}
-          {showClockOff && !isPublished && !isFailedPublishing && (
+          {/* Unschedule */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="border border-border-button rounded-[6px] p-1 text-[#EC5050] cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={handleUnschedule}
                   >
                     <X className="w-4 h-4" />
@@ -456,11 +417,33 @@ export function PublishDateCell({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )}
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={handleAutoSchedule}
+                  >
+                    <Image
+                      src="/images/columns/post-time.svg"
+                      alt="Auto Schedule"
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="bg-[#151515] text-white border-none text-xs"
+                >
+                  Auto Schedule
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
           {/* Auto-schedule (only if not published/scheduled/failed publishing) */}
-          {showClock && !isPublished && !isFailedPublishing && (
-            <TooltipProvider>
+            {/* <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -482,12 +465,10 @@ export function PublishDateCell({
                   Auto Schedule
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          )}
+            </TooltipProvider> */}
 
           {/* Publish now (only if we have a date & not published/failed publishing) */}
-          {showSend && !isPublished && !isFailedPublishing && (
-            <TooltipProvider>
+            {/* <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -509,8 +490,7 @@ export function PublishDateCell({
                   Publish Now
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          )}
+            </TooltipProvider> */}
         </div>
       )}
 
@@ -666,7 +646,7 @@ function ConfirmPublishNowDialog({
 }) {
   const { executeWithLoading } = useAsyncLoading();
   const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
-  const dt = post.publish_date ? formatDateTime(new Date(post.publish_date)) : "(none)";
+  const dt = format(new Date(), "MMM dd, yyyy 'at' h:mm aa");
 
   // Get the actual pages for post.pages
   const selectedPages: SocialPage[] =
@@ -686,15 +666,15 @@ function ConfirmPublishNowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[320px] p-5">
+      <DialogContent className="w-[400px] p-5">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold text-center">Publish Now?</DialogTitle>
+          <DialogTitle className="text-base text-black font-semibold text-center">Publish Now?</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-col gap-2 text-sm text-muted-foreground">
             {/* Show pages + icon cluster */}
             <div className="flex items-center gap-2">
-              <span className="font-medium text-foreground">Pages:</span>
+              <span className="font-medium text-sm text-darkGrey">Pages:</span>
               <div className="flex items-center gap-1">
                 {Object.entries(platformCounts).map(([platform, count]) => (
                   <ChannelIcons
@@ -708,17 +688,17 @@ function ConfirmPublishNowDialog({
             </div>
 
             <div>
-              <span className="font-medium text-foreground">Current date/time:</span> {dt}
+              <span className="font-medium text-sm text-darkGrey">Current date/time: {dt} </span> 
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={onClose}>
+            <Button variant="outline" size="sm" onClick={onClose} className="cursor-pointer">
               Cancel
             </Button>
             <Button
-              variant="outline"
               size="sm"
               onClick={handleConfirm}
+              className="bg-main hover:bg-main/90 text-white cursor-pointer"
             >
               Publish
             </Button>
@@ -749,15 +729,15 @@ function formatDateTime(date: Date) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const inputDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  
+
   const diffTime = inputDate.getTime() - today.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-  
+
   const timeStr = format(date, "h:mm aa");
-  
+
   if (diffDays === 0) {
     return `Today, ${timeStr}`;
-  } 
+  }
   // else if (diffDays === -1) {
   //   return `Yesterday, ${timeStr}`;
   // } 

@@ -2365,12 +2365,14 @@ export function PostTable({
             {/* Platform icons and switch – right-aligned */}
             <div className="ml-auto flex items-center gap-2">
               {renderPlatformsForHeader(availablePlatforms, "sm")}
+              <div data-col-interactive>
               <Switch
                 checked={!captionLocked}
                 onCheckedChange={(checked) => setCaptionLocked(!checked)}
                 className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
                 title={captionLocked ? "Unlock - customise per social" : "Lock"}
               />
+              </div>
             </div>
           </div>
         ),
@@ -2669,6 +2671,7 @@ export function PostTable({
               <Image src={`/images/columns/post-time.svg`} alt="Publish Date" width={14} height={14} />
               {"Post Time"}
             </div>
+            <div data-col-interactive>
             <Switch
               checked={!!boardRules?.autoSchedule}
               onCheckedChange={(checked) => {
@@ -2685,7 +2688,24 @@ export function PostTable({
                   sortBy: prevRules?.sortBy ?? null,
                   rowHeight: prevRules?.rowHeight ?? rowHeight,
                 };
-                updateBoard(activeBoardId, { rules: mergedRules });
+                // Optimistic update: immediately reflect in store
+                useFeedbirdStore.setState((s) => ({
+                  workspaces: (s.workspaces || []).map(w => ({
+                    ...w,
+                    boards: (w.boards || []).map(b => b.id === activeBoardId ? { ...b, rules: mergedRules } : b)
+                  }))
+                }));
+
+                // Persist to backend; revert if it fails
+                updateBoard(activeBoardId, { rules: mergedRules }).catch((err) => {
+                  console.error('Failed to update board rules:', err);
+                  useFeedbirdStore.setState((s) => ({
+                    workspaces: (s.workspaces || []).map(w => ({
+                      ...w,
+                      boards: (w.boards || []).map(b => b.id === activeBoardId ? { ...b, rules: prevRules } : b)
+                    }))
+                  }));
+                });
               }}
               className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
               icon={
@@ -2701,6 +2721,7 @@ export function PostTable({
                 </span>
               }
             />
+            </div>
           </div>
         ),
         minSize: 110,
@@ -3581,6 +3602,7 @@ export function PostTable({
                             if ((e as any).detail >= 2) return; // ignore double-clicks
                             const target = e.target as HTMLElement;
                             if (target.closest('[data-col-menu-trigger]')) return; // don't start drag when clicking menu trigger
+                            if (target.closest('[data-col-interactive]')) return; // don't start drag when clicking interactive controls
                             startColumnMouseDrag(e, h.column.id);
                           }}
                         >
@@ -4458,6 +4480,7 @@ export function PostTable({
                           if ((e as any).detail >= 2) return; // ignore double-clicks
                           const target = e.target as HTMLElement;
                           if (target.closest('[data-col-menu-trigger]')) return; // avoid drag when clicking chevron
+                          if (target.closest('[data-col-interactive]')) return; // avoid drag when clicking interactive controls
                           startColumnMouseDrag(e, header.column.id);
                         }}
                       >
