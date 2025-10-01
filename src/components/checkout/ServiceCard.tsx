@@ -5,14 +5,17 @@ import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";
 import Image from "next/image";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
-import { Checkbox } from "../ui/checkbox";
-import { MultiSelect } from "../ui/multi-select";
 import MultiSelectDropdown from "./ChannelSelect";
+
+export type ServiceCardPlan = {
+  plan: ServicePlan;
+  channels: ServiceChannel[];
+};
 
 type Props = {
   service: Service;
   isActivated: boolean;
-  selector: React.Dispatch<React.SetStateAction<Map<string, ServicePlan>>>;
+  selector: React.Dispatch<React.SetStateAction<Map<string, ServiceCardPlan>>>;
 };
 
 export const mapPeriodicity = (period: string | undefined | null) => {
@@ -30,7 +33,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   const [selectingMode, setSelectingMode] = React.useState(false);
   const [channelsSelected, setChannelsSelected] = React.useState<
     ServiceChannel[]
-  >([]);
+  >(service.channels?.filter((c) => c.default) ?? []);
   const [planSelected, selectPlan] = React.useState<ServicePlan | null>(null);
   const [added, isAdded] = React.useState(false);
 
@@ -48,7 +51,10 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
     }
     selector((prev) => {
       const newMap = new Map(prev);
-      newMap.set(service.id, planSelected);
+      newMap.set(service.id, {
+        plan: planSelected,
+        channels: channelsSelected,
+      });
       return newMap;
     });
     isAdded(true);
@@ -73,6 +79,31 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
       setChannelsSelected([]);
     }
   }, [isActivated]);
+
+  React.useEffect(() => {
+    if (channels.length) {
+      const defaultChannel = channels.find((c) => c.default);
+      if (defaultChannel) setChannelsSelected([defaultChannel]);
+    }
+  }, []);
+
+  const handleSelection = () => {
+    if (service.service_plans && service.service_plans.length === 1) {
+      isAdded(true);
+      setSelectingMode(true);
+      selectPlan(service.service_plans![0]);
+      selector((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(service.id, {
+          plan: service.service_plans![0],
+          channels: [],
+        });
+        return newMap;
+      });
+    } else {
+      setSelectingMode(true);
+    }
+  };
 
   return (
     <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-[355px] gap-3 justify-between relative">
@@ -105,55 +136,67 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             </span>
           </div>
           <Button
-            onClick={() => setSelectingMode(true)}
+            onClick={handleSelection}
             variant="ghost"
-            className="text-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 w-[131px] px-4 py-2.5 bg-transparent border-1 border-[#4670F9] flex items-center justify-center"
+            className={`text-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 ${
+              service.service_plans && service.service_plans.length === 1
+                ? "w-[100px]"
+                : "w-[131px]"
+            } px-4 py-2.5 bg-transparent border-1 border-[#4670F9] flex items-center justify-center`}
           >
-            + Select plan
+            {service.service_plans && service.service_plans.length > 1
+              ? "+ Select plan"
+              : "+ Add"}
           </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1 text-[#1C1D1F]">
-            <label className="font-medium text-sm">Plan</label>
-            <Select
-              value={planSelected ? planSelected.id : undefined}
-              onValueChange={(value) => {
-                const selected = plans.find((plan) => plan.id === value);
-                if (selected) {
-                  selectPlan(selected);
-                }
-              }}
-            >
-              <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F] text-[13px]">
-                {planSelected
-                  ? `${planSelected.quantity} ${planSelected.qty_indicator} - $${planSelected.price}/${planSelected.period}`
-                  : "Select a plan"}
-              </SelectTrigger>
-              <SelectContent>
-                <div className="flex flex-col gap-1">
-                  {plans.map((plan, index) => (
-                    <SelectItem
-                      value={plan.id}
-                      key={`plan_${index}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectPlan(plan);
-                      }}
-                      className="text-[#1C1D1F] text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
-                    >
-                      {plan.quantity} {plan.qty_indicator} - ${plan.price}/
-                      {mapPeriodicity(plan.period)}
-                    </SelectItem>
-                  ))}
-                </div>
-              </SelectContent>
-            </Select>
-          </div>
+          {service.service_plans && service.service_plans.length > 1 && (
+            <div className="flex flex-col gap-1 text-[#1C1D1F]">
+              <label className="font-medium text-sm">Plan</label>
+              <Select
+                value={planSelected ? planSelected.id : undefined}
+                onValueChange={(value) => {
+                  const selected = plans.find((plan) => plan.id === value);
+                  if (selected) {
+                    selectPlan(selected);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F] text-[13px]">
+                  {planSelected
+                    ? `${planSelected.quantity} ${planSelected.qty_indicator} - $${planSelected.price}/${planSelected.period}`
+                    : "Select a plan"}
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="flex flex-col gap-1">
+                    {plans.map((plan, index) => (
+                      <SelectItem
+                        value={plan.id}
+                        key={`plan_${index}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectPlan(plan);
+                        }}
+                        className="text-[#1C1D1F] text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
+                      >
+                        {plan.quantity} {plan.qty_indicator} - ${plan.price}/
+                        {mapPeriodicity(plan.period)}
+                      </SelectItem>
+                    ))}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {channels.length > 0 && (
             <div className="flex flex-col gap-1 text-[#1C1D1F]">
               <label className="font-medium text-sm">Social channels</label>
-              <MultiSelectDropdown channels={channels} />
+              <MultiSelectDropdown
+                channels={channels}
+                channelsSelected={channelsSelected}
+                selectChannels={setChannelsSelected}
+              />
             </div>
           )}
           <div className="flex flex-row items-center justify-between">

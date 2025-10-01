@@ -2,7 +2,10 @@
 import CouponValidator from "@/components/checkout/CouponValidator";
 import PaymentForm from "@/components/checkout/PaymentForm";
 import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
-import ServiceCard, { mapPeriodicity } from "@/components/checkout/ServiceCard";
+import ServiceCard, {
+  mapPeriodicity,
+  ServiceCardPlan,
+} from "@/components/checkout/ServiceCard";
 import {
   Accordion,
   AccordionContent,
@@ -31,7 +34,7 @@ export default function Checkout() {
   );
   const [loading, setLoading] = React.useState(false);
   const [selectedPlans, setSelectedPlans] = React.useState<
-    Map<string, ServicePlan>
+    Map<string, ServiceCardPlan>
   >(new Map());
   const [total, setTotal] = React.useState(0);
 
@@ -58,13 +61,18 @@ export default function Checkout() {
 
   React.useEffect(() => {
     let total = 0;
-    selectedPlans.forEach((plan, serviceId) => {
+    selectedPlans.forEach((container, serviceId) => {
       const service = serviceFolders
         .flatMap((folder) => folder.services || [])
         .find((s) => s.id === serviceId);
 
       if (service) {
-        total += plan.price;
+        total += container.plan.price;
+      }
+      if (container.channels) {
+        total += container.channels
+          .filter((channel) => !channel.default)
+          .reduce((acc, channel) => acc + channel.pricing, 0);
       }
     });
     setTotal(total);
@@ -211,14 +219,15 @@ export default function Checkout() {
                 <div className="flex flex-col gap-6">
                   {selectedPlans.size > 0 &&
                     Array.from(selectedPlans.keys()).map((serviceId) => {
-                      const plan = selectedPlans.get(serviceId);
+                      const container = selectedPlans.get(serviceId);
                       const service = serviceFolders
                         .flatMap((folder) => folder.services || [])
                         .find((s) => s.id === serviceId);
-                      if (!service || !plan) return null;
+                      if (!service || !container || !container.plan)
+                        return null;
                       return (
                         <div
-                          key={`${service.name}-${plan.id}`}
+                          key={`${service.name}-${container.plan.id}`}
                           className="flex flex-col gap-2"
                         >
                           <h3 className="text-base font-medium text-[#1C1D1F]">
@@ -227,12 +236,14 @@ export default function Checkout() {
                           <div className="flex flex-row justify-between text-sm">
                             <div className="flex flex-col font-normal">
                               <span className="text-[#1C1D1F]l">
-                                {plan.quantity} {plan.qty_indicator}
+                                {container.plan.quantity}{" "}
+                                {container.plan.qty_indicator}
                               </span>
                               <p className="text-[#838488]">Facebook</p>
                             </div>
                             <span className="text-sm font-medium text-[#1C1D1F]">
-                              USD ${plan.price}/{mapPeriodicity(plan.period)}
+                              USD ${container.plan.price}/
+                              {mapPeriodicity(container.plan.period)}
                             </span>
                           </div>
                           <span

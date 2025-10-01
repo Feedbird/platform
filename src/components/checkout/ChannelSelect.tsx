@@ -7,13 +7,15 @@ import { Checkbox } from "../ui/checkbox";
 
 type ChannelSelectProps = {
   channels: ServiceChannel[];
+  channelsSelected: ServiceChannel[];
+  selectChannels: React.Dispatch<React.SetStateAction<ServiceChannel[]>>;
 };
 
-export default function MultiSelectDropdown({ channels }: ChannelSelectProps) {
+export default function MultiSelectDropdown({
+  channels,
+  channelsSelected,
+}: ChannelSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState<string[]>(
-    channels.filter((c) => c.default).map((c) => c.id)
-  );
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -25,8 +27,10 @@ export default function MultiSelectDropdown({ channels }: ChannelSelectProps) {
     }
   }, [isOpen]);
 
-  // Close when clicking outside
+  // Close when clicking outside or scrolling
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -37,15 +41,23 @@ export default function MultiSelectDropdown({ channels }: ChannelSelectProps) {
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
-  const toggleOption = (id: string) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
+    const handleScroll = () => {
+      setIsOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll, true); // Use capture to catch all scroll events
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [isOpen]);
+
+  const toggleOption = (id: string) => {};
+
+  const defaultChannel = channels.find((c) => c.default);
 
   return (
     <>
@@ -55,9 +67,26 @@ export default function MultiSelectDropdown({ channels }: ChannelSelectProps) {
         className="w-full border-1 border-[#D3D3D3] rounded-[6px] text-[13px] px-3 py-2 h-9 text-left bg-white hover:cursor-pointer focus:outline-none flex justify-between items-center"
       >
         <span>
-          {selected.length > 1
-            ? `${selected.length} selected`
-            : "Select socials"}
+          {channelsSelected.length > 1 ? (
+            `${channelsSelected.length} selected`
+          ) : (
+            <div className="flex items-center gap-2">
+              <Image
+                src={`/images/checkout/channels/${
+                  defaultChannel!.social_channel
+                }.svg`}
+                alt="social_channel_icon"
+                width={18}
+                height={18}
+              />
+              <span className="text-[#1C1D1F] font-medium">
+                {defaultChannel!.social_channel
+                  .slice(0, 1)
+                  .toLocaleUpperCase() +
+                  defaultChannel!.social_channel.slice(1)}
+              </span>
+            </div>
+          )}
         </span>
         {!isOpen ? (
           <ChevronDownIcon width={16} height={16} color="#060A13" />
@@ -82,7 +111,7 @@ export default function MultiSelectDropdown({ channels }: ChannelSelectProps) {
               {channels.map((channel) => (
                 <li
                   key={channel.id}
-                  onClick={(e) => toggleOption(channel.id)}
+                  onClick={() => toggleOption(channel.id)}
                   className="px-2 py-1.5 flex rounded-sm justify-between items-center hover:bg-gray-50 cursor-pointer text-[13px]"
                 >
                   <div className="flex items-center gap-2">
@@ -108,8 +137,14 @@ export default function MultiSelectDropdown({ channels }: ChannelSelectProps) {
                       {channel.default ? "Free" : `$${channel.pricing}`}
                     </span>
                     <Checkbox
-                      checked={selected.includes(channel.id)}
-                      onClick={() => toggleOption(channel.id)}
+                      checked={
+                        channelsSelected.find((c) => c.id === channel.id) !==
+                        undefined
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleOption(channel.id);
+                      }}
                     />
                   </div>
                 </li>

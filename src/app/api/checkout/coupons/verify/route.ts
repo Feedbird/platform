@@ -17,12 +17,13 @@ export async function GET(req: NextRequest) {
     const coupon = await CouponsHandler.verifyCoupon(code);
     return new Response(JSON.stringify({ coupon }), { status: 200 });
   } catch (e) {
+    const uiError = "This coupon is invalid or expired.";
     if (e instanceof ApiHandlerError) {
-      return new NextResponse(JSON.stringify({ error: e.message }), {
+      return new NextResponse(JSON.stringify({ error: uiError }), {
         status: e.status,
       });
     }
-    return new NextResponse(JSON.stringify({ error: (e as Error).message }), {
+    return new NextResponse(JSON.stringify({ error: uiError }), {
       status: 500,
     });
   }
