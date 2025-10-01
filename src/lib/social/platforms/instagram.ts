@@ -1304,6 +1304,7 @@ export class InstagramPlatform extends BasePlatform {
         reach: metrics.reach,
         likes: metrics.likes,
         comments: metrics.comments,
+        metadata: response.data,
       };
     } catch (error) {
       console.error('Error in getPostAnalytics:', error);
