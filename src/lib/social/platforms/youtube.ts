@@ -510,7 +510,128 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
         return { posts: [], nextPage: undefined };
       }
     }
-    async getPostAnalytics(){ return {}; }
+    async getPostAnalytics(page: SocialPage, postId: string, startDate?: string, endDate?: string): Promise<any> {
+      // Prevent browser calls - route to API endpoint
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/social/youtube/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page, postId, startDate, endDate }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+
+      try {
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        // Use YouTube Data API v3 to get video statistics
+        const response = await fetch(`${cfg.baseUrl}/videos?part=snippet,statistics,status,contentDetails&id=${postId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`YouTube API Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const video = data.items?.[0];
+        
+        return video;
+      } catch (error) {
+        console.error('[YouTube] Failed to get post analytics:', error);
+        throw error;
+      }
+    }
+
+    async getPageAnalytics(page: SocialPage): Promise<any> {
+      // Prevent browser calls - route to API endpoint
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/social/youtube/page-analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+
+      try {
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        // Get channel analytics
+        const analytics = await this.getChannelAnalytics(token, page.pageId);
+
+        return {
+          pageId: page.pageId,
+          pageName: page.name,
+          entityType: 'channel',
+          analytics: analytics,
+          lastUpdated: new Date().toISOString()
+        };
+      } catch (error: any) {
+        console.error('[YouTube] Failed to fetch page analytics:', error);
+        throw new Error(`Failed to fetch page analytics: ${error.message}`);
+      }
+    }
+
+    private async getChannelAnalytics(token: string, channelId: string): Promise<any> {
+      try {
+        // Get channel statistics
+        const channelResponse = await fetch(`${cfg.baseUrl}/channels?part=statistics,snippet&id=${channelId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!channelResponse.ok) {
+          throw new Error(`YouTube API Error: ${channelResponse.status} ${channelResponse.statusText}`);
+        }
+
+        const channelData = await channelResponse.json();
+        const channel = channelData.items?.[0];
+
+        if (!channel) {
+          throw new Error('Channel not found');
+        }
+
+        const stats = channel.statistics;
+        const snippet = channel.snippet;
+
+        return {
+          channelId: channelId,
+          title: snippet.title,
+          description: snippet.description,
+          subscriberCount: parseInt(stats.subscriberCount) || 0,
+          videoCount: parseInt(stats.videoCount) || 0,
+          viewCount: parseInt(stats.viewCount) || 0,
+          customUrl: snippet.customUrl,
+          publishedAt: snippet.publishedAt,
+          thumbnails: snippet.thumbnails,
+          analyticsDescription: 'YouTube channel analytics',
+          metadata: {
+            platform: 'youtube',
+            analyticsType: 'channel',
+            lastUpdated: new Date().toISOString()
+          }
+        };
+      } catch (error) {
+        console.error('[YouTube] Failed to fetch channel analytics:', error);
+        throw error;
+      }
+    }
 
     // Get file info (size and MIME type) from URL
     async getFileInfo(url: string): Promise<{ fileSize: number; mimeType: string }> {
