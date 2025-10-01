@@ -1643,6 +1643,142 @@ export class LinkedInPlatform extends BasePlatform {
   }
 
   /* ──────────────────────────────────────────────────────────
+     getPageAnalytics – fetch organization or profile analytics
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/integrations/community-management/organizations/organization-access-control
+     ────────────────────────────────────────────────────────── */
+  async getPageAnalytics(page: SocialPage): Promise<any> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/linkedin/page-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // For organization pages, fetch organization analytics
+      if (page.entityType === 'organization') {
+        const analytics = await this.getOrganizationAnalytics(token, page.pageId);
+        
+        return {
+          pageId: page.pageId,
+          pageName: page.name,
+          entityType: 'organization',
+          analytics: analytics,
+          lastUpdated: new Date().toISOString()
+        };
+      } else {
+        // For personal profiles, fetch member profile analytics
+        const analytics = await this.getMemberProfileAnalytics(page.pageId,token);
+        
+        return {
+          pageId: page.pageId,
+          pageName: page.name,
+          entityType: 'profile',
+          analytics: analytics,
+          lastUpdated: new Date().toISOString()
+        };
+      }
+    } catch (error: any) {
+      console.error('[LinkedIn] Failed to fetch page analytics:', error);
+      throw new Error(`Failed to fetch page analytics: ${error.message}`);
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch organization analytics
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/integrations/community-management/organizations/page-statistics
+     ────────────────────────────────────────────────────────── */
+  private async getOrganizationAnalytics(token: string, organizationId: string): Promise<any> {
+    try {
+      // Ensure organizationId is in the correct URN format
+      const orgUrn = organizationId.startsWith('urn:li:organization:') 
+        ? organizationId 
+        : `urn:li:organization:${organizationId}`;
+
+      // Try to get follower count using the working API
+      let followerCount = 0;
+      try {
+        followerCount = await this.getOrganizationFollowerCount(orgUrn, token);
+      } catch (error) {
+        console.warn('[LinkedIn] Could not fetch follower count:', error);
+      }
+
+      let pageStatistics: any = null;
+      try {
+        const pageStatsResponse = await fetch(`${config.baseUrl}/rest/organizationPageStatistics?q=organization&organization=${encodeURIComponent(orgUrn)}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'LinkedIn-Version': '202507',
+            'X-Restli-Protocol-Version': '2.0.0'
+          }
+        });
+
+        if (pageStatsResponse.ok) {
+          const pageData = await pageStatsResponse.json();
+          if (pageData.elements && pageData.elements.length > 0) {
+            pageStatistics = pageData.elements[0];
+          }
+        }
+      } catch (error) {
+        console.warn('[LinkedIn] Could not fetch page statistics:', error);
+      }
+
+      return {
+        followerCount,
+        pageViews: pageStatistics,
+        description: 'LinkedIn organization analytics',
+        organizationUrn: orgUrn
+      };
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch organization analytics:', error);
+      return {
+        followerCount: 0,
+        pageViews: null,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        metadata: {
+          platform: 'linkedin',
+          analyticsType: 'organization_page',
+          organizationId: organizationId,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     helper – fetch member profile analytics
+     ────────────────────────────────────────────────────────── */
+  private async getMemberProfileAnalytics(pageId: string,token: string): Promise<any> {
+    try {
+
+      const personId = pageId.split(':')[3];
+      // fetc the connection size
+      const connectionSize = await this.getConnectionSize(personId,token);
+
+      return {
+        connectionSize: connectionSize,
+        description: 'LinkedIn member profile analytics',
+        note: 'Limited analytics available through LinkedIn API'
+      };
+    } catch (error) {
+      console.error('[LinkedIn] Failed to fetch member profile analytics:', error);
+      throw new Error(`Failed to fetch member profile analytics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────
      helper – fetch organization post analytics (single post)
      @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics?view=li-lms-2025-07&tabs=http
      ────────────────────────────────────────────────────────── */
