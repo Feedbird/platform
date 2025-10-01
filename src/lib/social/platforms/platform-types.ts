@@ -262,7 +262,7 @@ export interface PlatformOperations {
   // TODO: Use this when we have implemented across all platforms
   // getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<{ posts: PostHistory[], nextPage: number | string | null | undefined }>;
   getPostHistory(page: SocialPage, limit?: number, nextPage?: number | string | null | undefined): Promise<any>;
-  getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']>;
+  getPostAnalytics(page: SocialPage, postId: string, startDate?: string, endDate?: string): Promise<PostHistory['analytics']>;
 
   // optional method for getStoryHistory in the facebook platform
   getStoryHistory?(
