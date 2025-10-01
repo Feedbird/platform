@@ -156,7 +156,7 @@ export default function Checkout() {
                         </h3>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="flex flex-row flex-wrap gap-4">
+                        <div className="flex flex-row flex-wrap gap-3">
                           {folder.services?.map((service) => (
                             <ServiceCard
                               key={service.id}
@@ -239,7 +239,6 @@ export default function Checkout() {
                                 {container.plan.quantity}{" "}
                                 {container.plan.qty_indicator}
                               </span>
-                              <p className="text-[#838488]">Facebook</p>
                             </div>
                             <span className="text-sm font-medium text-[#1C1D1F]">
                               USD ${container.plan.price}/

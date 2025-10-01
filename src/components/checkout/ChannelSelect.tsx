@@ -14,6 +14,7 @@ type ChannelSelectProps = {
 export default function MultiSelectDropdown({
   channels,
   channelsSelected,
+  selectChannels,
 }: ChannelSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
@@ -55,7 +56,14 @@ export default function MultiSelectDropdown({
     };
   }, [isOpen]);
 
-  const toggleOption = (id: string) => {};
+  const toggleOption = (channel: ServiceChannel) => {
+    const isSelected = channelsSelected.find((c) => c.id === channel.id);
+    if (isSelected) {
+      selectChannels((prev) => prev.filter((c) => c.id !== channel.id));
+    } else {
+      selectChannels((prev) => [...prev, channel]);
+    }
+  };
 
   const defaultChannel = channels.find((c) => c.default);
 
@@ -111,7 +119,7 @@ export default function MultiSelectDropdown({
               {channels.map((channel) => (
                 <li
                   key={channel.id}
-                  onClick={() => toggleOption(channel.id)}
+                  onClick={() => toggleOption(channel)}
                   className="px-2 py-1.5 flex rounded-sm justify-between items-center hover:bg-gray-50 cursor-pointer text-[13px]"
                 >
                   <div className="flex items-center gap-2">
@@ -143,7 +151,7 @@ export default function MultiSelectDropdown({
                       }
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleOption(channel.id);
+                        toggleOption(channel);
                       }}
                     />
                   </div>

@@ -33,13 +33,35 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   const [selectingMode, setSelectingMode] = React.useState(false);
   const [channelsSelected, setChannelsSelected] = React.useState<
     ServiceChannel[]
-  >(service.channels?.filter((c) => c.default) ?? []);
+  >([]);
   const [planSelected, selectPlan] = React.useState<ServicePlan | null>(null);
   const [added, isAdded] = React.useState(false);
+  const [total, setTotal] = React.useState(0);
 
-  const plans = service.service_plans
-    ? service.service_plans?.sort((a, b) => a.price - b.price)
-    : [];
+  React.useEffect(() => {
+    if (planSelected) {
+      const validChannels = channelsSelected.filter((c) => !c.default);
+      if (validChannels.length > 0) {
+        const total =
+          planSelected.price +
+          validChannels.reduce(
+            (acc, channel) => acc + (channel.pricing || 0),
+            0
+          );
+        setTotal(total);
+      } else {
+        setTotal(planSelected.price);
+      }
+    }
+  }, [planSelected, channelsSelected]);
+
+  const plans = React.useMemo(
+    () =>
+      service.service_plans
+        ? service.service_plans?.sort((a, b) => a.price - b.price)
+        : [],
+    [service.service_plans]
+  );
 
   const channels =
     service.social_channels && service.channels?.length ? service.channels : [];
@@ -81,8 +103,8 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   }, [isActivated]);
 
   React.useEffect(() => {
-    if (channels.length) {
-      const defaultChannel = channels.find((c) => c.default);
+    if (service.channels?.length) {
+      const defaultChannel = service.channels.find((c) => c.default);
       if (defaultChannel) setChannelsSelected([defaultChannel]);
     }
   }, []);
@@ -106,7 +128,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-[355px] gap-3 justify-between relative">
+    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-full lg:w-[250px] 2xl:w-[355px] gap-3 justify-between relative">
       {selectingMode && (
         <div className="absolute top-2 right-2" onClick={handleRemove}>
           <Image
@@ -202,9 +224,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
           <div className="flex flex-row items-center justify-between">
             <span className="text-[#1C1D1F] font-medium text-sm">
               {planSelected
-                ? `$${planSelected.price}/${mapPeriodicity(
-                    planSelected.period
-                  )}`
+                ? `$${total}/${mapPeriodicity(planSelected.period)}`
                 : ""}
             </span>
             {added ? (
