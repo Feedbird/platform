@@ -118,6 +118,7 @@ export const userApi = {
   updateUser: async (
     params: { id?: string; email?: string },
     updates: {
+      email?: string;
       first_name?: string;
       last_name?: string;
       image_url?: string;

@@ -35,9 +35,10 @@ const NotificationSettingsSchema = z.object({
 })
 
 const UpdateUserSchema = z.object({
+  email: z.string().email().optional(),
   first_name: z.string().optional(),
   last_name: z.string().optional(),
-  image_url: z.string().url().optional(),
+  image_url: z.string().url().optional().nullable(),
   unread_msg: z.array(z.string()).optional(),
   unread_notification: z.array(z.string()).optional(),
   notification_settings: z.array(NotificationSettingsSchema).optional(),

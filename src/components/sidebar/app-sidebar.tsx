@@ -284,7 +284,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const pathname = usePathname();
   const { state } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
-  console.log("user", useFeedbirdStore.getState().user)
   const unread_msg = useFeedbirdStore(s => s.user?.unread_msg || []);
   const unread_notification = useFeedbirdStore(s => s.user?.unread_notification || []);
 
