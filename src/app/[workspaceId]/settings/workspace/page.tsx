@@ -39,6 +39,9 @@ export default function SettingsWorkspacePage() {
   const workspaceId = params.workspaceId as string;
 
   const [loading, setLoading] = React.useState(false);
+  const [basicSettingsLoading, setBasicSettingsLoading] = React.useState(false);
+  const [postingTimeLoading, setPostingTimeLoading] = React.useState(false);
+  const [boardSettingsLoading, setBoardSettingsLoading] = React.useState(false);
   const [openDelete, setOpenDelete] = React.useState(false);
   const [ws, setWs] = React.useState<any | null>(null);
 
@@ -100,9 +103,9 @@ export default function SettingsWorkspacePage() {
     setLogo("");
   }
 
-  async function handleSave() {
+  async function handleSaveBasicSettings() {
     if (!ws) return;
-    setLoading(true);
+    setBasicSettingsLoading(true);
     try {
       const updated = await workspaceApi.updateWorkspace(ws.id, {
         name,
@@ -110,8 +113,6 @@ export default function SettingsWorkspacePage() {
         timezone,
         week_start: weekStart,
         time_format: timeFormat,
-        allowed_posting_time: allowedSlots,
-        default_board_rules: rules,
       });
       useFeedbirdStore.setState((s) => ({
         workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
@@ -121,14 +122,52 @@ export default function SettingsWorkspacePage() {
           timezone,
           week_start: weekStart,
           time_format: timeFormat,
+        } : w)),
+      }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBasicSettingsLoading(false);
+    }
+  }
+
+  async function handleSavePostingTime() {
+    if (!ws) return;
+    setPostingTimeLoading(true);
+    try {
+      const updated = await workspaceApi.updateWorkspace(ws.id, {
+        allowed_posting_time: allowedSlots,
+      });
+      useFeedbirdStore.setState((s) => ({
+        workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
+          ...w,
           allowed_posting_time: allowedSlots,
+        } : w)),
+      }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPostingTimeLoading(false);
+    }
+  }
+
+  async function handleSaveBoardSettings() {
+    if (!ws) return;
+    setBoardSettingsLoading(true);
+    try {
+      const updated = await workspaceApi.updateWorkspace(ws.id, {
+        default_board_rules: rules,
+      });
+      useFeedbirdStore.setState((s) => ({
+        workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
+          ...w,
           default_board_rules: rules,
         } : w)),
       }));
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      setBoardSettingsLoading(false);
     }
   }
 
@@ -271,6 +310,13 @@ export default function SettingsWorkspacePage() {
             </div>
           </div>
 
+          {/* Save button for basic settings */}
+          <div className="flex justify-end">
+            <Button onClick={handleSaveBasicSettings} disabled={basicSettingsLoading} className="text-sm font-medium px-3 py-1.5 rounded-[6px] cursor-pointer bg-main text-white hover:bg-main/90">
+              {basicSettingsLoading ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
+
           {/* Allowed Posting Time – inline slot items per weekday */}
           <div className="space-y-2">
             <Label className="text-sm text-black font-medium">Allowed Posting Time</Label>
@@ -334,6 +380,13 @@ export default function SettingsWorkspacePage() {
                   </div>
                 );
               })}
+            </div>
+            
+            {/* Save button for posting time */}
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleSavePostingTime} disabled={postingTimeLoading} className="text-sm font-medium px-3 py-1.5 rounded-[6px] cursor-pointer bg-main text-white hover:bg-main/90">
+                {postingTimeLoading ? "Saving..." : "Save changes"}
+              </Button>
             </div>
           </div>
 
@@ -500,6 +553,14 @@ export default function SettingsWorkspacePage() {
 
             </div>
           </div>
+
+          {/* Save button for board settings */}
+          <div className="flex justify-end">
+            <Button onClick={handleSaveBoardSettings} disabled={boardSettingsLoading} className="text-sm font-medium px-3 py-1.5 rounded-[6px] cursor-pointer bg-main text-white hover:bg-main/90">
+              {boardSettingsLoading ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
+
           {/* Delete workspace */}
           <div className="mt-4">
             <div className="text-sm text-black font-medium mb-1">
@@ -510,13 +571,6 @@ export default function SettingsWorkspacePage() {
             </div>
             <Button variant="outline" className="text-sm text-[#D82A2A] hover:text-[#D82A2A] px-3 py-1.5 font-medium border-strokeButton rounded-[5px] cursor-pointer" onClick={() => setOpenDelete(true)}>
               Delete workspace
-            </Button>
-          </div>
-
-          {/* Bottom actions */}
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={loading} className="text-sm font-medium px-3 py-1.5 rounded-[6px] cursor-pointer bg-main text-white hover:bg-main/90">
-              {loading ? "Saving..." : "Save changes"}
             </Button>
           </div>
         </div>

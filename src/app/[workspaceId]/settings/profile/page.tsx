@@ -126,10 +126,6 @@ export default function SettingsProfilePage() {
         updates.image_url = avatarUrl || null;
       }
       
-      console.log("avatarUrl:", avatarUrl);
-      console.log("currentImage:", currentImage);
-      console.log("updates:", updates);
-      
       if (Object.keys(updates).length > 0) {
         await userApi.updateUser({ email: user.email }, updates);
         useFeedbirdStore.setState((s: any) => ({
@@ -155,8 +151,6 @@ export default function SettingsProfilePage() {
     if (newEmail !== confirmEmail) return;
     if (!clerkUser) return;
     const oldEmail = user.email;
-    console.log("old email:", oldEmail);
-    console.log("new email:", newEmail);
     try {
       setSavingEmail(true);
 
@@ -169,11 +163,9 @@ export default function SettingsProfilePage() {
         if (existingEmailAddress) {
           // Email already exists, use it
           emailAddress = existingEmailAddress;
-          console.log("Using existing email address:", emailAddress);
         } else {
           // Email doesn't exist, create it
           emailAddress = await createEmailAddress({ email: newEmail });
-          console.log("Created new email address:", emailAddress);
         }
         
         try {
@@ -182,7 +174,6 @@ export default function SettingsProfilePage() {
           
           if (isVerified) {
             // Email is already verified, skip verification and set as primary immediately
-            console.log("Email is already verified, setting as primary immediately");
             const ok = await setPrimaryEmail({ emailId: emailAddress.id });
             if (ok) {
               try {
@@ -247,7 +238,6 @@ export default function SettingsProfilePage() {
 
       // Find the old email BEFORE setting the new one as primary
       const oldEmailAddress = clerkUser.emailAddresses?.find((e: any) => e.emailAddress === user.email);
-      console.log("old email to destroy:", oldEmailAddress);
 
       const ok = await setPrimaryEmail({ emailId: toVerify.id });
       if (!ok) return;
@@ -256,7 +246,6 @@ export default function SettingsProfilePage() {
       try {
         if (oldEmailAddress) {
           await oldEmailAddress.destroy();
-          console.log("Old email destroyed successfully");
         }
       } catch (destroyErr: any) {
         // Check if it's a connected accounts error
