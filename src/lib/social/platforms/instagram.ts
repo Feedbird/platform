@@ -1179,6 +1179,7 @@ export class InstagramPlatform extends BasePlatform {
         throw new Error('No auth token available');
       }
 
+      // https://developers.facebook.com/docs/instagram-platform/insights
       const response = await this.fetchWithAuth<{
         data: Array<{
           name: string;
@@ -1204,6 +1205,101 @@ export class InstagramPlatform extends BasePlatform {
     } catch (error) {
       console.error('Error in getPostAnalytics:', error);
       throw error;
+    }
+  }
+
+  async getPageAnalytics(page: SocialPage): Promise<any> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/instagram/page-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      // Get secure token from database
+      const token = await this.getToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // https://developers.facebook.com/docs/instagram-api/reference/ig-user/insights/
+      // follower_count and online_followers metrics are not available on Instagram business or creator accounts with fewer than 100 followers.
+      
+      // Make separate API calls for different metric types
+      const [interactionMetrics, demographicMetrics] = await Promise.all([
+        // Interaction metrics that work with day period
+        this.fetchWithAuth<{
+          data: Array<{
+            name: string;
+            period: string;
+            total_value?: { value: number };
+            values?: Array<{ value: number | Record<string, number> }>;
+            title?: string;
+            description?: string;
+          }>;
+        }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${page.pageId}/insights`, {
+          token: token,
+          queryParams: {
+            metric: [
+              'reach',
+              'total_interactions',
+              'accounts_engaged',
+              'likes',
+              'comments',
+              'shares',
+              'saves',
+            ].join(','),
+            period: 'day',
+            metric_type: 'total_value'
+          }
+        }),
+        // Demographic metrics that require lifetime period, timeframe, and breakdown
+        this.fetchWithAuth<{
+          data: Array<{
+            name: string;
+            period: string;
+            total_value?: { value: number };
+            values?: Array<{ value: number | Record<string, number> }>;
+            title?: string;
+            description?: string;
+          }>;
+        }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${page.pageId}/insights`, {
+          token: token,
+          queryParams: {
+            metric: [
+              'follower_demographics',
+              'engaged_audience_demographics',
+            ].join(','),
+            period: 'lifetime',
+            timeframe: 'this_month',
+            metric_type: 'total_value',
+            breakdown: 'country'
+          }
+        })
+      ]);
+
+      // Combine the results
+      const response = {
+        data: [...interactionMetrics.data, ...demographicMetrics.data]
+      };
+
+      return {
+        pageId: page.pageId,
+        pageName: page.name,
+        analytics: response.data,
+        lastUpdated: new Date().toISOString()
+      };
+
+    } catch (error: any) {
+      console.error('Instagram page analytics error:', error);
+      throw new Error(`Failed to fetch page analytics: ${error.message}`);
     }
   }
 
