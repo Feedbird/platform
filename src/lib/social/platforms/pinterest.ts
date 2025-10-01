@@ -1068,132 +1068,193 @@ export class PinterestPlatform implements PlatformOperations {
 
       // Pinterest delete returns 204 No Content, so no JSON to parse
 
-      console.log('[Pinterest] Successfully deleted post:', postId);
-    } catch (error) {
-      console.error('[Pinterest] Failed to delete post:', error);
-      throw new Error(
-        `Failed to delete Pinterest post: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+        console.log('[Pinterest] Successfully deleted post:', postId);
+      } catch (error) {
+        console.error('[Pinterest] Failed to delete post:', error);
+        throw new Error(`Failed to delete Pinterest post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
-  }
-
-  async getPostAnalytics(
-    page: SocialPage,
-    postId: string
-  ): Promise<PostHistory['analytics']> {
-    if (IS_BROWSER) {
-      const res = await fetch('/api/social/pinterest/analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page, postId }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
-    }
-
-    try {
-      const token = await this.getToken(page.id);
-      if (!token) {
-        throw new Error('No auth token available');
+  
+    async getPostAnalytics(page: SocialPage, postId: string, startDate?: string, endDate?: string): Promise<any> {
+      if (IS_BROWSER) {
+        const res = await fetch('/api/social/pinterest/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page, postId, startDate, endDate }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
       }
 
-      // https://developers.pinterest.com/docs/api/v5/pins-analytics
-      const response = await pinFetch<{
-        '90d': {
-          pin_click: number;
-          impression: number;
-          clickthrough: number;
-        };
-        lifetime_metrics: {
-          pin_click: number;
-          impression: number;
-          clickthrough: number;
-          reaction: number;
-          comment: number;
-        };
-      }>(`${this.baseUrl}/pins/${encodeURIComponent(postId)}/analytics`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      try {
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
 
-      const metrics = response.lifetime_metrics || response['90d'];
-      if (!metrics) {
-        return {};
+        // Default to last 5 days if no dates provided
+        const defaultEndDate = new Date();
+        const defaultStartDate = new Date();
+        defaultStartDate.setDate(defaultStartDate.getDate() - 5);
+
+        const start = startDate || defaultStartDate.toISOString().split('T')[0];
+        const end = endDate || defaultEndDate.toISOString().split('T')[0];
+
+        // https://developers.pinterest.com/docs/api/v5/pins-analytics
+        const response = await pinFetch<{
+          '90d': {
+            pin_click: number;
+            impression: number;
+            clickthrough: number;
+          };
+          lifetime_metrics: {
+            pin_click: number;
+            impression: number;
+            clickthrough: number;
+            reaction: number;
+            comment: number;
+          };
+        }>(`${this.baseUrl}/pins/${encodeURIComponent(postId)}/analytics?start_date=${start}&end_date=${end}&metric_types=pin_click,impression,clickthrough,reaction,comment`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        return response;
+      } catch (error) {
+        console.error('[Pinterest] Failed to get post analytics:', error);
+        throw error;
+      }
+    }
+
+    async getPageAnalytics(page: SocialPage): Promise<any> {
+      // Prevent browser calls - route to API endpoint
+      if (IS_BROWSER) {
+        const res = await fetch('/api/social/pinterest/page-analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page,
+          }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
       }
 
+      try {
+        const token = await this.getToken(page.id);
+        if (!token) {
+          throw new Error('No auth token available');
+        }
+
+        // For Pinterest, we can get account analytics
+        const analytics = await this.getAccountAnalytics(token);
+
+        return {
+          pageId: page.pageId,
+          pageName: page.name,
+          entityType: 'account',
+          analytics: analytics,
+          lastUpdated: new Date().toISOString()
+        };
+      } catch (error: any) {
+        console.error('[Pinterest] Failed to fetch page analytics:', error);
+        throw new Error(`Failed to fetch page analytics: ${error.message}`);
+      }
+    }
+
+    private async getAccountAnalytics(token: string): Promise<any> {
+      try {
+        // Get account information and basic metrics
+        const accountResponse = await pinFetch<{
+          id: string;
+          username: string;
+          account_type: string;
+          profile_image: string;
+          website_url?: string;
+          monthly_views?: number;
+        }>(`${this.baseUrl}/user_account`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        return {
+          accountId: accountResponse.id,
+          username: accountResponse.username,
+          accountType: accountResponse.account_type,
+          monthlyViews: accountResponse.monthly_views || 0,
+          profileImage: accountResponse.profile_image,
+          websiteUrl: accountResponse.website_url,
+          description: 'Pinterest account analytics',
+          metadata: {
+            platform: 'pinterest',
+            analyticsType: 'account',
+            lastUpdated: new Date().toISOString()
+          }
+        };
+      } catch (error) {
+        console.error('[Pinterest] Failed to fetch account analytics:', error);
+        return {
+          accountId: null,
+          username: null,
+          accountType: null,
+          monthlyViews: 0,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          metadata: {
+            platform: 'pinterest',
+            analyticsType: 'account',
+            lastUpdated: new Date().toISOString()
+          }
+        };
+      }
+    }
+  
+    async createPost(
+      page: SocialPage,
+      content: PostContent,
+    ): Promise<PostHistory> {
+      return this.publishPost(page, content);
+    }
+  
+    async schedulePost(
+      page: SocialPage,
+      content: PostContent,
+      scheduledTime: Date
+    ): Promise<PostHistory> {
+      throw new Error('Pinterest does not support scheduling posts');
+    }
+  
+    getPlatformFeatures() {
+      return cfg.features;
+    }
+  
+    validateContent(content: PostContent): { isValid: boolean; errors?: string[] } {
+      const errors: string[] = [];
+      const features = cfg.features;
+  
+      // Check text length
+      if (content.text.length > features.characterLimits.content) {
+        errors.push(`Text exceeds maximum length of ${features.characterLimits.content} characters`);
+      }
+  
+      // Validate media
+      if (!content.media || !content.media.urls.length) {
+        errors.push('Pinterest requires at least one media item');
+      } else if (content.media.urls.length > features.maxMediaCount) {
+        errors.push(`Pinterest only supports ${features.maxMediaCount} media item per pin`);
+      }
+  
       return {
-        views: metrics.impression,
-        clicks: metrics.pin_click,
-        engagement: metrics.reaction + metrics.comment,
-        metadata: {
-          clickthrough_rate: metrics.clickthrough,
-          reactions: metrics.reaction,
-          comments: metrics.comment,
-        },
+        isValid: errors.length === 0,
+        errors: errors.length > 0 ? errors : undefined,
       };
-    } catch (error) {
-      console.error('[Pinterest] Failed to get post analytics:', error);
-      return {};
+    }
+  
+    private async fetchJSON<T = any>(url: string, init: RequestInit = {}): Promise<T> {
+      const response = await fetch(url, init);
+      const data = await response.json();
+      if (!response.ok) {
+        // Use a more specific error here later
+        throw new Error(data.message || 'Pinterest API error');
+      }
+      return data;
     }
   }
-
-  async createPost(
-    page: SocialPage,
-    content: PostContent
-  ): Promise<PostHistory> {
-    return this.publishPost(page, content);
-  }
-
-  async schedulePost(
-    page: SocialPage,
-    content: PostContent,
-    scheduledTime: Date
-  ): Promise<PostHistory> {
-    throw new Error('Pinterest does not support scheduling posts');
-  }
-
-  getPlatformFeatures() {
-    return cfg.features;
-  }
-
-  validateContent(content: PostContent): {
-    isValid: boolean;
-    errors?: string[];
-  } {
-    const errors: string[] = [];
-    const features = cfg.features;
-
-    // Check text length
-    if (content.text.length > features.characterLimits.content) {
-      errors.push(
-        `Text exceeds maximum length of ${features.characterLimits.content} characters`
-      );
-    }
-
-    // Validate media
-    if (!content.media || !content.media.urls.length) {
-      errors.push('Pinterest requires at least one media item');
-    } else if (content.media.urls.length > features.maxMediaCount) {
-      errors.push(
-        `Pinterest only supports ${features.maxMediaCount} media item per pin`
-      );
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors: errors.length > 0 ? errors : undefined,
-    };
-  }
-
-  private async fetchJSON<T = any>(
-    url: string,
-    init: RequestInit = {}
-  ): Promise<T> {
-    const response = await fetch(url, init);
-    const data = await response.json();
-    if (!response.ok) {
-      // Use a more specific error here later
-      throw new Error(data.message || 'Pinterest API error');
-    }
-    return data;
-  }
-}
+  
