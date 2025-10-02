@@ -544,7 +544,7 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
         const data = await response.json();
         const video = data.items?.[0];
         
-        return video;
+        return video?.statistics;
       } catch (error) {
         console.error('[YouTube] Failed to get post analytics:', error);
         throw error;
@@ -571,14 +571,8 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
 
         // Get channel analytics
         const analytics = await this.getChannelAnalytics(token, page.pageId);
-
-        return {
-          pageId: page.pageId,
-          pageName: page.name,
-          entityType: 'channel',
-          analytics: analytics,
-          lastUpdated: new Date().toISOString()
-        };
+        
+        return analytics;
       } catch (error: any) {
         console.error('[YouTube] Failed to fetch page analytics:', error);
         throw new Error(`Failed to fetch page analytics: ${error.message}`);
@@ -608,25 +602,8 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
         }
 
         const stats = channel.statistics;
-        const snippet = channel.snippet;
 
-        return {
-          channelId: channelId,
-          title: snippet.title,
-          description: snippet.description,
-          subscriberCount: parseInt(stats.subscriberCount) || 0,
-          videoCount: parseInt(stats.videoCount) || 0,
-          viewCount: parseInt(stats.viewCount) || 0,
-          customUrl: snippet.customUrl,
-          publishedAt: snippet.publishedAt,
-          thumbnails: snippet.thumbnails,
-          analyticsDescription: 'YouTube channel analytics',
-          metadata: {
-            platform: 'youtube',
-            analyticsType: 'channel',
-            lastUpdated: new Date().toISOString()
-          }
-        };
+       return stats;
       } catch (error) {
         console.error('[YouTube] Failed to fetch channel analytics:', error);
         throw error;
