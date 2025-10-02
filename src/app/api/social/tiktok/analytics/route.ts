@@ -12,10 +12,8 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = Body.parse(await req.json());
-    console.log("[API] TikTok analytics → body", body);
 
     const analytics = await ops.getPostAnalytics(body.page, body.postId);
-    console.log(`[API] TikTok analytics → success`, analytics);
     return Response.json(analytics);
 
   } catch (e: any) {
