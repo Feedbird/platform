@@ -40,6 +40,12 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  // When collapsed, whether the left-edge hover is currently revealing the sidebar
+  hoverReveal: boolean
+  setHoverReveal: (open: boolean) => void
+  // Keep full height while offcanvas hide animation runs
+  keepFullHeightDuringHide: boolean
+  setKeepFullHeightDuringHide: (value: boolean | ((v: boolean) => boolean)) => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -68,6 +74,8 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [hoverReveal, setHoverReveal] = React.useState(false)
+  const [keepFullHeightDuringHide, setKeepFullHeightDuringHide] = React.useState(false)
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -76,6 +84,12 @@ function SidebarProvider({
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value
+      // Set full-height flag when transitioning to collapsed; clear when expanding
+      if (!openState) {
+        setKeepFullHeightDuringHide(true)
+      } else {
+        setKeepFullHeightDuringHide(false)
+      }
       if (setOpenProp) {
         setOpenProp(openState)
       } else {
@@ -122,16 +136,20 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      hoverReveal,
+      setHoverReveal,
+      keepFullHeightDuringHide,
+      setKeepFullHeightDuringHide,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, hoverReveal, keepFullHeightDuringHide]
   )
 
   // Expose current sidebar gap as a global CSS variable so portals (e.g., dialogs)
   // can align overlays/content without covering the sidebar.
   React.useEffect(() => {
     const root = document.documentElement
-    // When on mobile, the sidebar is a Sheet overlay, so main content should be full width.
-    const gap = isMobile ? "0px" : state === "collapsed" ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH
+    // When on mobile or collapsed offcanvas, main content should be full width.
+    const gap = isMobile ? "0px" : state === "collapsed" ? "0px" : SIDEBAR_WIDTH
     root.style.setProperty("--app-sidebar-gap", gap)
   }, [state, isMobile])
 
@@ -172,7 +190,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, hoverReveal, setHoverReveal, keepFullHeightDuringHide, setKeepFullHeightDuringHide } = useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -223,6 +241,15 @@ function Sidebar({
       data-side={side}
       data-slot="sidebar"
     >
+      {/* Edge hover zone to reveal sidebar when collapsed */}
+      <div
+        data-slot="sidebar-hover-zone"
+        className={cn(
+          "fixed inset-y-0 left-0 z-13 hidden md:block w-2",
+          state === "collapsed" ? "block" : "hidden"
+        )}
+        onMouseEnter={() => setHoverReveal(true)}
+      />
       {/* This is what handles the sidebar gap on desktop */}
       <div
         data-slot="sidebar-gap"
@@ -238,16 +265,31 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-14 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
-          side === "left"
-            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+          "fixed z-14 hidden w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+          state === "collapsed" && !keepFullHeightDuringHide ? "top-[48px] bottom-[40px]" : "inset-y-0",
+          side === "left" ? "left-0" : "right-0",
+          // When collapsed and revealed, add top/right/bottom shadow via pseudo-element
+          state === "collapsed" && hoverReveal &&
+            "before:content-[\"\"] before:absolute before:inset-0 before:pointer-events-none before:shadow-[0_-6px_12px_rgba(0,0,0,0.06),6px_0_12px_rgba(0,0,0,0.06),0_6px_12px_rgba(0,0,0,0.06)]",
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
           className
         )}
+        style={{
+          ...(collapsible === "offcanvas" && state === "collapsed"
+            ? side === "left"
+              ? { left: hoverReveal ? 0 : "calc(var(--sidebar-width) * -1)" }
+              : { right: hoverReveal ? 0 : "calc(var(--sidebar-width) * -1)" }
+            : {}),
+        } as React.CSSProperties}
+        onTransitionEnd={(e) => {
+          if ((e.propertyName === "left" || e.propertyName === "right") && state === "collapsed") {
+            setKeepFullHeightDuringHide(false)
+          }
+        }}
+        onMouseLeave={() => hoverReveal && setHoverReveal(false)}
         {...props}
       >
         <div

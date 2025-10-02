@@ -287,7 +287,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   onBoardAction?: (action: string, item: NavLink) => void;
 }) {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, hoverReveal } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
   const unreadMsgCount = useFeedbirdStore(s => (s.user?.unread_msg ? s.user.unread_msg.length : 0));
   const unreadNotificationCount = useFeedbirdStore(s => (s.user?.unread_notification ? s.user.unread_notification.length : 0));
@@ -335,9 +335,10 @@ export const RenderNavItems = React.memo(function RenderNavItems({
             }
           }
 
-          // Create separate content for expanded and collapsed states
-          const ExpandedContent = (
-            <SidebarMenuButton
+
+          return (
+            <SidebarMenuItem key={nav.id} className={isBoard ? "group/row" : undefined}>
+                          <SidebarMenuButton
               asChild
               className={cn(
                 "group/row gap-[6px] p-[6px] text-sm font-semibold",
@@ -422,117 +423,6 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                 </button>
               )}
             </SidebarMenuButton>
-          );
-
-          // Create collapsed content that only shows the icon
-          const CollapsedContent = (
-            <SidebarMenuButton
-              asChild
-              className={cn(
-                "group/row p-[6px] text-sm font-semibold",
-                "cursor-pointer focus:outline-none",
-                "font-normal text-black"
-              )}
-            >
-              {nav.href ? (
-                <LoadingLink
-                  href={nav.href}
-                  className="flex items-center justify-center w-full"
-                  loadingText={`Loading ${nav.label}…`}
-                >
-                  {imageSrc && (
-                    <div 
-                      className={cn(
-                        "w-5 h-5 rounded flex items-center justify-center",
-                      )}
-                      style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
-                    >
-                      <img
-                        src={imageSrc}
-                        alt={nav.label}
-                        className={cn(
-                          "w-3.5 h-3.5",
-                          // Make icon white when board is active and has a colored background
-                          active && isBoard && boardColor && "filter brightness-0 invert"
-                        )}
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                </LoadingLink>
-              ) : (
-                <button
-                  onClick={nav.onClick}
-                  className="flex items-center justify-center w-full cursor-pointer focus:outline-none"
-                >
-                  {imageSrc && (
-                    <div 
-                    className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center",
-                    )}
-                    style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
-                  >
-                    <img
-                      src={imageSrc}
-                      alt={nav.label}
-                      className={cn(
-                        "w-3.5 h-3.5",
-                        // Make icon white when board is active and has a colored background
-                        active && isBoard && boardColor && "filter brightness-0 invert"
-                      )}
-                      loading="lazy"
-                    />
-                  </div>
-                  )}
-                </button>
-              )}
-            </SidebarMenuButton>
-          );
-
-          return (
-            <SidebarMenuItem key={nav.id} className={isBoard ? "group/row" : undefined}>
-              {!isClient || state !== 'collapsed' ? (
-                ExpandedContent
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>{CollapsedContent}</TooltipTrigger>
-                  <TooltipContent side="right" className="flex items-center gap-2 bg-popover text-popover-foreground shadow-md">
-                    {imageSrc && (
-                      <div 
-                        className={cn(
-                          "w-5 h-5 rounded flex items-center justify-center",
-                        )}
-                        style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
-                      >
-                        <img 
-                          src={imageSrc} 
-                          alt={nav.label} 
-                          className={cn(
-                            "w-3.5 h-3.5",
-                            // Make icon white when board is active and has a colored background
-                            active && isBoard && boardColor && "filter brightness-0 invert"
-                          )} 
-                        />
-                      </div>
-                    )}
-                    <span className={cn("text-sm font-medium truncate font-normal text-black")}>{nav.label}</span>
-                    {isBoard && 
-                      <div
-                        className={cn(
-                          "flex items-center rounded font-normal",
-                          active && boardColor ? "text-white" : "text-black"
-                        )}
-                        style={
-                          active && boardColor
-                            ? { backgroundColor: boardColor }
-                            : undefined
-                        }
-                      >
-                        <BoardCount board_id={nav.id} isActive={!!active} boardColor={boardColor} />
-                      </div>}
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </SidebarMenuItem>
           );
         })}
@@ -546,7 +436,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
 /* --------------------------------------------------------------------- */
 
 function UserProfileSection() {
-  const { state } = useSidebar();
+  const { state, hoverReveal } = useSidebar();
   const user = useFeedbirdStore(s => s.user);
   const clearUser = useFeedbirdStore(s => s.clearUser)
   const [isClient, setIsClient] = React.useState(false);
@@ -584,9 +474,9 @@ function UserProfileSection() {
     router.push(`${base}/settings/billing`);
   };
 
-  // Expanded state content
-  const ExpandedContent = (
-    <div className="flex items-center gap-2">
+  return (
+    <TooltipProvider delayDuration={0}>
+           <div className="flex items-center gap-2">
       {/* User Avatar */}
       <div className="relative">
         {user.imageUrl ? (
@@ -644,79 +534,6 @@ function UserProfileSection() {
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  );
-
-  // Collapsed state content
-  const CollapsedContent = (
-    <div className="flex flex-col items-center gap-2 p-2 bg-white border-t border-gray-200">
-      {/* User Avatar */}
-      <div className="relative">
-        {user.imageUrl ? (
-          <img
-            src={user.imageUrl}
-            alt={fullName}
-            className="w-8 h-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
-            {userInitials}
-          </div>
-        )}
-      </div>
-
-      {/* Three-dot menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="p-1 hover:bg-gray-100 rounded cursor-pointer focus:outline-none">
-            <MoreHorizontal className="w-4 h-4 text-gray-600" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          align="end" 
-          className="w-48 flex flex-col p-1 rounded-md border border-gray-200 bg-white shadow-lg"
-        >
-          <DropdownMenuItem
-            onClick={handleProfileSettings}
-            className="flex px-3 py-2 gap-2 font-medium text-sm text-gray-700 cursor-pointer hover:bg-gray-50 rounded-sm"
-          >
-            <User className="w-4 h-4" />
-            <span>Account</span> 
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={handleAccountBilling}
-            className="flex px-3 py-2 gap-2 font-medium text-sm text-gray-700 cursor-pointer hover:bg-gray-50 rounded-sm"
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Billing</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleLogout}
-            className="flex px-3 py-2 gap-2 font-medium text-sm text-red-600 cursor-pointer hover:bg-red-50 rounded-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-
-  return (
-    <TooltipProvider delayDuration={0}>
-      {state !== 'collapsed' ? (
-        ExpandedContent
-      ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>{CollapsedContent}</TooltipTrigger>
-          <TooltipContent side="right" className="bg-popover text-popover-foreground shadow-md">
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium">{fullName}</p>
-              <p className="text-xs text-gray-500">{user.email}</p>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      )}
     </TooltipProvider>
   );
 }
@@ -727,7 +544,7 @@ function UserProfileSection() {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, hoverReveal } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
   const [isAddBoardModalOpen, setIsAddBoardModalOpen] = React.useState(false);
   const [isRulesModalOpen, setIsRulesModalOpen] = React.useState(false);
@@ -890,13 +707,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      collapsible="icon"
+      collapsible="offcanvas"
           className="border-r border-border-primary text-foreground gap-2 bg-[#FAFAFA]"
     >
       {/* ---------------------------------------------------------------- */}
       {/*  HEADER                                                         */}
       {/* ---------------------------------------------------------------- */}
-      <SidebarHeader className={state !== "collapsed" ? "border-b border-border-primary" : undefined}>
+      <SidebarHeader className="border-b border-border-primary">
         <WorkspaceSwitcher />
       </SidebarHeader>
 
@@ -907,15 +724,9 @@ export function AppSidebar() {
         {pathname.includes('/settings') ? (
           <>
             <SidebarGroup>
-              {state === 'collapsed' ? (
-                <div className="px-1 py-1">
-                  <SidebarSeparator className="bg-gray-200" />
-                </div>
-              ) : (
                 <SidebarGroupLabel>
                   <span className="text-xs font-medium text-[#75777C] tracking-wide">WORKSPACE</span>
                 </SidebarGroupLabel>
-              )}
               <RenderNavItems
                 items={[
                   { id: 'ws-workspace', label: 'Workspace', image: '/images/settings/workspace.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/workspace` : '/settings/workspace' },
@@ -928,15 +739,9 @@ export function AppSidebar() {
             </SidebarGroup>
 
             <SidebarGroup>
-              {state === 'collapsed' ? (
-                <div className="px-1 py-1">
-                  <SidebarSeparator className="bg-gray-200" />
-                </div>
-              ) : (
                 <SidebarGroupLabel>
                   <span className="text-xs font-medium text-[#75777C] tracking-wide">ACCOUNT</span>
                 </SidebarGroupLabel>
-              )}
               <RenderNavItems
                 items={[
                   { id: 'acc-profile', label: 'Profile', image: '/images/settings/profile.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/profile` : '/settings/profile' },
@@ -955,11 +760,6 @@ export function AppSidebar() {
             {/* -------------------- BOARDS ------------------------------- */}
             {isClient && (
             <SidebarGroup>
-              {state === 'collapsed' ? (
-                <div className="px-1 py-1">
-                  <SidebarSeparator className="bg-gray-200" />
-                </div>
-              ) : (
                 <SidebarGroupLabel>
                   <div className="flex items-center justify-between w-full">
                     <span className="text-xs font-medium text-[#75777C] tracking-wide">Boards</span>
@@ -973,7 +773,6 @@ export function AppSidebar() {
                     </button>
                   </div>
                 </SidebarGroupLabel>
-              )}
 
               <div className="mt-1">
                 <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
@@ -984,11 +783,6 @@ export function AppSidebar() {
             {/* -------------------- SOCIALS ------------------------------ */}
             {isClient && (
             <SidebarGroup>
-              {state === 'collapsed' ? (
-                <div className="px-1 py-1">
-                  <SidebarSeparator className="bg-gray-200" />
-                </div>
-              ) : (
                 <SidebarGroupLabel>
                   <div className="flex items-center justify-between w-full cursor-pointer">
                     <div
@@ -1008,7 +802,6 @@ export function AppSidebar() {
                     </button>
                   </div>
                 </SidebarGroupLabel>
-              )}
 
               {socialOpen && (
                 <SidebarMenu className="mt-1">

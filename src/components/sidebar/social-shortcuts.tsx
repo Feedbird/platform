@@ -27,7 +27,7 @@ export default function SocialShortcuts() {
   const pathname = usePathname();
   const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
-  const { state } = useSidebar();
+  const { state, hoverReveal } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
@@ -98,7 +98,7 @@ export default function SocialShortcuts() {
 
         return (
           <SidebarMenuItem key={page.id}>
-            {state === 'collapsed' ? (
+            {state === 'collapsed' && !hoverReveal ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   {collapsedContent}
