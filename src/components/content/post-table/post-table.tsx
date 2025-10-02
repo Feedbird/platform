@@ -20,7 +20,6 @@ import {
   VisibilityState,
   ExpandedState,
   ColumnResizeMode,
-  ColumnSizingState,
   ColumnSizingInfoState,
   flexRender,
   getCoreRowModel,
@@ -37,41 +36,21 @@ import {
 import {
   ChevronUpIcon,
   ChevronDownIcon,
-  EditIcon,
   GripVertical,
   PlusIcon,
   CalendarIcon,
-  MessageSquare,
   ListPlus,
   Film,
-  ImageIcon,
   FolderOpen,
-  CheckIcon,
-  AlertTriangle,
-  MessageCircleMore,
-  Trash2Icon,
-  CircleChevronDown,
-  Type,
-  SquareCheckBig,
   ArrowDownToLine,
   ArrowUpFromLine,
-  SlidersHorizontal,
-  Lock,
-  Unlock,
   X as XIcon,
-  Copy,
   ChevronDown,
   MoreHorizontal,
   CircleArrowOutDownRight,
-  ChevronLeft,
-  ChevronRight,
-  EyeOff,
-  FilePlus,
-  PlusCircle,
-  CheckSquare,
-  User,
-  Clock,
-  Maximize2
+  Maximize2,
+  Link2,
+  File
 } from "lucide-react";
 
 import { nanoid } from "nanoid";
@@ -90,14 +69,6 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogHeader,
-  DialogTitle,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { format, parse } from "date-fns";
 import Papa from "papaparse";
 import { Platform, SocialPage } from "@/lib/social/platforms/platform-types";
@@ -3498,14 +3469,17 @@ export function PostTable({
         if (platformsArr.length === 0) {
           // placeholder UI similar to ChannelsEditCell when empty
           return (
-            <div
-              className="flex flex-row items-center gap-1 rounded-[4px] bg-white"
-              style={{ padding: "3px 6px 3px 4px", boxShadow: "0px 0px 0px 1px #D3D3D3" }}
-            >
-              <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
-                <PlusIcon className="w-3 h-3 text-[#5C5E63]" />
-              </div>
-              <span className="text-xs text-[#5C5E63] font-medium">Select socials</span>
+            <div className={cn(
+              "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
+              )} style={{
+                padding: "3px 6px 3px 4px",
+              }}>
+                <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#E5EEFF]">
+                  <Link2 className={cn(
+                    "w-2.5 h-2.5 text-main",
+                  )}/>
+                </div>
+               <span className="text-xs text-black font-medium">Add socials</span>
             </div>
           );
         }
@@ -3515,14 +3489,17 @@ export function PostTable({
         const fmt = String(val || "");
         if (!fmt) {
           return (
-            <div
-              className="flex flex-row items-center gap-1 rounded-[4px] bg-white"
-              style={{ padding: "3px 6px 3px 4px", boxShadow: "0px 0px 0px 1px #D3D3D3" }}
-            >
-              <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
-                <PlusIcon className="w-3 h-3 text-[#5C5E63]" />
+            <div className={cn(
+              "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
+            )} style={{
+              padding: "3px 6px 3px 4px",
+            }}>
+              <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#FFEEE0]">
+                <File className={cn(
+                  "w-2.5 h-2.5 text-[#FD9038]",
+                )} />
               </div>
-              <span className="text-xs text-[#5C5E63] font-medium">Select format</span>
+              <span className="text-xs text-black font-medium">Select format</span>
             </div>
           );
         }

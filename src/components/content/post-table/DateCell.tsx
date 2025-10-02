@@ -9,7 +9,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { Plus, X, ChevronDown, Send } from "lucide-react";
+import { Plus, X, ChevronDown, Send, Clock4 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -45,7 +45,7 @@ export function PublishDateCell({
   const isPublished = post.status === "Published";
   const isFailedPublishing = post.status === "Failed Publishing";
   const hasDate = !!savedDate;
-  
+
   // Set display text based on status
   let displayText: string;
   if (isPublished) {
@@ -124,7 +124,7 @@ export function PublishDateCell({
   }
 
   const handleSwitchToggle = (checked: boolean) => {
-    if (checked) 
+    if (checked)
       return;
     handleUnschedule();
   };
@@ -190,36 +190,32 @@ export function PublishDateCell({
                           ) : (
                             <div className="flex flex-row items-center gap-1 w-full cursor-pointer">
                               <div className={cn(
-                                "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                                "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
                               )} style={{
                                 padding: "3px 6px 3px 4px",
-                                boxShadow: "0px 0px 0px 1px #D3D3D3",
-                                width: "fit-content"
                               }}>
-                                <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
-                                  <Plus className={cn(
-                                    "w-3 h-3 text-[#5C5E63]",
+                                <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#F5EEFF]">
+                                  <Clock4 className={cn(
+                                    "w-2.5 h-2.5 text-[#A064F5]",
                                   )} />
                                 </div>
-                                <span className="text-xs text-[#5C5E63] font-semibold">Select time</span>
+                                <span className="text-xs text-black font-medium">Select time</span>
                               </div>
 
                               {/* display publish now button */}
                               <div
                                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); setConfirmPublishOpen(true); }}
                                 className={cn(
-                                  "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                                  "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
                                 )} style={{
                                   padding: "3px 6px 3px 4px",
-                                  boxShadow: "0px 0px 0px 1px #D3D3D3",
-                                  width: "fit-content"
                                 }}>
-                                <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
+                                <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#E6F3EB]">
                                   <Send className={cn(
-                                    "w-3 h-3 text-[#5C5E63]",
+                                    "w-2.5 h-2.5 text-[#03985C]",
                                   )} />
                                 </div>
-                                <span className="text-xs text-[#5C5E63] font-semibold">Publish Now</span>
+                                <span className="text-xs text-black font-medium">Publish Now</span>
                               </div>
                             </div>
                           )
@@ -364,12 +360,12 @@ export function PublishDateCell({
                       backgroundColor: statusStyling.backgroundColor,
                       width: "fit-content"
                     }}>
-                        <Image
-                          src={statusStyling.iconSrc}
-                          alt="Publish Date"
-                          width={16}
-                          height={16}
-                        />
+                      <Image
+                        src={statusStyling.iconSrc}
+                        alt="Publish Date"
+                        width={16}
+                        height={16}
+                      />
                       <span className="text-xs font-semibold whitespace-nowrap">{displayText}</span>
                     </div>
                   </div>
@@ -386,51 +382,51 @@ export function PublishDateCell({
       {hasDate && !isPublished && !isFailedPublishing && (
         <div className="flex flex-row gap-2 flex-shrink-0">
           {/* Unschedule */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="border border-border-button rounded-[6px] p-1 text-[#EC5050] cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={handleUnschedule}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="bg-[#151515] text-white border-none text-xs"
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="border border-border-button rounded-[6px] p-1 text-[#EC5050] cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={handleUnschedule}
                 >
-                  Unschedule
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                  <X className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="bg-[#151515] text-white border-none text-xs"
+              >
+                Unschedule
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={handleAutoSchedule}
-                  >
-                    <Image
-                      src="/images/columns/post-time.svg"
-                      alt="Auto Schedule"
-                      width={16}
-                      height={16}
-                    />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="bg-[#151515] text-white border-none text-xs"
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={handleAutoSchedule}
                 >
-                  Auto Schedule
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                  <Image
+                    src="/images/columns/post-time.svg"
+                    alt="Auto Schedule"
+                    width={16}
+                    height={16}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="bg-[#151515] text-white border-none text-xs"
+              >
+                Auto Schedule
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           {/* Auto-schedule (only if not published/scheduled/failed publishing) */}
-            {/* <TooltipProvider>
+          {/* <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -455,7 +451,7 @@ export function PublishDateCell({
             </TooltipProvider> */}
 
           {/* Publish now (only if we have a date & not published/failed publishing) */}
-            {/* <TooltipProvider>
+          {/* <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -675,7 +671,7 @@ function ConfirmPublishNowDialog({
             </div>
 
             <div>
-              <span className="font-medium text-sm text-darkGrey">Current date/time: {dt} </span> 
+              <span className="font-medium text-sm text-darkGrey">Current date/time: {dt} </span>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">

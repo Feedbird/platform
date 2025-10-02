@@ -18,7 +18,8 @@ import {
   Plus, 
   CheckIcon, 
   XIcon, 
-  RefreshCw 
+  RefreshCw, 
+  Link2
 } from "lucide-react";
 import { ChannelsMultiSelectPopup } from "./ChannelsMultiSelectPopup";
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
@@ -203,17 +204,16 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
               {/* Show + icon with circular border when no channels selected */}
               {selectedPageDetails.length === 0 && (
                 <div className={cn(
-                  "flex flex-row items-center gap-1 rounded-[4px] bg-white",
+                  "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
                   )} style={{
                     padding: "3px 6px 3px 4px",
-                    boxShadow: "0px 0px 0px 1px #D3D3D3"
                   }}>
-                    <div className="flex flex-row items-center p-[1px] rounded-[3px] bg-[#E6E4E2]">
-                      <Plus className={cn(
-                        "w-3 h-3 text-[#5C5E63]",
+                    <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#E5EEFF]">
+                      <Link2 className={cn(
+                        "w-2.5 h-2.5 text-main",
                       )}/>
                     </div>
-                   <span className="text-xs text-[#5C5E63] font-medium">Select socials</span>
+                   <span className="text-xs text-black font-medium">Add socials</span>
                 </div>
               )}
 
