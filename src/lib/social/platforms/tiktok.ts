@@ -745,6 +745,7 @@ export class TikTokPlatform extends BasePlatform {
       throw new Error('No auth token available');
     }
 
+    // https://developers.tiktok.com/doc/tiktok-api-v1-video-query?enter_method=left_navigation
     const response = await this.fetchWithAuth<{
       data: {
         videos: Array<{
@@ -759,7 +760,7 @@ export class TikTokPlatform extends BasePlatform {
       method: 'POST',
       token: token,
       queryParams: {
-        fields: 'stats'
+        fields: 'like_count,comment_count,share_count,view_count'
       },
       body: JSON.stringify({
         filters: {
@@ -780,6 +781,66 @@ export class TikTokPlatform extends BasePlatform {
       shares: video.share_count || 0,
       views: video.view_count || 0
     };
+  }
+
+  async getPageAnalytics(page: SocialPage): Promise<any> {
+    // Prevent browser calls - route to API endpoint
+    if (IS_BROWSER) {
+      const res = await fetch('/api/social/tiktok/page-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      const token = await getSecureToken(page.id);
+      if (!token) {
+        throw new Error('No auth token available');
+      }
+
+      // Get user info and stats
+      // https://developers.tiktok.com/doc/tiktok-api-v1-user-info?enter_method=left_navigation
+      const userInfo = await this.fetchWithAuth<{
+        data: {
+          user: {
+            open_id: string;
+            union_id: string;
+            display_name: string;
+            bio_description: string;
+            profile_deep_link: string;
+            is_verified: boolean;
+            follower_count: number;
+            following_count: number;
+            likes_count: number;
+            video_count: number;
+          };
+        };
+      }>(`${config.baseUrl}/v2/user/info/`, {
+        method: 'GET',
+        token: token,
+        queryParams: {
+          fields: 'open_id,union_id,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count'
+        }
+      });
+
+      const user = userInfo.data.user;
+
+      return {
+        openId: user.open_id,
+        followerCount: user.follower_count,
+        followingCount: user.following_count,
+        likesCount: user.likes_count,
+        videoCount: user.video_count
+      };
+    } catch (error: any) {
+      console.error('[TikTok] Failed to fetch page analytics:', error);
+      throw new Error(`Failed to fetch page analytics: ${error.message}`);
+    }
   }
 
   async disconnectAccount(acc: SocialAccount): Promise<void> {
