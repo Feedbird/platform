@@ -243,54 +243,47 @@ export function ManageSocialsDialog(props: {
                   {pending.map(pg => (
                     <div key={pg.id} 
                       className={cn(
-                        "flex items-center gap-4 p-4 rounded-[6px] border bg-white",
+                        "flex items-center gap-3 px-4 py-4.5 rounded-[6px] border bg-white",
                         pg.status === "expired" ? "border-[#F19525]" : 
                         pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" :
                         "border-[#E6E4E2]"
                       )}>
                       <ChannelIcons channels={[pg.platform]} size={24} />
-                      <div className="flex-1">
+                      <div className="flex-1 gap-1 w-auto">
                         <div className="font-semibold text-black text-sm">{pg.name}</div>
-                        <div className="flex text-sm gap-2">
+                        <div className="flex text-sm font-normal gap-2">
                          <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
                          <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 w-[200px] justify-end">
+                      <div className="flex items-center gap-3 justify-end">
                         {pg.status === "expired" ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
+                          <div
                             onClick={() => openPopup(pg.platform, pg.platform === 'instagram' ? 'instagram_facebook' : undefined)}
-                            disabled={isLoading}
-                            className="text-[#F19525] hover:text-[#F19525] border-none bg-white hover:bg-white cursor-pointer shadow-none text-xs font-semibold"
+                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#F19525] font-medium rounded-[4px] px-1 py-0.5 bg-[#FFEED8] border border-[#1C1D1F0D] cursor-pointer", 
+                              isLoading && "opacity-50 cursor-not-allowed")}
                           >
-                            <RefreshCw className="w-3 h-3" />
+                            <RefreshCw className="w-2.5 h-2.5" />
                             RE-AUTHENTICATE
-                          </Button>
-                        ) : pg.status === "disconnected" ? (
-                          <div className="flex flex-col items-end">
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={handleCheckPageStatus(pg.id)}
-                             disabled={isLoading}
-                             className="text-[#EC5050] hover:text-[#EC5050] border-none bg-transparent hover:bg-transparent cursor-pointer shadow-none text-xs font-semibold"
-                           >
-                            <AlertTriangle className="w-3 h-3" />
-                            CONNECTION ERROR
-                           </Button>
                           </div>
+                        ) : pg.status === "disconnected" ? (
+                           <div
+                             onClick={handleCheckPageStatus(pg.id)}
+                             className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#EC5050] font-medium rounded-[4px] px-1 py-0.5 bg-[#FDE3E3] border border-[#1C1D1F0D] cursor-pointer", 
+                               isLoading && "opacity-50 cursor-not-allowed")}
+                           >
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            ERROR
+                           </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            disabled={isLoading}
-                            className="text-[#F19525] bg-transparent hover:bg-transparent border-none cursor-pointer shadow-none text-xs font-semibold"
+                          <div
                             onClick={handleConfirmPage(pg.id)}
+                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#129E62] font-medium rounded-[4px] px-1 py-0.5 bg-[#DDF9E4] border border-[#1C1D1F0D] cursor-pointer", 
+                              isLoading && "opacity-50 cursor-not-allowed")}
                           >
-                           <Link className="w-3 h-3" />
+                           <Link className="w-2.5 h-2.5" />
                            CONNECT
-                          </Button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -307,39 +300,37 @@ export function ManageSocialsDialog(props: {
                   {connected.map(pg => (
                     <div key={pg.id} 
                       className={cn(
-                        "flex items-center gap-4 p-4 rounded-[6px] border bg-white",
+                        "flex items-center gap-3 px-4 py-4.5 rounded-[6px] border bg-white",
                         pg.status === "expired" || pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" : "border-[#E6E4E2]"
                       )}>
                       <ChannelIcons channels={[pg.platform]} size={24} />
-                      <div className="flex-1">
+                      <div className="flex-1 gap-1 w-auto">
                         <div className="font-semibold text-black text-sm">{pg.name}</div>
-                        <div className="flex text-sm gap-2">
+                        <div className="flex text-sm font-normal gap-2">
                          <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
                          <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-end gap-3 w-[200px]">
+                      <div className="flex items-center justify-end gap-3">
                         {pg.status === "expired" || pg.status === "disconnected" ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isLoading}
+                          <div
                             onClick={handleCheckPageStatus(pg.id)}
-                            className="text-[#F19525] hover:text-[#F19525] border-none bg-white hover:bg-white cursor-pointer shadow-none text-xs font-semibold"
+                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#F19525] font-medium rounded-[4px] px-1 py-0.5 bg-[#FFEED8] border border-[#1C1D1F0D] cursor-pointer", 
+                              isLoading && "opacity-50 cursor-not-allowed")}
                           >
-                            <RefreshCw className="w-3 h-3" />
+                            <RefreshCw className="w-2.5 h-2.5" />
                             RE-AUTHENTICATE
-                          </Button>
+                          </div>
                         ) : (
-                          <div className="flex items-center justify-end gap-1.5 text-sm text-[#129E62] font-semibold">
-                            <Check className="w-3 h-3" />
+                          <div className="flex items-center justify-end gap-0.5 text-[10px] text-[#129E62] font-medium rounded-[4px] px-1 py-0.5 bg-[#DDF9E4] border border-[#1C1D1F0D]">
+                            <Check className="w-2.5 h-2.5" />
                             ACTIVE
                           </div>                           
                         )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled={isLoading}>
+                              <MoreHorizontal className="h-4 w-4 text-darkGrey" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">

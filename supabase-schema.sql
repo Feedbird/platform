@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS social_pages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
   account_id UUID REFERENCES social_accounts(id) ON DELETE CASCADE,
+  social_set_id UUID NULL REFERENCES social_sets(id) ON DELETE SET NULL,
   page_id TEXT NOT NULL,
   name TEXT NOT NULL,
   platform TEXT NOT NULL,
@@ -203,6 +204,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_board_id ON posts(board_id);
 CREATE INDEX IF NOT EXISTS idx_social_accounts_workspace_id ON social_accounts(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_social_pages_workspace_id ON social_pages(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_social_pages_account_id ON social_pages(account_id);
+CREATE INDEX IF NOT EXISTS idx_social_pages_social_set_id ON social_pages(social_set_id);
 CREATE INDEX IF NOT EXISTS idx_post_history_page_id ON post_history(page_id);
 CREATE INDEX IF NOT EXISTS idx_members_workspace_id ON members(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_members_board_id ON members(board_id);
@@ -257,6 +259,49 @@ ALTER TABLE boards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE social_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE social_pages ENABLE ROW LEVEL SECURITY;
+-- Social Sets table and policies
+CREATE TABLE IF NOT EXISTS social_sets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_social_sets_workspace_id ON social_sets(workspace_id);
+ALTER TABLE social_sets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view social sets in their workspaces" ON social_sets
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = social_sets.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+CREATE POLICY "Users can create social sets in their workspaces" ON social_sets
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = social_sets.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+CREATE POLICY "Users can update social sets in their workspaces" ON social_sets
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = social_sets.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+CREATE POLICY "Users can delete social sets in their workspaces" ON social_sets
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM members m
+      WHERE m.workspace_id = social_sets.workspace_id 
+      AND m.email = auth.jwt() ->> 'email'
+    )
+  );
+CREATE TRIGGER update_social_sets_updated_at BEFORE UPDATE ON social_sets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ALTER TABLE board_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;

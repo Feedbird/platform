@@ -792,7 +792,7 @@ export function AppSidebar() {
                       {socialOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       <span className="text-xs font-medium tracking-wide">Socials</span>
                     </div>
-                    <button onClick={() => setIsManageSocialsOpen(!!activeBrand)} className="hover:bg-gray-100 rounded">
+                    <button onClick={() => setIsManageSocialsOpen(true)} className="hover:bg-gray-100 rounded cursor-pointer">
                       <Image
                         src={`/images/sidebar/plus.svg`}
                         alt="social plus"

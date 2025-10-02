@@ -28,6 +28,7 @@ export const SECURE_SOCIAL_PAGE_FIELDS = `
   status,
   account_id,
   workspace_id,
+  social_set_id,
   status_updated_at,
   last_sync_at,
   metadata

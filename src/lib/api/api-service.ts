@@ -899,6 +899,7 @@ export const storeApi = {
               connected: p.connected,
               status: p.status,
               accountId: p.account_id,
+              socialSetId: (p as any).social_set_id,
               statusUpdatedAt: p.status_updated_at
                 ? new Date(p.status_updated_at)
                 : undefined,
@@ -907,6 +908,13 @@ export const storeApi = {
               postCount: p.post_count,
               metadata: p.metadata,
             })),
+          socialSets: ((ws as any).social_sets || []).map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            workspaceId: s.workspace_id,
+            createdAt: s.created_at ? new Date(s.created_at) : undefined,
+            updatedAt: s.updated_at ? new Date(s.updated_at) : undefined,
+          })),
         };
       });
 
@@ -2346,6 +2354,28 @@ export const socialAccountApi = {
         body: JSON.stringify(data),
       }
     );
+  },
+};
+
+// Social Set API functions
+export const socialSetApi = {
+  // Create social set
+  createSocialSet: async (workspace_id: string, name: string) => {
+    return apiRequest<any>("/social-set", {
+      method: "POST",
+      body: JSON.stringify({ workspace_id, name }),
+    });
+  },
+};
+
+// Social Page API functions
+export const socialPageApi = {
+  // Move page to a different social set (or unassigned by passing null)
+  moveToSet: async (page_id: string, social_set_id: string | null) => {
+    return apiRequest<any>("/social-page", {
+      method: "PATCH",
+      body: JSON.stringify({ page_id, social_set_id }),
+    });
   },
 };
 

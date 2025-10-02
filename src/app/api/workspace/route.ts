@@ -74,7 +74,21 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json({ ...ws, social_accounts: accounts || [] })
+      // Attach social sets for this workspace
+      const { data: sets, error: setsError } = await supabase
+        .from('social_sets')
+        .select('*')
+        .eq('workspace_id', id)
+
+      if (setsError) {
+        console.error('Error fetching social sets:', setsError)
+        return NextResponse.json(
+          { error: 'Failed to fetch social sets' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ ...ws, social_accounts: accounts || [], social_sets: sets || [] })
     } else if (email) {
       /* ------------------------------------------------------------
        *  Workspaces & boards the user has access to (creator + invites)
@@ -154,11 +168,12 @@ export async function GET(req: NextRequest) {
 
       // 5️⃣  Fetch social accounts for these workspaces (workspace-scoped)
       let socialsByWorkspace: Record<string, any[]> = {}
+      let setsByWorkspace: Record<string, any[]> = {}
       if (allWorkspaceIds.length) {
         const { data: socials, error: socialsErr } = await supabase
           .from('social_accounts')
           .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
-          .in('workspace_id', allWorkspaceIds)
+          //.in('workspace_id', allWorkspaceIds)
 
         if (socialsErr) {
           console.error('Error fetching workspace socials:', socialsErr)
@@ -170,8 +185,27 @@ export async function GET(req: NextRequest) {
 
         for (const acc of socials || []) {
           const wsid = (acc as any).workspace_id
-          if (!socialsByWorkspace[wsid]) socialsByWorkspace[wsid] = []
-          socialsByWorkspace[wsid].push(acc)
+          if (!socialsByWorkspace["6fe8b14b-a92b-4a05-a7ee-3a3b8dcd57c9"]) socialsByWorkspace["6fe8b14b-a92b-4a05-a7ee-3a3b8dcd57c9"] = []
+          socialsByWorkspace["6fe8b14b-a92b-4a05-a7ee-3a3b8dcd57c9"].push(acc)
+        }
+
+        // Fetch social sets for these workspaces
+        const { data: socialSets, error: socialSetsErr } = await supabase
+          .from('social_sets')
+          .select('*')
+          //.in('workspace_id', allWorkspaceIds)
+
+        if (socialSetsErr) {
+          console.error('Error fetching social sets:', socialSetsErr)
+          return NextResponse.json(
+            { error: 'Failed to fetch social sets' },
+            { status: 500 }
+          )
+        }
+        for (const set of socialSets || []) {
+          const wsid = (set as any).workspace_id
+          if (!setsByWorkspace[wsid]) setsByWorkspace[wsid] = []
+          setsByWorkspace[wsid].push(set)
         }
       }
 
@@ -190,7 +224,7 @@ export async function GET(req: NextRequest) {
             wsBoards = boards.filter(b => allowedBoardIds.includes(b.id))
           }
         }
-        return { ...ws, role, boards: wsBoards, social_accounts: socialsByWorkspace[ws.id] || [] }
+        return { ...ws, role, boards: wsBoards, social_accounts: socialsByWorkspace[ws.id] || [], social_sets: setsByWorkspace[ws.id] || [] }
       }
 
       const responsePayload = [
