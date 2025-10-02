@@ -8,7 +8,7 @@ import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { inviteApi, workspaceHelperApi } from "@/lib/api/api-service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, getFullnameinitial } from "@/lib/utils";
 
 export default function SettingsMembersPage() {
   const user = useFeedbirdStore((s) => s.user);
@@ -156,7 +156,7 @@ export default function SettingsMembersPage() {
                     <div className="flex items-center gap-2.5 min-w-0 px-3 py-1.5">
                       <Avatar className="size-6">
                         <AvatarImage src={m.image_url || undefined} alt={m.first_name || m.email} />
-                        <AvatarFallback>{(m.first_name || m.email || "?").slice(0, 1).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback className="text-xs font-medium text-black">{getFullnameinitial(user?.firstName || undefined, user?.lastName || undefined, user?.email || undefined)}</AvatarFallback>
                       </Avatar>
                       <div className="truncate flex items-center">
                         <span className="text-xs font-normal text-darkGrey leading-none">

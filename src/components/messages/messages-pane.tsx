@@ -17,6 +17,7 @@ import { cn, formatTimeAgo } from '@/lib/utils'
 import { MoreHorizontal, Send, Smile, AtSign, Image as ImageIcon, Plus, Mic, ArrowUp, Hash, X, Reply, Copy, Pin, Forward, CheckSquare, Flag, Trash2, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { getFullnameinitial } from '@/lib/utils'
 import EmojiPicker from 'emoji-picker-react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { workspaceHelperApi, postApi, userApi } from '@/lib/api/api-service'
@@ -1852,12 +1853,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 														onClick={() => handleMentionSelect(member)}
 														className={cn("flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer", index === selectedMentionIndex ? 'bg-gray-100' : '')}
 													>
-														<Avatar className="w-6 h-6">
-															<AvatarImage src={member.image_url} alt={member.first_name || member.email} />
-															<AvatarFallback className="text-[10px] font-medium">
-																{(member.first_name || member.email).charAt(0).toUpperCase()}
-															</AvatarFallback>
-														</Avatar>
+                                                        <Avatar className="w-6 h-6">
+                                                            <AvatarImage src={member.image_url} alt={member.first_name || member.email} />
+                                                            <AvatarFallback className="text-[10px] font-medium">
+                                                                {getFullnameinitial(undefined, undefined, member.first_name || member.email)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
 														<div className="flex-1 min-w-0">
 															<div className="text-sm font-medium text-gray-900 truncate">
 																{member.first_name || member.email}
@@ -2303,12 +2304,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 														onClick={() => handleMentionSelect(member)}
 														className={cn("flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer", index === selectedMentionIndex ? 'bg-gray-100' : '')}
 													>
-														<Avatar className="w-6 h-6">
-															<AvatarImage src={member.image_url} alt={member.first_name || member.email} />
-															<AvatarFallback className="text-[10px] font-medium">
-																{(member.first_name || member.email).charAt(0).toUpperCase()}
-															</AvatarFallback>
-														</Avatar>
+                                                        <Avatar className="w-6 h-6">
+                                                            <AvatarImage src={member.image_url} alt={member.first_name || member.email} />
+                                                            <AvatarFallback className="text-[10px] font-medium">
+                                                                {getFullnameinitial(undefined, undefined, member.first_name || member.email)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
 														<div className="flex-1 min-w-0">
 															<div className="text-sm font-medium text-gray-900 truncate">
 																{member.first_name || member.email}
@@ -2450,12 +2451,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 										{members.map((m) => (
 											<div key={m.email} className="flex items-center justify-between">
 												<div className="flex items-center gap-2">
-													<Avatar className="w-6 h-6">
-														<AvatarImage src={m?.imageUrl} alt={m.name} />
-														<AvatarFallback className="text-[10px] font-medium">
-															{m.name?.charAt(0).toUpperCase()}
-														</AvatarFallback>
-													</Avatar>
+                                                    <Avatar className="w-6 h-6">
+                                                        <AvatarImage src={m?.imageUrl} alt={m.name} />
+                                                        <AvatarFallback className="text-[10px] font-medium">
+                                                            {getFullnameinitial(undefined, undefined, m.name || '?')}
+                                                        </AvatarFallback>
+                                                    </Avatar>
 													<div className="text-xs text-black font-medium truncate">{m.name}</div>
 												</div>
 												{(() => {

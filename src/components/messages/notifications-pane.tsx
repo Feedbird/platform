@@ -35,7 +35,7 @@ import {
 import Image from 'next/image'
 import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns'
 import { Platform, SocialPage } from '@/lib/social/platforms/platform-types'
-import { cn } from '@/lib/utils'
+import { cn, getFullnameinitial } from '@/lib/utils'
 import { activityApi, notificationApi, userApi } from '@/lib/api/api-service'
 
 type NotificationType = 'all' | 'unread' | 'comments' | 'approval' | 'mention'
@@ -380,20 +380,7 @@ export default function NotificationsPane() {
 		return iconMap[platform] || '/images/platforms/comment.svg'
 	}
 
-	// Get actor initials for avatar fallback
-	const getActorInitials = (authorName?: string, authorEmail?: string) => {
-		if (authorName) {
-			const names = authorName.trim().split(' ')
-			if (names.length >= 2) {
-				return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
-			}
-			return names[0][0].toUpperCase()
-		}
-		if (authorEmail) {
-			return authorEmail[0].toUpperCase()
-		}
-		return 'U'
-	}
+	// Use shared helper for avatar fallback
 
 	// Get status icon for post
 	const getStatusIcon = (type?: string) => {
@@ -583,9 +570,9 @@ export default function NotificationsPane() {
 							alt={metadata.authorName || 'User avatar'}
 						/>
 					)}
-					<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
-						{getActorInitials(metadata.authorName, metadata.authorEmail)}
-					</AvatarFallback>
+								<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
+									{getFullnameinitial(undefined, undefined, metadata.authorName || metadata.authorEmail || 'U')}
+								</AvatarFallback>
 				</Avatar>
 			)
 		}
@@ -842,9 +829,9 @@ export default function NotificationsPane() {
 																					alt={notification.metadata.authorName || 'User avatar'}
 																				/>
 																			)}
-																			<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
-																				{getActorInitials(notification.metadata.authorName, notification.metadata.authorEmail)}
-																			</AvatarFallback>
+																<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
+																	{getFullnameinitial(undefined, undefined, notification.metadata.authorName || notification.metadata.authorEmail || 'U')}
+																</AvatarFallback>
 																		</Avatar>
 																		{/* Status Icon Overlay */}
 																		{notification.type && getStatusIcon(notification.type) && (

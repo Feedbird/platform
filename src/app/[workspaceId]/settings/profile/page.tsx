@@ -4,7 +4,7 @@ import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useImageUploader } from "@/hooks/use-image-uploader";
 import { userApi } from "@/lib/api/api-service";
-import { cn } from "@/lib/utils";
+import { cn, getFullnameinitial } from "@/lib/utils";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
@@ -51,15 +51,6 @@ export default function SettingsProfilePage() {
   const [passwordNotice, setPasswordNotice] = React.useState<string>("");
 
   const passwordEnabled = clerkUser?.passwordEnabled ?? false;
-
-  const getInitials = (first?: string, last?: string) => {
-    const f = (first || "").trim();
-    const l = (last || "").trim();
-    if (f && l) return `${f[0]}${l[0]}`.toUpperCase();
-    if (f) return f[0]!.toUpperCase();
-    if (l) return l[0]!.toUpperCase();
-    return "";
-  };
 
   // Minimal change reverification wrapper for password update
   const updatePw = useReverification(async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
@@ -622,8 +613,8 @@ export default function SettingsProfilePage() {
               {/* Avatar */}
               <Avatar className="h-13 w-13">
                 <AvatarImage src={avatarUrl || undefined} alt={user?.firstName || user?.email || "User"} className="object-cover" />
-                <AvatarFallback className="text-base font-medium">
-                  {getInitials(user?.firstName, user?.lastName) || (user?.email ? user.email.charAt(0).toUpperCase() : "")}
+                <AvatarFallback className="text-base font-medium text-black">
+                  {getFullnameinitial(user?.firstName || undefined, user?.lastName || undefined, user?.email || undefined)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 items-center justify-center">

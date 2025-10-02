@@ -179,6 +179,37 @@ export function formatTimeAgo(date: Date | string): string {
 }
 
 /**
+ * Compute a robust initial(s) string for avatar fallbacks.
+ * Priority:
+ * 1) firstName + lastName → two initials
+ * 2) fullName (two+ words) → first + last initials; else first initial
+ * 3) email/identifier → first character
+ * 4) fallback → '?'
+ */
+export function getFullnameInitial(
+  firstName?: string | null,
+  lastName?: string | null,
+  fullNameOrEmail?: string | null,
+  fallback: string = "?"
+): string {
+  const f = (firstName || "").trim();
+  const l = (lastName || "").trim();
+  if (f && l) return `${f[0]}${l[0]}`.toUpperCase();
+
+  const full = (fullNameOrEmail || "").trim();
+  if (full) {
+    const parts = full.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    return parts[0][0]!.toUpperCase();
+  }
+
+  return fallback;
+}
+
+// Backward-compat alias for potential alternate naming used elsewhere
+export const getFullnameinitial = getFullnameInitial;
+
+/**
  * Exact palettes for months 1–10.
  */
 const MONTH_COLORS: string[] = [

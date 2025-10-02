@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getFullnameinitial } from "@/lib/utils";
 import { X, Bell, ArrowRight, Smile, AtSign, MessageSquare, CheckCircle, ChevronDown, ChevronLeft, Copy, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,7 +107,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               <Avatar className="w-5 h-5">
                 <AvatarImage src={message.authorImageUrl} alt={message.author} />
                 <AvatarFallback className="text-[10px] font-medium">
-                  {message.author?.charAt(0).toUpperCase()}
+                  {getFullnameinitial(undefined, undefined, message.author || '?')}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium text-black">{message.author}</span>
@@ -234,7 +235,7 @@ const CommentItem: React.FC<{
                 <Avatar className="w-5 h-5">
                   <AvatarImage src={comment.authorImageUrl} alt={comment.author} />
                   <AvatarFallback className="text-[10px] font-medium">
-                    {comment.author?.charAt(0).toUpperCase()}
+                    {getFullnameinitial(undefined, undefined, comment.author || '?')}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium text-black">{comment.author}</span>
@@ -504,7 +505,7 @@ export function GroupFeedbackSidebar({
                               <Avatar className="w-5 h-5">
                                 <AvatarImage src={comment.authorImageUrl} alt={comment.author} />
                                 <AvatarFallback className="text-[10px] font-medium">
-                                  {comment.author?.charAt(0).toUpperCase()}
+                                  {getFullnameinitial(undefined, undefined, comment.author || '?')}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-sm font-medium text-black">{comment.author}</span>

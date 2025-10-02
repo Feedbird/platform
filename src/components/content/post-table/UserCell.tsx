@@ -6,7 +6,7 @@ import { User } from "@/lib/supabase/client";
 import { userApi } from "@/lib/api/api-service";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, getFullnameinitial } from "@/lib/utils";
 
 // User cache to avoid repeated API calls
 const userCache = new Map<string, User>();
@@ -87,7 +87,7 @@ function UserDisplay({ userEmail, className }: UserDisplayProps) {
             <Avatar className="w-6 h-6">
               <AvatarImage src={avatarUrl} alt={fullName} />
               <AvatarFallback className="text-[10px] font-medium">
-                {fullName.charAt(0).toUpperCase()}
+                {getFullnameinitial(undefined, undefined, fullName || user.email || '?')}
               </AvatarFallback>
             </Avatar>
             <span className="text-xs text-darkGrey font-normal whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]">

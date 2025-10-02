@@ -26,6 +26,7 @@ import NotificationsPane from '@/components/messages/notifications-pane'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { getFullnameinitial } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { workspaceHelperApi } from '@/lib/api/api-service'
@@ -454,7 +455,7 @@ export default function MessagesPage() {
                                             <div key={email} className="flex items-center h-5 gap-1 px-[3px] rounded-full bg-[#F4F5F6]">
                                                 <Avatar className="w-3.5 h-3.5">
                                                     <AvatarImage src={memberProfiles[email]?.image_url} alt={email} />
-                                                    <AvatarFallback className="text-[9px]">{getDisplayName(email).charAt(0).toUpperCase()}</AvatarFallback>
+                                                    <AvatarFallback className="text-[9px]">{getFullnameinitial(undefined, undefined, getDisplayName(email))}</AvatarFallback>
                                                 </Avatar>
                                                 <span className="text-xs text-black max-w-[120px] truncate">{getDisplayName(email)}</span>
                                                 <button onClick={() => removeSelected(email)} className="text-grey hover:text-black">
@@ -476,7 +477,7 @@ export default function MessagesPage() {
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <Avatar className="w-6 h-6">
                                                             <AvatarImage src={memberProfiles[email]?.image_url} alt={email} />
-                                                            <AvatarFallback className="text-[10px] font-medium">{getDisplayName(email).charAt(0).toUpperCase()}</AvatarFallback>
+                                                            <AvatarFallback className="text-[10px] font-medium">{getFullnameinitial(undefined, undefined, getDisplayName(email))}</AvatarFallback>
                                                         </Avatar>
                                                         <div className="text-xs text-black font-medium truncate">{getDisplayName(email)}</div>
                                                     </div>

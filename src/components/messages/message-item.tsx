@@ -13,6 +13,7 @@ import { cn, formatTimeAgo } from '@/lib/utils'
 import { Reply, Copy, Pin, Forward, CheckSquare, Flag, Trash2 } from 'lucide-react'
 import { format, isToday, isYesterday } from 'date-fns'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { getFullnameinitial } from '@/lib/utils'
 import EmojiPicker from 'emoji-picker-react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 
@@ -105,7 +106,7 @@ export default function MessageItem({
 				<Avatar className="w-6 h-6">
 					<AvatarImage src={message.authorImageUrl} alt={message.author} />
 					<AvatarFallback className="text-[10px] font-medium">
-						{message.author?.charAt(0).toUpperCase()}
+						{getFullnameinitial(undefined, undefined, message.author || '?')}
 					</AvatarFallback>
 				</Avatar>
 				<div className="flex-1 min-w-0">
@@ -292,7 +293,7 @@ export default function MessageItem({
 												<Avatar className="w-5 h-5">
 													<AvatarImage src={reply?.authorImageUrl} alt={reply?.author} />
 													<AvatarFallback className="text-[8px] font-medium">
-														{reply?.author?.charAt(0).toUpperCase()}
+														{getFullnameinitial(undefined, undefined, reply?.author || '?')}
 													</AvatarFallback>
 												</Avatar>
 											</div>

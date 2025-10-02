@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createEmailService, EmailService } from './email-service';
+import { getFullnameinitial } from '@/lib/utils';
 
 export interface MessageItem {
   id: string;
@@ -297,7 +298,7 @@ console.log("notificationData.channelSections:", notificationData.channelSection
         `;
 
         for (const message of authorSection.messages) {
-          const avatarText = message.authorName.charAt(0).toUpperCase();
+          const avatarText = getFullnameinitial(undefined, undefined, message.authorName || message.authorEmail || '?');
           const formattedTime = this.formatMessageTime(message.createdAt);
           
           // Generate avatar HTML - use image if available, otherwise use text

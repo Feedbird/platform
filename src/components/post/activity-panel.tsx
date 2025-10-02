@@ -32,7 +32,7 @@ import {
   Activity,
   useFeedbirdStore,
 } from "@/lib/store/use-feedbird-store";
-import { cn } from "@/lib/utils";
+import { cn, getFullnameinitial } from "@/lib/utils";
 import { StatusChip } from "@/components/content/shared/content-post-ui";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
@@ -127,7 +127,7 @@ function MessageItem({
               <Avatar className="w-5 h-5">
                 <AvatarImage src={c.authorImageUrl} alt={c.author} />
                 <AvatarFallback className="text-[10px] font-medium">
-                  {c.author?.charAt(0).toUpperCase()}
+                  {getFullnameinitial(undefined, undefined, c.author || '?')}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium text-black">{c.author}</span>
@@ -256,7 +256,7 @@ export function RevisionComment({
                 <Avatar className="w-5 h-5">
                   <AvatarImage src={c.authorImageUrl} alt={c.author} />
                   <AvatarFallback className="text-[10px] font-medium">
-                    {c.author?.charAt(0).toUpperCase()}
+                    {getFullnameinitial(undefined, undefined, c.author || '?')}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium text-black">{c.author}</span>

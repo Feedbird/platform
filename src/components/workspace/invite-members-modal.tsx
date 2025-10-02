@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, getFullnameinitial } from "@/lib/utils";
 import * as React from "react";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { inviteApi, workspaceHelperApi } from "@/lib/api/api-service";
@@ -161,7 +161,7 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
                 <div className="flex items-center gap-2.5">
                   <Avatar className="size-7">
                     <AvatarImage src={m.image_url || undefined} alt={m.first_name || m.email} />
-                    <AvatarFallback>{(m.first_name || m.email || '?').slice(0, 1).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="text-xs font-medium text-black">{getFullnameinitial(m?.first_name || undefined, undefined, m?.email || undefined)}</AvatarFallback>
                   </Avatar>
                   <div className="flex">
                     <span className="text-xs font-normal text-darkGrey leading-none">{m.first_name || m.email}{m.accept === false ? ' (Pending)' : ''}</span>

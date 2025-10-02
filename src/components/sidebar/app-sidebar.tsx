@@ -4,7 +4,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import {
@@ -48,7 +48,8 @@ import {
   useFeedbirdStore,
   NavLink,
 } from "@/lib/store/use-feedbird-store";
-import { cn } from "@/lib/utils";
+import { cn, getFullnameinitial } from "@/lib/utils";
+import { useClerk } from '@clerk/nextjs'
 
 import {
   ChevronRight,
@@ -64,6 +65,10 @@ import {
   Copy,
   Archive as ArchiveIcon,
   Trash2,
+  // icons for user profile:
+  LogOut,
+  User,
+  CreditCard,
 } from "lucide-react";
 import { BorderAll, BorderColor } from "@mui/icons-material";
 
@@ -284,8 +289,8 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const pathname = usePathname();
   const { state } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
-  const unread_msg = useFeedbirdStore(s => s.user?.unread_msg || []);
-  const unread_notification = useFeedbirdStore(s => s.user?.unread_notification || []);
+  const unreadMsgCount = useFeedbirdStore(s => (s.user?.unread_msg ? s.user.unread_msg.length : 0));
+  const unreadNotificationCount = useFeedbirdStore(s => (s.user?.unread_notification ? s.user.unread_notification.length : 0));
 
   React.useEffect(() => {
     setIsClient(true);
@@ -323,7 +328,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           
           // Special handling for messages icon based on unread status
           if (nav.id === 'messages') {
-            if (unread_msg.length > 0 || unread_notification.length > 0) {
+            if (unreadMsgCount > 0 || unreadNotificationCount > 0) {
               imageSrc = "/images/sidebar/messages-on.svg";
             } else {
               imageSrc = "/images/sidebar/messages.svg";
@@ -535,6 +540,186 @@ export const RenderNavItems = React.memo(function RenderNavItems({
     </TooltipProvider>
   );
 });
+
+/* --------------------------------------------------------------------- */
+/*  USER PROFILE COMPONENT                                               */
+/* --------------------------------------------------------------------- */
+
+function UserProfileSection() {
+  const { state } = useSidebar();
+  const user = useFeedbirdStore(s => s.user);
+  const clearUser = useFeedbirdStore(s => s.clearUser)
+  const [isClient, setIsClient] = React.useState(false);
+  const { signOut } = useClerk()
+  const activeWorkspace = useFeedbirdStore(s => s.getActiveWorkspace());
+  const router = useRouter();
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient || !user) {
+    return null;
+  }
+
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User';
+  const userInitials = getFullnameinitial(user.firstName || undefined, user.lastName || undefined, user.email || undefined);
+
+  const handleLogout = async () => {
+    try {
+      clearUser();
+      await signOut({ redirectUrl: '/landing' });
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  const handleProfileSettings = () => {
+    const base = activeWorkspace ? `/${activeWorkspace.id}` : '';
+    router.push(`${base}/settings/profile`);
+  };
+
+  const handleAccountBilling = () => {
+    const base = activeWorkspace ? `/${activeWorkspace.id}` : '';
+    router.push(`${base}/settings/billing`);
+  };
+
+  // Expanded state content
+  const ExpandedContent = (
+    <div className="flex items-center gap-2">
+      {/* User Avatar */}
+      <div className="relative">
+        {user.imageUrl ? (
+          <img
+            src={user.imageUrl}
+            alt={fullName}
+            className="w-6 h-6 rounded-[3px] object-cover"
+          />
+        ) : (
+          <div className="w-6 h-6 rounded-[3px] bg-main flex items-center justify-center text-white text-sm font-medium">
+            {userInitials}
+          </div>
+        )}
+      </div>
+
+      {/* User Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-black truncate">{fullName}</p>
+        <p className="text-xs text-grey font-normal truncate">{user.email}</p>
+      </div>
+
+      {/* Three-dot menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="p-1 hover:bg-gray-100 rounded cursor-pointer focus:outline-none">
+            <MoreHorizontal className="w-3.5 h-3.5 text-[#5C5E63]" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          align="end" 
+          className="w-[150px] flex flex-col p-0 rounded-[8px] border border-elementStroke bg-white"
+        >
+          <DropdownMenuItem
+            onClick={handleProfileSettings}
+            className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+          >
+            <img src="/images/settings/profile.svg" alt="Account" className="w-3.5 h-3.5" />
+            <span>Account</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={handleAccountBilling}
+            className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+          >
+            <img src="/images/settings/billing.svg" alt="Billing" className="w-3.5 h-3.5" />
+            <span>Billing</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="my-[0px] text-elementStroke"/>
+          <DropdownMenuItem
+            onClick={handleLogout}
+            className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+          >
+            <img src="/images/sidebar/logout.svg" alt="Logout" className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  // Collapsed state content
+  const CollapsedContent = (
+    <div className="flex flex-col items-center gap-2 p-2 bg-white border-t border-gray-200">
+      {/* User Avatar */}
+      <div className="relative">
+        {user.imageUrl ? (
+          <img
+            src={user.imageUrl}
+            alt={fullName}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+            {userInitials}
+          </div>
+        )}
+      </div>
+
+      {/* Three-dot menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="p-1 hover:bg-gray-100 rounded cursor-pointer focus:outline-none">
+            <MoreHorizontal className="w-4 h-4 text-gray-600" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          align="end" 
+          className="w-48 flex flex-col p-1 rounded-md border border-gray-200 bg-white shadow-lg"
+        >
+          <DropdownMenuItem
+            onClick={handleProfileSettings}
+            className="flex px-3 py-2 gap-2 font-medium text-sm text-gray-700 cursor-pointer hover:bg-gray-50 rounded-sm"
+          >
+            <User className="w-4 h-4" />
+            <span>Account</span> 
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={handleAccountBilling}
+            className="flex px-3 py-2 gap-2 font-medium text-sm text-gray-700 cursor-pointer hover:bg-gray-50 rounded-sm"
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>Billing</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={handleLogout}
+            className="flex px-3 py-2 gap-2 font-medium text-sm text-red-600 cursor-pointer hover:bg-red-50 rounded-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  return (
+    <TooltipProvider delayDuration={0}>
+      {state !== 'collapsed' ? (
+        ExpandedContent
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>{CollapsedContent}</TooltipTrigger>
+          <TooltipContent side="right" className="bg-popover text-popover-foreground shadow-md">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">{fullName}</p>
+              <p className="text-xs text-gray-500">{user.email}</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </TooltipProvider>
+  );
+}
 
 /* --------------------------------------------------------------------- */
 /*  MAIN SIDEBAR COMPONENT                                               */
@@ -836,7 +1021,9 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter>{/* Optional footer items */}</SidebarFooter>
+      <SidebarFooter className="px-2.5 py-3">
+        <UserProfileSection />
+      </SidebarFooter>
 
       <AddBoardModal 
         isOpen={isAddBoardModalOpen} 
