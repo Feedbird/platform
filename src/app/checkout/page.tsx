@@ -217,7 +217,7 @@ export default function Checkout() {
                           </h3>
                           <div className="flex flex-row justify-between text-sm">
                             <div className="flex flex-col font-normal">
-                              <span className="text-[#1C1D1F]l">
+                              <span className="text-[#1C1D1F]">
                                 {container.plan.quantity}{" "}
                                 {container.plan.qty_indicator}
                               </span>
