@@ -1,7 +1,7 @@
 import { TableForm } from "@/components/forms/content/forms-table";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { FormField } from "@/lib/supabase/client";
+import { Coupon, FormField } from "@/lib/supabase/client";
 
 export interface ApiResponse<T> {
   data: T;
@@ -330,11 +330,11 @@ export const formsApi = {
     workspaceId,
     submissions,
     schema,
-  } : {
-    formId: string,
-    workspaceId: string,
-    submissions: Record<string, any>,
-    schema: Record<string, string>
+  }: {
+    formId: string;
+    workspaceId: string;
+    submissions: Record<string, any>;
+    schema: Record<string, string>;
   }) => {
     return apiRequest<{ data: any }>(`/forms/submission`, {
       method: "POST",
@@ -2445,6 +2445,17 @@ export const notificationApi = {
           user_email: userEmail,
           notification_id: notificationId,
         }),
+      }
+    );
+  },
+};
+
+export const checkoutApi = {
+  verifyCoupon: async (code: string) => {
+    return apiRequest<{ coupon: Coupon }>(
+      "/checkout/coupons/verify?code=" + encodeURIComponent(code),
+      {
+        method: "GET",
       }
     );
   },

@@ -191,6 +191,7 @@ export interface Service {
   description: string | null;
   folder_id: string;
   social_channels: boolean;
+  internal_icon: string;
   channels?: ServiceChannel[];
   service_plans?: ServicePlan[];
 }
@@ -214,7 +215,6 @@ export interface ServiceChannel {
   social_channel: string;
   pricing: number;
   updated_at: string;
-  default: boolean;
 }
 
 export interface ServiceFolder {
@@ -235,4 +235,15 @@ export interface FormField {
   title: string;
   description: string;
   required: boolean;
+}
+
+export interface Coupon {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  discount: number;
+  code: string;
+  expires_at: string | null;
+  usage_count: number;
+  usage_limit: number | null;
 }

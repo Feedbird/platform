@@ -1,7 +1,12 @@
 "use client";
+import CouponValidator from "@/components/checkout/CouponValidator";
+import EmailInput from "@/components/checkout/EmailInput";
 import PaymentForm from "@/components/checkout/PaymentForm";
 import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
-import ServiceCard, { mapPeriodicity } from "@/components/checkout/ServiceCard";
+import ServiceCard, {
+  mapPeriodicity,
+  ServiceCardPlan,
+} from "@/components/checkout/ServiceCard";
 import {
   Accordion,
   AccordionContent,
@@ -9,20 +14,16 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ServiceFolder, ServicePlan } from "@/lib/supabase/client";
+import { ServiceFolder } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
 import { AccordionItem } from "@radix-ui/react-accordion";
 import { TabsContent } from "@radix-ui/react-tabs";
-import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { set } from "nprogress";
 import React from "react";
 import { toast } from "sonner";
 
-//! TODO Split into smaller components
 export default function Checkout() {
   // TODO Ensure that If uses goes to login, they are redirected back to checkout
   const router = useRouter();
@@ -31,9 +32,10 @@ export default function Checkout() {
   );
   const [loading, setLoading] = React.useState(false);
   const [selectedPlans, setSelectedPlans] = React.useState<
-    Map<string, ServicePlan>
+    Map<string, ServiceCardPlan>
   >(new Map());
   const [total, setTotal] = React.useState(0);
+  const [email, setEmail] = React.useState("");
 
   React.useEffect(() => {
     const fetchServiceFolders = async () => {
@@ -58,33 +60,38 @@ export default function Checkout() {
 
   React.useEffect(() => {
     let total = 0;
-    selectedPlans.forEach((plan, serviceId) => {
+    selectedPlans.forEach((container, serviceId) => {
       const service = serviceFolders
         .flatMap((folder) => folder.services || [])
         .find((s) => s.id === serviceId);
 
       if (service) {
-        total += plan.price;
+        total += container.plan.price;
+      }
+      if (container.channels) {
+        total += container.channels
+          .slice(1)
+          .reduce((acc, channel) => acc + channel.pricing, 0);
       }
     });
     setTotal(total);
   }, [selectedPlans.size]);
 
   return (
-    <main className="bg-[#F7F7F8] min-h-screen overflow-auto">
-      <div className="w-full h-20 px-16 flex flex-row justify-between max-w-[1440px] mx-auto">
-        <div className="flex flex-row gap-10 py-6 items-center">
+    <main className="min-h-screen overflow-auto bg-[#F7F7F8]">
+      <div className="mx-auto flex h-20 w-full max-w-[1440px] flex-row justify-between px-16">
+        <div className="flex flex-row items-center gap-10 py-6">
           <Image
             src="/images/logo/logo(1).svg"
             alt="Feedbird_logo"
             width={140}
             height={22}
           />
-          <span className="font-normal text-[#838488] text-[20px]">
+          <span className="text-[20px] font-normal text-[#838488]">
             Checkout
           </span>
         </div>
-        <div className="flex flex-row gap-3 py-6 font-normal text-[14px] items-center">
+        <div className="flex flex-row items-center gap-3 py-6 text-[14px] font-normal">
           <p className="text-[#1C1D1F]">Already have an account?</p>
           <span
             className="text-[#4670F9] hover:cursor-pointer hover:underline"
@@ -94,65 +101,49 @@ export default function Checkout() {
           </span>
         </div>
       </div>
-      <div className="w-full max-w-[1440px] mx-auto flex justify-between px-20 pt-4 gap-14 pb-20">
+      <div className="mx-auto flex w-full max-w-[1440px] justify-between gap-7 xl:gap-14 px-20 pt-4 pb-20">
         {/* TODO: Make this responsive, not fixed w */}
-        <div className="flex flex-col w-full max-w-[726px]">
-          <h2 className="text-[20px] text-[#1C1D1F] font-medium pb-6">
+        <div className="flex w-full max-w-[726px] flex-col">
+          <h2 className="pb-6 text-[20px] font-medium text-[#1C1D1F]">
             1. Enter an email address for your Feedbird Account
           </h2>
-          <div className="rounded-[8px] w-full px-5 py-4 bg-white border-1 border-[#E2E2E4] flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex justify-between">
-                <span className="font-medium text-[#1C1D1F] text-[13px]">
-                  Your email address
-                </span>
-                <ChevronRight width={16} height={16} />
-              </div>
-              <Input
-                className="rounded-[6px] h-[42px] border-1 border-[#C8C9CB] px-4 py-3 text-[#1C1D1F]"
-                placeholder="name@example.com"
-              />
-            </div>
-            <p className="text-[#1C1D1F] text-xs font-normal">
-              You’ll be able to change notification settings for Nord services
-              marketing emails in your Nord Account.
-            </p>
-          </div>
+          <EmailInput emailSetter={setEmail} email={email} />
           <div className="mt-10">
-            <h2 className="text-[20px] text-[#1C1D1F] font-medium pb-3">
+            <h2 className="pb-3 text-[20px] font-medium text-[#1C1D1F]">
               2. Select services
             </h2>
             {loading && (
-              <div className="w-full h-full flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <div className="flex h-full min-h-[400px] w-full items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
                 <span className="ml-3 text-gray-600">Loading services...</span>
               </div>
             )}
             {!loading && serviceFolders.length === 0 && (
-              <div className="w-full h-full flex items-center justify-center min-h-[400px]">
+              <div className="flex h-full min-h-[400px] w-full items-center justify-center">
                 <span className="text-gray-600">No services available</span>
               </div>
             )}
             {serviceFolders &&
               serviceFolders.map((folder, index) => (
-                <>
+                <div key={`service-folder-${index}`}>
                   <Accordion
-                    key={`service-folder-${index}`}
                     type="single"
                     collapsible
+                    defaultValue={folder.name}
                   >
                     <AccordionItem value={folder.name}>
                       <AccordionTrigger className="h-12 cursor-pointer">
-                        <h3 className="text-base text-[#1C1D1F] font-medium py-5">
+                        <h3 className="py-5 text-base font-medium text-[#1C1D1F]">
                           {folder.name}
                         </h3>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="flex flex-row flex-wrap gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                           {folder.services?.map((service) => (
                             <ServiceCard
                               key={service.id}
                               service={service}
+                              isActivated={selectedPlans.has(service.id)}
                               selector={setSelectedPlans}
                             />
                           ))}
@@ -161,19 +152,19 @@ export default function Checkout() {
                     </AccordionItem>
                   </Accordion>
                   <Divider className="pt-5" />
-                </>
+                </div>
               ))}
           </div>
-          <div className="pt-8 flex flex-col gap-6">
-            <h2 className="text-[20px] text-[#1C1D1F] font-medium pb-3">
+          <div className="flex flex-col gap-6 pt-8">
+            <h2 className="pb-3 text-[20px] font-medium text-[#1C1D1F]">
               2. Payment method
             </h2>
             <PaymentForm />
           </div>
         </div>
-        <div className="flex flex-col w-full max-w-[480px]">
+        <div className="flex w-full max-w-[400px] xl:max-w-[480px] flex-col">
           <div className="flex justify-between pb-4">
-            <h2 className="font-medium text-[#1C1D1F] text-[20px]">
+            <h2 className="text-[20px] font-medium text-[#1C1D1F]">
               Order summary
             </h2>
             <Image
@@ -183,25 +174,25 @@ export default function Checkout() {
               height={36}
             />
           </div>
-          <div className="bg-white rounded-[8px] pt-4 pb-6 px-6 border-1 border-[#E2E2E4] flex flex-col gap-6">
-            <Tabs className="w-full flex flex-col gap-6" defaultValue="monthly">
+          <div className="flex flex-col gap-6 rounded-[8px] border-1 border-[#E2E2E4] bg-white px-6 pt-4 pb-6">
+            <Tabs className="flex w-full flex-col gap-6" defaultValue="monthly">
               <TabsList
                 defaultChecked
                 defaultValue={"monthly"}
-                className="w-full h-11 rounded-[6px] bg-[#F4F5F6] p-1"
+                className="h-11 w-full rounded-[6px] bg-[#F4F5F6] p-1"
               >
                 <TabsTrigger
                   value="monthly"
-                  className="data-[state=active]:rounded-[6px] hover:cursor-pointer"
+                  className="hover:cursor-pointer data-[state=active]:rounded-[6px]"
                 >
                   Billed monthly
                 </TabsTrigger>
                 <TabsTrigger
                   value="yearly"
-                  className="flex flex-row data-[state=active]:rounded-[6px] hover:cursor-pointer"
+                  className="flex flex-row hover:cursor-pointer data-[state=active]:rounded-[6px]"
                 >
                   <span>Billed yearly</span>
-                  <div className="rounded-full bg-[#03985C] py-[2px] px-1.5 flex items-center justify-center text-white text-[10px] font-medium">
+                  <div className="flex items-center justify-center rounded-full bg-[#03985C] px-1.5 py-[2px] text-[10px] font-medium text-white">
                     SAVE 10%
                   </div>
                 </TabsTrigger>
@@ -210,32 +201,34 @@ export default function Checkout() {
                 <div className="flex flex-col gap-6">
                   {selectedPlans.size > 0 &&
                     Array.from(selectedPlans.keys()).map((serviceId) => {
-                      const plan = selectedPlans.get(serviceId);
+                      const container = selectedPlans.get(serviceId);
                       const service = serviceFolders
                         .flatMap((folder) => folder.services || [])
                         .find((s) => s.id === serviceId);
-                      if (!service || !plan) return null;
+                      if (!service || !container || !container.plan)
+                        return null;
                       return (
                         <div
-                          key={`${service.name}-${plan.id}`}
+                          key={`${service.name}-${container.plan.id}`}
                           className="flex flex-col gap-2"
                         >
-                          <h3 className="text-[#1C1D1F] font-medium text-base">
+                          <h3 className="text-base font-medium text-[#1C1D1F]">
                             {service.name}
                           </h3>
                           <div className="flex flex-row justify-between text-sm">
                             <div className="flex flex-col font-normal">
-                              <span className="text-[#1C1D1F]l">
-                                {plan.quantity} {plan.qty_indicator}
+                              <span className="text-[#1C1D1F]">
+                                {container.plan.quantity}{" "}
+                                {container.plan.qty_indicator}
                               </span>
-                              <p className="text-[#838488]">Facebook</p>
                             </div>
-                            <span className="text-[#1C1D1F] font-medium text-sm">
-                              USD ${plan.price}/{mapPeriodicity(plan.period)}
+                            <span className="text-sm font-medium text-[#1C1D1F]">
+                              USD ${container.plan.price}/
+                              {mapPeriodicity(container.plan.period)}
                             </span>
                           </div>
                           <span
-                            className="text-[#5C5E63] font-normal text-xs underline cursor-pointer"
+                            className="cursor-pointer text-xs font-normal text-[#5C5E63] underline"
                             onClick={() => {
                               setSelectedPlans((prev) => {
                                 const newMap = new Map(prev);
@@ -251,7 +244,7 @@ export default function Checkout() {
                     })}
                 </div>
                 <div className="flex flex-col">
-                  <Divider className="bg-[#E2E2E4] h-[1px]" />
+                  <Divider className="h-[1px] bg-[#E2E2E4]" />
                   <div className="flex justify-between pt-6 text-[#1C1D1F]">
                     <p className="text-[14px] font-medium">Total</p>
                     <span className="text-[18px] font-semibold">
@@ -263,14 +256,12 @@ export default function Checkout() {
             </Tabs>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col">
-                <Divider className="bg-[#E2E2E4] h-[1px]" />
-                <p className="underline text-[#1C1D1F] font-normal text-[14px] hover:cursor-pointer pt-[16px]">
-                  Got a coupon?
-                </p>
+                <Divider className="h-[1px] bg-[#E2E2E4]" />
+                <CouponValidator />
               </div>
               <div className="flex gap-2">
-                <Checkbox className="w-5 h-5 rounded-[5.13px]" />
-                <p className="font-normal text-[#1C1D1F] text-[13px]">
+                <Checkbox className="h-5 w-5 rounded-[5.13px]" />
+                <p className="text-[13px] font-normal text-[#1C1D1F]">
                   By purchasing, you agree to the <u>terms of service</u>,{" "}
                   <u>auto-renewal terms</u>, and accept our <u>refund policy</u>
                   .
@@ -278,18 +269,18 @@ export default function Checkout() {
               </div>
               <Button
                 variant="default"
-                className="w-full bg-[#4670F9] text-white font-medium text-[14px] py-[11px] h-10 rounded-[6px] hover:cursor-pointer"
+                className="h-10 w-full rounded-[6px] bg-[#4670F9] py-[11px] text-[14px] font-medium text-white hover:cursor-pointer"
               >
                 Complete purchase
               </Button>
             </div>
           </div>
-          <div className="w-full p-6 flex flex-col gap-6">
+          <div className="flex w-full flex-col gap-6 p-6">
             <div className="flex gap-2">
-              <h3 className="text-[20px] font-extrabold bg-gradient-to-r from-[#2ED1F1] to-[#4670F9] bg-clip-text text-transparent">
+              <h3 className="bg-gradient-to-r from-[#2ED1F1] to-[#4670F9] bg-clip-text text-[20px] font-extrabold text-transparent">
                 20,000+
               </h3>
-              <span className="text-[#1C1D1F] font-medium text-[20px]">
+              <span className="text-[20px] font-medium text-[#1C1D1F]">
                 businesses trust Feedbird.
               </span>
             </div>
@@ -302,7 +293,7 @@ export default function Checkout() {
                   width={20}
                   height={20}
                 />
-                <span className="text-[#060A13] text-[16px]">
+                <span className="text-[16px] text-[#060A13]">
                   Dedicated account manager
                 </span>
               </div>
@@ -313,7 +304,7 @@ export default function Checkout() {
                   width={20}
                   height={20}
                 />
-                <span className="text-[#060A13] text-[16px]">
+                <span className="text-[16px] text-[#060A13]">
                   Onboarding & support calls
                 </span>
               </div>
@@ -324,7 +315,7 @@ export default function Checkout() {
                   width={20}
                   height={20}
                 />
-                <span className="text-[#060A13] text-[16px]">
+                <span className="text-[16px] text-[#060A13]">
                   High-quality content
                 </span>
               </div>
@@ -335,7 +326,7 @@ export default function Checkout() {
                   width={20}
                   height={20}
                 />
-                <span className="text-[#060A13] text-[16px]">
+                <span className="text-[16px] text-[#060A13]">
                   Made by real people - not AI
                 </span>
               </div>
@@ -346,13 +337,13 @@ export default function Checkout() {
                   width={20}
                   height={20}
                 />
-                <span className="text-[#060A13] text-[16px]">
+                <span className="text-[16px] text-[#060A13]">
                   80% more affordable than alternatives
                 </span>
               </div>
             </div>
           </div>
-          <div className="w-full relative">
+          <div className="relative w-full">
             <ReviewsCarousel autoSlide interval={4000} />
           </div>
         </div>
