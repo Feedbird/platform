@@ -70,7 +70,7 @@ export default function Checkout() {
       }
       if (container.channels) {
         total += container.channels
-          .filter((channel) => !channel.default)
+          .slice(1)
           .reduce((acc, channel) => acc + channel.pricing, 0);
       }
     });
