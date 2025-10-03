@@ -1,5 +1,6 @@
 "use client";
 import CouponValidator from "@/components/checkout/CouponValidator";
+import EmailInput from "@/components/checkout/EmailInput";
 import PaymentForm from "@/components/checkout/PaymentForm";
 import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
 import ServiceCard, {
@@ -37,6 +38,7 @@ export default function Checkout() {
     Map<string, ServiceCardPlan>
   >(new Map());
   const [total, setTotal] = React.useState(0);
+  const [email, setEmail] = React.useState("");
 
   React.useEffect(() => {
     const fetchServiceFolders = async () => {
@@ -108,24 +110,7 @@ export default function Checkout() {
           <h2 className="pb-6 text-[20px] font-medium text-[#1C1D1F]">
             1. Enter an email address for your Feedbird Account
           </h2>
-          <div className="flex w-full flex-col gap-4 rounded-[8px] border-1 border-[#E2E2E4] bg-white px-5 py-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex justify-between">
-                <span className="text-[13px] font-medium text-[#1C1D1F]">
-                  Your email address
-                </span>
-                <ChevronRight width={16} height={16} />
-              </div>
-              <Input
-                className="h-[42px] rounded-[6px] border-1 border-[#C8C9CB] px-4 py-3 text-[#1C1D1F]"
-                placeholder="name@example.com"
-              />
-            </div>
-            <p className="text-xs font-normal text-[#1C1D1F]">
-              You’ll be able to change notification settings for Nord services
-              marketing emails in your Nord Account.
-            </p>
-          </div>
+          <EmailInput emailSetter={setEmail} email={email} />
           <div className="mt-10">
             <h2 className="pb-3 text-[20px] font-medium text-[#1C1D1F]">
               2. Select services
