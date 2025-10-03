@@ -189,6 +189,7 @@ export interface Service {
   description: string | null;
   folder_id: string;
   social_channels: boolean;
+  internal_icon: string;
   channels?: ServiceChannel[];
   service_plans?: ServicePlan[];
 }
@@ -212,7 +213,6 @@ export interface ServiceChannel {
   social_channel: string;
   pricing: number;
   updated_at: string;
-  default: boolean;
 }
 
 export interface ServiceFolder {

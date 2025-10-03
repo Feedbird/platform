@@ -37,17 +37,16 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   const [planSelected, selectPlan] = React.useState<ServicePlan | null>(null);
   const [added, isAdded] = React.useState(false);
   const [total, setTotal] = React.useState(0);
+  const [ddOpen, isDDOpen] = React.useState(true);
 
   React.useEffect(() => {
     if (planSelected) {
-      const validChannels = channelsSelected.filter((c) => !c.default);
-      if (validChannels.length > 0) {
+      if (channelsSelected.length > 0) {
         const total =
           planSelected.price +
-          validChannels.reduce(
-            (acc, channel) => acc + (channel.pricing || 0),
-            0
-          );
+          channelsSelected
+            .slice(1)
+            .reduce((acc, channel) => acc + (channel.pricing || 0), 0);
         setTotal(total);
       } else {
         setTotal(planSelected.price);
@@ -103,11 +102,10 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   }, [isActivated]);
 
   React.useEffect(() => {
-    if (service.channels?.length) {
-      const defaultChannel = service.channels.find((c) => c.default);
-      if (defaultChannel) setChannelsSelected([defaultChannel]);
+    if (selectingMode) {
+      isDDOpen(true);
     }
-  }, []);
+  }, [selectingMode]);
 
   const handleSelection = () => {
     if (service.service_plans && service.service_plans.length === 1) {
@@ -128,7 +126,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col w-full lg:w-[250px] 2xl:w-[355px] gap-3 justify-between relative">
+    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col gap-3 justify-between relative">
       {selectingMode && (
         <div className="absolute top-2 right-2" onClick={handleRemove}>
           <Image
@@ -140,7 +138,13 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
         </div>
       )}
       <div className="flex flex-col gap-2">
-        <div className="flex flex-row">
+        <div className="flex flex-row gap-2">
+          <Image
+            src={`/images/checkout/icons/${service.internal_icon}.svg`}
+            alt="service_icon"
+            width={20}
+            height={20}
+          />
           <span className="text-[#1C1D1F] font-medium text-sm">
             {service.name}
           </span>
@@ -177,11 +181,22 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             <div className="flex flex-col gap-1 text-[#1C1D1F]">
               <label className="font-medium text-sm">Plan</label>
               <Select
+                open={ddOpen}
+                onOpenChange={(open) => isDDOpen(open)}
                 value={planSelected ? planSelected.id : undefined}
                 onValueChange={(value) => {
                   const selected = plans.find((plan) => plan.id === value);
                   if (selected) {
                     selectPlan(selected);
+                    isAdded(true);
+                    selector((prev) => {
+                      const newMap = new Map(prev);
+                      newMap.set(service.id, {
+                        plan: selected,
+                        channels: channelsSelected,
+                      });
+                      return newMap;
+                    });
                   }
                 }}
               >

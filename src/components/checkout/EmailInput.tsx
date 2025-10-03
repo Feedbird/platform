@@ -9,6 +9,26 @@ type Props = {
 
 export default function EmailInput({ emailSetter, email }: Props) {
   const [editing, setEditing] = React.useState(true);
+  const [error, setError] = React.useState("");
+
+  const validateEmail = React.useCallback((email: string) => {
+    return String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  }, []);
+
+  const handleEnter = () => {
+    if (email.length) {
+      if (validateEmail(email)) {
+        setError("");
+        setEditing(false);
+      } else {
+        setError("Please enter a valid email address");
+      }
+    } else setError("Email address is required");
+  };
 
   return (
     <div className="flex w-full flex-col gap-4 rounded-[8px] border-1 border-[#E2E2E4] bg-white px-5 py-4">
@@ -24,9 +44,7 @@ export default function EmailInput({ emailSetter, email }: Props) {
             <Input
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  if (email.length > 0) {
-                    setEditing(false);
-                  }
+                  handleEnter();
                 }
               }}
               value={email}
@@ -36,6 +54,7 @@ export default function EmailInput({ emailSetter, email }: Props) {
               className="h-[42px] rounded-[6px] border-1 border-[#C8C9CB] px-4 py-3 text-[#1C1D1F]"
               placeholder="name@example.com"
             />
+            <p className="text-xs font-normal text-red-500">{error}</p>
           </div>
           <p className="text-xs font-normal text-[#1C1D1F]">
             You’ll be able to change notification settings for Nord services

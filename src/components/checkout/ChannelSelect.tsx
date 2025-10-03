@@ -65,8 +65,6 @@ export default function MultiSelectDropdown({
     }
   };
 
-  const defaultChannel = channels.find((c) => c.default);
-
   return (
     <>
       <button
@@ -75,25 +73,25 @@ export default function MultiSelectDropdown({
         className="w-full border-1 border-[#D3D3D3] rounded-[6px] text-[13px] px-3 py-2 h-9 text-left bg-white hover:cursor-pointer focus:outline-none flex justify-between items-center"
       >
         <span>
-          {channelsSelected.length > 1 ? (
-            `${channelsSelected.length} selected`
-          ) : (
+          {channelsSelected.length === 0 ? (
+            "Select social channels"
+          ) : channelsSelected.length === 1 ? (
             <div className="flex items-center gap-2">
               <Image
-                src={`/images/checkout/channels/${
-                  defaultChannel!.social_channel
-                }.svg`}
+                src={`/images/checkout/channels/${channelsSelected[0].social_channel}.svg`}
                 alt="social_channel_icon"
                 width={18}
                 height={18}
               />
               <span className="text-[#1C1D1F] font-medium">
-                {defaultChannel!.social_channel
+                {channelsSelected[0].social_channel
                   .slice(0, 1)
                   .toLocaleUpperCase() +
-                  defaultChannel!.social_channel.slice(1)}
+                  channelsSelected[0].social_channel.slice(1)}
               </span>
             </div>
+          ) : (
+            `${channelsSelected.length} selected`
           )}
         </span>
         {!isOpen ? (
@@ -116,7 +114,7 @@ export default function MultiSelectDropdown({
             }}
           >
             <ul className="max-h-60 overflow-y-auto p-1">
-              {channels.map((channel) => (
+              {channels.map((channel, idx) => (
                 <li
                   key={channel.id}
                   onClick={() => toggleOption(channel)}
@@ -137,12 +135,20 @@ export default function MultiSelectDropdown({
                   <div className="flex items-center gap-2">
                     <span
                       className={` ${
-                        channel.default
+                        channelsSelected.length < 1
                           ? "text-[#03985C] font-normal"
+                          : channel.social_channel ===
+                            channelsSelected[0].social_channel
+                          ? "text-[#03985C]"
                           : "text-[#838488] font-normal"
                       }`}
                     >
-                      {channel.default ? "Free" : `$${channel.pricing}`}
+                      {channelsSelected.length < 1
+                        ? "Free"
+                        : channel.social_channel ===
+                          channelsSelected[0].social_channel
+                        ? "Free"
+                        : `$${channel.pricing}`}
                     </span>
                     <Checkbox
                       checked={

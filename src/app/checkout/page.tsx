@@ -14,19 +14,16 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ServiceFolder, ServicePlan } from "@/lib/supabase/client";
+import { ServiceFolder } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
 import { AccordionItem } from "@radix-ui/react-accordion";
 import { TabsContent } from "@radix-ui/react-tabs";
-import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
 
-//! TODO Split into smaller components
 export default function Checkout() {
   // TODO Ensure that If uses goes to login, they are redirected back to checkout
   const router = useRouter();
@@ -104,7 +101,7 @@ export default function Checkout() {
           </span>
         </div>
       </div>
-      <div className="mx-auto flex w-full max-w-[1440px] justify-between gap-14 px-20 pt-4 pb-20">
+      <div className="mx-auto flex w-full max-w-[1440px] justify-between gap-7 xl:gap-14 px-20 pt-4 pb-20">
         {/* TODO: Make this responsive, not fixed w */}
         <div className="flex w-full max-w-[726px] flex-col">
           <h2 className="pb-6 text-[20px] font-medium text-[#1C1D1F]">
@@ -141,7 +138,7 @@ export default function Checkout() {
                         </h3>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="flex flex-row flex-wrap gap-3">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                           {folder.services?.map((service) => (
                             <ServiceCard
                               key={service.id}
@@ -165,7 +162,7 @@ export default function Checkout() {
             <PaymentForm />
           </div>
         </div>
-        <div className="flex w-full max-w-[480px] flex-col">
+        <div className="flex w-full max-w-[400px] xl:max-w-[480px] flex-col">
           <div className="flex justify-between pb-4">
             <h2 className="text-[20px] font-medium text-[#1C1D1F]">
               Order summary
