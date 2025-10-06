@@ -482,7 +482,7 @@ function PostCard({
       )}
 
       {/* analytics ----------------------------------------------------- */}
-      {post.analytics && (post.analytics.metadata?.platform === 'facebook' || post.analytics.metadata?.platform === 'instagram' || post.analytics.metadata?.platform === 'youtube' || post.analytics.metadata?.platform === 'pinterest') && (
+      {post.analytics && (post.analytics.metadata?.platform === 'facebook' || post.analytics.metadata?.platform === 'instagram' || post.analytics.metadata?.platform === 'youtube' || post.analytics.metadata?.platform === 'pinterest' || post.analytics.metadata?.platform === 'linkedin') && (
         <div className="mb-3 p-3 bg-gray-50 rounded-md">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium text-gray-700">Analytics</h4>
@@ -492,7 +492,11 @@ function PostCard({
               }
             </span>
           </div>
-          <div className={`grid gap-3 text-xs ${post.analytics.metadata?.platform === 'instagram' || post.analytics.metadata?.platform === 'youtube' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <div className={`grid gap-3 text-xs ${
+            post.analytics.metadata?.platform === 'linkedin' ? 'grid-cols-3' :
+            post.analytics.metadata?.platform === 'instagram' || post.analytics.metadata?.platform === 'youtube' ? 'grid-cols-3' : 
+            'grid-cols-2'
+          }`}>
             {/* Facebook analytics */}
             {post.analytics.metadata?.platform === 'facebook' && (
               <>
@@ -596,6 +600,35 @@ function PostCard({
                     <span className="text-gray-600">Engagement</span>
                   </div>
                   <span className="font-medium">{post.analytics.engagement?.toLocaleString() || 0}</span>
+                </div>
+              </>
+            )}
+
+            {/* LinkedIn analytics */}
+            {post.analytics.metadata?.platform === 'linkedin' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3 text-gray-500" />
+                    <span className="text-gray-600">Impressions</span>
+                  </div>
+                  <span className="font-medium">{(post as any).analytics_impressions?.toLocaleString() || post.analytics.views?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 text-red-500" />
+                    <span className="text-gray-600">Likes</span>
+                  </div>
+                  <span className="font-medium">{(post as any).analytics_reacts?.toLocaleString() || post.analytics.likes?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <svg className="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span className="text-gray-600">Comments</span>
+                  </div>
+                  <span className="font-medium">{(post as any).analytics_comments?.toLocaleString() || post.analytics.comments?.toLocaleString() || 0}</span>
                 </div>
               </>
             )}

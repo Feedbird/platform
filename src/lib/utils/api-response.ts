@@ -190,13 +190,17 @@ function normalizeInstagramAnalytics(data: any) {
 }
 
 function normalizeLinkedInAnalytics(data: any) {
-  const organizationalEntity = data.organizationalEntity || {};
+  // Handle both old and new data structures
+  const analytics = data.analytics || {};
+  const totalShareStatistics = data.analytics?.metadata?.totalShareStatistics || {};
+  
   return {
-    views: parseInt(organizationalEntity.totalShareStatistics?.impressionCount || 0),
-    likes: parseInt(organizationalEntity.totalShareStatistics?.likeCount || 0),
-    comments: parseInt(organizationalEntity.totalShareStatistics?.commentCount || 0),
-    shares: parseInt(organizationalEntity.totalShareStatistics?.shareCount || 0),
-    clicks: parseInt(organizationalEntity.totalShareStatistics?.clickCount || 0),
-    engagement: parseInt(organizationalEntity.totalShareStatistics?.engagement || 0),
+    views: analytics.views || parseInt(totalShareStatistics.impressionCount || 0),
+    likes: analytics.likes || parseInt(totalShareStatistics.likeCount || 0),
+    comments: analytics.comments || parseInt(totalShareStatistics.commentCount || 0),
+    shares: analytics.shares || parseInt(totalShareStatistics.shareCount || 0),
+    clicks: analytics.clicks || parseInt(totalShareStatistics.clickCount || 0),
+    engagement: analytics.engagement || parseFloat(totalShareStatistics.engagement || 0),
+    reach: analytics.reach || parseInt(totalShareStatistics.uniqueImpressionsCount || 0),
   };
 } 

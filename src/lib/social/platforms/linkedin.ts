@@ -1525,7 +1525,63 @@ export class LinkedInPlatform extends BasePlatform {
         // Store media type information in metadata
         const mediaTypes = resolvedMedia.map(m => m.type);
 
-        resolvedPosts.push({
+        // Fetch analytics for each post
+        let postAnalytics = {
+          reach: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          clicks: 0,
+          views: 0,
+          engagement: 0,
+          metadata: {
+            platform: 'linkedin',
+            analyticsType: 'organization_single_post',
+            postId: post.id,
+            lastUpdated: new Date().toISOString()
+          }
+        };
+
+        try {
+          const analytics = await this.getOrganizationPostAnalytics(token, post.id, organizationUrn);
+          postAnalytics = {
+            reach: analytics.membersReached || 0,
+            likes: analytics.reactions || 0,
+            comments: analytics.comments || 0,
+            shares: analytics.reshares || 0,
+            clicks: analytics.clicks || 0,
+            views: analytics.impressions || 0,
+            engagement: analytics.engagement || this.calculateEngagement(analytics),
+            metadata: {
+              platform: 'linkedin',
+              analyticsType: 'organization_single_post',
+              postId: post.id,
+              lastUpdated: new Date().toISOString(),
+              postType: post.content?.media ? 'media' : 
+                       post.content?.multiImage ? 'multiImage' : 
+                       post.content?.article ? 'article' : 'text',
+              isReshare: !!post.reshareContext,
+              visibility: post.visibility,
+              mediaTypes: mediaTypes
+            } as any
+          };
+        } catch (analyticsError) {
+          console.warn(`[LinkedIn] Failed to fetch analytics for post ${post.id}:`, analyticsError);
+          // Keep default analytics with metadata
+          postAnalytics.metadata = {
+            ...postAnalytics.metadata,
+            postType: post.content?.media ? 'media' : 
+                     post.content?.multiImage ? 'multiImage' : 
+                     post.content?.article ? 'article' : 'text',
+            isReshare: !!post.reshareContext,
+            visibility: post.visibility,
+            mediaTypes: mediaTypes,
+            error: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
+          } as any;
+        }
+
+        // Create the post history object with analytics
+        const postHistory: PostHistory = {
           id: post.id,
           pageId: organizationUrn,
           postId: post.id,
@@ -1533,26 +1589,17 @@ export class LinkedInPlatform extends BasePlatform {
           mediaUrls: resolvedMediaUrls, // Now these are actual URLs
           status: post.lifecycleState.toLowerCase() as any,
           publishedAt: new Date(post.publishedAt || post.createdAt),
-          analytics: {
-            // We could fetch analytics for each post here if needed
-            metadata: {
-              platform: 'linkedin',
-              postType: post.content?.media ? 'media' : 
-                       post.content?.multiImage ? 'multiImage' : 
-                       post.content?.article ? 'article' : 'text',
-              isReshare: !!post.reshareContext,
-              visibility: post.visibility,
-              mediaTypes: mediaTypes, // Store media types for frontend use
-              // Add pagination metadata
-              pagination: {
-                start: data.paging.start,
-                count: data.paging.count,
-                hasMore: data.paging.links.some(link => link.rel === 'next'),
-                nextCursor: data.paging.start + data.paging.count
-              }
-            }
-          }
-        });
+          analytics: postAnalytics
+        };
+
+        // Add frontend-compatible analytics fields for direct access
+        (postHistory as any).analytics_impressions = postAnalytics.views;
+        (postHistory as any).analytics_engagement = postAnalytics.engagement;
+        (postHistory as any).analytics_reacts = postAnalytics.likes;
+        (postHistory as any).analytics_comments = postAnalytics.comments;
+        (postHistory as any).analytics_shares = postAnalytics.shares;
+
+        resolvedPosts.push(postHistory);
       }
 
       return { posts: resolvedPosts, nextPage: data.paging.start + data.paging.count };
@@ -1564,8 +1611,6 @@ export class LinkedInPlatform extends BasePlatform {
 
   /* ──────────────────────────────────────────────────────────
      helper – fetch post analytics
-     Note: The API from the linkedin giving 500 error so it's not used.
-     would be used if it's fixed by linkedin API.
      ────────────────────────────────────────────────────────── */
   async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> { 
     if (IS_BROWSER) {
@@ -1589,15 +1634,15 @@ export class LinkedInPlatform extends BasePlatform {
 
       // For organization pages, we can fetch organization-specific analytics
       if (page.entityType === 'organization') {
-        const analytics = await this.getOrganizationPostAnalytics(token, postId);
+        const analytics = await this.getOrganizationPostAnalytics(token, postId, page.pageId);
         return {
           reach: analytics.membersReached || 0,
           likes: analytics.reactions || 0,
           comments: analytics.comments || 0,
           shares: analytics.reshares || 0,
-          clicks: 0, // LinkedIn doesn't provide click metrics in this API
+          clicks: analytics.clicks || 0, // Now we have click metrics from the new API
           views: analytics.impressions || 0,
-          engagement: this.calculateEngagement(analytics),
+          engagement: analytics.engagement || this.calculateEngagement(analytics),
           metadata: {
             platform: 'linkedin',
             analyticsType: 'organization_single_post',
@@ -1605,58 +1650,80 @@ export class LinkedInPlatform extends BasePlatform {
             lastUpdated: new Date().toISOString()
           }
         };
-      } else {
-        // For personal profiles, use member analytics
-        const analytics = await this.getMemberPostAnalytics(token, postId);
-        return {
-          reach: analytics.membersReached || 0,
-          likes: analytics.reactions || 0,
-          comments: analytics.comments || 0,
-          shares: analytics.reshares || 0,
-          clicks: 0, // LinkedIn doesn't provide click metrics in this API
-          views: analytics.impressions || 0,
-          engagement: this.calculateEngagement(analytics),
-          metadata: {
-            platform: 'linkedin',
-            analyticsType: 'member_single_post',
-            postId: postId,
-            lastUpdated: new Date().toISOString()
-          }
-        };
-      }
+      } 
     } catch (error) {
       console.error('[LinkedIn] Failed to get post analytics:', error);
-      return {
-        reach: 0,
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        clicks: 0,
-        views: 0,
-        engagement: 0,
-        metadata: {
-          platform: 'linkedin',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
-      };
+      throw error;
     }
   }
 
   /* ──────────────────────────────────────────────────────────
      helper – fetch organization post analytics (single post)
-     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/members/post-statistics?view=li-lms-2025-07&tabs=http
+     @url https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/share-statistics?view=li-lms-2025-07&tabs=curl#retrieve-statistics-for-specific-shares
      ────────────────────────────────────────────────────────── */
-  private async getOrganizationPostAnalytics(token: string, postId: string): Promise<{
+  private async getOrganizationPostAnalytics(token: string, postId: string, organizationId: string): Promise<{
     impressions?: number;
     membersReached?: number;
     reactions?: number;
     comments?: number;
     reshares?: number;
+    clicks?: number;
+    engagement?: number;
   }> {
     try {
-      // For now, we'll use the same member analytics endpoint
-      // In the future, we can implement organization-specific analytics if available
-      return await this.getMemberPostAnalytics(token, postId);
+      // Ensure organizationId is in the correct URN format
+      const orgUrn = organizationId.startsWith('urn:li:organization:') 
+        ? organizationId 
+        : `urn:li:organization:${organizationId}`;
+
+      // Use the new organizationalEntityShareStatistics API
+      const url = `${config.baseUrl}/rest/organizationalEntityShareStatistics?q=organizationalEntity&organizationalEntity=${encodeURIComponent(orgUrn)}&ugcPosts=List(${encodeURIComponent(postId)})`;
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'LinkedIn-Version': '202509',
+          'X-Restli-Protocol-Version': '2.0.0'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`[LinkedIn] Failed to fetch organization analytics for post ${postId}:`, response.status, errorText);
+        return {};
+      }
+
+      const data = await response.json() as {
+        elements: Array<{
+          ugcPost: string;
+          totalShareStatistics: {
+            uniqueImpressionsCount: number;
+            shareCount: number;
+            engagement: number;
+            clickCount: number;
+            likeCount: number;
+            impressionCount: number;
+            commentCount: number;
+          };
+          organizationalEntity: string;
+        }>;
+      };
+
+      if (data.elements && data.elements.length > 0) {
+        const stats = data.elements[0].totalShareStatistics;
+        return {
+          impressions: stats.impressionCount,
+          membersReached: stats.uniqueImpressionsCount,
+          reactions: stats.likeCount,
+          comments: stats.commentCount,
+          reshares: stats.shareCount,
+          clicks: stats.clickCount,
+          engagement: Math.round(stats.engagement * 10000) / 100 // Convert to percentage with 2 decimal places
+        };
+      }
+
+      return {};
     } catch (error) {
       console.error('[LinkedIn] Failed to fetch organization post analytics:', error);
       return {};
