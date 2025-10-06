@@ -3,8 +3,31 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { LucideSquareArrowOutUpRight } from "lucide-react";
+import { useParams } from "next/navigation";
+import { Input } from "@/components/ui/input";
 
 export default function SettingsIntegrationsPage() {
+  const params = useParams() as { workspaceId?: string }
+  const workspaceId = params?.workspaceId || ""
+
+  const [channelName, setChannelName] = React.useState("")
+
+  function sanitizeChannelName(name: string) {
+    const trimmed = name.trim().toLowerCase()
+    const cleaned = trimmed.replace(/[^a-z0-9-_]/g, "-")
+    return cleaned.replace(/^-+|[-_]+$/g, "").slice(0, 80) || 'feedbird-updates'
+  }
+
+  function connectSlack() {
+    if (!workspaceId) return;
+    const w = 600, h = 700;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + (window.outerHeight - h) / 2;
+    const desired = sanitizeChannelName(channelName)
+    const url = `/api/oauth/slack?workspaceId=${workspaceId}&channel=${encodeURIComponent(desired)}`
+    window.open(url, "_blank", `width=${w},height=${h},left=${left},top=${top}`);
+  }
+
   return (
     <div className="w-full h-full flex flex-col gap-4">
       {/* Topbar */}
@@ -33,10 +56,10 @@ export default function SettingsIntegrationsPage() {
                   <div className="text-[13px] font-normal text-darkGrey">Connect Feedbird to your Slack workspaces to setup notifications when data in Feedbird changes</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-[5px] cursor-pointer bg-main text-white hover:bg-main/90">
+              <button onClick={connectSlack} className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-[5px] cursor-pointer bg-main text-white hover:bg-main/90">
                 Connect Slack
                 <LucideSquareArrowOutUpRight style={{ width: "14px", height: "14px" }} />
-              </div>
+              </button>
             </div>
 
             <div className="border-b border-elementStroke"></div>
@@ -52,6 +75,17 @@ export default function SettingsIntegrationsPage() {
               <div className="text-[13px] text-darkGrey font-normal leading-6">
                 And to make collaboration even smoother, you can trigger actions straight from Slack. Approve, review, or comment on updates without leaving your workspace.
               </div>
+            </div>
+
+            {/* Channel name input */}
+            <div className="flex items-center gap-2">
+              <div className="text-[13px] text-darkGrey w-40">Channel name:</div>
+              <Input
+                placeholder="e.g. feedbird-updates"
+                value={channelName}
+                onChange={(e) => setChannelName(e.target.value)}
+                className="h-8"
+              />
             </div>
 
             {/* Features */}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { SlackService } from '@/lib/services/slack-service'
 
 const CreateActivitySchema = z.object({
   workspace_id: z.string().uuid('Invalid workspace ID'),
@@ -197,6 +198,50 @@ export async function POST(req: NextRequest) {
           .catch(error => console.error('Background notification update failed:', error))
       }
     }
+
+    // Send Slack notifications for key events in background
+    ;(async () => {
+      try {
+        const supported = new Set(['approved','scheduled','published'])
+        if (!supported.has(validated.type)) return
+
+        // Find Slack installation for this workspace
+        const { data: installation } = await supabase
+          .from('slack_installations')
+          .select('*')
+          .eq('workspace_id', validated.workspace_id)
+          .single()
+        if (!installation) return
+
+        // Determine channels to post to
+        const { data: bindings } = await supabase
+          .from('slack_channel_bindings')
+          .select('*')
+          .eq('workspace_id', validated.workspace_id)
+        const eventBindings = (bindings || []).filter(b => Array.isArray(b.events) ? b.events.includes(validated.type) : true)
+
+        // Build message
+        const actorName = data?.actor?.first_name ? `${data.actor.first_name} ${data.actor.last_name || ''}`.trim() : (data?.actor?.email || 'Someone')
+        const postId = validated.post_id
+        const type = validated.type
+        const text = `Feedbird: ${actorName} ${type} ${postId ? `post ${postId}` : ''}`.trim()
+
+        const slack = new SlackService(process.env.SLACK_SIGNING_SECRET || 'unused')
+        const blocks = [
+          { type: 'section', text: { type: 'mrkdwn', text } },
+        ]
+
+        if (eventBindings && eventBindings.length > 0) {
+          for (const b of eventBindings) {
+            await slack.postMessageWithBotToken(installation.bot_access_token, b.channel_id, text, blocks)
+          }
+        } else if (installation.incoming_webhook_url) {
+          await slack.postIncomingWebhook(installation.incoming_webhook_url, { text, blocks })
+        }
+      } catch (e) {
+        console.error('Slack notification failed:', e)
+      }
+    })()
 
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
