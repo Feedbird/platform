@@ -62,6 +62,17 @@ export default function SettingsIntegrationsPage() {
               </button>
             </div>
 
+            {/* Channel name input */}
+            <div className="flex items-center gap-2">
+              <div className="text-[13px] text-darkGrey w-40">Channel name:</div>
+              <Input
+                placeholder="e.g. feedbird-updates"
+                value={channelName}
+                onChange={(e) => setChannelName(e.target.value)}
+                className="h-8 border-elementStroke text-sm text-black font-normal"
+              />
+            </div>
+
             <div className="border-b border-elementStroke"></div>
 
             {/* Description */}
@@ -77,16 +88,7 @@ export default function SettingsIntegrationsPage() {
               </div>
             </div>
 
-            {/* Channel name input */}
-            <div className="flex items-center gap-2">
-              <div className="text-[13px] text-darkGrey w-40">Channel name:</div>
-              <Input
-                placeholder="e.g. feedbird-updates"
-                value={channelName}
-                onChange={(e) => setChannelName(e.target.value)}
-                className="h-8"
-              />
-            </div>
+            
 
             {/* Features */}
             <div className="text-[13px] font-normal text-darkGrey leading-6">

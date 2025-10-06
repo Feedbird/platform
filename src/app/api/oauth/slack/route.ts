@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
   const scopes = [
     'chat:write',
     'chat:write.customize',
-    'incoming-webhook',
     'channels:manage',
     'commands',
   ].join(',')

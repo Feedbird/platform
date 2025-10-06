@@ -211,14 +211,11 @@ export async function POST(req: NextRequest) {
           .select('*')
           .eq('workspace_id', validated.workspace_id)
           .single()
-        if (!installation) return
+        if (!installation || !installation.bot_access_token || !installation.channel_id) return
 
-        // Determine channels to post to
-        const { data: bindings } = await supabase
-          .from('slack_channel_bindings')
-          .select('*')
-          .eq('workspace_id', validated.workspace_id)
-        const eventBindings = (bindings || []).filter(b => Array.isArray(b.events) ? b.events.includes(validated.type) : true)
+        // Check if this event is enabled
+        const events: string[] = Array.isArray(installation.events) ? installation.events : ['approved','scheduled','published']
+        if (!events.includes(validated.type)) return
 
         // Build message
         const actorName = data?.actor?.first_name ? `${data.actor.first_name} ${data.actor.last_name || ''}`.trim() : (data?.actor?.email || 'Someone')
@@ -231,13 +228,7 @@ export async function POST(req: NextRequest) {
           { type: 'section', text: { type: 'mrkdwn', text } },
         ]
 
-        if (eventBindings && eventBindings.length > 0) {
-          for (const b of eventBindings) {
-            await slack.postMessageWithBotToken(installation.bot_access_token, b.channel_id, text, blocks)
-          }
-        } else if (installation.incoming_webhook_url) {
-          await slack.postIncomingWebhook(installation.incoming_webhook_url, { text, blocks })
-        }
+        await slack.postMessageWithBotToken(installation.bot_access_token, installation.channel_id, text, blocks)
       } catch (e) {
         console.error('Slack notification failed:', e)
       }

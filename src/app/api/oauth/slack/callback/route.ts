@@ -40,23 +40,40 @@ export async function GET(req: NextRequest) {
       throw new Error(token.error || 'Slack OAuth failed')
     }
 
+    // Resolve/create the desired channel using the bot access token from OAuth
+    const slack = new SlackService(process.env.SLACK_SIGNING_SECRET || 'unused')
+    const channelName = desiredChannelFromState || 'feedbird-updates'
+    let channelId: string | null = null
+    let channelResolvedName: string | null = null
+    if (token.access_token) {
+      try {
+        const created = await slack.createChannel(token.access_token, channelName, false)
+        channelId = created.id
+        channelResolvedName = created.name
+      } catch {}
+    }
+
+    const upsertPayload: any = {
+      workspace_id: workspaceId,
+      team_id: token.team?.id,
+      team_name: token.team?.name,
+      enterprise_id: token.enterprise?.id || null,
+      app_id: token.app_id || null,
+      bot_user_id: token.bot_user_id || null,
+      bot_access_token: token.access_token || '',
+      scope: token.scope || null,
+      authed_user_id: token.authed_user?.id || null,
+      authed_user_access_token: token.authed_user?.access_token || null,
+    }
+    if (channelId) {
+      upsertPayload.channel_id = channelId
+      upsertPayload.channel_name = channelResolvedName || channelName
+      upsertPayload.events = ['approved','scheduled','published']
+    }
+
     const { data, error: dbError } = await supabase
       .from('slack_installations')
-      .upsert({
-        workspace_id: workspaceId,
-        team_id: token.team?.id,
-        team_name: token.team?.name,
-        enterprise_id: token.enterprise?.id || null,
-        app_id: token.app_id || null,
-        bot_user_id: token.bot_user_id || null,
-        bot_access_token: token.access_token || '',
-        scope: token.scope || null,
-        authed_user_id: token.authed_user?.id || null,
-        authed_user_access_token: token.authed_user?.access_token || null,
-        incoming_webhook_url: token.incoming_webhook?.url || null,
-        incoming_webhook_channel_id: token.incoming_webhook?.channel_id || null,
-        incoming_webhook_channel: token.incoming_webhook?.channel || null,
-      }, { onConflict: 'workspace_id,team_id' })
+      .upsert(upsertPayload, { onConflict: 'workspace_id,team_id' })
       .select()
       .single()
 
@@ -64,41 +81,15 @@ export async function GET(req: NextRequest) {
       throw dbError
     }
 
-    // Create a default channel for Feedbird in this workspace
-    const slack = new SlackService(process.env.SLACK_SIGNING_SECRET || 'unused')
-    const desiredChannelName = desiredChannelFromState || 'feedbird-updates'
-    let createdChannel: { id: string; name: string } | null = null
-    try {
-      if (data?.bot_access_token) {
-        createdChannel = await slack.createChannel(data.bot_access_token, desiredChannelName, false)
-      }
-    } catch (e) {
-      // If channel exists or permissions missing, skip gracefully
-      console.warn('Slack channel creation skipped:', (e as any)?.message)
-    }
-
-    // If we created a channel, bind it for default events
-    if (createdChannel) {
-      await supabase
-        .from('slack_channel_bindings')
-        .upsert({
-          workspace_id: workspaceId,
-          team_id: token.team?.id || '',
-          channel_id: createdChannel.id,
-          channel_name: createdChannel.name,
-          events: ['approved','scheduled','published'],
-        }, { onConflict: 'workspace_id,team_id,channel_id' })
-
-      // Post welcome message
+    // Welcome message if a channel is set
+    if (channelId) {
       try {
         await slack.postMessageWithBotToken(
-          data!.bot_access_token,
-          createdChannel.id,
+          token.access_token!,
+          channelId,
           '👋 Feedbird has been connected. We will send updates here for approved, scheduled, and published content.'
         )
-      } catch (e) {
-        console.warn('Failed to post welcome message:', (e as any)?.message)
-      }
+      } catch {}
     }
 
     return html(`
