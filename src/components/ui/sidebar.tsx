@@ -289,7 +289,25 @@ function Sidebar({
             setKeepFullHeightDuringHide(false)
           }
         }}
-        onMouseLeave={() => hoverReveal && setHoverReveal(false)}
+        onMouseLeave={() => {
+          if (!hoverReveal) return
+          // Keep the sidebar revealed if any overlay is open (e.g., dropdowns/popovers/selects/dialogs)
+          const hasOpenOverlay =
+            typeof document !== "undefined" &&
+            !!document.querySelector(
+              [
+                '[data-slot="dropdown-menu-content"][data-state="open"]',
+                '[data-slot="popover-content"][data-state="open"]',
+                '[data-slot="select-content"][data-state="open"]',
+                // Dialog/Sheet contents do not always carry data-state, so presence is enough
+                '[data-slot="dialog-content"]',
+                '[data-slot="sheet-content"]',
+              ].join(",")
+            )
+
+          if (hasOpenOverlay) return
+          setHoverReveal(false)
+        }}
         {...props}
       >
         <div
