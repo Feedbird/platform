@@ -10,7 +10,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { useImageUploader } from "@/hooks/use-image-uploader";
-import { Trash2, Upload, X, Plus } from "lucide-react";
+import { Trash2, Upload, X, Plus, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
@@ -189,7 +190,12 @@ export default function SettingsWorkspacePage() {
     <div className="w-full h-full flex flex-col gap-4">
       {/* Topbar */}
       <div className="w-full border-b px-4 h-10 flex items-center justify-between">
-        <div className="text-sm text-grey font-medium">Workspace</div>
+        <div className="flex items-center gap-1">
+          <Link href={`/${workspaceId}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
+            <ArrowLeft className="w-4 h-4 text-grey" />
+          </Link>
+          <div className="text-sm text-grey font-medium">Workspace</div>
+        </div>
       </div>
 
       {/* Main */}

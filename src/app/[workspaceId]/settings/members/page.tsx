@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -102,7 +104,12 @@ export default function SettingsMembersPage() {
     <div className="flex flex-col w-full h-full gap-4">
       {/* Top bar */}
       <div className="w-full border-b px-4 h-10 flex items-center justify-between">
-        <div className="text-sm text-grey font-medium">Members</div>
+        <div className="flex items-center gap-1">
+          <Link href={`/${activeWorkspaceId || ''}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
+            <ArrowLeft className="w-4 h-4 text-grey" />
+          </Link>
+          <div className="text-sm text-grey font-medium">Members</div>
+        </div>
       </div>
 
       {/* Main content */}

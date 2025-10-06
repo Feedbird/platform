@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { useParams } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { userApi } from "@/lib/api/api-service";
 
 export default function SettingsNotificationsPage() {
+  const params = useParams();
+  const workspaceId = (params?.workspaceId as string) || "";
   const user = useFeedbirdStore((s) => s.user);
   const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const updateUserNotificationSettings = useFeedbirdStore((s) => s.updateUserNotificationSettings);
@@ -80,7 +85,12 @@ export default function SettingsNotificationsPage() {
     <div className="w-full h-full flex flex-col gap-4">
       {/* Topbar */}
       <div className="w-full border-b px-4 h-10 flex items-center justify-between">
-        <div className="text-sm text-grey font-medium">Notifications</div>
+        <div className="flex items-center gap-1">
+          <Link href={`/${workspaceId}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
+            <ArrowLeft className="w-4 h-4 text-grey" />
+          </Link>
+          <div className="text-sm text-grey font-medium">Notifications</div>
+        </div>
       </div>
 
       {/* Main */}
