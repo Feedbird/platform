@@ -107,6 +107,19 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
     }
   }, [selectingMode]);
 
+  React.useEffect(() => {
+    if (added && planSelected) {
+      selector((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(service.id, {
+          plan: planSelected,
+          channels: channelsSelected,
+        });
+        return newMap;
+      });
+    }
+  }, [channelsSelected]);
+
   const handleSelection = () => {
     if (service.service_plans && service.service_plans.length === 1) {
       isAdded(true);

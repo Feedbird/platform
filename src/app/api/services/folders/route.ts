@@ -1,10 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ApiHandlerError } from "../../shared";
-import { ServiceFolderHandler } from "./handlet";
+import { ServiceFolderHandler } from "./handler";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const response = await ServiceFolderHandler.getAll();
+    const params = new URL(req.url).searchParams;
+    const workspaceId = params.get("workspaceId");
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: "workspaceId query parameter is required" },
+        { status: 400 }
+      );
+    }
+    const response = await ServiceFolderHandler.getAll(workspaceId);
     return NextResponse.json({ data: response });
   } catch (error) {
     const uiMessage =

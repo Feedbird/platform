@@ -1,7 +1,7 @@
 import { TableForm } from "@/components/forms/content/forms-table";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { Coupon, FormField } from "@/lib/supabase/client";
+import { Coupon, FormField, ServiceFolder } from "@/lib/supabase/client";
 
 export interface ApiResponse<T> {
   data: T;
@@ -40,7 +40,11 @@ const API_BASE = "/api";
 
 // Generic API error handler
 class ApiError extends Error {
-  constructor(message: string, public status: number, public details?: any) {
+  constructor(
+    message: string,
+    public status: number,
+    public details?: any
+  ) {
     super(message);
     this.name = "ApiError";
   }
@@ -354,6 +358,13 @@ export const servicesApi = {
       "/services" + "?workspaceId=" + workspaceId
     );
   },
+  fetchServiceFolders: async (workspaceId: string) => {
+    const { data } = await apiRequest<ApiResponse<ServiceFolder[]>>(
+      "/services/folders" + "?workspaceId=" + workspaceId
+    );
+
+    return data.sort((a, b) => a.order - b.order);
+  },
 };
 
 // Slack OAuth/Status API
@@ -396,8 +407,8 @@ export const workspaceApi = {
       email: string;
       default_board_rules?: Record<string, any>;
       timezone?: string;
-      week_start?: 'monday' | 'sunday';
-      time_format?: '24h' | '12h';
+      week_start?: "monday" | "sunday";
+      time_format?: "24h" | "12h";
       allowed_posting_time?: Record<string, any>;
     },
     authToken?: string
@@ -960,8 +971,8 @@ export const storeApi = {
             const channelsDb = Array.isArray(channelsResp)
               ? channelsResp
               : channelsResp
-              ? [channelsResp]
-              : [];
+                ? [channelsResp]
+                : [];
             channels = channelsDb.map((c: any) => ({
               id: c.id,
               workspaceId: c.workspace_id,
@@ -1732,14 +1743,14 @@ export const storeApi = {
               (board as any).group_data !== undefined
                 ? (board as any).group_data
                 : updates.group_data !== undefined
-                ? updates.group_data
-                : b.groupData,
+                  ? updates.group_data
+                  : b.groupData,
             columns:
               (board as any).columns !== undefined
                 ? (board as any).columns
                 : updates.columns !== undefined
-                ? updates.columns
-                : (b as any).columns,
+                  ? updates.columns
+                  : (b as any).columns,
           };
         }),
       }));
