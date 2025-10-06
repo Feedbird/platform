@@ -203,7 +203,7 @@ export function PublishDateCell({
                               </div>
 
                               {/* display publish now button */}
-                              <div
+                              {/* <div
                                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); setConfirmPublishOpen(true); }}
                                 className={cn(
                                   "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
@@ -216,7 +216,7 @@ export function PublishDateCell({
                                   )} />
                                 </div>
                                 <span className="text-xs text-black font-medium">Publish Now</span>
-                              </div>
+                              </div> */}
                             </div>
                           )
                         )}
