@@ -7,12 +7,41 @@ import { useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { slackApi } from "@/lib/api/api-service";
 
 export default function SettingsIntegrationsPage() {
   const params = useParams() as { workspaceId?: string }
   const workspaceId = params?.workspaceId || ""
 
   const [channelName, setChannelName] = React.useState("")
+  const [connectedChannel, setConnectedChannel] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let aborted = false
+    async function loadSlackStatus() {
+      if (!workspaceId) return
+      try {
+        const data = await slackApi.getStatus(workspaceId)
+        if (aborted) return
+        setConnectedChannel(data?.connected ? (data?.channelName || null) : null)
+      } catch {
+        if (!aborted) setConnectedChannel(null)
+      }
+    }
+    loadSlackStatus()
+
+    function handleOAuthMessage(e: MessageEvent) {
+      const msg: any = e?.data
+      if (msg && msg.success && msg.workspaceId === workspaceId) {
+        loadSlackStatus()
+      }
+    }
+    try { window.addEventListener('message', handleOAuthMessage) } catch {}
+    return () => {
+      aborted = true
+      try { window.removeEventListener('message', handleOAuthMessage) } catch {}
+    }
+  }, [workspaceId])
 
   function sanitizeChannelName(name: string) {
     const trimmed = name.trim().toLowerCase()
@@ -68,6 +97,12 @@ export default function SettingsIntegrationsPage() {
                 <LucideSquareArrowOutUpRight style={{ width: "14px", height: "14px" }} />
               </button>
             </div>
+
+            {connectedChannel ? (
+              <div className="text-[13px] text-[#129E62] font-medium">
+                This workspace is connected to channel {connectedChannel.startsWith('#') ? connectedChannel : `#${connectedChannel}`}
+              </div>
+            ) : null}
 
             {/* Channel name input */}
             <div className="flex items-center gap-2">

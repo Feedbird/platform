@@ -356,6 +356,24 @@ export const servicesApi = {
   },
 };
 
+// Slack OAuth/Status API
+export const slackApi = {
+  getStatus: async (
+    workspaceId: string
+  ): Promise<{
+    connected: boolean;
+    channelId?: string | null;
+    channelName?: string | null;
+    teamId?: string | null;
+    teamName?: string | null;
+    events?: string[] | null;
+  }> => {
+    return apiRequest(
+      `/oauth/slack/status?workspaceId=${encodeURIComponent(workspaceId)}`
+    );
+  },
+};
+
 // Workspace API functions
 export const workspaceApi = {
   // Get workspace by ID or list all
