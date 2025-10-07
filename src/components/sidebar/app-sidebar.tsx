@@ -189,8 +189,8 @@ function BoardDropdownMenu({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          /* visible only when THIS row is hovered (group/row) */
-          className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 transition-opacity
+          /* render in layout only on row hover or when menu is open */
+          className="hidden group-hover/row:inline-flex data-[state=open]:inline-flex
                      p-1 hover:bg-[#EAEBEC] rounded cursor-pointer
                      focus:outline-none"
           onClick={(e) => e.stopPropagation()}
