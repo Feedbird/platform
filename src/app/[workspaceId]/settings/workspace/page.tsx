@@ -210,12 +210,28 @@ export default function SettingsWorkspacePage() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-4">
               {logo ? (
-                <div className="relative size-12 rounded-[6px] overflow-hidden border-1 border-elementStroke">
+                <div 
+                  className="relative size-12 rounded-[6px] overflow-hidden border-1 border-elementStroke cursor-pointer"
+                  onClick={() => wsLogoInput.current?.click()}
+                >
                   <Image src={logo} alt="logo" fill className="object-cover" />
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="size-12 rounded-[6px] border-1 border-elementStroke flex items-center justify-center">
+                <div 
+                  className="relative size-12 rounded-[6px] border-1 border-elementStroke flex items-center justify-center cursor-pointer"
+                  onClick={() => wsLogoInput.current?.click()}
+                >
                   <img src='/images/icons/workspace.svg' className='w-5 h-5' />
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-[6px]">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                    </div>
+                  )}
                 </div>
               )}
               {/* Center - Text information */}
@@ -246,7 +262,10 @@ export default function SettingsWorkspacePage() {
                   }}
                 />
                 <Button onClick={() => wsLogoInput.current?.click()} size="sm" asChild={false} disabled={uploading} className="px-3 py-1.5 text-sm text-black font-semibold rounded-sm bg-backgroundHover hover:bg-backgroundHover/70 cursor-pointer">
-                  <span className="items-center">{uploading ? "Uploading..." : "Upload"}</span>
+                  <span className="flex items-center gap-2">
+                    {uploading && <span className="animate-spin inline-block h-3.5 w-3.5 rounded-full border-2 border-black border-t-transparent" />}
+                    {uploading ? "Uploading..." : "Upload"}
+                  </span>
                 </Button>
               </label>
             </div>
