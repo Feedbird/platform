@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Plus, Search, AlertTriangle, Check, RefreshCw, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Plus, Search, AlertTriangle, Check, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -306,15 +305,12 @@ export default function SettingsSocialsPage() {
 
 	return (
 		<div className="w-full h-full flex flex-col gap-4">
-			{/* Topbar */}
-			<div className="w-full border-b px-4 h-10 flex items-center justify-between">
-				<div className="flex items-center gap-1">
-					<Link href={`/${workspaceId}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
-						<ArrowLeft className="w-4 h-4 text-grey" />
-					</Link>
-					<div className="text-sm text-grey font-medium">Socials</div>
-				</div>
+		{/* Topbar */}
+		<div className="w-full border-b px-4 h-10 flex items-center justify-between">
+			<div className="flex items-center">
+				<div className="text-sm text-grey font-medium">Socials</div>
 			</div>
+		</div>
 
 			{/* Main Area */}
 			<div className="w-full pt-6 flex flex-1 items-start justify-center overflow-y-auto">

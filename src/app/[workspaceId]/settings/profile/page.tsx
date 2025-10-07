@@ -597,10 +597,7 @@ export default function SettingsProfilePage() {
     <div className="flex flex-col w-full h-full gap-4">
       {/* Topbar */}
       <div className="w-full border-b px-4 h-10 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Link href={`/${workspaceId}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
-            <ArrowLeft className="w-4 h-4 text-grey" />
-          </Link>
+        <div className="flex items-center">
           <div className="text-sm text-grey font-medium">Profile</div>
         </div>
       </div>

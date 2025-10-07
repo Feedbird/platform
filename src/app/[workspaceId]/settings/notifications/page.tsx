@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -85,10 +84,7 @@ export default function SettingsNotificationsPage() {
     <div className="w-full h-full flex flex-col gap-4">
       {/* Topbar */}
       <div className="w-full border-b px-4 h-10 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Link href={`/${workspaceId}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
-            <ArrowLeft className="w-4 h-4 text-grey" />
-          </Link>
+        <div className="flex items-center">
           <div className="text-sm text-grey font-medium">Notifications</div>
         </div>
       </div>

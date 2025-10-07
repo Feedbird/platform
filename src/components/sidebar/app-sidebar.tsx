@@ -54,23 +54,12 @@ import { useClerk } from '@clerk/nextjs'
 import {
   ChevronRight,
   ChevronDown,
-  Plus,
   MoreHorizontal,
   // icons for the board-menu:
-  Pencil,
-  Share2,
-  Settings,
-  Palette,
-  Star,
-  Copy,
   Archive as ArchiveIcon,
-  Trash2,
   // icons for user profile:
-  LogOut,
-  User,
-  CreditCard,
+  ArrowLeft,
 } from "lucide-react";
-import { BorderAll, BorderColor } from "@mui/icons-material";
 
 /* --------------------------------------------------------------------- */
 /*  NAV CONFIGS (static for now – you can pull these from the store)     */
@@ -167,7 +156,7 @@ function useBoardCount(board_id: string): number | null {
     // On the server, return null to prevent rendering.
     return null;
   }
-  
+
   return count;
 }
 
@@ -179,7 +168,7 @@ function BoardDropdownMenu({
   onAction: (action: string, item: NavLink) => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  
+
   const menu = [
     { id: "rename", label: "Rename", icon: "rename" },
     { id: "share", label: "Share", icon: "share" },
@@ -188,7 +177,7 @@ function BoardDropdownMenu({
     { id: "favorites", label: "Add to Favorites", icon: "favorite" },
     { id: "duplicate", label: "Duplicate", icon: "duplicate" },
     { id: "archive", label: "Archive", icon: "archive" },
-    { id: "delete", label: "Delete board", icon: "delete"},
+    { id: "delete", label: "Delete board", icon: "delete" },
   ];
 
   const handleAction = (actionId: string) => {
@@ -210,8 +199,8 @@ function BoardDropdownMenu({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent 
-        align="end" 
+      <DropdownMenuContent
+        align="end"
         className="w-40 flex flex-col p-[4px] rounded-[6px] border border-[1px] border-[#EAECF0] bg-white"
         style={{
           boxShadow: "0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03)",
@@ -223,7 +212,7 @@ function BoardDropdownMenu({
           <React.Fragment key={id}>
             {id === "delete" && <DropdownMenuSeparator className="mx-auto w-[132px]" />}
             <DropdownMenuItem
-              onClick={(e) => {e.stopPropagation(); handleAction(id);}}
+              onClick={(e) => { e.stopPropagation(); handleAction(id); }}
               className={
                 cn("flex px-[10px] py-[7px] gap-2 font-medium text-sm text-primary-foreground cursor-pointer",
                   "h-[30px]",
@@ -246,13 +235,13 @@ function BoardDropdownMenu({
   );
 }
 
-const BoardCount = ({ 
-  board_id, 
+const BoardCount = ({
+  board_id,
   variant = 'expanded',
   isActive = false,
   boardColor
-}: { 
-  board_id: string; 
+}: {
+  board_id: string;
   variant?: 'expanded' | 'collapsed';
   isActive?: boolean;
   boardColor?: string | null;
@@ -311,8 +300,8 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           const active = nav.href && (
             // For workspace-scoped routes, check if the pathname contains the route
             nav.href.includes('/content/') ? pathname.includes(nav.href.split('/').pop() || '') :
-            // For other routes, check if pathname starts with the href
-            pathname.startsWith(nav.href)
+              // For other routes, check if pathname starts with the href
+              pathname.startsWith(nav.href)
           );
 
           /* ----------------------------------------------------------- */
@@ -325,7 +314,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           /*  Use the original image and apply color styling instead    */
           /* ----------------------------------------------------------- */
           let imageSrc = nav.image;
-          
+
           // Special handling for messages icon based on unread status
           if (nav.id === 'messages') {
             if (unreadMsgCount > 0 || unreadNotificationCount > 0) {
@@ -338,91 +327,91 @@ export const RenderNavItems = React.memo(function RenderNavItems({
 
           return (
             <SidebarMenuItem key={nav.id} className={isBoard ? "group/row" : undefined}>
-                          <SidebarMenuButton
-              asChild
-              className={cn(
-                "group/row gap-[6px] p-[6px] text-sm font-semibold",
-                "cursor-pointer focus:outline-none hover:bg-[#F4F5F6]",
-                active ? "bg-[#F4F5F6]" : "",
-              )}
-            >
-              {nav.href ? (
-                <LoadingLink
-                  href={nav.href}
-                  className="flex items-center gap-[6px] w-full min-w-0"
-                  loadingText={`Loading ${nav.label}…`}
-                >
-                  {imageSrc && (
-                    <div 
-                      className={cn(
-                        "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
-                      )}
-                      style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
-                    >
-                      <img
-                        src={imageSrc}
-                        alt={nav.label}
-                        className={cn(
-                          "w-3.5 h-3.5",
-                          // Make icon white when board is active and has a colored background
-                          active && isBoard && boardColor && "filter brightness-0 invert"
-                        )}
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                  <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
-
-                  {isBoard && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      <BoardDropdownMenu
-                        item={nav}
-                        onAction={handleBoardAction}
-                      />
+              <SidebarMenuButton
+                asChild
+                className={cn(
+                  "group/row gap-[6px] p-[6px] text-sm font-semibold",
+                  "cursor-pointer focus:outline-none hover:bg-[#F4F5F6]",
+                  active ? "bg-[#F4F5F6]" : "",
+                )}
+              >
+                {nav.href ? (
+                  <LoadingLink
+                    href={nav.href}
+                    className="flex items-center gap-[6px] w-full min-w-0"
+                    loadingText={`Loading ${nav.label}…`}
+                  >
+                    {imageSrc && (
                       <div
                         className={cn(
-                          "flex items-center rounded font-normal",
-                          active && boardColor ? "text-white" : "text-black"
+                          "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
                         )}
-                        style={
-                          active && boardColor
-                            ? { backgroundColor: boardColor }
-                            : undefined
-                        }
+                        style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                       >
-                        <BoardCount board_id={nav.id} isActive={!!active} boardColor={boardColor} />
+                        <img
+                          src={imageSrc}
+                          alt={nav.label}
+                          className={cn(
+                            "w-3.5 h-3.5",
+                            // Make icon white when board is active and has a colored background
+                            active && isBoard && boardColor && "filter brightness-0 invert"
+                          )}
+                          loading="lazy"
+                        />
                       </div>
-                    </div>
-                  )}
-                </LoadingLink>
-              ) : (
-                <button
-                  onClick={nav.onClick}
-                  className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none min-w-0"
-                >
-                  {imageSrc && (
-                    <div 
-                    className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
                     )}
-                    style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                    <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
+
+                    {isBoard && (
+                      <div className="flex items-center gap-1 ml-auto">
+                        <BoardDropdownMenu
+                          item={nav}
+                          onAction={handleBoardAction}
+                        />
+                        <div
+                          className={cn(
+                            "flex items-center rounded font-normal",
+                            active && boardColor ? "text-white" : "text-black"
+                          )}
+                          style={
+                            active && boardColor
+                              ? { backgroundColor: boardColor }
+                              : undefined
+                          }
+                        >
+                          <BoardCount board_id={nav.id} isActive={!!active} boardColor={boardColor} />
+                        </div>
+                      </div>
+                    )}
+                  </LoadingLink>
+                ) : (
+                  <button
+                    onClick={nav.onClick}
+                    className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none min-w-0"
                   >
-                    <img
-                      src={imageSrc}
-                      alt={nav.label}
-                      className={cn(
-                        "w-3.5 h-3.5",
-                        // Make icon white when board is active and has a colored background
-                        active && isBoard && boardColor && "filter brightness-0 invert"
-                      )}
-                      loading="lazy"
-                    />
-                  </div>
-                  )}
-                  <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
-                </button>
-              )}
-            </SidebarMenuButton>
+                    {imageSrc && (
+                      <div
+                        className={cn(
+                          "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
+                        )}
+                        style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                      >
+                        <img
+                          src={imageSrc}
+                          alt={nav.label}
+                          className={cn(
+                            "w-3.5 h-3.5",
+                            // Make icon white when board is active and has a colored background
+                            active && isBoard && boardColor && "filter brightness-0 invert"
+                          )}
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
+                  </button>
+                )}
+              </SidebarMenuButton>
             </SidebarMenuItem>
           );
         })}
@@ -476,64 +465,64 @@ function UserProfileSection() {
 
   return (
     <TooltipProvider delayDuration={0}>
-           <div className="flex items-center gap-2">
-      {/* User Avatar */}
-      <div className="relative">
-        {user.imageUrl ? (
-          <img
-            src={user.imageUrl}
-            alt={fullName}
-            className="w-6 h-6 rounded-[3px] object-cover"
-          />
-        ) : (
-          <div className="w-6 h-6 rounded-[3px] bg-main flex items-center justify-center text-white text-sm font-medium">
-            {userInitials}
-          </div>
-        )}
-      </div>
+      <div className="flex items-center gap-2">
+        {/* User Avatar */}
+        <div className="relative">
+          {user.imageUrl ? (
+            <img
+              src={user.imageUrl}
+              alt={fullName}
+              className="w-6 h-6 rounded-[3px] object-cover"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-[3px] bg-main flex items-center justify-center text-white text-sm font-medium">
+              {userInitials}
+            </div>
+          )}
+        </div>
 
-      {/* User Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-black truncate">{fullName}</p>
-        <p className="text-xs text-grey font-normal truncate">{user.email}</p>
-      </div>
+        {/* User Info */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-black truncate">{fullName}</p>
+          <p className="text-xs text-grey font-normal truncate">{user.email}</p>
+        </div>
 
-      {/* Three-dot menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="p-1 hover:bg-gray-100 rounded cursor-pointer focus:outline-none">
-            <MoreHorizontal className="w-3.5 h-3.5 text-[#5C5E63]" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          align="end" 
-          className="w-[150px] flex flex-col p-0 rounded-[8px] border border-elementStroke bg-white"
-        >
-          <DropdownMenuItem
-            onClick={handleProfileSettings}
-            className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+        {/* Three-dot menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-1 hover:bg-gray-100 rounded cursor-pointer focus:outline-none">
+              <MoreHorizontal className="w-3.5 h-3.5 text-[#5C5E63]" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-[150px] flex flex-col p-0 rounded-[8px] border border-elementStroke bg-white"
           >
-            <img src="/images/settings/profile.svg" alt="Account" className="w-3.5 h-3.5" />
-            <span>Account</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={handleAccountBilling}
-            className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
-          >
-            <img src="/images/settings/billing.svg" alt="Billing" className="w-3.5 h-3.5" />
-            <span>Billing</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator className="my-[0px] text-elementStroke"/>
-          <DropdownMenuItem
-            onClick={handleLogout}
-            className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
-          >
-            <img src="/images/sidebar/logout.svg" alt="Logout" className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+            <DropdownMenuItem
+              onClick={handleProfileSettings}
+              className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+            >
+              <img src="/images/settings/profile.svg" alt="Account" className="w-3.5 h-3.5" />
+              <span>Account</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleAccountBilling}
+              className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+            >
+              <img src="/images/settings/billing.svg" alt="Billing" className="w-3.5 h-3.5" />
+              <span>Billing</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-[0px] text-elementStroke" />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+            >
+              <img src="/images/sidebar/logout.svg" alt="Logout" className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </TooltipProvider>
   );
 }
@@ -571,7 +560,7 @@ export function AppSidebar() {
   const platformNav = React.useMemo(() => {
     return getDefaultPlatformNav(activeWorkspace?.id);
   }, [activeWorkspace]);
-  const boardNav    = useFeedbirdStore(s => s.boardNav);
+  const boardNav = useFeedbirdStore(s => s.boardNav);
 
   /* open / collapse state for the two accordion groups */
   const [boardsOpen, setBoardsOpen] = React.useState(true);
@@ -609,7 +598,7 @@ export function AppSidebar() {
       const duplicatedBoard = useFeedbirdStore.getState().workspaces
         .flatMap(w => w.boards)
         .find(b => b.id === item.id);
-      
+
       if (duplicatedBoard) {
         const newName = `${duplicatedBoard.name} (Copy)`;
         addBoard(
@@ -642,7 +631,7 @@ export function AppSidebar() {
   const handleUpdateBoardColorAndIcon = (icon: string, color: string) => {
     if (colorIconTarget) {
       updateBoard(colorIconTarget.id, { image: icon, color: color });
-      
+
       setColorIconTarget(null); // Clear the target after updating
     }
   };
@@ -708,7 +697,7 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="offcanvas"
-          className="border-r border-border-primary text-foreground gap-2 bg-[#FAFAFA]"
+      className="border-r border-border-primary text-foreground gap-2 bg-[#FAFAFA]"
     >
       {/* ---------------------------------------------------------------- */}
       {/*  HEADER                                                         */}
@@ -723,10 +712,19 @@ export function AppSidebar() {
       <SidebarContent>
         {pathname.includes('/settings') ? (
           <>
+            <Link
+              href={activeWorkspace ? `/${activeWorkspace.id}` : '/'}
+              className="flex items-center gap-1 cursor-pointer"
+            >
+              <span className="flex items-center justify-center w-4 h-4">
+                <ArrowLeft className="w-4 h-4 text-black" />
+              </span>
+              <span className="text-sm text-black font-medium">Return to workspace</span>
+            </Link>
             <SidebarGroup>
-                <SidebarGroupLabel>
-                  <span className="text-xs font-medium text-[#75777C] tracking-wide">WORKSPACE</span>
-                </SidebarGroupLabel>
+              <SidebarGroupLabel>
+                <span className="text-xs font-medium text-[#75777C] tracking-wide">WORKSPACE</span>
+              </SidebarGroupLabel>
               <RenderNavItems
                 items={[
                   { id: 'ws-workspace', label: 'Workspace', image: '/images/settings/workspace.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/workspace` : '/settings/workspace' },
@@ -739,9 +737,9 @@ export function AppSidebar() {
             </SidebarGroup>
 
             <SidebarGroup>
-                <SidebarGroupLabel>
-                  <span className="text-xs font-medium text-[#75777C] tracking-wide">ACCOUNT</span>
-                </SidebarGroupLabel>
+              <SidebarGroupLabel>
+                <span className="text-xs font-medium text-[#75777C] tracking-wide">ACCOUNT</span>
+              </SidebarGroupLabel>
               <RenderNavItems
                 items={[
                   { id: 'acc-profile', label: 'Profile', image: '/images/settings/profile.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/profile` : '/settings/profile' },
@@ -759,7 +757,7 @@ export function AppSidebar() {
 
             {/* -------------------- BOARDS ------------------------------- */}
             {isClient && (
-            <SidebarGroup>
+              <SidebarGroup>
                 <SidebarGroupLabel>
                   <div className="flex items-center justify-between w-full">
                     <span className="text-xs font-medium text-[#75777C] tracking-wide">Boards</span>
@@ -774,15 +772,15 @@ export function AppSidebar() {
                   </div>
                 </SidebarGroupLabel>
 
-              <div className="mt-1">
-                <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
-              </div>
-            </SidebarGroup>
+                <div className="mt-1">
+                  <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
+                </div>
+              </SidebarGroup>
             )}
 
             {/* -------------------- SOCIALS ------------------------------ */}
             {isClient && (
-            <SidebarGroup>
+              <SidebarGroup>
                 <SidebarGroupLabel>
                   <div className="flex items-center justify-between w-full cursor-pointer">
                     <div
@@ -803,12 +801,12 @@ export function AppSidebar() {
                   </div>
                 </SidebarGroupLabel>
 
-              {socialOpen && (
-                <SidebarMenu className="mt-1">
-                  <SocialShortcuts />
-                </SidebarMenu>
-              )}
-            </SidebarGroup>
+                {socialOpen && (
+                  <SidebarMenu className="mt-1">
+                    <SocialShortcuts />
+                  </SidebarMenu>
+                )}
+              </SidebarGroup>
             )}
           </>
         )}
@@ -818,8 +816,8 @@ export function AppSidebar() {
         <UserProfileSection />
       </SidebarFooter>
 
-      <AddBoardModal 
-        isOpen={isAddBoardModalOpen} 
+      <AddBoardModal
+        isOpen={isAddBoardModalOpen}
         onClose={() => setIsAddBoardModalOpen(false)}
         onBoardDataReady={handleBoardDataReady}
         onUseTemplate={handleUseTemplate}
