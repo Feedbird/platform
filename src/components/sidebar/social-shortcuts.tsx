@@ -9,6 +9,7 @@ import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Folder } from "lucide-react";
+import { socialSetApi } from "@/lib/api/api-service";
 
 /**
  * This component:
@@ -136,6 +137,9 @@ function SocialSetBlock({
   const pathname = usePathname();
   const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const [expanded, setExpanded] = React.useState(true);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [draftName, setDraftName] = React.useState(setName);
+  const [saving, setSaving] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const setIconRef = React.useRef<HTMLDivElement | null>(null);
   const pageIconRefs = React.useMemo(
@@ -143,34 +147,122 @@ function SocialSetBlock({
     [pages]
   );
 
+  React.useEffect(() => {
+    // Reset draft if external name changes
+    setDraftName(setName);
+  }, [setName]);
+
+  const startEditing = React.useCallback(() => {
+    if (!setId || setId === "__unassigned__") return; // Do not rename special group
+    setDraftName(setName);
+    setIsEditing(true);
+  }, [setId, setName]);
+
+  const commitRename = React.useCallback(async () => {
+    if (saving) return;
+    const nextName = (draftName || "").trim();
+    if (!nextName || nextName === setName) {
+      setIsEditing(false);
+      setDraftName(setName);
+      return;
+    }
+    try {
+      setSaving(true);
+      // Optimistic update in store
+      useFeedbirdStore.setState((prev: any) => {
+        const workspaces = prev.workspaces || [];
+        const activeId = activeWorkspace?.id;
+        const updated = workspaces.map((w: any) => {
+          if (w.id !== activeId) return w;
+          const nextSets = (w.socialSets || []).map((s: any) =>
+            s.id === setId ? { ...s, name: nextName } : s
+          );
+          return { ...w, socialSets: nextSets };
+        });
+        return { workspaces: updated };
+      });
+
+      await socialSetApi.updateSocialSetName(setId, nextName);
+      setIsEditing(false);
+    } catch (e) {
+      // Revert on failure
+      useFeedbirdStore.setState((prev: any) => {
+        const workspaces = prev.workspaces || [];
+        const activeId = activeWorkspace?.id;
+        const updated = workspaces.map((w: any) => {
+          if (w.id !== activeId) return w;
+          const nextSets = (w.socialSets || []).map((s: any) =>
+            s.id === setId ? { ...s, name: setName } : s
+          );
+          return { ...w, socialSets: nextSets };
+        });
+        return { workspaces: updated };
+      });
+      console.error(e);
+      setIsEditing(false);
+      setDraftName(setName);
+    } finally {
+      setSaving(false);
+    }
+  }, [activeWorkspace?.id, draftName, saving, setId, setName]);
+
+  const cancelRename = React.useCallback(() => {
+    if (saving) return;
+    setIsEditing(false);
+    setDraftName(setName);
+  }, [saving, setName]);
+
   return (
     <div ref={containerRef} className="relative">
       <SidebarMenuItem>
         <button
           type="button"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => {
+            if (isEditing) return;
+            setExpanded((v) => !v);
+          }}
           className={cn(
             "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]"
           )}
         >
           <div ref={setIconRef} className="w-3.5 h-3.5 flex items-center justify-center" aria-hidden>
-              <div
-                className={[
-                  "w-3.5 h-3.5 rotate-90 rounded-full",
-                  [
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(238,_171,_94,_0.20)_0deg,_#EEAB5E_360deg)]",
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(99,_151,_246,_0.20)_0deg,_#6397F6_360deg)]",
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(154,_134,_255,_0.20)_0deg,_#9A86FF_360deg)]",
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(234,_121,_220,_0.20)_0deg,_#EA79DC_360deg)]",
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(242,_146,_87,_0.20)_0deg,_#F29257_360deg)]",
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(122,_212,_80,_0.20)_0deg,_#7AD450_360deg)]",
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(232,_78,_78,_0.20)_0deg,_#E84E4E_360deg)]",
-                    "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(65,_207,_212,_0.20)_0deg,_#41CFD4_360deg)]",
-                  ][orderIndex % 8],
-                ].join(' ')}
-              />
+            <div
+              className={[
+                "w-3.5 h-3.5 rotate-90 rounded-full",
+                [
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(238,_171,_94,_0.20)_0deg,_#EEAB5E_360deg)]",
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(99,_151,_246,_0.20)_0deg,_#6397F6_360deg)]",
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(154,_134,_255,_0.20)_0deg,_#9A86FF_360deg)]",
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(234,_121,_220,_0.20)_0deg,_#EA79DC_360deg)]",
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(242,_146,_87,_0.20)_0deg,_#F29257_360deg)]",
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(122,_212,_80,_0.20)_0deg,_#7AD450_360deg)]",
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(232,_78,_78,_0.20)_0deg,_#E84E4E_360deg)]",
+                  "bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(65,_207,_212,_0.20)_0deg,_#41CFD4_360deg)]",
+                ][orderIndex % 8],
+              ].join(' ')}
+            />
           </div>
-          <span className="flex-1 min-w-0 text-left text-sm font-medium text-black truncate">{setName}</span>
+          <span
+            className="flex-1 min-w-0 text-left text-sm font-medium text-black truncate"
+            onDoubleClick={startEditing}
+          >
+            {isEditing ? (
+              <input
+                autoFocus
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitRename();
+                  if (e.key === "Escape") cancelRename();
+                }}
+                disabled={saving}
+                className="w-full bg-white border border-elementStroke rounded border-1 px-2 py-1 text-sm font-medium text-black"
+              />
+            ) : (
+              setName
+            )}
+          </span>
           <div className="ml-auto">
             {expanded ? (
               <ChevronDown className="w-4 h-4 text-[#75777C]" />

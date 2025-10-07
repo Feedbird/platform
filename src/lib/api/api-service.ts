@@ -2395,6 +2395,13 @@ export const socialSetApi = {
       body: JSON.stringify({ workspace_id, name }),
     });
   },
+  // Update social set name
+  updateSocialSetName: async (id: string, name: string) => {
+    return apiRequest<any>("/social-set", {
+      method: "PATCH",
+      body: JSON.stringify({ id, name }),
+    });
+  },
 };
 
 // Social Page API functions

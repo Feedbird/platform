@@ -30,3 +30,35 @@ export async function POST(req: NextRequest) {
 }
 
 
+// PATCH /api/social-set
+// Body: { id: string, name: string }
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const id = (body.id as string) || ''
+    const name = ((body.name as string) || '').trim()
+
+    if (!id || !name) {
+      return NextResponse.json({ error: 'id and name are required' }, { status: 400 })
+    }
+
+    const { data, error } = await supabase
+      .from('social_sets')
+      .update({ name })
+      .eq('id', id)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Failed to update social set', error)
+      return NextResponse.json({ error: 'Failed to update social set' }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+  } catch (e) {
+    console.error('Error in PATCH /api/social-set', e)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+
