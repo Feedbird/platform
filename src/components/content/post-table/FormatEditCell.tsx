@@ -47,7 +47,7 @@ export function FormatEditCell({
       <PopoverTrigger asChild>
         <div
           className={cn(
-            "cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
+            "group/cell cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
             "hover:opacity-90"
           )}
         /* first click gives focus (handled by <FocusCell>);
@@ -58,7 +58,8 @@ export function FormatEditCell({
               <FormatBadge kind={value} widthFull={false} />
             ) : (
               <div className={cn(
-                "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
+                open ? "flex" : "hidden group-hover/cell:flex",
+                "flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
               )} style={{
                 padding: "3px 6px 3px 4px",
               }}>

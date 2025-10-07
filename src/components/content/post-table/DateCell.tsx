@@ -134,7 +134,7 @@ export function PublishDateCell({
   }, [popoverOpen]);
 
   return (
-    <div className="flex items-center justify-between w-full px-2 py-[6px]">
+    <div className="group/cell flex items-center justify-between w-full px-2 py-[6px]">
       {/* Date text + popover trigger */}
       <div className="flex items-center w-full min-w-0 max-w-full">
         <div className="flex-1 min-w-0">
@@ -190,7 +190,8 @@ export function PublishDateCell({
                           ) : (
                             <div className="flex flex-row items-center gap-1 w-full cursor-pointer">
                               <div className={cn(
-                                "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
+                                (popoverOpen ? "flex" : "hidden group-hover/cell:flex"),
+                                "flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
                               )} style={{
                                 padding: "3px 6px 3px 4px",
                               }}>
@@ -339,7 +340,7 @@ export function PublishDateCell({
                     onSchedule={(d) => {
                       updatePost(post.id, {
                         publish_date: d,
-                        status: "Scheduled",
+                        status: post.status === "Approved" ? "Scheduled" : post.status,
                       });
                     }}
                     onPublishNow={async () => {
@@ -378,104 +379,6 @@ export function PublishDateCell({
           )}
         </div>
       </div>
-      {/* Additional action icons */}
-      {hasDate && !isPublished && !isFailedPublishing && (
-        <div className="flex flex-row gap-2 flex-shrink-0">
-          {/* Unschedule */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="border border-border-button rounded-[6px] p-1 text-[#EC5050] cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={handleUnschedule}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className="bg-[#151515] text-white border-none text-xs"
-              >
-                Unschedule
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={handleAutoSchedule}
-                >
-                  <Image
-                    src="/images/columns/post-time.svg"
-                    alt="Auto Schedule"
-                    width={16}
-                    height={16}
-                  />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className="bg-[#151515] text-white border-none text-xs"
-              >
-                Auto Schedule
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Auto-schedule (only if not published/scheduled/failed publishing) */}
-          {/* <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={handleAutoSchedule}
-                  >
-                    <Image
-                      src="/images/publish/auto-schedule.svg"
-                      alt="Auto Schedule"
-                      width={16}
-                      height={16}
-                    />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="bg-[#151515] text-white border-none text-xs"
-                >
-                  Auto Schedule
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider> */}
-
-          {/* Publish now (only if we have a date & not published/failed publishing) */}
-          {/* <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="border border-border-button rounded-[6px] p-1 text-[#737C8B] cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => setConfirmPublishOpen(true)}
-                  >
-                    <Image
-                      src="/images/publish/publish.svg"
-                      alt="Publish"
-                      width={16}
-                      height={16}
-                    />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="bg-[#151515] text-white border-none text-xs"
-                >
-                  Publish Now
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider> */}
-        </div>
-      )}
 
       {/* Publish now button for failed publishing posts (even without date) */}
       {isFailedPublishing && (

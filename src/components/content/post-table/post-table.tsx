@@ -2410,7 +2410,7 @@ export function PostTable({
             {columnNames["platforms"] || "Socials"}
           </div>
         ),
-        minSize: 80,
+        minSize: 112,
         cell: ({ row, isFocused, isEditing, enterEdit, exitEdit }: FocusCellContext<Post>) => {
           const post = row.original;
           return (
@@ -2447,7 +2447,7 @@ export function PostTable({
             {columnNames["format"] || "Format"}
           </div>
         ),
-        minSize: 90,
+        minSize: 124,
         cell: ({ row, isFocused, isEditing, enterEdit, exitEdit }: FocusCellContext<Post>) => {
           const post = row.original;
           return (
@@ -2695,7 +2695,7 @@ export function PostTable({
             </div>
           </div>
         ),
-        minSize: 110,
+        minSize: 184,
         size: 230,
         enableSorting: false,
         enableGrouping: true,
