@@ -72,6 +72,7 @@ export default function SettingsSocialsPage() {
 	// No explicit loading; rely on activeWorkspace.socialAccounts/socialPages
 
 	const pages: any[] = (activeWorkspace?.socialPages || []) as any[];
+	const allPages = pages; // keep a stable reference for handlers scoped inside set maps
 	const socialSets: any[] = (activeWorkspace as any)?.socialSets || [];
 
 	// Drag and drop state
@@ -84,13 +85,13 @@ export default function SettingsSocialsPage() {
 		try {
 			const rect = el.getBoundingClientRect();
 			const clone = el.cloneNode(true) as HTMLElement;
-			
+
 			// Store initial cursor position relative to element
 			const initialCursorX = e.clientX;
 			const initialCursorY = e.clientY;
 			const initialElementX = rect.left;
 			const initialElementY = rect.top;
-			
+
 			// Match original dimensions and start at original position
 			clone.style.position = "fixed";
 			clone.style.width = `${rect.width}px`;
@@ -102,10 +103,10 @@ export default function SettingsSocialsPage() {
 			clone.style.boxShadow = "0 6px 18px rgba(0,0,0,0.12)";
 			clone.style.opacity = "0.95";
 			clone.style.zIndex = "9999";
-			
+
 			document.body.appendChild(clone);
 			dragPreviewRef.current = clone;
-			
+
 			// Add drag event listener to move clone by cursor movement amount
 			const handleDrag = (dragEvent: DragEvent) => {
 				if (dragPreviewRef.current) {
@@ -115,14 +116,14 @@ export default function SettingsSocialsPage() {
 					dragPreviewRef.current.style.top = `${initialElementY + deltaY}px`;
 				}
 			};
-			
+
 			document.addEventListener('dragover', handleDrag);
-			
+
 			// Store cleanup function
 			(clone as any)._cleanupDrag = () => {
 				document.removeEventListener('dragover', handleDrag);
 			};
-		} catch {}
+		} catch { }
 	}
 
 	function cleanupDragPreview() {
@@ -134,12 +135,12 @@ export default function SettingsSocialsPage() {
 					(node as any)._cleanupDrag();
 				}
 				node.parentNode.removeChild(node);
-			} catch {}
+			} catch { }
 		}
 		dragPreviewRef.current = null;
 		try {
 			document.body.style.removeProperty("cursor");
-		} catch {}
+		} catch { }
 	}
 
 	const setsWithPages = React.useMemo(() => {
@@ -182,46 +183,79 @@ export default function SettingsSocialsPage() {
 		setExpandedSets((prev) => ({ ...prev, [id]: !prev[id] }));
 	}
 
-	function handleReorderPages(setId: string | null, draggedPageId: string, targetIndex: number) {
+	async function handleMoveOrReorder(targetSetId: string | null, draggedPageId: string, targetIndex: number) {
 		if (!workspaceId) return;
 
-		// Get current pages in this set
-		const currentPages = pages.filter(p => (p.socialSetId || null) === setId);
-		const draggedPage = currentPages.find(p => p.id === draggedPageId);
+		// Identify dragged page and its current set
+		const draggedPage = allPages.find(p => p.id === draggedPageId);
 		if (!draggedPage) return;
+		const sourceSetId = (draggedPage.socialSetId || null) as string | null;
 
-		// Remove dragged page from current position
-		const otherPages = currentPages.filter(p => p.id !== draggedPageId);
-		
-		// Insert at new position
-		const newOrder = [...otherPages];
-		newOrder.splice(targetIndex, 0, draggedPage);
+		// Only allow cross-set moves; block same-set reorder
+		if (sourceSetId === targetSetId) {
+			return;
+		}
 
-		// Update store with new order (frontend only)
+		// Build lists excluding the dragged page
+		const sourcePagesExcludingDragged = allPages.filter(p => (p.socialSetId || null) === sourceSetId && p.id !== draggedPageId);
+		const targetPagesExcludingDragged = allPages.filter(p => (p.socialSetId || null) === targetSetId && p.id !== draggedPageId);
+
+		// Compute insertion index within bounds
+		const insertIndex = Math.max(0, Math.min(targetIndex, targetPagesExcludingDragged.length));
+
+		// If moving within same set, this acts as reorder; otherwise cross-set move
+		const newTargetPages = [...targetPagesExcludingDragged];
+		newTargetPages.splice(insertIndex, 0, { ...draggedPage, socialSetId: targetSetId });
+
+		// Prepare new indices for affected sets
+		const newOrderIndexById: Record<string, number> = {};
+		newTargetPages.forEach((p, idx) => { newOrderIndexById[p.id] = idx; });
+		if (sourceSetId !== targetSetId) {
+			// Reindex remaining pages in the source set
+			sourcePagesExcludingDragged.forEach((p, idx) => { newOrderIndexById[p.id] = idx; });
+		}
+
+		// Apply state update optimistically
 		useFeedbirdStore.setState((prev: any) => {
 			const workspaces = (prev.workspaces || []).map((w: any) => {
 				if (w.id !== workspaceId) return w;
 				const nextPages = (w.socialPages || []).map((p: any) => {
-					const newIndex = newOrder.findIndex(page => page.id === p.id);
-					return newIndex >= 0 ? { ...p, orderIndex: newIndex } : p;
+					const newIndex = newOrderIndexById[p.id];
+					if (p.id === draggedPageId) {
+						return {
+							...p,
+							socialSetId: targetSetId,
+							orderIndex: newIndex ?? p.orderIndex,
+						};
+					}
+					return newIndex !== undefined ? { ...p, orderIndex: newIndex } : p;
 				});
 				return { ...w, socialPages: nextPages };
 			});
 			return { workspaces };
 		});
+
+		// Persist set move only if set changed
+		try {
+			if (sourceSetId !== targetSetId) {
+				await socialPageApi.moveToSet(draggedPageId, targetSetId);
+			}
+		} catch (err) {
+			console.error("Failed to persist moveToSet:", err);
+		}
 	}
 
 	return (
 		<div className="w-full h-full flex flex-col gap-4">
-      {/* Topbar */}
-      <div className="w-full border-b px-4 h-10 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Link href={`/${workspaceId}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
-            <ArrowLeft className="w-4 h-4 text-grey" />
-          </Link>
-          <div className="text-sm text-grey font-medium">Socials</div>
-        </div>
-      </div>
+			{/* Topbar */}
+			<div className="w-full border-b px-4 h-10 flex items-center justify-between">
+				<div className="flex items-center gap-1">
+					<Link href={`/${workspaceId}`} className="flex items-center justify-center w-4 h-4 cursor-pointer">
+						<ArrowLeft className="w-4 h-4 text-grey" />
+					</Link>
+					<div className="text-sm text-grey font-medium">Socials</div>
+				</div>
+			</div>
 
 			{/* Main Area */}
 			<div className="w-full pt-6 flex flex-1 items-start justify-center overflow-y-auto">
@@ -254,66 +288,78 @@ export default function SettingsSocialsPage() {
 						)}
 						{setsWithPages.map(({ id, name, pages, orderIndex }) => {
 							const isOpen = expandedSets[id] ?? true;
-  return (
+							return (
 								<div key={id} className="">
 									{/* Set Header */}
-								<div
-									className={cn(
-										"flex items-center justify-between py-3 border-t border-elementStroke",
-										dragOverSetId === id ? "bg-[#F8FAFF]" : undefined
-									)}
-									onDragOver={(e) => {
-										e.preventDefault();
-										try { e.dataTransfer.dropEffect = "move"; } catch {}
-										setDragOverSetId(id);
-									}}
-									onDragLeave={() => {
-										setDragOverSetId((curr) => (curr === id ? null : curr));
-									}}
-									onDrop={async (e) => {
-										e.preventDefault();
-										const pageId = e.dataTransfer.getData("text/page-id");
-										if (!pageId) return;
-										try {
-											await socialPageApi.moveToSet(pageId, id === "__unassigned__" ? null : id);
-											// update store local state
-											useFeedbirdStore.setState((prev: any) => {
-												const workspaces = (prev.workspaces || []).map((w: any) => {
-													if (w.id !== workspaceId) return w;
-													const nextPages = (w.socialPages || []).map((p: any) =>
-														p.id === pageId ? { ...p, socialSetId: id === "__unassigned__" ? undefined : id } : p
-													);
-													return { ...w, socialPages: nextPages };
-												});
-											return { workspaces };
-											});
-										} finally {
-											setDragOverSetId(null);
-											setDraggingPageId(null);
-										}
-									}}
-								>
-								<div className="flex items-center gap-3 min-w-0">
-									{(id !== "__unassigned__") ? (
-										<div
-											className={[
-												"w-3.5 h-3.5 rotate-90 rounded-full",
-												[
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(238,_171,_94,_0.20)_0deg,_#EEAB5E_360deg)]",
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(99,_151,_246,_0.20)_0deg,_#6397F6_360deg)]",
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(154,_134,_255,_0.20)_0deg,_#9A86FF_360deg)]",
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(234,_121,_220,_0.20)_0deg,_#EA79DC_360deg)]",
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(242,_146,_87,_0.20)_0deg,_#F29257_360deg)]",
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(122,_212,_80,_0.20)_0deg,_#7AD450_360deg)]",
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(232,_78,_78,_0.20)_0deg,_#E84E4E_360deg)]",
-													"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(65,_207,_212,_0.20)_0deg,_#41CFD4_360deg)]",
-												][orderIndex % 8]
-											].join(' ')}
-										/>
-									) : (
-										<Folder className="w-4 h-4 text-darkGrey" />
-									)}
-									<div className="text-sm text-darkGrey font-normal truncate">{name}</div>
+									<div
+										className={cn(
+											"flex items-center justify-between py-3 border-t border-elementStroke",
+											dragOverSetId === id ? "bg-[#F8FAFF]" : undefined
+										)}
+										onDragOver={(e) => {
+											e.preventDefault();
+											try { e.dataTransfer.dropEffect = "move"; } catch { }
+											// Disallow reordering within the same set; only cross-set moves
+											if (draggingPageId) {
+												const dragging = allPages.find(p => p.id === draggingPageId);
+												const sourceSet = (dragging?.socialSetId || null) as string | null;
+												const targetSet = id === "__unassigned__" ? null : id;
+												if (sourceSet === targetSet) {
+													try { e.dataTransfer.dropEffect = "none"; } catch { }
+													// Clear any previous indicator when hovering same set
+													setDragOverSetId(null);
+													setDragOverIndex(null);
+													return;
+												}
+											}
+											setDragOverSetId(id);
+											setDragOverIndex(0);
+										}}
+										onDragLeave={() => {
+											setDragOverSetId((curr) => (curr === id ? null : curr));
+											setDragOverIndex((curr) => (dragOverSetId === id ? null : curr));
+										}}
+										onDrop={async (e) => {
+											e.preventDefault();
+											const pageId = e.dataTransfer.getData("text/page-id");
+											if (!pageId) return;
+											try {
+												// Disallow reordering within same set; only allow cross-set drop
+												const sourceSet = (allPages.find(p => p.id === pageId)?.socialSetId || null) as string | null;
+												const targetSetVal = id === "__unassigned__" ? null : id;
+												if (sourceSet === targetSetVal) {
+													return;
+												}
+												await handleMoveOrReorder(id === "__unassigned__" ? null : id, pageId, 0);
+											} finally {
+												setDragOverSetId(null);
+												setDraggingPageId(null);
+												setDragOverIndex(null);
+												cleanupDragPreview();
+											}
+										}}
+									>
+										<div className="flex items-center gap-3 min-w-0">
+											{(id !== "__unassigned__") ? (
+												<div
+													className={[
+														"w-3.5 h-3.5 rotate-90 rounded-full",
+														[
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(238,_171,_94,_0.20)_0deg,_#EEAB5E_360deg)]",
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(99,_151,_246,_0.20)_0deg,_#6397F6_360deg)]",
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(154,_134,_255,_0.20)_0deg,_#9A86FF_360deg)]",
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(234,_121,_220,_0.20)_0deg,_#EA79DC_360deg)]",
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(242,_146,_87,_0.20)_0deg,_#F29257_360deg)]",
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(122,_212,_80,_0.20)_0deg,_#7AD450_360deg)]",
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(232,_78,_78,_0.20)_0deg,_#E84E4E_360deg)]",
+															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(65,_207,_212,_0.20)_0deg,_#41CFD4_360deg)]",
+														][orderIndex % 8]
+													].join(' ')}
+												/>
+											) : (
+												<Folder className="w-4 h-4 text-darkGrey" />
+											)}
+											<div className="text-sm text-darkGrey font-normal truncate">{name}</div>
 										</div>
 										<div className="flex items-center gap-2">
 											<div className="flex items-center gap-1 text-main text-sm font-medium cursor-pointer" onClick={() => setOpenDialog(true)}>
@@ -328,11 +374,42 @@ export default function SettingsSocialsPage() {
 									{/* Pages */}
 									{isOpen && pages.length > 0 && (
 										<div className="">
+											{/* Blue line indicator before first item (insert at index 0) */}
+											{dragOverSetId === id && dragOverIndex === 0 && (
+												<div className="h-0.5 bg-main mx-2 rounded-full transition-all duration-200" />
+											)}
 											{pages.map((page: any, pageIndex: number) => (
 												<React.Fragment key={page.id}>
 													<div className="mb-2 flex items-center gap-2">
-														<GripVertical className="w-4 h-4 text-grey cursor-grab" />
+														<span
+															className="cursor-grab"
+															draggable
+															onDragStart={(e) => {
+																setDraggingPageId(page.id);
+																e.dataTransfer.setData("text/page-id", page.id);
+																e.dataTransfer.effectAllowed = "move";
+																// Create preview from the row container rather than the icon
+																const wrapper = (e.currentTarget as HTMLElement).parentElement as HTMLElement | null;
+																const container = (wrapper?.querySelector('[data-page-container]') as HTMLElement | null) || (e.currentTarget as HTMLElement);
+																createDragPreviewFrom(container, e.nativeEvent as unknown as DragEvent);
+																try {
+																	const emptyImg = new (window as any).Image();
+																	emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+																	e.dataTransfer.setDragImage(emptyImg, 0, 0);
+																	document.body.style.cursor = "grabbing";
+																} catch { }
+															}}
+															onDragEnd={() => {
+																setDraggingPageId(null);
+																setDragOverSetId(null);
+																setDragOverIndex(null);
+																cleanupDragPreview();
+															}}
+														>
+															<GripVertical className="w-4 h-4 text-grey" />
+														</span>
 														<div
+															data-page-container
 															className={cn(
 																"flex items-center gap-3 px-4 py-4.5 rounded-[6px] border bg-white w-full relative",
 																draggingPageId === page.id ? "cursor-grabbing opacity-95" : "cursor-grab"
@@ -342,15 +419,13 @@ export default function SettingsSocialsPage() {
 																setDraggingPageId(page.id);
 																e.dataTransfer.setData("text/page-id", page.id);
 																e.dataTransfer.effectAllowed = "move";
-																// custom drag preview
-																createDragPreviewFrom(e.currentTarget as HTMLElement, e.nativeEvent);
+																createDragPreviewFrom(e.currentTarget as HTMLElement, e.nativeEvent as unknown as DragEvent);
 																try {
-																	// Hide the default drag image to prevent shadow
 																	const emptyImg = new (window as any).Image();
 																	emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
 																	e.dataTransfer.setDragImage(emptyImg, 0, 0);
 																	document.body.style.cursor = "grabbing";
-																} catch {}
+																} catch { }
 															}}
 															onDragEnd={() => {
 																setDraggingPageId(null);
@@ -361,14 +436,27 @@ export default function SettingsSocialsPage() {
 															onDragOver={(e) => {
 																e.preventDefault();
 																e.dataTransfer.dropEffect = "move";
-																
+
+																// Hide indicator and do nothing when hovering within same set
+																if (draggingPageId) {
+																	const dragging = allPages.find(p => p.id === draggingPageId);
+																	const sourceSet = (dragging?.socialSetId || null) as string | null;
+																	const targetSet = id === "__unassigned__" ? null : id;
+																	if (sourceSet === targetSet) {
+																		try { e.dataTransfer.dropEffect = "none"; } catch { }
+																		setDragOverSetId(null);
+																		setDragOverIndex(null);
+																		return;
+																	}
+																}
+
 																const rect = e.currentTarget.getBoundingClientRect();
 																const mouseY = e.clientY;
 																const itemTop = rect.top;
 																const itemBottom = rect.bottom;
 																const itemHeight = itemBottom - itemTop;
 																const midpoint = itemTop + (itemHeight / 2);
-																
+
 																// Determine if cursor is in upper or lower half
 																if (mouseY < midpoint) {
 																	// Drop above this item
@@ -392,10 +480,22 @@ export default function SettingsSocialsPage() {
 																e.preventDefault();
 																const pageId = e.dataTransfer.getData("text/page-id");
 																if (pageId && pageId !== page.id) {
-																	handleReorderPages(id === "__unassigned__" ? null : id, pageId, dragOverIndex || pageIndex);
+																	// Disallow reordering within the same set; only cross-set moves
+																	const sourceSet = (allPages.find(p => p.id === pageId)?.socialSetId || null) as string | null;
+																	const targetSet = id === "__unassigned__" ? null : id;
+																	if (sourceSet === targetSet) {
+																		setDragOverSetId(null);
+																		setDragOverIndex(null);
+																		cleanupDragPreview();
+																		return;
+																	}
+																	// When moving across sets, dropping on an item means insert before that item
+																	const insertAt = dragOverIndex !== null ? dragOverIndex : 0;
+																	handleMoveOrReorder(targetSet, pageId, insertAt);
 																}
 																setDragOverSetId(null);
 																setDragOverIndex(null);
+																cleanupDragPreview();
 															}}
 														>
 															<ChannelIcons channels={[page.platform]} size={24} />
@@ -524,7 +624,7 @@ export default function SettingsSocialsPage() {
 				</DialogContent>
 			</Dialog>
 		</div>
-  );
+	);
 }
 
 
