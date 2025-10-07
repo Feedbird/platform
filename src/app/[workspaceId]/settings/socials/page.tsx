@@ -68,6 +68,9 @@ export default function SettingsSocialsPage() {
 	const [createName, setCreateName] = React.useState("");
 	const [isCreatingSet, setIsCreatingSet] = React.useState(false);
 	const [expandedSets, setExpandedSets] = React.useState<Record<string, boolean>>({});
+	const [editingSetId, setEditingSetId] = React.useState<string | null>(null);
+	const [draftSetName, setDraftSetName] = React.useState("");
+	const [savingRenameSetId, setSavingRenameSetId] = React.useState<string | null>(null);
 
 	// No explicit loading; rely on activeWorkspace.socialAccounts/socialPages
 
@@ -183,6 +186,62 @@ export default function SettingsSocialsPage() {
 		setExpandedSets((prev) => ({ ...prev, [id]: !prev[id] }));
 	}
 
+	function startEditingSet(id: string, currentName: string) {
+		if (!id || id === "__unassigned__") return; // do not rename special group
+		setEditingSetId(id);
+		setDraftSetName(currentName || "");
+	}
+
+	async function commitRenameSet() {
+		if (!editingSetId) return;
+		const nextName = (draftSetName || "").trim();
+		const original = (socialSets as any[]).find((s: any) => s.id === editingSetId);
+		const originalName = original?.name || "";
+		if (!nextName || nextName === originalName) {
+			setEditingSetId(null);
+			setDraftSetName("");
+			return;
+		}
+		try {
+			setSavingRenameSetId(editingSetId);
+			// optimistic update
+			useFeedbirdStore.setState((prev: any) => {
+				const wsList = prev.workspaces || [];
+				const updated = wsList.map((w: any) => {
+					if (w.id !== (activeWorkspace?.id || workspaceId)) return w;
+					const nextSets = (w.socialSets || []).map((s: any) => s.id === editingSetId ? { ...s, name: nextName } : s);
+					return { ...w, socialSets: nextSets };
+				});
+				return { workspaces: updated };
+			});
+
+			await socialSetApi.updateSocialSetName(editingSetId, nextName);
+			setEditingSetId(null);
+			setDraftSetName("");
+		} catch (e) {
+			// revert on failure
+			useFeedbirdStore.setState((prev: any) => {
+				const wsList = prev.workspaces || [];
+				const updated = wsList.map((w: any) => {
+					if (w.id !== (activeWorkspace?.id || workspaceId)) return w;
+					const nextSets = (w.socialSets || []).map((s: any) => s.id === editingSetId ? { ...s, name: originalName } : s);
+					return { ...w, socialSets: nextSets };
+				});
+				return { workspaces: updated };
+			});
+			console.error(e);
+			setEditingSetId(null);
+			setDraftSetName("");
+		} finally {
+			setSavingRenameSetId(null);
+		}
+	}
+
+	function cancelRenameSet() {
+		setEditingSetId(null);
+		setDraftSetName("");
+	}
+
 	async function handleMoveOrReorder(targetSetId: string | null, draggedPageId: string, targetIndex: number) {
 		if (!workspaceId) return;
 
@@ -293,9 +352,10 @@ export default function SettingsSocialsPage() {
 									{/* Set Header */}
 									<div
 										className={cn(
-											"flex items-center justify-between py-3 border-t border-elementStroke",
+											"flex items-center justify-between py-3 border-t border-elementStroke cursor-pointer",
 											dragOverSetId === id ? "bg-[#F8FAFF]" : undefined
 										)}
+										onClick={() => toggleSet(id)}
 										onDragOver={(e) => {
 											e.preventDefault();
 											try { e.dataTransfer.dropEffect = "move"; } catch { }
@@ -340,28 +400,49 @@ export default function SettingsSocialsPage() {
 										}}
 									>
 										<div className="flex items-center gap-3 min-w-0">
-												<div
-													className={[
-														"w-3.5 h-3.5 rotate-90 rounded-full",
-														[
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(238,_171,_94,_0.20)_0deg,_#EEAB5E_360deg)]",
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(99,_151,_246,_0.20)_0deg,_#6397F6_360deg)]",
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(154,_134,_255,_0.20)_0deg,_#9A86FF_360deg)]",
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(234,_121,_220,_0.20)_0deg,_#EA79DC_360deg)]",
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(242,_146,_87,_0.20)_0deg,_#F29257_360deg)]",
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(122,_212,_80,_0.20)_0deg,_#7AD450_360deg)]",
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(232,_78,_78,_0.20)_0deg,_#E84E4E_360deg)]",
-															"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(65,_207,_212,_0.20)_0deg,_#41CFD4_360deg)]",
-														][orderIndex % 8]
-													].join(' ')}
-												/>
-											<div className="text-sm text-darkGrey font-normal truncate">{name}</div>
+											<div
+												className={[
+													"w-3.5 h-3.5 rotate-90 rounded-full",
+													[
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(238,_171,_94,_0.20)_0deg,_#EEAB5E_360deg)]",
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(99,_151,_246,_0.20)_0deg,_#6397F6_360deg)]",
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(154,_134,_255,_0.20)_0deg,_#9A86FF_360deg)]",
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(234,_121,_220,_0.20)_0deg,_#EA79DC_360deg)]",
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(242,_146,_87,_0.20)_0deg,_#F29257_360deg)]",
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(122,_212,_80,_0.20)_0deg,_#7AD450_360deg)]",
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(232,_78,_78,_0.20)_0deg,_#E84E4E_360deg)]",
+														"bg-[conic-gradient(from_90deg_at_50.00%_50.00%,_rgba(65,_207,_212,_0.20)_0deg,_#41CFD4_360deg)]",
+													][orderIndex % 8]
+												].join(' ')}
+											/>
+											<div
+												className="text-sm text-darkGrey font-normal truncate"
+												onClick={(e) => { e.stopPropagation(); startEditingSet(id, name); }}
+											>
+												{editingSetId === id ? (
+													<input
+														autoFocus
+														value={draftSetName}
+														onChange={(e) => setDraftSetName(e.target.value)}
+														onBlur={(e) => { e.stopPropagation(); commitRenameSet(); }}
+														onKeyDown={(e) => {
+															if (e.key === "Enter") { e.preventDefault(); commitRenameSet(); }
+															if (e.key === "Escape") { e.preventDefault(); cancelRenameSet(); }
+														}}
+														disabled={savingRenameSetId === id}
+														className="w-full bg-white border border-elementStroke rounded px-2 py-1 text-sm font-medium text-black"
+														onClick={(e) => e.stopPropagation()}
+													/>
+												) : (
+													name
+												)}
+											</div>
 										</div>
 										<div className="flex items-center gap-2">
-											<div className="flex items-center gap-1 text-main text-sm font-medium cursor-pointer" onClick={() => setOpenDialog(true)}>
+											<div className="flex items-center gap-1 text-main text-sm font-medium cursor-pointer" onClick={(e) => { e.stopPropagation(); setOpenDialog(true); }}>
 												<Plus className="w-3.5 h-3.5" /> Add Social
 											</div>
-											<div className="cursor-pointer" onClick={() => toggleSet(id)}>
+											<div className="cursor-pointer">
 												{isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
 											</div>
 										</div>
