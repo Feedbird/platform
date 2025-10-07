@@ -147,6 +147,49 @@ function SocialSetBlock({
     [pages]
   );
 
+  // Group pages by platform (preserving original order)
+  const platformGroups = React.useMemo(() => {
+    const map = new Map<string, PageItem[]>();
+    for (const p of pages) {
+      const key = p.platform;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    }
+    return Array.from(map.entries());
+  }, [pages]);
+
+  // Track expanded state for multi-page platforms (default expanded)
+  const [platformExpanded, setPlatformExpanded] = React.useState<Record<string, boolean>>({});
+  React.useEffect(() => {
+    setPlatformExpanded((prev) => {
+      const next = { ...prev } as Record<string, boolean>;
+      for (const [platform, items] of platformGroups) {
+        if (items.length > 1 && next[platform] === undefined) {
+          next[platform] = true;
+        }
+      }
+      return next;
+    });
+  }, [platformGroups]);
+
+  // Refs for platform group icons (used to draw connectors from set → platform)
+  const platformIconRefs = React.useMemo(
+    () => platformGroups.map(([platform]) => ({ platform, ref: React.createRef<HTMLDivElement | null>() })),
+    [platformGroups]
+  );
+  const platformToRef = React.useMemo(() => {
+    const m = new Map<string, React.RefObject<HTMLDivElement | null>>();
+    for (const { platform, ref } of platformIconRefs) m.set(platform, ref);
+    return m;
+  }, [platformIconRefs]);
+
+  // Map page id → its icon ref
+  const pageIdToRef = React.useMemo(() => {
+    const m = new Map<string, React.RefObject<HTMLDivElement | null>>();
+    for (const { id, ref } of pageIconRefs) m.set(id, ref);
+    return m;
+  }, [pageIconRefs]);
+
   React.useEffect(() => {
     // Reset draft if external name changes
     setDraftName(setName);
@@ -275,9 +318,76 @@ function SocialSetBlock({
 
       {expanded && pages.length > 0 && (
         <>
-          {pages.map((page, idx) => {
+          {platformGroups.map(([platform, items]) => {
+            if (items.length > 1) {
+              const isOpen = !!platformExpanded[platform];
+              const anyActive = items.some((p) => pathname.includes(p.id));
+              return (
+                <React.Fragment key={platform}>
+                  <SidebarMenuItem className="pl-6">
+                    <button
+                      type="button"
+                      onClick={() => setPlatformExpanded((st) => ({ ...st, [platform]: !st[platform] }))}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]"
+                      )}
+                    >
+                      <div className="w-[18px] h-[18px] flex items-center justify-center" ref={platformToRef.get(platform) as any}>
+                        <Image
+                          src={`/images/platforms/${platform}.svg`}
+                          alt={platform}
+                          width={18}
+                          height={18}
+                        />
+                      </div>
+                      <span className={cn("font-medium truncate text-sm", anyActive ? "text-black" : "text-darkGrey")}>
+                        {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                      </span>
+                    </button>
+                  </SidebarMenuItem>
+
+                  {isOpen && items.map((page) => {
+                    const active = pathname.includes(page.id);
+                    const idx = pages.findIndex((p) => p.id === page.id);
+                    const iconRef = idx >= 0 ? pageIconRefs[idx]?.ref : undefined;
+                    return (
+                      <SidebarMenuItem key={page.id} className="pl-12">{/* nested indent */}
+                        <SidebarMenuButton
+                          asChild
+                          className={cn(
+                            active && "bg-[#D7E9FF]",
+                            "gap-[6px] p-[6px] text-black text-sm font-medium"
+                          )}
+                        >
+                          <Link
+                            href={activeWorkspace ? `/${activeWorkspace.id}/social/${page.id}` : `/social/${page.id}`}
+                            className="flex items-center gap-2 min-w-0 w-full"
+                          >
+                            <div ref={iconRef} className="w-[18px] h-[18px] flex items-center justify-center">
+                              <Image
+                                src={`/images/platforms/${page.platform}.svg`}
+                                alt={page.name}
+                                width={18}
+                                height={18}
+                              />
+                            </div>
+                            <span className={cn("font-medium truncate text-sm", active ? "text-black" : "text-darkGrey")}>
+                              {page.name}
+                            </span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            }
+
+            // Single item for this platform: render as a regular page row
+            const page = items[0];
             const active = pathname.includes(page.id);
-            const iconRef = pageIconRefs[idx]?.ref;
+            const idx = pages.findIndex((p) => p.id === page.id);
+            const iconRef = idx >= 0 ? pageIconRefs[idx]?.ref : undefined;
             return (
               <SidebarMenuItem key={page.id} className="pl-6">{/* 24px left indent */}
                 <SidebarMenuButton
@@ -307,11 +417,45 @@ function SocialSetBlock({
               </SidebarMenuItem>
             );
           })}
+
           <SetConnectorOverlay
             containerRef={containerRef}
             setIconRef={setIconRef}
-            pageIconRefs={pageIconRefs}
+            pageIconRefs={(() => {
+              const targets: Array<{ id: string; ref: React.RefObject<HTMLDivElement | null> }> = [];
+              for (const [platform, items] of platformGroups) {
+                if (items.length > 1) {
+                  const pref = platformToRef.get(platform);
+                  if (pref) targets.push({ id: `platform:${platform}`, ref: pref });
+                } else if (items.length === 1) {
+                  const p = items[0];
+                  const ref = pageIdToRef.get(p.id);
+                  if (ref) targets.push({ id: p.id, ref });
+                }
+              }
+              return targets;
+            })() as any}
           />
+
+          {platformGroups.map(([platform, items]) => {
+            if (items.length <= 1) return null;
+            const isOpen = !!platformExpanded[platform];
+            if (!isOpen) return null;
+            const pref = platformToRef.get(platform);
+            if (!pref) return null;
+            const childRefs = items
+              .map((p) => ({ id: p.id, ref: pageIdToRef.get(p.id)! }))
+              .filter((x) => !!x.ref);
+            if (!childRefs.length) return null;
+            return (
+              <SetConnectorOverlay
+                key={`overlay:${platform}`}
+                containerRef={containerRef}
+                setIconRef={pref as any}
+                pageIconRefs={childRefs as any}
+              />
+            );
+          })}
         </>
       )}
     </div>
