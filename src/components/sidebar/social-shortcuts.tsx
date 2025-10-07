@@ -154,7 +154,6 @@ function SocialSetBlock({
           )}
         >
           <div ref={setIconRef} className="w-3.5 h-3.5 flex items-center justify-center" aria-hidden>
-            {setId !== "__unassigned__" ? (
               <div
                 className={[
                   "w-3.5 h-3.5 rotate-90 rounded-full",
@@ -170,9 +169,6 @@ function SocialSetBlock({
                   ][orderIndex % 8],
                 ].join(' ')}
               />
-            ) : (
-              <Folder className="w-3.5 h-3.5 text-darkGrey" />
-            )}
           </div>
           <span className="flex-1 min-w-0 text-left text-sm font-medium text-black truncate">{setName}</span>
           <div className="ml-auto">
@@ -259,7 +255,7 @@ export default function SocialShortcuts() {
   });
   const unassigned = bySetId.get("__unassigned__");
   if (unassigned && unassigned.length) {
-    blocks.push({ id: "__unassigned__", name: "Unassigned", pages: unassigned, orderIndex: -1 });
+    blocks.push({ id: "__unassigned__", name: "Other Socials", pages: unassigned, orderIndex: blocks.length });
   }
 
   if (!blocks.length) return null;

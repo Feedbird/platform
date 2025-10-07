@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Plus, Search, AlertTriangle, Check, RefreshCw, Folder, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Plus, Search, AlertTriangle, Check, RefreshCw, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,15 +153,6 @@ export default function SettingsSocialsPage() {
 		}
 
 		const results: { id: string; name: string; pages: any[]; orderIndex: number }[] = [];
-		if (bySetId["__unassigned__"]) {
-			const unPages = bySetId["__unassigned__"];
-			const filtered = lower ? unPages.filter((p) => p.name.toLowerCase().includes(lower)) : unPages;
-			// Sort by orderIndex if available, otherwise maintain current order
-			const sorted = filtered.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-			if (sorted.length || !lower) {
-				results.push({ id: "__unassigned__", name: "Unassigned", pages: sorted, orderIndex: -1 });
-			}
-		}
 		let orderCounter = 0;
 		for (const set of socialSets) {
 			const sid = set.id;
@@ -174,6 +165,15 @@ export default function SettingsSocialsPage() {
 			if (sorted.length || !lower) {
 				results.push({ id: sid, name: set.name, pages: sorted, orderIndex: orderCounter });
 				orderCounter += 1;
+			}
+		}
+		// Append Unassigned (Other Socials) at the end
+		if (bySetId["__unassigned__"]) {
+			const unPages = bySetId["__unassigned__"];
+			const filtered = lower ? unPages.filter((p) => p.name.toLowerCase().includes(lower)) : unPages;
+			const sorted = filtered.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+			if (sorted.length || !lower) {
+				results.push({ id: "__unassigned__", name: "Other Socials", pages: sorted, orderIndex: orderCounter });
 			}
 		}
 		return results;
@@ -340,7 +340,6 @@ export default function SettingsSocialsPage() {
 										}}
 									>
 										<div className="flex items-center gap-3 min-w-0">
-											{(id !== "__unassigned__") ? (
 												<div
 													className={[
 														"w-3.5 h-3.5 rotate-90 rounded-full",
@@ -356,9 +355,6 @@ export default function SettingsSocialsPage() {
 														][orderIndex % 8]
 													].join(' ')}
 												/>
-											) : (
-												<Folder className="w-4 h-4 text-darkGrey" />
-											)}
 											<div className="text-sm text-darkGrey font-normal truncate">{name}</div>
 										</div>
 										<div className="flex items-center gap-2">
