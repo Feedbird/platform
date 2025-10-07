@@ -9,7 +9,7 @@ import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Folder } from "lucide-react";
-import { socialSetApi } from "@/lib/api/api-service";
+import { socialSetApi, socialPageApi } from "@/lib/api/api-service";
 
 /**
  * This component:
@@ -128,11 +128,25 @@ function SocialSetBlock({
   setName,
   pages,
   orderIndex,
+  draggingPageId,
+  isDragOver,
+  onPageDragStart,
+  onPageDragEnd,
+  onSetDragOver,
+  onSetDragLeave,
+  onSetDrop,
 }: {
   setId: string;
   setName: string;
   pages: PageItem[];
   orderIndex: number;
+  draggingPageId: string | null;
+  isDragOver: boolean;
+  onPageDragStart: (e: React.DragEvent, pageId: string) => void;
+  onPageDragEnd: () => void;
+  onSetDragOver: (e: React.DragEvent, setId: string) => void;
+  onSetDragLeave: (setId: string) => void;
+  onSetDrop: (e: React.DragEvent, setId: string) => void;
 }) {
   const pathname = usePathname();
   const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
@@ -264,8 +278,12 @@ function SocialSetBlock({
             if (isEditing) return;
             setExpanded((v) => !v);
           }}
+          onDragOver={(e) => onSetDragOver(e, setId)}
+          onDragLeave={() => onSetDragLeave(setId)}
+          onDrop={(e) => onSetDrop(e, setId)}
           className={cn(
-            "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]"
+            "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]",
+            isDragOver && draggingPageId ? "bg-[#F8FAFF]" : undefined
           )}
         >
           <div ref={setIconRef} className="w-3.5 h-3.5 flex items-center justify-center" aria-hidden>
@@ -329,8 +347,12 @@ function SocialSetBlock({
                       type="button"
                       onClick={() => setPlatformExpanded((st) => ({ ...st, [platform]: !st[platform] }))}
                       className={cn(
-                        "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]"
+                        "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]",
+                        isDragOver && draggingPageId ? "bg-[#F8FAFF]" : undefined
                       )}
+                      onDragOver={(e) => onSetDragOver(e, setId)}
+                      onDragLeave={() => onSetDragLeave(setId)}
+                      onDrop={(e) => onSetDrop(e, setId)}
                     >
                       <div className="w-[18px] h-[18px] flex items-center justify-center" ref={platformToRef.get(platform) as any}>
                         <Image
@@ -362,6 +384,12 @@ function SocialSetBlock({
                           <Link
                             href={activeWorkspace ? `/${activeWorkspace.id}/social/${page.id}` : `/social/${page.id}`}
                             className="flex items-center gap-2 min-w-0 w-full"
+                        draggable
+                        onDragStart={(e) => onPageDragStart(e, page.id)}
+                        onDragEnd={onPageDragEnd}
+                            onDragOver={(e) => onSetDragOver(e, setId)}
+                            onDragLeave={() => onSetDragLeave(setId)}
+                            onDrop={(e) => onSetDrop(e, setId)}
                           >
                             <div ref={iconRef} className="w-[18px] h-[18px] flex items-center justify-center">
                               <Image
@@ -400,6 +428,12 @@ function SocialSetBlock({
                   <Link
                     href={activeWorkspace ? `/${activeWorkspace.id}/social/${page.id}` : `/social/${page.id}`}
                     className="flex items-center gap-2 min-w-0 w-full"
+                    draggable
+                    onDragStart={(e) => onPageDragStart(e, page.id)}
+                    onDragEnd={onPageDragEnd}
+                    onDragOver={(e) => onSetDragOver(e, setId)}
+                    onDragLeave={() => onSetDragLeave(setId)}
+                    onDrop={(e) => onSetDrop(e, setId)}
                   >
                     <div ref={iconRef} className="w-[18px] h-[18px] flex items-center justify-center">
                       <Image
@@ -465,6 +499,8 @@ function SocialSetBlock({
 export default function SocialShortcuts() {
   const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const [isClient, setIsClient] = React.useState(false);
+  const [draggingPageId, setDraggingPageId] = React.useState<string | null>(null);
+  const [dragOverSetId, setDragOverSetId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -473,7 +509,7 @@ export default function SocialShortcuts() {
   const allPages: PageItem[] = (workspace?.socialPages || []).filter((p: any) => p.connected) as any;
   const socialSets: { id: string; name: string }[] = (workspace as any)?.socialSets || [];
 
-  if (!isClient) return null;
+  // Do not early-return here; hooks below must run consistently across renders
 
   // Group pages by social set id
   const bySetId = new Map<string, PageItem[]>();
@@ -494,13 +530,109 @@ export default function SocialShortcuts() {
     blocks.push({ id: "__unassigned__", name: "Other Socials", pages: unassigned, orderIndex: blocks.length });
   }
 
-  if (!blocks.length) return null;
+  // Avoid early return before hooks; we'll conditionally render at the end
 
-  return (
+  const handlePageDragStart = React.useCallback((e: React.DragEvent, pageId: string) => {
+    try { e.dataTransfer.setData("text/page-id", pageId); } catch {}
+    try { e.dataTransfer.effectAllowed = "move"; } catch {}
+    setDraggingPageId(pageId);
+  }, []);
+
+  const handlePageDragEnd = React.useCallback(() => {
+    setDraggingPageId(null);
+    setDragOverSetId(null);
+  }, []);
+
+  const handleSetDragOver = React.useCallback((e: React.DragEvent, targetSetId: string) => {
+    e.preventDefault();
+    if (!draggingPageId) return;
+    const page = ((workspace?.socialPages as any[]) || []).find((p: any) => p.id === draggingPageId);
+    const sourceSet = (page?.socialSetId || "__unassigned__") as string;
+    const normalizedTarget = targetSetId || "__unassigned__";
+    if (sourceSet === normalizedTarget) {
+      try { e.dataTransfer.dropEffect = "none"; } catch {}
+      setDragOverSetId(null);
+      return;
+    }
+    try { e.dataTransfer.dropEffect = "move"; } catch {}
+    setDragOverSetId(targetSetId);
+  }, [draggingPageId, workspace?.socialPages]);
+
+  const handleSetDragLeave = React.useCallback((setId: string) => {
+    setDragOverSetId((curr) => (curr === setId ? null : curr));
+  }, []);
+
+  const movePageToSet = React.useCallback(async (targetSetId: string | null, pageId: string) => {
+    const wsId = workspace?.id;
+    const pages = ((workspace?.socialPages as any[]) || []) as any[];
+    const dragged = pages.find((p) => p.id === pageId);
+    if (!wsId || !dragged) return;
+    const sourceSetId = (dragged.socialSetId || null) as string | null;
+    if (sourceSetId === targetSetId) return;
+
+    // optimistic update
+    const prev = useFeedbirdStore.getState();
+    const prevWorkspaces = prev.workspaces;
+    const prevWorkspaceIdx = prevWorkspaces.findIndex((w: any) => w.id === wsId);
+    const prevWorkspace = prevWorkspaces[prevWorkspaceIdx];
+    const prevPages = ((prevWorkspace?.socialPages as any[]) || []).map((p: any) => ({ ...p }));
+
+    useFeedbirdStore.setState((st: any) => {
+      const workspaces = (st.workspaces || []).map((w: any) => {
+        if (w.id !== wsId) return w;
+        const nextPages = (w.socialPages || []).map((p: any) =>
+          p.id === pageId ? { ...p, socialSetId: targetSetId } : p
+        );
+        return { ...w, socialPages: nextPages };
+      });
+      return { workspaces };
+    });
+
+    try {
+      await socialPageApi.moveToSet(pageId, targetSetId);
+    } catch (err) {
+      console.error("Failed to move page to set", err);
+      // revert
+      useFeedbirdStore.setState((st: any) => {
+        const workspaces = (st.workspaces || []).map((w: any) => {
+          if (w.id !== wsId) return w;
+          return { ...w, socialPages: prevPages };
+        });
+        return { workspaces };
+      });
+    }
+  }, [workspace?.id, workspace?.socialPages]);
+
+  const handleSetDrop = React.useCallback((e: React.DragEvent, targetSetId: string) => {
+    e.preventDefault();
+    const pageId = (() => { try { return e.dataTransfer.getData("text/page-id"); } catch { return draggingPageId || ""; } })();
+    if (!pageId) return;
+    const t = targetSetId === "__unassigned__" ? null : targetSetId;
+    movePageToSet(t, pageId);
+    setDragOverSetId(null);
+    setDraggingPageId(null);
+  }, [draggingPageId, movePageToSet]);
+
+  const shouldRender = isClient && blocks.length > 0;
+
+  return shouldRender ? (
     <div className="relative">
       {blocks.map((b) => (
-        <SocialSetBlock key={b.id} setId={b.id} setName={b.name} pages={b.pages} orderIndex={b.orderIndex} />
+        <SocialSetBlock
+          key={b.id}
+          setId={b.id}
+          setName={b.name}
+          pages={b.pages}
+          orderIndex={b.orderIndex}
+          draggingPageId={draggingPageId}
+          isDragOver={dragOverSetId === b.id}
+          onPageDragStart={handlePageDragStart}
+          onPageDragEnd={handlePageDragEnd}
+          onSetDragOver={handleSetDragOver}
+          onSetDragLeave={handleSetDragLeave}
+          onSetDrop={handleSetDrop}
+        />
       ))}
     </div>
-  );
+  ) : null;
 }
