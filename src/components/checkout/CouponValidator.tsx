@@ -43,7 +43,7 @@ export default function CouponValidator({}: Props) {
         validatedCoupon ? (
           <div className="pt-4">
             <div className="flex gap-2 items-center">
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-center">
                 <CheckIcon color="#03985C" width={16} height={16} />
                 <span className="text-[#03985C] text-sm font-normal">
                   Coupon code applied:
