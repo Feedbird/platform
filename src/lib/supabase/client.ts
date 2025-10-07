@@ -60,8 +60,8 @@ export interface Workspace {
   boards?: Board[];
   default_board_rules?: Record<string, any>;
   timezone?: string;
-  week_start?: 'monday' | 'sunday';
-  time_format?: '24h' | '12h';
+  week_start?: "monday" | "sunday";
+  time_format?: "24h" | "12h";
   allowed_posting_time?: Record<string, any>;
 }
 
@@ -223,6 +223,7 @@ export interface ServiceFolder {
   name: string;
   description: string | null;
   workspace_id: string;
+  order: number;
   services?: Service[];
 }
 

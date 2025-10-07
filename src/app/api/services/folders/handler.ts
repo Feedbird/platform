@@ -2,13 +2,14 @@ import { supabase } from "@/lib/supabase/client";
 import { ApiHandlerError } from "../../shared";
 
 export class ServiceFolderHandler {
-  static async getAll() {
+  static async getAll(workspaceId: string) {
     try {
       const { data, error } = await supabase
         .from("service_folders")
         .select(
           "*, services(*, service_plans(*), channels:service_channels(*))"
-        );
+        )
+        .eq("workspace_id", workspaceId);
 
       if (error) {
         throw new ApiHandlerError("Database error: " + error.message);

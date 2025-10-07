@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { servicesApi } from "@/lib/api/api-service";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { ServiceFolder } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
 import { AccordionItem } from "@radix-ui/react-accordion";
@@ -27,6 +29,7 @@ import { toast } from "sonner";
 export default function Checkout() {
   // TODO Ensure that If uses goes to login, they are redirected back to checkout
   const router = useRouter();
+  const { activeWorkspaceId } = useFeedbirdStore();
   const [serviceFolders, setServiceFolders] = React.useState<ServiceFolder[]>(
     []
   );
@@ -40,15 +43,12 @@ export default function Checkout() {
   React.useEffect(() => {
     const fetchServiceFolders = async () => {
       setLoading(true);
-      // TODO ENHANCE TO USE API structure
+      // TODO How to handle this if no workspace is active?
       try {
-        const response = await fetch("/api/services/folders");
-        if (!response.ok) {
-          toast.error("Failed to fetch service folders");
-          return;
-        }
-        const data = await response.json();
-        setServiceFolders(data.data);
+        const data = await servicesApi.fetchServiceFolders(
+          activeWorkspaceId ?? "09a4b9f1-f1da-45e8-a4a2-59c2b7ea2335"
+        );
+        setServiceFolders(data);
       } catch (error) {
         toast.error("An error occurred while fetching service folders");
       } finally {
@@ -75,7 +75,7 @@ export default function Checkout() {
       }
     });
     setTotal(total);
-  }, [selectedPlans.size]);
+  }, [selectedPlans]);
 
   return (
     <main className="min-h-screen overflow-auto bg-[#F7F7F8]">
@@ -215,17 +215,39 @@ export default function Checkout() {
                           <h3 className="text-base font-medium text-[#1C1D1F]">
                             {service.name}
                           </h3>
-                          <div className="flex flex-row justify-between text-sm">
-                            <div className="flex flex-col font-normal">
-                              <span className="text-[#1C1D1F]">
-                                {container.plan.quantity}{" "}
-                                {container.plan.qty_indicator}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex flex-row justify-between text-sm">
+                              <div className="flex flex-col font-normal">
+                                <span className="text-[#1C1D1F]">
+                                  {container.plan.quantity}{" "}
+                                  {container.plan.qty_indicator}
+                                </span>
+                              </div>
+
+                              <span className="text-sm font-medium text-[#1C1D1F]">
+                                USD ${container.plan.price}/
+                                {mapPeriodicity(container.plan.period)}
                               </span>
                             </div>
-                            <span className="text-sm font-medium text-[#1C1D1F]">
-                              USD ${container.plan.price}/
-                              {mapPeriodicity(container.plan.period)}
-                            </span>
+                            {container.channels &&
+                              container.channels.map((channel, idx) => (
+                                <div
+                                  className="w-full flex justify-between text-xs"
+                                  key={channel.id}
+                                >
+                                  <span>
+                                    {channel.social_channel
+                                      .slice(0, 1)
+                                      .toLocaleUpperCase() +
+                                      channel.social_channel.slice(1)}
+                                  </span>
+                                  <p>
+                                    {idx === 0
+                                      ? "FREE"
+                                      : `USD $${channel.pricing}/${mapPeriodicity(container.plan.period)}`}
+                                  </p>
+                                </div>
+                              ))}
                           </div>
                           <span
                             className="cursor-pointer text-xs font-normal text-[#5C5E63] underline"
