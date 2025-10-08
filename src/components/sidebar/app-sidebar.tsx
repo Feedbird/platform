@@ -88,18 +88,11 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
     href: workspaceId ? `/${workspaceId}/approvals` : "/approvals",
   },
   {
-    id: "forms",
-    label: "Forms",
+    id: "admin",
+    label: "Admin",
     image: "/images/sidebar/forms.svg",
-    selectedImage: "/images/sidebar/forms-active.svg",
-    href: "/forms",
+    href: workspaceId ? `/${workspaceId}/admin` : "/admin",
   },
-  // {
-  //   id: "brands",
-  //   label: "Brands",
-  //   image: "/images/sidebar/brands.svg",
-  //   href: "/brands",
-  // },
   {
     id: "analytics",
     label: "Analytics",
@@ -113,27 +106,6 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
   //   image: "/images/sidebar/settings.svg",
   //   href: "/settings",
   // },
-];
-
-const getDefaultBoardNav = (workspaceId?: string): NavLink[] => [
-  {
-    id: "static-posts",
-    label: "Static Posts",
-    image: "/images/boards/static-posts.svg",
-    href: workspaceId ? `/${workspaceId}/content/static-posts` : "/content/static-posts",
-  },
-  {
-    id: "short-form-videos",
-    label: "Short-Form Videos",
-    image: "/images/boards/short-form-videos.svg",
-    href: workspaceId ? `/${workspaceId}/content/short-form-videos` : "/content/short-form-videos",
-  },
-  {
-    id: "email-design",
-    label: "Email Design",
-    image: "/images/boards/email-design.svg",
-    href: workspaceId ? `/${workspaceId}/content/email-design` : "/content/email-design",
-  },
 ];
 
 /* --------------------------------------------------------------------- */
@@ -297,12 +269,19 @@ export const RenderNavItems = React.memo(function RenderNavItems({
     <TooltipProvider delayDuration={0}>
       <SidebarMenu>
         {items.map((nav) => {
-          const active = nav.href && (
-            // For workspace-scoped routes, check if the pathname contains the route
-            nav.href.includes('/content/') ? pathname.includes(nav.href.split('/').pop() || '') :
+          let active = false;
+          if (nav.href) {
+            if (nav.id === 'admin-home') {
+              // Admin Home should only be active on exact workspace root
+              active = pathname === nav.href;
+            } else if (nav.href.includes('/content/')) {
+              // For content routes, check if the pathname contains the board route segment
+              active = pathname.includes(nav.href.split('/').pop() || '');
+            } else {
               // For other routes, check if pathname starts with the href
-              pathname.startsWith(nav.href)
-          );
+              active = pathname.startsWith(nav.href);
+            }
+          }
 
           /* ----------------------------------------------------------- */
           /*  GET BOARD DATA FOR COLOR STYLING                           */
@@ -744,6 +723,34 @@ export function AppSidebar() {
                 items={[
                   { id: 'acc-profile', label: 'Profile', image: '/images/settings/profile.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/profile` : '/settings/profile' },
                   { id: 'acc-notifications', label: 'Notifications', image: '/images/settings/notifications.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/notifications` : '/settings/notifications' },
+                ]}
+              />
+            </SidebarGroup>
+          </>
+        ) : pathname.includes('/admin') ? (
+          <>
+            <SidebarGroup>
+              <RenderNavItems
+                items={[
+                  { id: 'admin-home', label: 'Home', image: '/images/sidebar/home.svg', href: activeWorkspace ? `/${activeWorkspace.id}` : '/' },
+                  { id: 'admin-clients', label: 'Clients', image: '/images/sidebar/clients.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/clients` : '/admin/clients' },
+                  { id: 'admin-team', label: 'Team', image: '/images/sidebar/team.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/team` : '/admin/team' },
+                ]}
+              />
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>
+                <span className="text-xs font-medium text-[#75777C] tracking-wide">TOOLS & AUTOMATIONS</span>
+              </SidebarGroupLabel>
+              <RenderNavItems
+                items={[
+                  { id: 'admin-inbox', label: 'Inbox', image: '/images/sidebar/messages.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/inbox` : '/admin/inbox' },
+                  { id: 'admin-services', label: 'Services', image: '/images/sidebar/services.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/services` : '/admin/services' },
+                  { id: 'admin-forms', label: 'Forms', image: '/images/sidebar/forms.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/forms` : '/admin/forms' },
+                  { id: 'admin-automations', label: 'Automations', image: '/images/sidebar/automations.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/automations` : '/admin/automations' },
+                  { id: 'admin-files', label: 'Files', image: '/images/sidebar/files.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/files` : '/admin/files' },
+                  { id: 'admin-settings', label: 'Settings', image: '/images/sidebar/settings.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/settings` : '/admin/settings' },
                 ]}
               />
             </SidebarGroup>
