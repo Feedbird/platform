@@ -523,7 +523,7 @@ export default function SocialShortcuts() {
   const blocks: { id: string; name: string; pages: PageItem[]; orderIndex: number }[] = [];
   socialSets.forEach((s, idx) => {
     const pages = bySetId.get(s.id) || [];
-    if (pages.length) blocks.push({ id: s.id, name: s.name, pages, orderIndex: idx });
+    blocks.push({ id: s.id, name: s.name, pages, orderIndex: idx });
   });
   const unassigned = bySetId.get("__unassigned__");
   if (unassigned && unassigned.length) {
@@ -613,7 +613,7 @@ export default function SocialShortcuts() {
     setDraggingPageId(null);
   }, [draggingPageId, movePageToSet]);
 
-  const shouldRender = isClient && blocks.length > 0;
+  const shouldRender = isClient;
 
   return shouldRender ? (
     <div className="relative">
