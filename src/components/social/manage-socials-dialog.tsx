@@ -45,18 +45,18 @@ const PLATFORM_CONNECT_OPTIONS = {
 };
 
 export function ManageSocialsDialog(props: {
-  workspaceId: string; open: boolean; onOpenChange(o: boolean): void;
+  workspaceId: string; open: boolean; onOpenChange(o: boolean): void; targetSetId?: string | null;
 }) {
-  const { workspaceId, open, onOpenChange } = props;
+  const { workspaceId, open, onOpenChange, targetSetId } = props;
   const { executeWithLoading, isLoading } = useAsyncLoading();
 
   const ws = useFeedbirdStore(s => s.getActiveWorkspace());
 
-  const connectAccount    = useFeedbirdStore(s => s.connectSocialAccount);
-  const stagePages        = useFeedbirdStore(s => s.stageSocialPages);
-  const confirmPage       = useFeedbirdStore(s => s.confirmSocialPage);
-  const disconnectPage    = useFeedbirdStore(s => s.disconnectSocialPage);
-  const checkPageStatus   = useFeedbirdStore(s => s.checkPageStatus);
+  const connectAccount = useFeedbirdStore(s => s.connectSocialAccount);
+  const stagePages = useFeedbirdStore(s => s.stageSocialPages);
+  const confirmPage = useFeedbirdStore(s => s.confirmSocialPage);
+  const disconnectPage = useFeedbirdStore(s => s.disconnectSocialPage);
+  const checkPageStatus = useFeedbirdStore(s => s.checkPageStatus);
   const handleOAuthSuccess = useFeedbirdStore(s => s.handleOAuthSuccess);
 
   const [activePlatform, setActivePlatform] = useState<Platform>("facebook");
@@ -66,16 +66,16 @@ export function ManageSocialsDialog(props: {
   useEffect(() => {
     function handler(e: MessageEvent) {
       if (e.origin !== window.location.origin) return;
-      
+
       if (e.data?.error) {
         toast.error("Authentication failed", { description: e.data.error });
         setConnectingPlatform(null);
         return;
       }
-      
+
       if (e.data?.success) {
         const { workspaceId } = e.data;
-        
+
         executeWithLoading(async () => {
           // Load fresh data from database
           await handleOAuthSuccess(workspaceId);
@@ -88,7 +88,7 @@ export function ManageSocialsDialog(props: {
         });
       }
     }
-    
+
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, [workspaceId, handleOAuthSuccess, executeWithLoading, connectingPlatform]);
@@ -100,18 +100,18 @@ export function ManageSocialsDialog(props: {
 
     if (connectingPlatform) {
       const w = 600, h = 700;
-      const left = window.screenX + (window.outerWidth  - w) / 2;
-      const top  = window.screenY + (window.outerHeight - h) / 2;
-      
+      const left = window.screenX + (window.outerWidth - w) / 2;
+      const top = window.screenY + (window.outerHeight - h) / 2;
+
       // Include workspaceId and connection method in the URL
       const connectionMethod = sessionStorage.getItem('instagram_connection_method');
-      const url = connectionMethod 
+      const url = connectionMethod
         ? `/api/oauth/${connectingPlatform}?workspaceId=${workspaceId}&method=${connectionMethod}`
         : `/api/oauth/${connectingPlatform}?workspaceId=${workspaceId}`;
-      
+
       popup = window.open(
-        url, 
-        "_blank", 
+        url,
+        "_blank",
         `width=${w},height=${h},left=${left},top=${top}`
       );
 
@@ -144,30 +144,50 @@ export function ManageSocialsDialog(props: {
     pageId: string,
     messages: { loading: string; success: string; error: string }
   ) => () => {
-   return executeWithLoading(() => apiCall(workspaceId, pageId), messages);
+    return executeWithLoading(() => apiCall(workspaceId, pageId), messages);
   }
 
-  const handleConfirmPage = (pageId: string) =>
-   createApiHandler(confirmPage, pageId, {
-     loading: "Connecting page...",
-     success: "Page connected successfully!",
-     error: "Failed to connect page."
-   });
+  const handleConfirmPage = (pageId: string) => async () => {
+    await executeWithLoading(() => confirmPage(workspaceId, pageId), {
+      loading: "Connecting page...",
+      success: "Page connected successfully!",
+      error: "Failed to connect page."
+    });
+
+    // If this dialog was opened from a specific set, assign the new page to that set
+    if (typeof targetSetId !== "undefined") {
+      try {
+        const { socialPageApi } = await import("@/lib/api/api-service");
+        // Optimistic local update
+        useFeedbirdStore.setState((prev: any) => ({
+          workspaces: (prev.workspaces || []).map((w: any) => ({
+            ...w,
+            socialPages: (w.socialPages || []).map((p: any) => p.id === pageId ? { ...p, socialSetId: targetSetId ?? null } : p)
+          }))
+        }));
+        await socialPageApi.moveToSet(pageId, targetSetId ?? null);
+      } catch (err) {
+        // On failure, reload socials to ensure consistency
+        try { await useFeedbirdStore.getState().loadSocialAccounts(workspaceId); } catch { }
+        console.error("Failed to assign page to set:", err);
+      }
+    }
+  };
 
   const handleDisconnectPage = (pageId: string) =>
-   createApiHandler(disconnectPage, pageId, {
-     loading: "Disconnecting page...",
-     success: "Page disconnected successfully!",
-     error: "Failed to disconnect page."
-   });
+    createApiHandler(disconnectPage, pageId, {
+      loading: "Disconnecting page...",
+      success: "Page disconnected successfully!",
+      error: "Failed to disconnect page."
+    });
 
   const handleCheckPageStatus = (pageId: string) =>
-   createApiHandler(checkPageStatus, pageId, {
-     loading: "Checking page status...",
-     success: "Page status updated.",
-     error: "Failed to check page status."
-   });
-   
+    createApiHandler(checkPageStatus, pageId, {
+      loading: "Checking page status...",
+      success: "Page status updated.",
+      error: "Failed to check page status."
+    });
+
   if (!ws) return null;
 
   const pages = ws.socialPages || [];
@@ -180,7 +200,7 @@ export function ManageSocialsDialog(props: {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("max-w-none sm:max-w-none flex flex-col p-0 pb-5", "gap-0 rounded-[12px] bg-white")}
-                     style={{ width : "584px", height: "auto" }}>
+        style={{ width: "584px", height: "auto" }}>
 
         <DialogTitle className="sr-only">Connect Social Accounts</DialogTitle>
         <DialogHeader className="px-5 pt-5 mb-4 text-center">
@@ -195,15 +215,15 @@ export function ManageSocialsDialog(props: {
               disabled={isLoading}
               className={cn(
                 "w-full flex flex-col items-center text-xs px-4 py-3 rounded-[6px] transition-all cursor-pointer",
-                p === activePlatform 
-                  ? "bg-[#EDF6FF] text-blue-600 border border-feedbird" 
+                p === activePlatform
+                  ? "bg-[#EDF6FF] text-blue-600 border border-feedbird"
                   : "border border-elementStroke"
               )}>
               <ChannelIcons channels={[p]} size={24} />
             </button>
           ))}
         </div>
-        
+
         {/* ——— Scroll area ——— */}
         <div className="flex-1 overflow-auto py-6 bg-[#FBFBFB] px-5">
           {/* ——— Connect Options ——— */}
@@ -214,26 +234,26 @@ export function ManageSocialsDialog(props: {
                   key={idx}
                   className="flex flex-col gap-3 items-center justify-center px-4 py-6 rounded-[6px] border border-feedbird w-full"
                 >
-                 <ChannelIcons channels={[activePlatform]} size={32} />
-                 <span className="text-base font-semibold text-black text-center">{option.title}</span>
-                 <Button
-                   onClick={() => openPopup(activePlatform, option.method)}
-                   disabled={isLoading || !!connectingPlatform}
-                   size="sm"
-                   className="w-[150px] p-2 rounded-[6px] bg-white hover:bg-white cursor-pointer"
-                   style={{
-                     boxShadow: "0px 0px 0px 1px rgba(33, 33, 38, 0.05), 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04), 0px 24px 68px 0px rgba(47, 48, 55, 0.05), 0px 2px 3px 0px rgba(0, 0, 0, 0.04)"
-                   }}
-                 >
-                   {connectingPlatform === activePlatform ? "Waiting..." : "+Connect"}
-                 </Button>
+                  <ChannelIcons channels={[activePlatform]} size={32} />
+                  <span className="text-base font-semibold text-black text-center">{option.title}</span>
+                  <Button
+                    onClick={() => openPopup(activePlatform, option.method)}
+                    disabled={isLoading || !!connectingPlatform}
+                    size="sm"
+                    className="w-[150px] p-2 rounded-[6px] bg-white hover:bg-white cursor-pointer"
+                    style={{
+                      boxShadow: "0px 0px 0px 1px rgba(33, 33, 38, 0.05), 0px 1px 1px 0px rgba(0, 0, 0, 0.05), 0px 4px 6px 0px rgba(34, 42, 53, 0.04), 0px 24px 68px 0px rgba(47, 48, 55, 0.05), 0px 2px 3px 0px rgba(0, 0, 0, 0.04)"
+                    }}
+                  >
+                    {connectingPlatform === activePlatform ? "Waiting..." : "+Connect"}
+                  </Button>
                 </div>
               ))}
             </div>
           </section>
-          
+
           <div className="h-px bg-[#E6E4E2] my-6" />
-          
+
           <div className="max-h-[300px] overflow-y-auto pr-2 -mr-2">
             {/* ——— Available Pages ——— */}
             {pending.length > 0 && (
@@ -241,48 +261,48 @@ export function ManageSocialsDialog(props: {
                 <h3 className="text-sm font-medium mb-3">AVAILABLE SOCIALS</h3>
                 <div className="flex flex-col gap-2">
                   {pending.map(pg => (
-                    <div key={pg.id} 
+                    <div key={pg.id}
                       className={cn(
                         "flex items-center gap-3 px-4 py-4.5 rounded-[6px] border bg-white",
-                        pg.status === "expired" ? "border-[#F19525]" : 
-                        pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" :
-                        "border-[#E6E4E2]"
+                        pg.status === "expired" ? "border-[#F19525]" :
+                          pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" :
+                            "border-[#E6E4E2]"
                       )}>
                       <ChannelIcons channels={[pg.platform]} size={24} />
                       <div className="flex-1 gap-1 w-auto">
                         <div className="font-semibold text-black text-sm">{pg.name}</div>
                         <div className="flex text-sm font-normal gap-2">
-                         <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
-                         <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
+                          <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
+                          <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 justify-end">
                         {pg.status === "expired" ? (
                           <div
                             onClick={() => openPopup(pg.platform, pg.platform === 'instagram' ? 'instagram_facebook' : undefined)}
-                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#F19525] font-medium rounded-[4px] px-1 py-0.5 bg-[#FFEED8] border border-[#1C1D1F0D] cursor-pointer", 
+                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#F19525] font-medium rounded-[4px] px-1 py-0.5 bg-[#FFEED8] border border-[#1C1D1F0D] cursor-pointer",
                               isLoading && "opacity-50 cursor-not-allowed")}
                           >
                             <RefreshCw className="w-2.5 h-2.5" />
                             RE-AUTHENTICATE
                           </div>
                         ) : pg.status === "disconnected" ? (
-                           <div
-                             onClick={handleCheckPageStatus(pg.id)}
-                             className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#EC5050] font-medium rounded-[4px] px-1 py-0.5 bg-[#FDE3E3] border border-[#1C1D1F0D] cursor-pointer", 
-                               isLoading && "opacity-50 cursor-not-allowed")}
-                           >
+                          <div
+                            onClick={handleCheckPageStatus(pg.id)}
+                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#EC5050] font-medium rounded-[4px] px-1 py-0.5 bg-[#FDE3E3] border border-[#1C1D1F0D] cursor-pointer",
+                              isLoading && "opacity-50 cursor-not-allowed")}
+                          >
                             <AlertTriangle className="w-2.5 h-2.5" />
                             ERROR
-                           </div>
+                          </div>
                         ) : (
                           <div
                             onClick={handleConfirmPage(pg.id)}
-                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#129E62] font-medium rounded-[4px] px-1 py-0.5 bg-[#DDF9E4] border border-[#1C1D1F0D] cursor-pointer", 
+                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#129E62] font-medium rounded-[4px] px-1 py-0.5 bg-[#DDF9E4] border border-[#1C1D1F0D] cursor-pointer",
                               isLoading && "opacity-50 cursor-not-allowed")}
                           >
-                           <Link className="w-2.5 h-2.5" />
-                           CONNECT
+                            <Link className="w-2.5 h-2.5" />
+                            CONNECT
                           </div>
                         )}
                       </div>
@@ -298,7 +318,7 @@ export function ManageSocialsDialog(props: {
               {connected.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {connected.map(pg => (
-                    <div key={pg.id} 
+                    <div key={pg.id}
                       className={cn(
                         "flex items-center gap-3 px-4 py-4.5 rounded-[6px] border bg-white",
                         pg.status === "expired" || pg.status === "disconnected" ? "border-[#EC5050] bg-[#EC50501A]" : "border-[#E6E4E2]"
@@ -307,15 +327,15 @@ export function ManageSocialsDialog(props: {
                       <div className="flex-1 gap-1 w-auto">
                         <div className="font-semibold text-black text-sm">{pg.name}</div>
                         <div className="flex text-sm font-normal gap-2">
-                         <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
-                         <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
+                          <span className="text-[#5C5E63] first-letter:uppercase">{pg.platform}</span>
+                          <span className="text-[#999B9E]">{format(new Date(), "d MMM, yyyy, HH:mm")}</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-end gap-3">
                         {pg.status === "expired" || pg.status === "disconnected" ? (
                           <div
                             onClick={handleCheckPageStatus(pg.id)}
-                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#F19525] font-medium rounded-[4px] px-1 py-0.5 bg-[#FFEED8] border border-[#1C1D1F0D] cursor-pointer", 
+                            className={cn("flex items-center justify-end gap-0.5 text-[10px] text-[#F19525] font-medium rounded-[4px] px-1 py-0.5 bg-[#FFEED8] border border-[#1C1D1F0D] cursor-pointer",
                               isLoading && "opacity-50 cursor-not-allowed")}
                           >
                             <RefreshCw className="w-2.5 h-2.5" />
@@ -325,7 +345,7 @@ export function ManageSocialsDialog(props: {
                           <div className="flex items-center justify-end gap-0.5 text-[10px] text-[#129E62] font-medium rounded-[4px] px-1 py-0.5 bg-[#DDF9E4] border border-[#1C1D1F0D]">
                             <Check className="w-2.5 h-2.5" />
                             ACTIVE
-                          </div>                           
+                          </div>
                         )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -355,23 +375,23 @@ export function ManageSocialsDialog(props: {
             </section>
           </div>
         </div>
-        
+
         {/* Privacy Policy and Terms Agreement */}
         <div className="px-5 pt-4 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center leading-relaxed">
             By connecting your social accounts, you agree to our{" "}
-            <a 
-              href="https://feedbird.com/privacy-policy" 
-              target="_blank" 
+            <a
+              href="https://feedbird.com/privacy-policy"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline"
             >
               Privacy Policy
             </a>{" "}
             and{" "}
-            <a 
-              href="https://feedbird.com/terms-conditions" 
-              target="_blank" 
+            <a
+              href="https://feedbird.com/terms-conditions"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline"
             >
@@ -385,8 +405,8 @@ export function ManageSocialsDialog(props: {
 }
 
 /* Helpers */
-function Checkmark(props:React.SVGProps<SVGSVGElement>) {
+function Checkmark(props: React.SVGProps<SVGSVGElement>) {
   return <svg width="18" height="18" {...props} fill="currentColor" viewBox="0 0 16 16">
-    <path d="M13.4853 2.51472c-.21-.21-.573-.21-.784 0L6 9.21647 3.29817 6.51472c-.21-.21-.574-.21-.784 0s-.21.574 0 .784l3.13175 3.13174c.19526.1953.51184.1953.7071 0L13.4853 3.29818c.21-.21.21-.573 0-.78346z"/>
+    <path d="M13.4853 2.51472c-.21-.21-.573-.21-.784 0L6 9.21647 3.29817 6.51472c-.21-.21-.574-.21-.784 0s-.21.574 0 .784l3.13175 3.13174c.19526.1953.51184.1953.7071 0L13.4853 3.29818c.21-.21.21-.573 0-.78346z" />
   </svg>;
 }

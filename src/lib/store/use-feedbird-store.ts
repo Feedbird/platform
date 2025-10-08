@@ -1462,6 +1462,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                 connected: page.connected,
                 status: page.status,
                 accountId: acc.id, // Link to the account
+                socialSetId: page.social_set_id ?? null,
                 statusUpdatedAt: page.status_updated_at ? new Date(page.status_updated_at) : undefined,
                 lastSyncAt: page.last_sync_at ? new Date(page.last_sync_at) : undefined,
                 followerCount: page.follower_count,
@@ -1481,7 +1482,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
                   connected: acc.connected,
                   status: acc.status,
                   metadata: acc.metadata,
-                  socialPages: acc.social_pages || []
+                socialPages: acc.social_pages || []
                 })),
                 socialPages: allPages,
                 brand: ws.brand

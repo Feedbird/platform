@@ -63,6 +63,7 @@ export default function SettingsSocialsPage() {
 
 	const [search, setSearch] = React.useState("");
 	const [openDialog, setOpenDialog] = React.useState(false);
+	const [targetSetId, setTargetSetId] = React.useState<string | null | undefined>(undefined);
 	const [createOpen, setCreateOpen] = React.useState(false);
 	const [createName, setCreateName] = React.useState("");
 	const [isCreatingSet, setIsCreatingSet] = React.useState(false);
@@ -70,6 +71,9 @@ export default function SettingsSocialsPage() {
 	const [editingSetId, setEditingSetId] = React.useState<string | null>(null);
 	const [draftSetName, setDraftSetName] = React.useState("");
 	const [savingRenameSetId, setSavingRenameSetId] = React.useState<string | null>(null);
+
+	// Extend dialog locally to accept optional targetSetId without TS friction
+	const ManageSocialsDialogWithSet = ManageSocialsDialog as unknown as React.ComponentType<{ workspaceId: string; open: boolean; onOpenChange(o: boolean): void; targetSetId?: string | null }>;
 
 	// No explicit loading; rely on activeWorkspace.socialAccounts/socialPages
 
@@ -305,12 +309,12 @@ export default function SettingsSocialsPage() {
 
 	return (
 		<div className="w-full h-full flex flex-col gap-4">
-		{/* Topbar */}
-		<div className="w-full border-b px-4 h-10 flex items-center justify-between">
-			<div className="flex items-center">
-				<div className="text-sm text-grey font-medium">Socials</div>
+			{/* Topbar */}
+			<div className="w-full border-b px-4 h-10 flex items-center justify-between">
+				<div className="flex items-center">
+					<div className="text-sm text-grey font-medium">Socials</div>
+				</div>
 			</div>
-		</div>
 
 			{/* Main Area */}
 			<div className="w-full pt-6 flex flex-1 items-start justify-center overflow-y-auto">
@@ -435,7 +439,7 @@ export default function SettingsSocialsPage() {
 											</div>
 										</div>
 										<div className="flex items-center gap-2">
-											<div className="flex items-center gap-1 text-main text-sm font-medium cursor-pointer" onClick={(e) => { e.stopPropagation(); setOpenDialog(true); }}>
+											<div className="flex items-center gap-1 text-main text-sm font-medium cursor-pointer" onClick={(e) => { e.stopPropagation(); setTargetSetId(id === "__unassigned__" ? null : id); setOpenDialog(true); }}>
 												<Plus className="w-3.5 h-3.5" /> Add Social
 											</div>
 											<div className="cursor-pointer">
@@ -622,7 +626,7 @@ export default function SettingsSocialsPage() {
 			</div>
 
 			{/* Dialog */}
-			<ManageSocialsDialog workspaceId={workspaceId} open={openDialog} onOpenChange={setOpenDialog} />
+			<ManageSocialsDialogWithSet workspaceId={workspaceId} open={openDialog} onOpenChange={(o) => { if (!o) setTargetSetId(undefined); setOpenDialog(o); }} targetSetId={targetSetId} />
 
 			{/* Create Social Set Dialog */}
 			<Dialog open={createOpen} onOpenChange={setCreateOpen}>
