@@ -379,6 +379,29 @@ export function PublishDateCell({
           )}
         </div>
       </div>
+      {hasDate && !isPublished && !isFailedPublishing && (
+        <div className="flex flex-row gap-2 flex-shrink-0 opacity-0 group-hover/cell:opacity-100 focus-within:opacity-100 pointer-events-none group-hover/cell:pointer-events-auto transition-opacity">
+          {/* Unschedule */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="border border-border-button rounded-[6px] p-1 text-[#EC5050] cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={handleUnschedule}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="bg-[#151515] text-white border-none text-xs"
+              >
+                Unschedule
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
 
       {/* Publish now button for failed publishing posts (even without date) */}
       {isFailedPublishing && (
