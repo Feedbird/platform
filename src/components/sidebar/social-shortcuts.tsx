@@ -270,7 +270,30 @@ function SocialSetBlock({
   }, [saving, setName]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div
+      ref={containerRef}
+      className="relative"
+      onDragEnterCapture={(e) => {
+        // Track depth so moving between children doesn't trigger leave
+        (containerRef as any)._dragDepth = ((containerRef as any)._dragDepth || 0) + 1;
+        onSetDragOver(e, setId);
+      }}
+      onDragLeaveCapture={() => {
+        (containerRef as any)._dragDepth = Math.max(0, ((containerRef as any)._dragDepth || 0) - 1);
+        if (((containerRef as any)._dragDepth || 0) === 0) {
+          onSetDragLeave(setId);
+        }
+      }}
+      onDragOver={(e) => onSetDragOver(e, setId)}
+      onDrop={(e) => {
+        (containerRef as any)._dragDepth = 0;
+        onSetDrop(e, setId);
+      }}
+    >
+      {/* Full-set drag-over highlight overlay */}
+      {isDragOver && draggingPageId ? (
+        <div className="absolute inset-0 rounded pointer-events-none bg-[#EEEEEE]" />
+      ) : null}
       <SidebarMenuItem>
         <button
           type="button"
@@ -278,12 +301,8 @@ function SocialSetBlock({
             if (isEditing) return;
             setExpanded((v) => !v);
           }}
-          onDragOver={(e) => onSetDragOver(e, setId)}
-          onDragLeave={() => onSetDragLeave(setId)}
-          onDrop={(e) => onSetDrop(e, setId)}
           className={cn(
             "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]",
-            isDragOver && draggingPageId ? "bg-[#F8FAFF]" : undefined
           )}
         >
           <div ref={setIconRef} className="w-3.5 h-3.5 flex items-center justify-center" aria-hidden>
@@ -348,11 +367,7 @@ function SocialSetBlock({
                       onClick={() => setPlatformExpanded((st) => ({ ...st, [platform]: !st[platform] }))}
                       className={cn(
                         "w-full flex items-center gap-2 px-[6px] py-[6px] rounded hover:bg-[#F4F5F6]",
-                        isDragOver && draggingPageId ? "bg-[#F8FAFF]" : undefined
                       )}
-                      onDragOver={(e) => onSetDragOver(e, setId)}
-                      onDragLeave={() => onSetDragLeave(setId)}
-                      onDrop={(e) => onSetDrop(e, setId)}
                     >
                       <div className="w-[18px] h-[18px] flex items-center justify-center" ref={platformToRef.get(platform) as any}>
                         <Image
@@ -384,12 +399,9 @@ function SocialSetBlock({
                           <Link
                             href={activeWorkspace ? `/${activeWorkspace.id}/social/${page.id}` : `/social/${page.id}`}
                             className="flex items-center gap-2 min-w-0 w-full"
-                        draggable
-                        onDragStart={(e) => onPageDragStart(e, page.id)}
-                        onDragEnd={onPageDragEnd}
-                            onDragOver={(e) => onSetDragOver(e, setId)}
-                            onDragLeave={() => onSetDragLeave(setId)}
-                            onDrop={(e) => onSetDrop(e, setId)}
+                            draggable
+                            onDragStart={(e) => onPageDragStart(e, page.id)}
+                            onDragEnd={onPageDragEnd}
                           >
                             <div ref={iconRef} className="w-[18px] h-[18px] flex items-center justify-center">
                               <Image
@@ -431,9 +443,6 @@ function SocialSetBlock({
                     draggable
                     onDragStart={(e) => onPageDragStart(e, page.id)}
                     onDragEnd={onPageDragEnd}
-                    onDragOver={(e) => onSetDragOver(e, setId)}
-                    onDragLeave={() => onSetDragLeave(setId)}
-                    onDrop={(e) => onSetDrop(e, setId)}
                   >
                     <div ref={iconRef} className="w-[18px] h-[18px] flex items-center justify-center">
                       <Image
@@ -559,6 +568,7 @@ export default function SocialShortcuts() {
   }, [draggingPageId, workspace?.socialPages]);
 
   const handleSetDragLeave = React.useCallback((setId: string) => {
+    console.log("handleSetDragLeave", setId);
     setDragOverSetId((curr) => (curr === setId ? null : curr));
   }, []);
 
