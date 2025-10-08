@@ -173,7 +173,7 @@ export async function GET(req: NextRequest) {
         const { data: socials, error: socialsErr } = await supabase
           .from('social_accounts')
           .select(SECURE_SOCIAL_ACCOUNT_WITH_PAGES)
-          //.in('workspace_id', allWorkspaceIds)
+          .in('workspace_id', allWorkspaceIds)
 
         if (socialsErr) {
           console.error('Error fetching workspace socials:', socialsErr)
@@ -185,8 +185,8 @@ export async function GET(req: NextRequest) {
 
         for (const acc of socials || []) {
           const wsid = (acc as any).workspace_id
-          if (!socialsByWorkspace["6fe8b14b-a92b-4a05-a7ee-3a3b8dcd57c9"]) socialsByWorkspace["6fe8b14b-a92b-4a05-a7ee-3a3b8dcd57c9"] = []
-          socialsByWorkspace["6fe8b14b-a92b-4a05-a7ee-3a3b8dcd57c9"].push(acc)
+          if (!socialsByWorkspace[wsid]) socialsByWorkspace[wsid] = []
+          socialsByWorkspace[wsid].push(acc)
         }
 
         // Fetch social sets for these workspaces
