@@ -358,7 +358,7 @@ export default function SettingsProfilePage() {
                     placeholder=""
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full rounded-[4px] border border-strokeButton px-3 py-2 pr-10 text-sm text-black font-normal"
+                    className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 pr-10 text-sm text-black font-normal"
                   />
                   <button
                     type="button"
@@ -385,7 +385,7 @@ export default function SettingsProfilePage() {
                     placeholder=""
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="w-full rounded-[4px] border border-strokeButton px-3 py-2 pr-10 text-sm text-black font-normal"
+                    className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 pr-10 text-sm text-black font-normal"
                   />
                   <button
                     type="button"
@@ -413,7 +413,7 @@ export default function SettingsProfilePage() {
                     placeholder=""
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full rounded-[4px] border border-strokeButton px-3 py-2 pr-10 text-sm text-black font-normal"
+                    className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 pr-10 text-sm text-black font-normal"
                   />
                   <button
                     type="button"
@@ -502,7 +502,7 @@ export default function SettingsProfilePage() {
                   placeholder=""
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full rounded-[4px] border border-strokeButton px-3 py-2 text-sm text-black font-normal"
+                  className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 text-sm text-black font-normal"
                 />
               </div>
 
@@ -516,7 +516,7 @@ export default function SettingsProfilePage() {
                   placeholder=""
                   value={confirmEmail}
                   onChange={(e) => setConfirmEmail(e.target.value)}
-                  className="w-full rounded-[4px] border border-strokeButton px-3 py-2 text-sm text-black font-normal"
+                  className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 text-sm text-black font-normal"
                 />
               </div>
 
@@ -531,7 +531,7 @@ export default function SettingsProfilePage() {
                     placeholder=""
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-[4px] border border-strokeButton px-3 py-2 pr-10 text-sm text-black font-normal"
+                    className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 pr-10 text-sm text-black font-normal"
                   />
                   <button
                     type="button"
@@ -558,7 +558,7 @@ export default function SettingsProfilePage() {
                     placeholder="Enter the code sent to your new email"
                     value={emailVerificationCode}
                     onChange={(e) => setEmailVerificationCode(e.target.value)}
-                    className="w-full rounded-[4px] border border-strokeButton px-3 py-2 text-sm text-black font-normal"
+                    className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 text-sm text-black font-normal"
                   />
                   {emailVerificationNotice && (
                     <div className="text-xs text-[#D82A2A]">{emailVerificationNotice}</div>
@@ -668,7 +668,7 @@ export default function SettingsProfilePage() {
                   placeholder="First name"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full rounded-[4px] border border-strokeButton px-3 py-2 text-sm text-black font-normal"
+                  className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 text-sm text-black font-normal"
                 />
               </div>
               <div className="space-y-2.5">
@@ -680,7 +680,7 @@ export default function SettingsProfilePage() {
                   placeholder="Last name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full rounded-[4px] border border-strokeButton px-3 py-2 text-sm text-black font-normal"
+                  className="w-full rounded-[4px] border border-buttonStroke px-3 py-2 text-sm text-black font-normal"
                 />
               </div>
             </div>
@@ -696,7 +696,7 @@ export default function SettingsProfilePage() {
                   placeholder="you@example.com"
                   value={user?.email || ""}
                   disabled
-                  className="w-full rounded-[4px] border border-strokeButton pl-3 pr-32 py-2 text-sm text-black font-normal"
+                  className="w-full rounded-[4px] border border-buttonStroke pl-3 pr-32 py-2 text-sm text-black font-normal"
                 />
                 <button
                   type="button"
@@ -722,7 +722,7 @@ export default function SettingsProfilePage() {
                   placeholder="••••••••"
                   value={""}
                   disabled
-                  className="w-full rounded-[4px] border border-strokeButton pl-3 pr-36 py-2 text-sm text-black font-normal"
+                  className="w-full rounded-[4px] border border-buttonStroke pl-3 pr-36 py-2 text-sm text-black font-normal"
                 />
                 <button
                   type="button"
@@ -754,7 +754,7 @@ export default function SettingsProfilePage() {
             </div>
             <Button
               variant="outline"
-              className="text-sm text-[#D82A2A] hover:text-[#D82A2A] px-3 py-1.5 font-medium border-strokeButton rounded-[5px] cursor-pointer"
+              className="text-sm text-[#D82A2A] hover:text-[#D82A2A] px-3 py-1.5 font-medium border-buttonStroke rounded-[5px] cursor-pointer"
             >
               Delete account
             </Button>

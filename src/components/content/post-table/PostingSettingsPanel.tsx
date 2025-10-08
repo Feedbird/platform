@@ -39,7 +39,7 @@ export const PostingSettingsPanel: React.FC<Props> = ({ initialTimezone = Intl.D
       </div>
 
       {/* Timezone select */}
-      <div className="w-full border border-strokeButton rounded-[6px] text-sm text-black font-normal">
+      <div className="w-full border border-buttonStroke rounded-[6px] text-sm text-black font-normal">
         <TimezonePicker value={timezone} onChange={setTimezone} className="w-full" />
       </div>
 

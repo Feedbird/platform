@@ -332,7 +332,7 @@ export default function SettingsSocialsPage() {
 							placeholder="Search username"
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
-							className="pl-8 text-sm text-black font-normal border-strokeButton"
+							className="pl-8 text-sm text-black font-normal border-buttonStroke"
 						/>
 					</div>
 

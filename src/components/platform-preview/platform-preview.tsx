@@ -516,7 +516,7 @@ function MockPostTable() {
           <div className="grid grid-cols-[24px_80px_160px_140px_1fr] items-center text-xs text-[#5C5E63] font-semibold bg-[#FBFBFB]">
             <div className="p-2 h-8 border-r border-[#E6E7EB]" />
             <div className="p-2 text-center border-r border-[#E6E7EB]">
-              <div className="w-4 h-4 border border-strokeElements rounded-[3px] bg-white"></div>
+              <div className="w-4 h-4 border border-elementStroke rounded-[3px] bg-white"></div>
             </div>
             <div className="p-2 border-r border-[#E6E7EB] gap-1.5 flex items-center">
               <img src="/images/columns/status.svg" alt="status" width={14} height={14} />

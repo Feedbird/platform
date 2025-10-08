@@ -396,7 +396,7 @@ export default function ClientOnboardingPage() {
             <div className="bg-white rounded-xl border border-elementStroke shadow-sm p-5 space-y-6">
                 <div>
                     <div className="text-sm font-normal text-grey mb-2.5">Workspace timezone</div>
-                    <div className="w-full border border-strokeButton rounded-[6px] text-sm text-black font-normal">
+                    <div className="w-full border border-buttonStroke rounded-[6px] text-sm text-black font-normal">
                         <TimezonePicker value={timezone} onChange={setTimezone} />
                     </div>
                 </div>
@@ -629,7 +629,7 @@ export default function ClientOnboardingPage() {
                             }
                         }}
                         disabled={saving}
-                        className={`w-full text-sm font-medium cursor-pointer ${hasInviteEmail ? 'bg-main hover:bg-main/80 text-white' : 'bg-white hover:bg-white text-black border border-strokeButton'}`}
+                        className={`w-full text-sm font-medium cursor-pointer ${hasInviteEmail ? 'bg-main hover:bg-main/80 text-white' : 'bg-white hover:bg-white text-black border border-buttonStroke'}`}
                     >
                         {saving ? (hasInviteEmail ? 'Inviting...' : 'Saving...') : (hasInviteEmail ? 'Invite' : 'Invite Later')}
                     </Button>

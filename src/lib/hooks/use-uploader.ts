@@ -241,7 +241,7 @@ export function useUploader({ postId }: { postId: string }) {
           xhr.send(up.file);
         });
         
-        toast.success(`${up.file.name} uploaded`);
+        //toast.success(`${up.file.name} uploaded`);
         uploadActions.updateUpload(up.id, { progress: 100, status: "done" });
         
                  // Show "Uploaded" state for 1 second, then remove upload and add block

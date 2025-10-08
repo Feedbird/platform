@@ -271,13 +271,13 @@ export default function SettingsWorkspacePage() {
           {/* Name */}
           <div className="grid gap-2 w-full">
             <Label htmlFor="ws-name" className="text-sm text-grey font-normal">Workspace name</Label>
-            <Input id="ws-name" className="text-sm text-black font-normal border-strokeButton rounded-[6px]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter workspace name" />
+            <Input id="ws-name" className="text-sm text-black font-normal border-buttonStroke rounded-[6px]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter workspace name" />
           </div>
 
           {/* Timezone */}
           <div className="grid gap-2 w-full">
             <Label className="text-sm text-grey font-normal">Workspace timezone</Label>
-            <div className="w-full border border-strokeButton rounded-[6px] text-sm text-black font-normal">
+            <div className="w-full border border-buttonStroke rounded-[6px] text-sm text-black font-normal">
               <TimezonePicker value={timezone} onChange={setTimezone} />
             </div>
           </div>
@@ -591,7 +591,7 @@ export default function SettingsWorkspacePage() {
             <div className="text-sm text-grey font-normal mb-3">
               Deleting your workspace is permanent. You will immediately lose access to all your data.
             </div>
-            <Button variant="outline" className="text-sm text-[#D82A2A] hover:text-[#D82A2A] px-3 py-1.5 font-medium border-strokeButton rounded-[5px] cursor-pointer" onClick={() => setOpenDelete(true)}>
+            <Button variant="outline" className="text-sm text-[#D82A2A] hover:text-[#D82A2A] px-3 py-1.5 font-medium border-buttonStroke rounded-[5px] cursor-pointer" onClick={() => setOpenDelete(true)}>
               Delete workspace
             </Button>
           </div>

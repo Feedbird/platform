@@ -134,7 +134,7 @@ export function AttachmentContentModal({
                     <Trash2 size={16} className="text-white"/>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="bg-white text-black border-strokeElement text-xs font-medium whitespace-nowrap">
+                <TooltipContent side="top" className="bg-white text-black border-elementStroke text-xs font-medium whitespace-nowrap">
                   <p>Remove attachment</p>
                 </TooltipContent>
               </Tooltip>

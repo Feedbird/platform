@@ -16,7 +16,7 @@ import NotificationBell       from '@/components/notifications/notification-bell
 import BrandKitDrawer         from '@/components/brand/brand-kit-drawer'
 import BrandDialog            from '@/components/brand/brand-dialog'
 import BrandDetailsSidebar    from '@/components/brand/brand-details-sidebar'
-import UploadProgressInline from "@/components/content/post-table/UploadProgressInline";
+import UploadTray from "@/components/layout/upload-tray";
 import { AddBoardModal } from '@/components/board/add-board-modal'
 import { BoardRulesModal } from '@/components/board/board-rules-modal'
 
@@ -224,7 +224,6 @@ function HeaderInner() {
       </div>
 
       {/* centered upload progress */}
-      <UploadProgressInline className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2" />
 
       <BrandKitDrawer open={drawer} onOpenChange={setDrawer} />
       <BrandDialog open={brandDialogOpen} onOpenChange={setBrandDialogOpen} />
@@ -332,6 +331,8 @@ function HeaderInner() {
           primaryLabel="Save"
         />
       )}
+      {/* Global bottom-right upload tray */}
+      <UploadTray />
     </header>
   )
 }
