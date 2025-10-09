@@ -64,7 +64,7 @@ export function MonthEditCell({
                   border: "1px solid rgba(28, 29, 31, 0.05)",
                   background: getMonthColor(value),
                 }}
-                className="text-xs font-semibold text-black flex items-center gap-1"
+                className="text-xs font-medium text-black flex items-center gap-1"
               >
                 <span
                   className="w-[6px] h-[6px] rounded-full"

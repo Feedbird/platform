@@ -367,7 +367,7 @@ export function PublishDateCell({
                         width={16}
                         height={16}
                       />
-                      <span className="text-xs font-semibold whitespace-nowrap">{displayText}</span>
+                      <span className="text-xs font-medium whitespace-nowrap">{displayText}</span>
                     </div>
                   </div>
                 </TooltipTrigger>

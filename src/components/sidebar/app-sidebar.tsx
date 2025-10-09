@@ -221,8 +221,7 @@ const BoardCount = ({
   const count = useBoardCount(board_id);
 
   const styles = cn(
-    "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none",
-    isActive && boardColor ? "text-white" : "text-black"
+    "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none text-black",
   );
 
   if (count === null) {
@@ -323,18 +322,14 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     {imageSrc && (
                       <div
                         className={cn(
-                          "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
+                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0",
                         )}
-                        style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                        style={isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                       >
                         <img
                           src={imageSrc}
                           alt={nav.label}
-                          className={cn(
-                            "w-3.5 h-3.5",
-                            // Make icon white when board is active and has a colored background
-                            active && isBoard && boardColor && "filter brightness-0 invert"
-                          )}
+                          className="w-3 h-3"
                           loading="lazy"
                         />
                       </div>
@@ -350,13 +345,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         <div
                           className={cn(
                             "flex items-center rounded font-normal",
-                            active && boardColor ? "text-white" : "text-black"
                           )}
-                          style={
-                            active && boardColor
-                              ? { backgroundColor: boardColor }
-                              : undefined
-                          }
                         >
                           <BoardCount board_id={nav.id} isActive={!!active} boardColor={boardColor} />
                         </div>
@@ -371,18 +360,14 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     {imageSrc && (
                       <div
                         className={cn(
-                          "w-5 h-5 rounded flex items-center justify-center flex-shrink-0",
+                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0",
                         )}
-                        style={active && isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                        style={isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
                       >
                         <img
                           src={imageSrc}
                           alt={nav.label}
-                          className={cn(
-                            "w-3.5 h-3.5",
-                            // Make icon white when board is active and has a colored background
-                            active && isBoard && boardColor && "filter brightness-0 invert"
-                          )}
+                          className="w-3 h-3"
                           loading="lazy"
                         />
                       </div>

@@ -721,7 +721,7 @@ const FormatMultiSelect: React.FC<MSProps> = ({ selectedValues, onChange }) => {
         <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
           <div className="px-3 py-2 bg-gradient-to-r from-purple-50 to-violet-50 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm text-gray-900">
+              <h4 className="font-medium text-sm text-black">
                 Select Formats
               </h4>
               <Button

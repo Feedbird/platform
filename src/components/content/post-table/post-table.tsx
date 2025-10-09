@@ -4285,7 +4285,7 @@ export function PostTable({
                             <>
                               <TableCell
                                 colSpan={stickyCols.length}
-                                className="px-3 py-3 bg-white border-l border-t-0 border-r-0 border-b border-[#E6E4E2] rounded-b-[2px]"
+                                className="px-3 py-2.5 bg-white border-l border-t-0 border-r-0 border-b border-[#E6E4E2] rounded-b-[2px]"
                                 style={{
                                   ...stickyStyles("drag", 3), // Use first sticky col ID
                                   borderRadius: "0px 0px 0px 4px",
@@ -4347,7 +4347,7 @@ export function PostTable({
                       <>
                         <TableCell
                           colSpan={3}
-                          className="px-3 py-3 bg-white border-t border-b border-[#EAE9E9]"
+                          className="px-3 py-2.5 bg-white border-t border-b border-[#EAE9E9]"
                           style={{
                             ...stickyStyles('drag', 10),
                             width: stickyWidth,
@@ -4365,7 +4365,7 @@ export function PostTable({
                           <TableCell
                             key={col.id}
                             className={cn(
-                              "px-3 py-3 bg-white border-t border-b border-[#EAE9E9]",
+                              "px-3 py-2.5 bg-white border-t border-b border-[#EAE9E9]",
                             )}
                             style={{
                               width: col.getSize(),
@@ -4614,7 +4614,7 @@ export function PostTable({
                     <>
                       <TableCell
                         colSpan={3}
-                        className="px-3 py-3 bg-white border-t border-[#EAE9E9]"
+                        className="px-3 py-2.5 bg-white border-t border-[#EAE9E9]"
                         style={{
                           ...stickyStyles('drag', 10),
                           width: stickyWidth,
@@ -4632,7 +4632,7 @@ export function PostTable({
                         <TableCell
                           key={col.id}
                           className={cn(
-                            "px-3 py-3 bg-white border-t border-[#EAE9E9]",
+                            "px-3 py-2.5 bg-white border-t border-[#EAE9E9]",
                           )}
                           style={{
                             width: col.getSize(),
@@ -5558,7 +5558,7 @@ export function PostTable({
             {/* Fixed "Add new record" button for ungrouped view - only when scrollable */}
             {grouping.length === 0 && isScrollable && (
               <div
-                className="absolute bottom-2 px-3 py-3 left-1 right-0 bg-white border-t border-[#EAE9E9] z-10"
+                className="absolute bottom-2 px-3 py-2.5 left-1 right-0 bg-white border-t border-[#EAE9E9] z-10"
               >
                 <div className="flex items-center h-full">
                   <button

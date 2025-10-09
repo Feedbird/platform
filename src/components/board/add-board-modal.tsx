@@ -153,15 +153,12 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
 
   const IconDisplay = (
     boardIcon ? 
-    <div className="w-4 h-4 rounded flex items-center justify-center"style={{
+    <div className="w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center"style={{
       backgroundColor: boardColor ? boardColor : 'transparent',
     }}>
       <img src={boardIcon} alt="Board Icon" 
-    className={cn(
-      "w-3.5 h-3.5 m-0.5 transition-all",
-      boardColor && boardColor !== "#FFFFFF" && "filter brightness-0 invert" // Makes icon white when there's a colored background
-    )} 
-    /> </div> : <Smile className="w-4 h-4 text-black" />
+    className="w-3 h-3"
+    /> </div> : <Smile className="w-3 h-3 text-black" />
   );
 
   return (
@@ -181,8 +178,11 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
                     }}>
                     <span className="flex items-center gap-2">
                       {selectedTemplate.image && (
-                        <div className="flex p-[7px] justify-center items-center rounded-md bg-[#F4F5F6] shadow-[0px_1px_2px_-1px_rgba(7,10,22,0.02)]">
-                          <img src={selectedTemplate.image} className="w-3.5 h-3.5" />
+                        <div
+                          className="flex w-4.5 h-4.5 p-[3px] justify-center items-center rounded-[3px]"
+                          style={{ backgroundColor: selectedTemplate.color || '#F4F5F6' }}
+                        >
+                          <img src={selectedTemplate.image} className="w-3 h-3" />
                         </div>
                       )}
                       <span className="text-sm font-medium text-black">{selectedTemplate.name}</span>
@@ -196,7 +196,7 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
                     className="flex items-center gap-2 px-3 pr-3 pl-1 py-1 hover:bg-[#F4F5F6] cursor-pointer rounded-md bg-white transition-colors"
                     onClick={() => handleSelectTemplate(BLANK_TEMPLATE)}
                   >
-                    <div className="flex p-[7px] justify-center items-center rounded-md bg-[#F4F5F6] shadow-[0px_1px_2px_-1px_rgba(7,10,22,0.02)]">
+                    <div className="flex p-[3px] justify-center items-center rounded-[3px] bg-[#F4F5F6]">
                       <img src="/images/boards/templates/t0-blank.svg" className="w-3.5 h-3.5" />
                     </div>
                     <span className="text-sm font-medium text-black">Blank</span>
@@ -206,8 +206,11 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
                     <div key={template.id} className="flex items-center justify-between gap-2 px-3 pr-3 pl-1 py-1 hover:bg-[#F4F5F6] cursor-pointer group rounded-md bg-white transition-colors" onClick={() => handleSelectTemplate(template)}>
                       <div className="flex items-center gap-2 flex-1">
                         {template.image && (
-                          <div className="flex w-7 h-7 p-[7px] justify-center items-center rounded-md bg-[#F4F5F6] shadow-[0px_1px_2px_-1px_rgba(7,10,22,0.02)]">
-                            <img src={template.image} className="w-4 h-4" />
+                          <div
+                            className="flex w-4.5 h-4.5 p-[3px] justify-center items-center rounded-[3px]"
+                            style={{ backgroundColor: template.color || '#F4F5F6' }}
+                          >
+                            <img src={template.image} className="w-3 h-3" />
                           </div>
                         )}
                         <span className="text-sm font-medium text-black">{template.name}</span>

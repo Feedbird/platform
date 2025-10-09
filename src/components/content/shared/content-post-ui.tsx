@@ -101,7 +101,7 @@ export function StatusChip({
         backgroundColor: config.bgColor,
         color: config.textColor,
       }}
-      className="text-xs font-semibold whitespace-nowrap tracking-[-0.24px]"
+      className="text-xs font-medium whitespace-nowrap tracking-[-0.24px]"
     >
       <Image
         className='w-[16px] h-[16px]'
@@ -247,7 +247,7 @@ export function FormatBadge({
         width: widthFull ? "100%" : "auto",
         justifyContent: 'center',
       }}
-      className="text-xs font-semibold"
+      className="text-xs font-medium"
     >
       <Image 
         src={`/images/format/${formatKey}.svg`}
