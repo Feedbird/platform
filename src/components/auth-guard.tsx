@@ -56,7 +56,15 @@ export function PublicPageWrapper({ pathname }: { pathname: string }) {
   };
 
   return (
-    <div className="w-full h-full min-h-screen overflow-auto">
+    <div
+      className={
+        ["/signup", "/signin", "/client-onboarding", "/accept-invite"].includes(
+          pathname
+        )
+          ? "w-full h-screen overflow-hidden"
+          : "w-full h-full min-h-screen overflow-auto"
+      }
+    >
       {getPageComponent()}
     </div>
   );

@@ -8,25 +8,6 @@ import { cn } from '@/lib/utils'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import Image from 'next/image'
 
-function TextWithBackground({
-  children,
-  className = "text-[10px] font-semibold px-1 min-w-[20px] h-[20px] leading-none",
-  style = {}
-}: {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div
-      className={`flex items-center justify-center rounded font-normal ${className}`}
-      style={style}
-    >
-      {children}
-    </div>
-  );
-}
-
 function NameBar({
   name,
   className = "h-1.5 bg-backgroundHover rounded-[100px]",
@@ -104,7 +85,7 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-xs font-semibold uppercase text-[#5C5E63]">
+              <span className="text-xs font-semibold uppercase text-[#5555A3]">
                 {workspaceName ? workspaceName.charAt(0).toUpperCase() : 'W'}
               </span>
             )}
@@ -117,7 +98,7 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
               }
             </span>
           </div>
-          <ChevronsUpDown className="size-4 text-black" />
+          <ChevronsUpDown className="size-4 text-darkGrey" />
         </div>
       </div>
 
@@ -170,25 +151,22 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
       {/* Platform nav */}
       <nav className="px-2 py-2 space-y-1">
         {[
-          { name: 'Inbox', icon: '/images/sidebar/messages-on.svg', count: 5 },
-          { name: 'Approvals', icon: '/images/sidebar/approvals.svg', count: 2 },
-          { name: 'Analytics', icon: '/images/sidebar/analytics.svg', count: 8 }
+          { name: 'Inbox', icon: '/images/preview/messages-on.svg'},
+          { name: 'Approvals', icon: '/images/preview/approvals.svg'},
+          { name: 'Analytics', icon: '/images/preview/analytics.svg'}
         ].map((platform, idx) => (
           <div key={idx} className="flex items-center justify-between px-2 py-1.5 rounded cursor-default">
-            <div className="flex items-center gap-2">
-              <img src={platform.icon} alt={platform.name} className="w-4 h-4" />
+            <div className="flex items-center gap-1.5">
+              <img src={platform.icon} alt={platform.name} className="w-4.5 h-4.5" />
               <NameBar name={platform.name} />
             </div>
-            <TextWithBackground>
-              {platform.count}
-            </TextWithBackground>
           </div>
         ))}
       </nav>
       <div className="mt-2 px-4 py-2 flex items-center justify-between w-full">
         <span className="text-xs font-medium text-[#75777C] tracking-wide">Boards</span>
         <Image
-          src={`/images/sidebar/plus.svg`}
+          src={`/images/preview/plus.svg`}
           alt="board plus"
           width={18}
           height={18}
@@ -197,32 +175,37 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
       {/* Board nav */}
       <div className="px-2 space-y-1 overflow-auto">
         {[
-          { name: 'Static Posts', icon: '/images/boards/templates/t1-social-media-post.svg', count: 9, selected: true, color: '#125AFF' },
-          { name: 'Short-Form Videos', icon: '/images/boards/templates/t2-short-form-videos.svg', count: 5, selected: false, color: '#125AFF' },
-          { name: 'Email Design', icon: '/images/boards/templates/t3-email-design.svg', count: 3, selected: false, color: '#125AFF' }
+          { name: 'Static Posts', icon: '/images/preview/static-post.svg', count: 9, selected: true, color: '#7262F8' },
+          { name: 'Short-Form Videos', icon: '/images/preview/short-form-video.svg', count: 5, selected: false, color: '#45568F' },
+          { name: 'Email Design', icon: '/images/preview/email-design.svg', count: 3, selected: false, color: '#F56858' },
+          { name: 'Static Ads', icon: '/images/preview/static-ads.svg', count: 10, selected: false, color: '#9A9A9A' },
+          { name: 'Image User Plus', icon: '/images/preview/image-user-plus.svg', count: 5, selected: false, color: '#656667' },
+          { name: 'Google Ads', icon: '/images/preview/google-ads.svg', count: 3, selected: false, color: '#4E9BF8' },
+          { name: 'Meta Ads', icon: '/images/preview/meta-ads.svg', count: 1, selected: false, color: '#0280F8' },
+          { name: 'Blog Posts', icon: '/images/preview/blog-posts.svg', count: 4, selected: false, color: '#7A7E82' }
         ].map((board, idx) => (
-          <div key={idx} className={`flex items-center justify-between px-2 py-1.5 rounded cursor-default ${board.selected ? 'bg-[#E6EEFF]' : ''}`}>
+          <div key={idx} className={`flex items-center justify-between px-2 py-1.5 rounded cursor-default ${board.selected ? 'bg-[#F4F5F6]' : ''}`}>
             <div className="flex items-center gap-2">
               <div
-                className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-                style={board.selected && board.color ? { backgroundColor: board.color } : undefined}
+                className="w-4.5 h-4.5 rounded flex items-center justify-center flex-shrink-0"
+                style={board.color ? { backgroundColor: board.color } : undefined}
               >
                 <img
                   src={board.icon}
                   alt={board.name}
-                  className={`w-3.5 h-3.5 ${board.selected && board.color ? 'filter brightness-0 invert' : ''}`}
+                  className={`w-3 h-3 ${board.selected && board.color ? 'filter brightness-0 invert' : ''}`}
                 />
               </div>
               <NameBar
                 name={board.name}
-                className={board.name === 'Static Posts' ? "h-1.5 bg-indigo-300 rounded-[100px]" : "h-1.5 bg-backgroundHover rounded-[100px]"}
+                className={board.selected ? "h-1.5 bg-[#E9EBED] rounded-[100px]" : "h-1.5 bg-backgroundHover rounded-[100px]"}
               />
             </div>
-            <TextWithBackground
-              style={board.selected && board.color ? { backgroundColor: board.color, color: 'white' } : { color: 'black' }}
+            <div
+              className='text-[10px] font-medium flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none'
             >
               {board.count}
-            </TextWithBackground>
+            </div>
           </div>
         ))}
       </div>
@@ -231,7 +214,7 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
       <div className="mt-2 px-4 py-2 flex items-center justify-between w-full">
         <span className="text-xs font-medium text-[#75777C] tracking-wide">Socials</span>
         <Image
-          src={`/images/sidebar/plus.svg`}
+          src={`/images/preview/plus.svg`}
           alt="social plus"
           width={18}
           height={18}
@@ -252,9 +235,11 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
               />
               <NameBar name={social.name} />
             </div>
-            <TextWithBackground>
+            <div
+              className='text-[10px] font-medium flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none'
+            >
               {social.count}
-            </TextWithBackground>
+            </div>
           </div>
         ))}
       </div>
@@ -263,14 +248,11 @@ function MockSidebar({ logo, isNameInputFocused, workspaceName }: { logo?: strin
 }
 
 function MockHeader() {
-  const [view, setView] = React.useState<'table' | 'calendar' | 'grid'>('table')
-  const [isAddBoardModalOpen, setIsAddBoardModalOpen] = React.useState(false)
-
   // Mock active board data
   const activeBoard = {
-    image: '/images/boards/templates/t1-social-media-post.svg',
+    image: '/images/preview/static-post.svg',
     label: 'Static Posts',
-    color: '#125AFF'
+    color: '#7262F8'
   }
 
   return (
@@ -288,12 +270,11 @@ function MockHeader() {
         {/* Board name → open AddBoardModal prefilled */}
         <div
           className="flex items-center gap-2 rounded text-sm font-semibold focus:outline-none text-black"
-          onClick={() => setIsAddBoardModalOpen(true)}
         >
           {activeBoard?.image && (
             <div
               className={cn(
-                "w-6 h-6 rounded flex items-center justify-center",
+                "w-4.5 h-4.5 rounded flex items-center justify-center",
                 activeBoard?.color ? "" : "bg-transparent"
               )}
               style={activeBoard?.color ? { backgroundColor: activeBoard.color } : undefined}
@@ -302,7 +283,7 @@ function MockHeader() {
                 src={activeBoard?.image}
                 alt={activeBoard?.label}
                 className={cn(
-                  "w-4 h-4",
+                  "w-3 h-3",
                   activeBoard?.color && "filter brightness-0 invert"
                 )}
                 loading="lazy"
@@ -399,7 +380,7 @@ type MockPost = {
   format: 'image' | 'video'
   postTime: string
   updatedAt: string
-  previewCount: number
+  blocks: string[]
   captionLines: number
   captionLineLengths: number[]
 }
@@ -412,7 +393,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'image', 
     postTime: '-', 
     updatedAt: '1m ago', 
-    previewCount: 2,
+    blocks: ['/images/preview/image0.png'],
     captionLines: 1,
     captionLineLengths: [25]
   },
@@ -423,7 +404,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'video', 
     postTime: 'Mar 18, 10:00', 
     updatedAt: '2h ago', 
-    previewCount: 1,
+    blocks: ['/images/preview/image1.png'],
     captionLines: 2,
     captionLineLengths: [25, 22]
   },
@@ -434,7 +415,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'image', 
     postTime: 'Mar 21, 14:00', 
     updatedAt: 'yesterday', 
-    previewCount: 3,
+    blocks: ['/images/preview/image2.png', '/images/preview/image3.png', '/images/preview/image4.png'],
     captionLines: 3,
     captionLineLengths: [25, 30, 20]
   },
@@ -445,7 +426,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'image', 
     postTime: 'Mar 22, 09:00', 
     updatedAt: '3h ago', 
-    previewCount: 1,
+    blocks: ['/images/preview/image5.png'],
     captionLines: 2,
     captionLineLengths: [26, 25]
   },
@@ -456,7 +437,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'video', 
     postTime: 'Mar 23, 15:30', 
     updatedAt: '5h ago', 
-    previewCount: 2,
+    blocks: ['/images/preview/image6.png'],
     captionLines: 3,
     captionLineLengths: [28, 24, 28]
   },
@@ -467,7 +448,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'image', 
     postTime: 'Mar 24, 11:15', 
     updatedAt: '1d ago', 
-    previewCount: 1,
+    blocks: ['/images/preview/image7.png'],
     captionLines: 2,
     captionLineLengths: [26, 27]
   },
@@ -478,7 +459,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'image', 
     postTime: 'Mar 25, 08:45', 
     updatedAt: '2d ago', 
-    previewCount: 2,
+    blocks: ['/images/preview/image0.png'],
     captionLines: 2,
     captionLineLengths: [25, 26]
   },
@@ -489,7 +470,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'video', 
     postTime: 'Mar 26, 16:20', 
     updatedAt: '3d ago', 
-    previewCount: 3,
+    blocks: ['/images/preview/image4.png', '/images/preview/image5.png', '/images/preview/image6.png'],
     captionLines: 3,
     captionLineLengths: [30, 25, 22]
   },
@@ -500,7 +481,7 @@ const MOCK_POSTS: MockPost[] = [
     format: 'image', 
     postTime: 'Mar 27, 13:00', 
     updatedAt: '4d ago', 
-    previewCount: 1,
+    blocks: ['/images/preview/image7.png'],
     captionLines: 3,
     captionLineLengths: [24, 25, 15]
   },
@@ -513,7 +494,7 @@ function MockPostTable() {
     <div className="w-full h-full">
       <div className="w-full">
         <div className="sticky top-0 z-10 bg-white border-b border-[#E6E7EB]">
-          <div className="grid grid-cols-[24px_80px_160px_140px_1fr] items-center text-xs text-[#5C5E63] font-semibold bg-[#FBFBFB]">
+          <div className="grid grid-cols-[24px_80px_160px_140px_minmax(0,1fr)] items-center text-xs text-[#5C5E63] font-semibold bg-[#FBFBFB]">
             <div className="p-2 h-8 border-r border-[#E6E7EB]" />
             <div className="p-2 text-center border-r border-[#E6E7EB]">
               <div className="w-4 h-4 border border-elementStroke rounded-[3px] bg-white"></div>
@@ -534,7 +515,7 @@ function MockPostTable() {
         </div>
         <div className="divide-y divide-[#F0F1F3]">
           {MOCK_POSTS.map((p, i) => (
-            <div key={i} className="grid grid-cols-[24px_80px_160px_140px_1fr] items-center text-sm">
+            <div key={i} className="grid grid-cols-[24px_80px_160px_140px_minmax(0,1fr)] items-center text-sm">
               {/* Drag handle */}
               <div className="flex h-full items-center justify-center border-r border-[#E6E7EB]">
 
@@ -562,9 +543,16 @@ function MockPostTable() {
                 <StatusChip status={p.status} />
               </div>
               {/* Preview */}
-              <div className="flex py-1 pl-3 px-1 items-center gap-1 border-r border-[#E6E7EB] overflow-hidden">
-                {Array.from({ length: p.previewCount }, (_, k) => (
-                  <div key={k} className="w-12 h-16 rounded-[2px] border border-gray-300 bg-gray-50 flex-shrink-0 ">
+              <div className="flex py-1 px-2 h-18 items-center gap-1 border-r border-[#E6E7EB] overflow-hidden">
+                {p.blocks.map((src, k) => (
+                  <div key={k} className="w-12 h-12 rounded-[2px] border border-[#D0D5DD] bg-gray-50 flex-shrink-0 overflow-hidden">
+                    <Image
+                      src={src}
+                      alt="Preview image"
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 object-cover"
+                    />
                   </div>
                 ))}
               </div>
