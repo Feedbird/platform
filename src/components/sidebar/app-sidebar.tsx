@@ -251,6 +251,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const [isClient, setIsClient] = React.useState(false);
   const unreadMsgCount = useFeedbirdStore(s => (s.user?.unread_msg ? s.user.unread_msg.length : 0));
   const unreadNotificationCount = useFeedbirdStore(s => (s.user?.unread_notification ? s.user.unread_notification.length : 0));
+  const totalUnreadCount = unreadMsgCount + unreadNotificationCount;
 
   React.useEffect(() => {
     setIsClient(true);
@@ -295,7 +296,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
 
           // Special handling for messages icon based on unread status
           if (nav.id === 'messages') {
-            if (unreadMsgCount > 0 || unreadNotificationCount > 0) {
+            if (totalUnreadCount > 0) {
               imageSrc = "/images/sidebar/messages-on.svg";
             } else {
               imageSrc = "/images/sidebar/messages.svg";
@@ -335,6 +336,17 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       </div>
                     )}
                     <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
+
+                    {(nav.id === 'messages' || nav.id === 'admin-inbox') && totalUnreadCount > 0 && (
+                      <span
+                        className={cn(
+                          "ml-auto text-[10px] font-medium flex justify-center items-center px-1 w-[14px] h-[14px] leading-none rounded-[4px] text-white",
+                          "bg-[#FE4C28]"
+                        )}
+                      >
+                        {totalUnreadCount}
+                      </span>
+                    )}
 
                     {isBoard && (
                       <div className="flex items-center gap-1 ml-auto">

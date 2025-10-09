@@ -708,7 +708,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               revisionRules: true,
               approvalDeadline: true,
               groupBy: "status",
-              sortBy: "updatedAt",
+              sortBy: "month",
               rowHeight: "Large",
               firstMonth: 3,
               ongoingMonth: 1,
