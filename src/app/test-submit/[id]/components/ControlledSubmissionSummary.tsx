@@ -20,6 +20,7 @@ export default function ControlledSubmissionSummary({
   formData,
   setReviewActive,
 }: Props) {
+  const [finalValues, setFinalValues] = React.useState(formValues);
   const router = useRouter();
   const [loading, isLoading] = React.useState<boolean>(false);
 
@@ -34,7 +35,7 @@ export default function ControlledSubmissionSummary({
       const submission = await formsApi.submitForm({
         workspaceId: formData.workspace_id,
         formId: formData.id,
-        submissions: formValues,
+        submissions: finalValues,
         schema,
       });
 
@@ -52,7 +53,7 @@ export default function ControlledSubmissionSummary({
   };
   return (
     <div className="flex flex-col p-6 gap-2 border-1 rounded-[8px] border-elementStroke bg-white">
-      {Object.keys(formValues).map((key, index) => {
+      {Object.keys(finalValues).map((key, index) => {
         const field = formData.formFields.find((f) => f.id === key);
         if (!field) return null;
 
@@ -60,8 +61,8 @@ export default function ControlledSubmissionSummary({
           return null;
         const value =
           field.type === "attachment"
-            ? (formValues[key].value as File).name
-            : formValues[key].value;
+            ? (finalValues[key].value as File).name
+            : finalValues[key].value;
         return (
           <ReviewCard
             key={`review-card-${key}`}
