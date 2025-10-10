@@ -68,7 +68,7 @@ export default function ControlledPageVisualizer({
           )}
           <div className="flex flex-col p-8">
             <div className="flex flex-col gap-1 pb-10">
-              <span className="text-[24px] font-semibold text-[#1C1D1F]">
+              <span className="text-[24px] font-semibold text-black">
                 {pageIndex === 0
                   ? formData?.title
                   : pages[pageIndex - 1][pages[pageIndex - 1].length - 1]
