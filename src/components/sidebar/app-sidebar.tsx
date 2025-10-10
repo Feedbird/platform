@@ -98,13 +98,13 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
     selectedImage: "/images/sidebar/approvals-active.svg",
     href: workspaceId ? `/${workspaceId}/approvals` : "/approvals",
   },
-  {
-    id: "forms",
-    label: "Forms",
-    image: "/images/sidebar/forms.svg",
-    selectedImage: "/images/sidebar/forms-active.svg",
-    href: "/forms",
-  },
+  // {
+  //   id: "forms",
+  //   label: "Forms",
+  //   image: "/images/sidebar/forms.svg",
+  //   selectedImage: "/images/sidebar/forms-active.svg",
+  //   href: "/forms",
+  // },
   // {
   //   id: "brands",
   //   label: "Brands",
