@@ -128,7 +128,7 @@ export default function SubmitFormVisualizer({ formData }: Props) {
           </div>
         ) : (
           <div className="w-full max-w-[900px] flex flex-col gap-5">
-            <span className="font-semibold text-lg text-[#1C1D1F]">
+            <span className="font-semibold text-lg text-black">
               Almost done, review your information
             </span>
             <ControlledSubmissionSummary
