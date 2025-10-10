@@ -65,7 +65,7 @@ export default function FormDeleteModal({
                 width={18}
                 height={18}
               />
-              <span className="text-[16px] font-semibold text-[#1C1D1F]">
+              <span className="text-[16px] font-semibold text-black">
                 Delete Form
               </span>
             </div>
@@ -76,7 +76,7 @@ export default function FormDeleteModal({
               Form.
             </p>
             <div className="flex flex-col gap-2">
-              <span className="text-[#1C1D1F] text-[13px] font-medium">
+              <span className="text-black text-[13px] font-medium">
                 Enter the word "Delete" to confirm
               </span>
               <Input
@@ -95,7 +95,7 @@ export default function FormDeleteModal({
               {loading ? "Deleting..." : "Delete"}
             </Button>
             <Button
-              className="rounded-[5px] bg-[#F4F5F6] text-[#1C1D1F] text-[13px] font-medium hover:cursor-pointer"
+              className="rounded-[5px] bg-[#F4F5F6] text-black text-[13px] font-medium hover:cursor-pointer"
               onClick={() => onClose(false)}
             >
               Cancel

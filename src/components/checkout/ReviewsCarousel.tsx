@@ -70,9 +70,7 @@ export default function ReviewsCarousel({
             key={index}
             className="flex flex-col gap-[18px] text-center w-full flex-shrink-0"
           >
-            <p className="font-medium text-[#1C1D1F] text-lg">
-              “{review.content}”
-            </p>
+            <p className="font-medium text-black text-lg">“{review.content}”</p>
             <div className="flex items-center justify-center">
               <div className="flex flex-row gap-2 items-center">
                 <Image
@@ -84,7 +82,7 @@ export default function ReviewsCarousel({
                 />
                 <div className="flex flex-col">
                   <div className="flex gap-1">
-                    <span className="text-[#1C1D1F] text-sm font-medium">
+                    <span className="text-black text-sm font-medium">
                       {review.authorName}
                     </span>
                     {review.isVerified && (

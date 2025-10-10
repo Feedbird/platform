@@ -36,7 +36,7 @@ export default function EmailInput({ emailSetter, email }: Props) {
         <>
           <div className="flex flex-col gap-3">
             <div className="flex justify-between">
-              <span className="text-[13px] font-medium text-[#1C1D1F]">
+              <span className="text-[13px] font-medium text-black">
                 Your email address
               </span>
               <ChevronRight width={16} height={16} />
@@ -51,12 +51,12 @@ export default function EmailInput({ emailSetter, email }: Props) {
               onChange={(e) => {
                 emailSetter(e.target.value);
               }}
-              className="h-[42px] rounded-[6px] border-1 border-[#C8C9CB] px-4 py-3 text-[#1C1D1F]"
+              className="h-[42px] rounded-[6px] border-1 border-[#C8C9CB] px-4 py-3 text-black"
               placeholder="name@example.com"
             />
             <p className="text-xs font-normal text-red-500">{error}</p>
           </div>
-          <p className="text-xs font-normal text-[#1C1D1F]">
+          <p className="text-xs font-normal text-black">
             You’ll be able to change notification settings for Nord services
             marketing emails in your Nord Account.
           </p>
@@ -67,7 +67,7 @@ export default function EmailInput({ emailSetter, email }: Props) {
             Your email address
           </label>
           <div className="flex justify-between items-center font-medium">
-            <span className="text-[#1C1D1F]">{email}</span>
+            <span className="text-black">{email}</span>
             <span
               onClick={() => setEditing(true)}
               className="text-[#4670F9] hover:cursor-pointer hover:underline"

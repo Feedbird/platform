@@ -158,16 +158,14 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             width={20}
             height={20}
           />
-          <span className="text-[#1C1D1F] font-medium text-sm">
-            {service.name}
-          </span>
+          <span className="text-black font-medium text-sm">{service.name}</span>
         </div>
         <p className="text-[#5C5E63] font-normal text-[13px]">
           {service.brief ?? "-"}
         </p>
       </div>
       {!selectingMode ? (
-        <div className="flex flex-row justify-between items-center text-[#1C1D1F]">
+        <div className="flex flex-row justify-between items-center text-black">
           <div className="flex flex-row text-sm gap-1">
             <p>from</p>
             <span className="font-medium">
@@ -191,7 +189,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
       ) : (
         <div className="flex flex-col gap-3">
           {service.service_plans && service.service_plans.length > 1 && (
-            <div className="flex flex-col gap-1 text-[#1C1D1F]">
+            <div className="flex flex-col gap-1 text-black">
               <label className="font-medium text-sm">Plan</label>
               <Select
                 open={ddOpen}
@@ -213,7 +211,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
                   }
                 }}
               >
-                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F] text-[13px]">
+                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-black text-[13px]">
                   {planSelected
                     ? `${planSelected.quantity} ${planSelected.qty_indicator} - $${planSelected.price}/${planSelected.period}`
                     : "Select a plan"}
@@ -228,7 +226,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
                           e.stopPropagation();
                           selectPlan(plan);
                         }}
-                        className="text-[#1C1D1F] text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
+                        className="text-black text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
                       >
                         {plan.quantity} {plan.qty_indicator} - ${plan.price}/
                         {mapPeriodicity(plan.period)}
@@ -240,7 +238,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             </div>
           )}
           {channels.length > 0 && (
-            <div className="flex flex-col gap-1 text-[#1C1D1F]">
+            <div className="flex flex-col gap-1 text-black">
               <label className="font-medium text-sm">Social channels</label>
               <MultiSelectDropdown
                 channels={channels}
@@ -250,7 +248,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             </div>
           )}
           <div className="flex flex-row items-center justify-between">
-            <span className="text-[#1C1D1F] font-medium text-sm">
+            <span className="text-black font-medium text-sm">
               {planSelected
                 ? `$${total}/${mapPeriodicity(planSelected.period)}`
                 : ""}

@@ -16,11 +16,11 @@ export default function PaymentForm() {
     <div className="w-full rounded-[8px] bg-white border border-[#E2E2E4] pb-6 flex flex-col">
       <div className="px-6 py-4 flex items-center gap-2 h-[60px]">
         <CreditCard />
-        <span className="text-[#1C1D1F] text-sm font-medium">Card</span>
+        <span className="text-black text-sm font-medium">Card</span>
       </div>
       <div className="flex flex-col gap-6 px-6">
         <div className="flex items-center justify-between">
-          <span className="text-[#1C1D1F] text-base font-medium">
+          <span className="text-black text-base font-medium">
             Credit or debit card
           </span>
           <Image
@@ -32,34 +32,32 @@ export default function PaymentForm() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
           <div className="flex flex-col gap-2">
-            <label className="text-[#1C1D1F] text-[13px] font-medium">
+            <label className="text-black text-[13px] font-medium">
               First name
             </label>
             <Input className="border-[#e6e6e6] border-1 shadow-sm shadow-gray-50 h-11" />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-[#1C1D1F] text-[13px] font-medium">
+            <label className="text-black text-[13px] font-medium">
               Last name
             </label>
             <Input className="border-[#e6e6e6] border-1 shadow-sm shadow-gray-50 h-11" />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-[#1C1D1F] text-[13px] font-medium">
+            <label className="text-black text-[13px] font-medium">
               Company name
             </label>
             <Input className="border-[#e6e6e6] border-1 shadow-sm shadow-gray-50 h-11" />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="text-[#1C1D1F] text-[13px] font-medium">
+            <label className="text-black text-[13px] font-medium">
               Company Number/VAT
             </label>
             <Input className="border-[#e6e6e6] border-1 shadow-sm shadow-gray-50 h-11" />
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <label className="text-[#1C1D1F] text-[13px] font-medium">
-            Address
-          </label>
+          <label className="text-black text-[13px] font-medium">Address</label>
           <Input className="border-[#e6e6e6] border-1 shadow-sm shadow-gray-50 h-11" />
         </div>
         <Elements stripe={stripePromise}>
@@ -79,7 +77,7 @@ export default function PaymentForm() {
               width={24}
               height={24}
             />
-            <span className="font-medium text-[#1C1D1F] text-xs">
+            <span className="font-medium text-black text-xs">
               You're 100% backed by our 30-day money-back guarantee.
             </span>
           </div>

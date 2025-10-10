@@ -121,7 +121,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "name",
         accessorKey: "formName",
         header: () => (
-          <div className="flex items-center text-[#1C1D1F] text-sm font-medium">
+          <div className="flex items-center text-black text-sm font-medium">
             Name
           </div>
         ),
@@ -162,14 +162,14 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "type",
         accessorKey: "services",
         header: () => (
-          <div className="flex items-center text-[#1C1D1F] text-sm font-medium">
+          <div className="flex items-center text-black text-sm font-medium">
             Services
           </div>
         ),
         minSize: 120,
         size: 150,
         cell: ({ row }) => (
-          <div className="text-sm flex flex-row flex-wrap font-medium text-[#1C1D1F] gap-1">
+          <div className="text-sm flex flex-row flex-wrap font-medium text-black gap-1">
             {row.original.services.map((s) => (
               <div
                 key={s.id}
@@ -185,14 +185,14 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "submissions",
         accessorKey: "submissionsCount",
         header: () => (
-          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
             Submissions
           </div>
         ),
         minSize: 70,
         size: 110,
         cell: ({ row }) => (
-          <span className="text-xs font-medium text-[#1C1D1F]">
+          <span className="text-xs font-medium text-black">
             {row.original.submissions_count || 0}
           </span>
         ),
@@ -201,7 +201,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "status",
         accessorKey: "status",
         header: () => (
-          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
             Status
           </div>
         ),
@@ -217,7 +217,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         id: "lastUpdated",
         accessorKey: "lastEditedAt",
         header: () => (
-          <div className="flex items-center gap-[6px] text-[#1C1D1F] text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
             Last updated
           </div>
         ),
@@ -259,7 +259,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
               <PopoverPortal>
                 <PopoverContent
                   // onClick={() => isDropdownOpen(false)}
-                  className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 max-w-[130px]"
+                  className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-black gap-0.5 max-w-[130px]"
                 >
                   <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
                     <Image
@@ -402,7 +402,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
     stickyStyles: (id: string, z?: number) => React.CSSProperties | undefined;
   }) {
     return (
-      <TableHeader className="sticky top-0 z-[13] bg-[#EAE9E9] text-[#1C1D1F]">
+      <TableHeader className="sticky top-0 z-[13] bg-[#EAE9E9] text-black">
         {table.getHeaderGroups().map((hg) => (
           <TableRow
             key={hg.id}
@@ -463,7 +463,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                             });
                           }}
                         >
-                          <div className="flex items-center gap-1 text-[#1C1D1F] w-full">
+                          <div className="flex items-center gap-1 text-black w-full">
                             {headerContent}
                           </div>
                           {sortStatus === "asc" && (
@@ -515,7 +515,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         </div>
       </div>
       <div
-        className={`bg-background border-t-1 border-[#EAE9E9] overflow-auto max-h-full ${
+        className={`bg-background border-t-1 border-elementStroke overflow-auto max-h-full ${
           tabledData.length === 0 ? "" : "pb-16"
         }`}
       >
