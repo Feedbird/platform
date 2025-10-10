@@ -45,6 +45,7 @@ import {
   NavLink as NavLinkType,
   BoardRules,
   useFeedbirdStore,
+  NavLink,
 } from "@/lib/store/use-feedbird-store";
 import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 import { cn, getFullnameinitial } from "@/lib/utils";
