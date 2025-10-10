@@ -1,16 +1,14 @@
 "use client";
-import FieldRenderWrapper from "@/components/forms/content/FieldRenderWrapper";
-import { PageEnding } from "@/components/forms/content/FormInputs";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
 import { useFormEditor } from "@/contexts/FormEditorContext";
 import { useForms } from "@/contexts/FormsContext";
 import { formsApi } from "@/lib/api/api-service";
 import { Divider } from "@mui/material";
-import Image from "next/image";
 import { useParams } from "next/navigation";
 import React from "react";
 import Loading from "./loading";
 import { formFieldSorter } from "@/lib/utils/transformers";
+import FormPageVisualizer from "@/components/forms/content/FormPageVisualizer";
 
 export default function Page() {
   const { activeForm, setIsPreview, setActiveForm, setIsEditing } = useForms();
@@ -48,6 +46,10 @@ export default function Page() {
     if (activeForm) {
       setIsPreview(true);
 
+      /**
+       * Pages would be generated from page breaks, using the page-break title
+       * as page title and the description as page description
+       */
       const tempPages: CanvasFormField[][] = [[]];
       for (const field of formFields.sort(formFieldSorter)) {
         if (field.type === "page-break") {
@@ -81,7 +83,7 @@ export default function Page() {
 
   return (
     <div className="h-full overflow-auto bg-[#FBFBFB]">
-      <div className="w-full h-9 bg-[#EDF6FF] grid items-center justify-center border-1 border-[#EAE9E9]">
+      <div className="w-full h-9 bg-[#EDF6FF] grid items-center justify-center border-b-1 border-elementStroke">
         <span className="text-[#133495] font-medium text-sm">
           This is a preview
         </span>
@@ -89,14 +91,14 @@ export default function Page() {
       <div className="flex justify-center p-5 pb-12">
         <div className="w-full max-w-[900px] flex flex-col gap-5">
           <div className="flex flex-col pr-3 pl-0 py-3 gap-2">
-            <span className="font-semibold text-[18px] text-[#1C1D1F]">
+            <span className="font-semibold text-[18px] text-black">
               Onboarding Questionnaire
             </span>
             <div className="flex flex-col gap-1.5">
               {activeForm?.services?.map((service, index) => (
                 <div
                   key={index}
-                  className="flex flex-row gap-3 text-sm text-[#5C5E63] font-normal"
+                  className="flex flex-row gap-3 text-sm text-darkGrey font-normal"
                 >
                   <p className="min-w-[170px]">{service.name}</p>
                   <Divider orientation="vertical" />
@@ -109,83 +111,7 @@ export default function Page() {
               ))}
             </div>
           </div>
-          <div className="flex flex-col gap-16">
-            {pages.map((page, pageIndex) => (
-              <div key={pageIndex} className="flex flex-col">
-                <div className="rounded-t-[4px] bg-[#4670F9] h-7 w-[85px] flex items-center justify-center">
-                  <span className="text-white font-medium text-xs">
-                    Page {pageIndex + 1} of {pages.length}
-                  </span>
-                </div>
-
-                <div
-                  className={`rounded-[8px] bg-white rounded-tl-none ${
-                    pageIndex === 0 && activeForm?.cover_url
-                      ? "border-1 border-t-0"
-                      : "border-1"
-                  } border-[#EAE9E9] flex flex-col overflow-hidden`}
-                >
-                  {pageIndex === 0 && activeForm?.cover_url && (
-                    <div className="w-full relative h-[160px]">
-                      <Image
-                        src={activeForm.cover_url}
-                        alt="form_cover_image"
-                        width={920}
-                        height={160}
-                        style={{
-                          objectPosition: `50% ${
-                            activeForm?.cover_offset ?? 50
-                          }%`,
-                        }}
-                        className="w-full h-full object-cover z-10"
-                      />
-                    </div>
-                  )}
-                  <div className="flex flex-col p-8">
-                    <div className="flex flex-col gap-1 pb-10">
-                      <span className="text-[24px] font-semibold text-[#1C1D1F]">
-                        {pageIndex === 0
-                          ? activeForm?.title
-                          : pages[pageIndex - 1][
-                              pages[pageIndex - 1].length - 1
-                            ]?.config.title.value || `Page ${pageIndex + 1}`}
-                      </span>
-                      <p className="font-normal text-[#5C5E63] text-sm">
-                        {pageIndex === 0
-                          ? activeForm?.description
-                          : pages[pageIndex - 1][
-                              pages[pageIndex - 1].length - 1
-                            ]?.config.description.value || ""}
-                      </p>
-                    </div>
-                    <div className="space-y-8">
-                      {page.map((field, index) => (
-                        <FieldRenderWrapper
-                          pageNumber={pageIndex + 1}
-                          isPreview={true}
-                          key={`${pageIndex}-${index}`}
-                          type={field.type}
-                          config={field.config}
-                        />
-                      ))}
-                    </div>
-                    {pageIndex === pages.length - 1 && (
-                      <PageEnding pages={pages.length} />
-                    )}
-                    <div className="min-h-[62px] w-full flex items-end">
-                      <Image
-                        src="/images/logo/logo(1).svg"
-                        alt="feedbird_logo"
-                        width={87}
-                        height={14}
-                        className="h-3.5"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <FormPageVisualizer pages={pages} />
         </div>
       </div>
     </div>

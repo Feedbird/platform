@@ -28,7 +28,7 @@ export function TitleInput({
             },
           })
         }
-        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-[#1C1D1F] min-h-[36px] bg-white"
+        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-black min-h-[36px] bg-white"
       />
     </div>
   );
@@ -60,7 +60,7 @@ export function DescriptionInput({
             },
           })
         }
-        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-[#1C1D1F] min-h-[56px] bg-white"
+        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-black min-h-[56px] bg-white"
       />
     </div>
   );
@@ -87,7 +87,7 @@ export function PlaceholderInput({
             },
           })
         }
-        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-[#1C1D1F] min-h-[36px] bg-white"
+        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-black min-h-[36px] bg-white"
       />
     </div>
   );
@@ -173,7 +173,7 @@ export function HelpTextInput({
             },
           })
         }
-        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-[#1C1D1F] min-h-[36px] bg-white"
+        className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-black min-h-[36px] bg-white"
       />
     </div>
   );

@@ -122,7 +122,7 @@ function FormsHeaderContent() {
                 className={`${
                   isPreview
                     ? "text-[#5C5E63] text-sm font-normal cursor-pointer"
-                    : "text-[#1C1D1F] font-medium text-sm"
+                    : "text-black font-medium text-sm"
                 }`}
               >
                 {activeForm.title}
@@ -135,14 +135,14 @@ function FormsHeaderContent() {
               {isPreview && (
                 <>
                   <ChevronRight width={12} height={12} color="#838488" />
-                  <span className="text-[#1C1D1F] font-medium text-sm">
+                  <span className="text-black font-medium text-sm">
                     Preview
                   </span>
                 </>
               )}
             </div>
           ) : (
-            <span className="font-semibold text-base tracking-[-0.6px] truncate max-w-[200px] text-[#1C1D1F]">
+            <span className="font-semibold text-base tracking-[-0.6px] truncate max-w-[200px] text-black">
               Forms
             </span>
           )}
@@ -166,7 +166,7 @@ function FormsHeaderContent() {
                 <Button
                   onClick={() => router.push(`/forms/${activeForm.id}/preview`)}
                   variant="ghost"
-                  className="border-1 w-[84px] border-[#D3D3D3] text-[#1C1D1F] flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
+                  className="border-1 w-[84px] border-[#D3D3D3] text-black flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
                 >
                   <Image
                     src="/images/forms/play.svg"
@@ -201,7 +201,7 @@ function FormsHeaderContent() {
                       <div className="bg-white w-[340px] flex flex-col gap-2 mt-1.5 mr-2 shadow-md z-10 border-1 border-[#D3D3D3] rounded-[6px] p-4">
                         <div className="flex flex-col gap-1">
                           <div className="flex flex-row gap-2 items-center">
-                            <span className="font-semibold text-[#1C1D1F]">
+                            <span className="font-semibold text-black">
                               Publish form
                             </span>
                             {loading && (
@@ -214,7 +214,7 @@ function FormsHeaderContent() {
                           </p>
                         </div>
                         <Input
-                          className="border-1 border-[#D3D3D3] rounded-[6px] text-[#1C1D1F]"
+                          className="border-1 border-[#D3D3D3] rounded-[6px] text-black"
                           onChange={(e) => setFormLink(e.target.value)}
                           value={formLink}
                         />
@@ -241,7 +241,7 @@ function FormsHeaderContent() {
                           }
                           variant="ghost"
                           onClick={handleFormUnpublish}
-                          className="mt-1 rounded-[4px] border-[#D3D3D3] border-1 font-medium text-sm hover:cursor-pointer text-[#1C1D1F]"
+                          className="mt-1 rounded-[4px] border-[#D3D3D3] border-1 font-medium text-sm hover:cursor-pointer text-black"
                         >
                           <Image
                             src="/images/forms/unlink.svg"

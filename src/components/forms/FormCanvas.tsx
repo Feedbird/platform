@@ -317,11 +317,11 @@ export default function FormCanvas({
                     handleFormValuesChange(e.target.value, undefined)
                   }
                   onBlur={() => setEditingTitle(false)}
-                  className="outline-none text-[#1C1D1F] font-semibold text-3xl border-b-[1px]"
+                  className="outline-none text-black font-semibold text-3xl border-b-[1px]"
                 />
               ) : (
                 <h2
-                  className="text-[#1C1D1F] font-semibold text-3xl"
+                  className="text-black font-semibold text-3xl"
                   onDoubleClick={() => setEditingTitle(true)}
                 >
                   {form.title}
@@ -416,7 +416,7 @@ export default function FormCanvas({
                 <PopoverPortal>
                   <PopoverContent
                     side="right"
-                    className="mt-1 rounded-sm border-1 bg-white border-border-primary p-2 flex flex-col font-medium text-sm text-[#1C1D1F] gap-0.5 w-42"
+                    className="mt-1 rounded-sm border-1 bg-white border-border-primary p-2 flex flex-col font-medium text-sm text-black gap-0.5 w-42"
                   >
                     {FormFieldsArray.map((field) => (
                       <div

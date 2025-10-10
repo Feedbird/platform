@@ -8,10 +8,10 @@ type Props = {
 
 export default function ReviewCard({ index, title, value }: Props) {
   return (
-    <div className="p-4 border-1 border-[#EAE9E9] flex flex-row justify-between items-center rounded-[6px]">
+    <div className="p-4 border-1 border-elementStroke flex flex-row justify-between items-center rounded-[6px]">
       <div className="flex flex-row gap-5 w-[60%] items-center">
         <p className="text-[#838488] font-medium text-sm">{index}.</p>
-        <p className="text-[#1C1D1F] text-sm font-medium">{title}</p>
+        <p className="text-black text-sm font-medium">{title}</p>
       </div>
       <div className="gap-1 flex flex-row items-center w-[40%] justify-between">
         <div className="px-2">

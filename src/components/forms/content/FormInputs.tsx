@@ -27,7 +27,7 @@ export function SingleTextInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-col gap-1">
-        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
+        <label className="text-base text-black flex flex-row items-center gap-2">
           {config.title.value}
           {!config.isRequired.value && <OptionalInputChip />}
         </label>
@@ -40,7 +40,7 @@ export function SingleTextInput({ config }: CommonProps) {
       <Input
         onClick={(e) => e.stopPropagation()}
         placeholder={config?.placeholder?.value || ""}
-        className="w-full rounded-[6px] border bg-white border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#1C1D1F] focus:border-transparent"
+        className="w-full rounded-[6px] border bg-white border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black focus:border-transparent"
       />
     </div>
   );
@@ -50,7 +50,7 @@ export function TextAreaInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
-        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
+        <label className="text-base text-black flex flex-row items-center gap-2">
           {config.title.value}
           {!config.isRequired.value && <OptionalInputChip />}
         </label>
@@ -64,7 +64,7 @@ export function TextAreaInput({ config }: CommonProps) {
         rows={5}
         onClick={(e) => e.stopPropagation()}
         placeholder={config?.placeholder?.value || ""}
-        className="w-full border bg-white border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 text-[#1C1D1F] focus:ring-blue-500 focus:border-transparent"
+        className="w-full border bg-white border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 text-black focus:ring-blue-500 focus:border-transparent"
       />
     </div>
   );
@@ -94,7 +94,7 @@ export function CheckboxInput({ config, isPreview }: CommonProps) {
         }}
       />
       <div className="flex flex-col gap-0.5">
-        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
+        <label className="text-base text-black flex flex-row items-center gap-2">
           {config.title.value}
           {!config.isRequired.value && <OptionalInputChip />}
         </label>
@@ -114,7 +114,7 @@ export function DropdownInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
-        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
+        <label className="text-base text-black flex flex-row items-center gap-2">
           {config.title.value}
           {!config.isRequired.value && <OptionalInputChip />}
         </label>
@@ -126,7 +126,7 @@ export function DropdownInput({ config }: CommonProps) {
       </div>
       {!config?.allowMultipleSelection?.value ? (
         <Select value={ddValue} onValueChange={(value) => setDDValue(value)}>
-          <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-[#1C1D1F]">
+          <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-black">
             {ddValue
               ? ddValue
               : config?.placeholder?.value || "Select an option"}
@@ -164,9 +164,7 @@ export function DropdownInput({ config }: CommonProps) {
 export function SectionBreakInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="block text-base text-[#1C1D1F]">
-        {config.title.value}
-      </label>
+      <label className="block text-base text-black">{config.title.value}</label>
       {config.description && (
         <p className="text-sm text-[#838488] font-normal">
           {config.description.value}
@@ -179,7 +177,7 @@ export function SectionBreakInput({ config }: CommonProps) {
 export function AttachmentInput({ config, isPreview }: CommonProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
+      <label className="text-base text-black flex flex-row items-center gap-2">
         {config.title.value}
         {!config.isRequired.value && <OptionalInputChip />}
       </label>
@@ -226,7 +224,7 @@ export function AttachmentInput({ config, isPreview }: CommonProps) {
 export function SpreadSheetInput({ config, isPreview }: CommonProps) {
   return (
     <div className="flex flex-col gap-3">
-      <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
+      <label className="text-base text-black flex flex-row items-center gap-2">
         {config.title.value}
         {!config.isRequired.value && <OptionalInputChip />}
       </label>
@@ -247,7 +245,7 @@ export function OptionInput({ config }: CommonProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <label className="text-base text-[#1C1D1F] flex flex-row items-center gap-2">
+        <label className="text-base text-black flex flex-row items-center gap-2">
           {config.title.value}
           {!config.isRequired.value && <OptionalInputChip />}
         </label>
@@ -293,7 +291,7 @@ export function PageBreakInput({
           </p>
         )}
         {!isPreview && (
-          <label className="block text-base text-[#1C1D1F]">
+          <label className="block text-base text-black">
             {config.title.value}
           </label>
         )}

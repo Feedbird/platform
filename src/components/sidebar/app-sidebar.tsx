@@ -41,15 +41,15 @@ import { AddBoardModal } from "@/components/board/add-board-modal";
 import { BoardRulesModal } from "@/components/board/board-rules-modal";
 import { ColorAndIconDialog } from "@/components/board/color-and-icon-dialog";
 import { RenameBoardDialog } from "@/components/board/rename-board-dialog";
-import { NavLink as NavLinkType, BoardRules } from "@/lib/store/use-feedbird-store";
-import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
-
 import {
+  NavLink as NavLinkType,
+  BoardRules,
   useFeedbirdStore,
   NavLink,
 } from "@/lib/store/use-feedbird-store";
+import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 import { cn, getFullnameinitial } from "@/lib/utils";
-import { useClerk } from '@clerk/nextjs'
+import { useClerk } from "@clerk/nextjs";
 
 import {
   ChevronRight,
@@ -93,6 +93,19 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
     image: "/images/sidebar/forms.svg",
     href: workspaceId ? `/${workspaceId}/admin` : "/admin",
   },
+  // {
+  //   id: "forms",
+  //   label: "Forms",
+  //   image: "/images/sidebar/forms.svg",
+  //   selectedImage: "/images/sidebar/forms-active.svg",
+  //   href: "/forms",
+  // },
+  // {
+  //   id: "brands",
+  //   label: "Brands",
+  //   image: "/images/sidebar/brands.svg",
+  //   href: "/brands",
+  // },
   {
     id: "analytics",
     label: "Analytics",
@@ -175,22 +188,27 @@ function BoardDropdownMenu({
         align="end"
         className="w-40 flex flex-col p-[4px] rounded-[6px] border border-[1px] border-[#EAECF0] bg-white"
         style={{
-          boxShadow: "0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03)",
+          boxShadow:
+            "0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03)",
         }}
         onEscapeKeyDown={() => setOpen(false)}
         onInteractOutside={() => setOpen(false)}
       >
         {menu.map(({ id, label, icon }) => (
           <React.Fragment key={id}>
-            {id === "delete" && <DropdownMenuSeparator className="mx-auto w-[132px]" />}
+            {id === "delete" && (
+              <DropdownMenuSeparator className="mx-auto w-[132px]" />
+            )}
             <DropdownMenuItem
-              onClick={(e) => { e.stopPropagation(); handleAction(id); }}
-              className={
-                cn("flex px-[10px] py-[7px] gap-2 font-medium text-sm text-primary-foreground cursor-pointer",
-                  "h-[30px]",
-                  "hover:bg-[#F4F5F6]"
-                )
-              }
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAction(id);
+              }}
+              className={cn(
+                "flex px-[10px] py-[7px] gap-2 font-medium text-sm text-primary-foreground cursor-pointer",
+                "h-[30px]",
+                "hover:bg-[#F4F5F6]"
+              )}
             >
               <Image
                 src={`/images/boards/${icon}.svg`}
@@ -209,30 +227,26 @@ function BoardDropdownMenu({
 
 const BoardCount = ({
   board_id,
-  variant = 'expanded',
+  variant = "expanded",
   isActive = false,
-  boardColor
+  boardColor,
 }: {
   board_id: string;
-  variant?: 'expanded' | 'collapsed';
+  variant?: "expanded" | "collapsed";
   isActive?: boolean;
   boardColor?: string | null;
 }) => {
   const count = useBoardCount(board_id);
 
   const styles = cn(
-    "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none text-black",
+    "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none text-black"
   );
 
   if (count === null) {
     return null;
   }
 
-  return (
-    <span className={styles}>
-      {count}
-    </span>
-  );
+  return <span className={styles}>{count}</span>;
 };
 
 /* -------- main component -------------------------------------------- */
@@ -249,21 +263,28 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const pathname = usePathname();
   const { state, hoverReveal } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
-  const unreadMsgCount = useFeedbirdStore(s => (s.user?.unread_msg ? s.user.unread_msg.length : 0));
-  const unreadNotificationCount = useFeedbirdStore(s => (s.user?.unread_notification ? s.user.unread_notification.length : 0));
+  const unreadMsgCount = useFeedbirdStore((s) =>
+    s.user?.unread_msg ? s.user.unread_msg.length : 0
+  );
+  const unreadNotificationCount = useFeedbirdStore((s) =>
+    s.user?.unread_notification ? s.user.unread_notification.length : 0
+  );
   const totalUnreadCount = unreadMsgCount + unreadNotificationCount;
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const handleBoardAction = React.useCallback((action: string, item: NavLink) => {
-    if (onBoardAction) {
-      onBoardAction(action, item);
-    } else {
-      alert(`${action} → ${item.label}`); // fallback
-    }
-  }, [onBoardAction]);
+  const handleBoardAction = React.useCallback(
+    (action: string, item: NavLink) => {
+      if (onBoardAction) {
+        onBoardAction(action, item);
+      } else {
+        alert(`${action} → ${item.label}`); // fallback
+      }
+    },
+    [onBoardAction]
+  );
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -271,12 +292,12 @@ export const RenderNavItems = React.memo(function RenderNavItems({
         {items.map((nav) => {
           let active = false;
           if (nav.href) {
-            if (nav.id === 'admin-home') {
+            if (nav.id === "admin-home") {
               // Admin Home should only be active on exact workspace root
               active = pathname === nav.href;
-            } else if (nav.href.includes('/content/')) {
+            } else if (nav.href.includes("/content/")) {
               // For content routes, check if the pathname contains the board route segment
-              active = pathname.includes(nav.href.split('/').pop() || '');
+              active = pathname.includes(nav.href.split("/").pop() || "");
             } else {
               // For other routes, check if pathname starts with the href
               active = pathname.startsWith(nav.href);
@@ -295,7 +316,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           let imageSrc = nav.image;
 
           // Special handling for messages icon based on unread status
-          if (nav.id === 'messages') {
+          if (nav.id === "messages") {
             if (totalUnreadCount > 0) {
               imageSrc = "/images/sidebar/messages-on.svg";
             } else {
@@ -303,15 +324,17 @@ export const RenderNavItems = React.memo(function RenderNavItems({
             }
           }
 
-
           return (
-            <SidebarMenuItem key={nav.id} className={isBoard ? "group/row" : undefined}>
+            <SidebarMenuItem
+              key={nav.id}
+              className={isBoard ? "group/row" : undefined}
+            >
               <SidebarMenuButton
                 asChild
                 className={cn(
                   "group/row gap-[6px] p-[6px] text-sm font-semibold",
                   "cursor-pointer focus:outline-none hover:bg-[#F4F5F6]",
-                  active ? "bg-[#F4F5F6]" : "",
+                  active ? "bg-[#F4F5F6]" : ""
                 )}
               >
                 {nav.href ? (
@@ -323,9 +346,13 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     {imageSrc && (
                       <div
                         className={cn(
-                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0",
+                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0"
                         )}
-                        style={isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                        style={
+                          isBoard && boardColor
+                            ? { backgroundColor: boardColor }
+                            : undefined
+                        }
                       >
                         <img
                           src={imageSrc}
@@ -335,18 +362,23 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         />
                       </div>
                     )}
-                    <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
+                    <span
+                      className={cn("text-sm font-normal truncate text-black")}
+                    >
+                      {nav.label}
+                    </span>
 
-                    {(nav.id === 'messages' || nav.id === 'admin-inbox') && totalUnreadCount > 0 && (
-                      <span
-                        className={cn(
-                          "ml-auto text-[10px] font-medium flex justify-center items-center px-1 w-[14px] h-[14px] leading-none rounded-[4px] text-white",
-                          "bg-[#FE4C28]"
-                        )}
-                      >
-                        {totalUnreadCount}
-                      </span>
-                    )}
+                    {(nav.id === "messages" || nav.id === "admin-inbox") &&
+                      totalUnreadCount > 0 && (
+                        <span
+                          className={cn(
+                            "ml-auto text-[10px] font-medium flex justify-center items-center px-1 w-[14px] h-[14px] leading-none rounded-[4px] text-white",
+                            "bg-[#FE4C28]"
+                          )}
+                        >
+                          {totalUnreadCount}
+                        </span>
+                      )}
 
                     {isBoard && (
                       <div className="flex items-center gap-1 ml-auto">
@@ -356,10 +388,14 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         />
                         <div
                           className={cn(
-                            "flex items-center rounded font-normal",
+                            "flex items-center rounded font-normal"
                           )}
                         >
-                          <BoardCount board_id={nav.id} isActive={!!active} boardColor={boardColor} />
+                          <BoardCount
+                            board_id={nav.id}
+                            isActive={!!active}
+                            boardColor={boardColor}
+                          />
                         </div>
                       </div>
                     )}
@@ -372,9 +408,13 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     {imageSrc && (
                       <div
                         className={cn(
-                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0",
+                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0"
                         )}
-                        style={isBoard && boardColor ? { backgroundColor: boardColor } : undefined}
+                        style={
+                          isBoard && boardColor
+                            ? { backgroundColor: boardColor }
+                            : undefined
+                        }
                       >
                         <img
                           src={imageSrc}
@@ -384,7 +424,11 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         />
                       </div>
                     )}
-                    <span className={cn("text-sm font-normal truncate text-black")}>{nav.label}</span>
+                    <span
+                      className={cn("text-sm font-normal truncate text-black")}
+                    >
+                      {nav.label}
+                    </span>
                   </button>
                 )}
               </SidebarMenuButton>
@@ -402,11 +446,11 @@ export const RenderNavItems = React.memo(function RenderNavItems({
 
 function UserProfileSection() {
   const { state, hoverReveal } = useSidebar();
-  const user = useFeedbirdStore(s => s.user);
-  const clearUser = useFeedbirdStore(s => s.clearUser)
+  const user = useFeedbirdStore((s) => s.user);
+  const clearUser = useFeedbirdStore((s) => s.clearUser);
   const [isClient, setIsClient] = React.useState(false);
-  const { signOut } = useClerk()
-  const activeWorkspace = useFeedbirdStore(s => s.getActiveWorkspace());
+  const { signOut } = useClerk();
+  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
   const router = useRouter();
 
   React.useEffect(() => {
@@ -417,25 +461,30 @@ function UserProfileSection() {
     return null;
   }
 
-  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User';
-  const userInitials = getFullnameinitial(user.firstName || undefined, user.lastName || undefined, user.email || undefined);
+  const fullName =
+    `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User";
+  const userInitials = getFullnameinitial(
+    user.firstName || undefined,
+    user.lastName || undefined,
+    user.email || undefined
+  );
 
   const handleLogout = async () => {
     try {
       clearUser();
-      await signOut({ redirectUrl: '/landing' });
+      await signOut({ redirectUrl: "/landing" });
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error("Sign out error:", error);
     }
   };
 
   const handleProfileSettings = () => {
-    const base = activeWorkspace ? `/${activeWorkspace.id}` : '';
+    const base = activeWorkspace ? `/${activeWorkspace.id}` : "";
     router.push(`${base}/settings/profile`);
   };
 
   const handleAccountBilling = () => {
-    const base = activeWorkspace ? `/${activeWorkspace.id}` : '';
+    const base = activeWorkspace ? `/${activeWorkspace.id}` : "";
     router.push(`${base}/settings/billing`);
   };
 
@@ -478,14 +527,22 @@ function UserProfileSection() {
               onClick={handleProfileSettings}
               className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
             >
-              <img src="/images/settings/profile.svg" alt="Account" className="w-3.5 h-3.5" />
+              <img
+                src="/images/settings/profile.svg"
+                alt="Account"
+                className="w-3.5 h-3.5"
+              />
               <span>Account</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleAccountBilling}
               className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
             >
-              <img src="/images/settings/billing.svg" alt="Billing" className="w-3.5 h-3.5" />
+              <img
+                src="/images/settings/billing.svg"
+                alt="Billing"
+                className="w-3.5 h-3.5"
+              />
               <span>Billing</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-[0px] text-elementStroke" />
@@ -493,7 +550,11 @@ function UserProfileSection() {
               onClick={handleLogout}
               className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
             >
-              <img src="/images/sidebar/logout.svg" alt="Logout" className="w-3.5 h-3.5" />
+              <img
+                src="/images/sidebar/logout.svg"
+                alt="Logout"
+                className="w-3.5 h-3.5"
+              />
               <span>Sign Out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -522,9 +583,12 @@ export function AppSidebar() {
   } | null>(null);
 
   const { updateBoard, addBoard, removeBoard } = useFeedbirdStore();
-  const activeWorkspace = useFeedbirdStore(s => s.getActiveWorkspace());
-  const [colorIconTarget, setColorIconTarget] = React.useState<NavLinkType | null>(null);
-  const [renameTarget, setRenameTarget] = React.useState<NavLinkType | null>(null);
+  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const [colorIconTarget, setColorIconTarget] =
+    React.useState<NavLinkType | null>(null);
+  const [renameTarget, setRenameTarget] = React.useState<NavLinkType | null>(
+    null
+  );
   const [isManageSocialsOpen, setIsManageSocialsOpen] = React.useState(false);
 
   const activeBrand = useFeedbirdStore((s) => s.getActiveBrand());
@@ -536,7 +600,7 @@ export function AppSidebar() {
   const platformNav = React.useMemo(() => {
     return getDefaultPlatformNav(activeWorkspace?.id);
   }, [activeWorkspace]);
-  const boardNav = useFeedbirdStore(s => s.boardNav);
+  const boardNav = useFeedbirdStore((s) => s.boardNav);
 
   /* open / collapse state for the two accordion groups */
   const [boardsOpen, setBoardsOpen] = React.useState(true);
@@ -544,7 +608,11 @@ export function AppSidebar() {
 
   /* auto-expand boards if a board route is active */
   React.useEffect(() => {
-    if (boardNav.some((b) => b.href && pathname.includes(b.href.split('/').pop() || ''))) {
+    if (
+      boardNav.some(
+        (b) => b.href && pathname.includes(b.href.split("/").pop() || "")
+      )
+    ) {
       setBoardsOpen(true);
     }
   }, [pathname, boardNav]);
@@ -557,23 +625,24 @@ export function AppSidebar() {
   }, [pathname]);
 
   const handleBoardAction = (action: string, item: NavLinkType) => {
-    if (action === 'color-icon') {
+    if (action === "color-icon") {
       setColorIconTarget(item);
-    } else if (action === 'rename') {
+    } else if (action === "rename") {
       setRenameTarget(item);
-    } else if (action === 'share') {
+    } else if (action === "share") {
       // TODO: Implement share functionality
       alert(`Share board: ${item.label}`);
-    } else if (action === 'settings') {
+    } else if (action === "settings") {
       // TODO: Navigate to board settings or open settings modal
       alert(`Open settings for: ${item.label}`);
-    } else if (action === 'favorites') {
+    } else if (action === "favorites") {
       // TODO: Add to favorites functionality
       alert(`Add ${item.label} to favorites`);
-    } else if (action === 'duplicate') {
-      const duplicatedBoard = useFeedbirdStore.getState().workspaces
-        .flatMap(w => w.boards)
-        .find(b => b.id === item.id);
+    } else if (action === "duplicate") {
+      const duplicatedBoard = useFeedbirdStore
+        .getState()
+        .workspaces.flatMap((w) => w.boards)
+        .find((b) => b.id === item.id);
 
       if (duplicatedBoard) {
         const newName = `${duplicatedBoard.name} (Copy)`;
@@ -585,18 +654,21 @@ export function AppSidebar() {
           duplicatedBoard.rules
         );
       }
-    } else if (action === 'archive') {
+    } else if (action === "archive") {
       // TODO: Implement archive functionality
       alert(`Archive board: ${item.label}`);
-    } else if (action === 'delete') {
+    } else if (action === "delete") {
       removeBoard(item.id)
         .then(() => {
           toast.success(`Board "${item.label}" deleted successfully`);
         })
         .catch((error) => {
-          console.error('Failed to delete board:', error);
-          toast.error('Failed to delete board', {
-            description: error instanceof Error ? error.message : 'An unexpected error occurred'
+          console.error("Failed to delete board:", error);
+          toast.error("Failed to delete board", {
+            description:
+              error instanceof Error
+                ? error.message
+                : "An unexpected error occurred",
           });
         });
     } else {
@@ -620,49 +692,52 @@ export function AppSidebar() {
   };
 
   // Handle board creation flow
-  const handleBoardDataReady = React.useCallback((data: {
-    name: string;
-    description: string;
-    icon: string | undefined;
-    color: string | undefined;
-    rules?: BoardRules;
-  }) => {
-    setPendingBoardData(data);
-    setIsAddBoardModalOpen(false);
-    setIsRulesModalOpen(true);
-  }, []);
+  const handleBoardDataReady = React.useCallback(
+    (data: {
+      name: string;
+      description: string;
+      icon: string | undefined;
+      color: string | undefined;
+      rules?: BoardRules;
+    }) => {
+      setPendingBoardData(data);
+      setIsAddBoardModalOpen(false);
+      setIsRulesModalOpen(true);
+    },
+    []
+  );
 
-  const handleUseTemplate = React.useCallback((data: {
-    name: string;
-    description: string;
-    icon: string | undefined;
-    color: string | undefined;
-    rules?: BoardRules;
-  }) => {
-    // Create board directly with template rules, bypassing the rules modal
-    addBoard(
-      data.name,
-      data.description,
-      data.icon,
-      data.color,
-      data.rules
-    );
-    setIsAddBoardModalOpen(false);
-  }, [addBoard]);
+  const handleUseTemplate = React.useCallback(
+    (data: {
+      name: string;
+      description: string;
+      icon: string | undefined;
+      color: string | undefined;
+      rules?: BoardRules;
+    }) => {
+      // Create board directly with template rules, bypassing the rules modal
+      addBoard(data.name, data.description, data.icon, data.color, data.rules);
+      setIsAddBoardModalOpen(false);
+    },
+    [addBoard]
+  );
 
-  const handleRulesSave = React.useCallback((rules: BoardRules) => {
-    if (pendingBoardData) {
-      addBoard(
-        pendingBoardData.name,
-        pendingBoardData.description,
-        pendingBoardData.icon,
-        pendingBoardData.color,
-        rules
-      );
-      setPendingBoardData(null); // Clear the data after board is created
-      setIsRulesModalOpen(false);
-    }
-  }, [pendingBoardData, addBoard]);
+  const handleRulesSave = React.useCallback(
+    (rules: BoardRules) => {
+      if (pendingBoardData) {
+        addBoard(
+          pendingBoardData.name,
+          pendingBoardData.description,
+          pendingBoardData.icon,
+          pendingBoardData.color,
+          rules
+        );
+        setPendingBoardData(null); // Clear the data after board is created
+        setIsRulesModalOpen(false);
+      }
+    },
+    [pendingBoardData, addBoard]
+  );
 
   const handleRulesBack = React.useCallback(() => {
     setIsRulesModalOpen(false);
@@ -686,68 +761,186 @@ export function AppSidebar() {
       {/*  CONTENT                                                        */}
       {/* ---------------------------------------------------------------- */}
       <SidebarContent>
-        {pathname.includes('/settings') ? (
+        {pathname.includes("/settings") ? (
           <>
             <Link
-              href={activeWorkspace ? `/${activeWorkspace.id}` : '/'}
+              href={activeWorkspace ? `/${activeWorkspace.id}` : "/"}
               className="flex items-center gap-1 cursor-pointer"
             >
               <span className="flex items-center justify-center w-4 h-4">
                 <ArrowLeft className="w-4 h-4 text-black" />
               </span>
-              <span className="text-sm text-black font-medium">Return to workspace</span>
+              <span className="text-sm text-black font-medium">
+                Return to workspace
+              </span>
             </Link>
             <SidebarGroup>
               <SidebarGroupLabel>
-                <span className="text-xs font-medium text-[#75777C] tracking-wide">WORKSPACE</span>
+                <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                  WORKSPACE
+                </span>
               </SidebarGroupLabel>
               <RenderNavItems
                 items={[
-                  { id: 'ws-workspace', label: 'Workspace', image: '/images/settings/workspace.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/workspace` : '/settings/workspace' },
-                  { id: 'ws-socials', label: 'Socials', image: '/images/settings/socials.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/socials` : '/settings/socials' },
-                  { id: 'ws-billing', label: 'Billing', image: '/images/settings/billing.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/billing` : '/settings/billing' },
-                  { id: 'ws-members', label: 'Members', image: '/images/settings/members.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/members` : '/settings/members' },
-                  { id: 'ws-integrations', label: 'Integrations', image: '/images/settings/integrations.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/integrations` : '/settings/integrations' },
+                  {
+                    id: "ws-workspace",
+                    label: "Workspace",
+                    image: "/images/settings/workspace.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/settings/workspace`
+                      : "/settings/workspace",
+                  },
+                  {
+                    id: "ws-socials",
+                    label: "Socials",
+                    image: "/images/settings/socials.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/settings/socials`
+                      : "/settings/socials",
+                  },
+                  {
+                    id: "ws-billing",
+                    label: "Billing",
+                    image: "/images/settings/billing.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/settings/billing`
+                      : "/settings/billing",
+                  },
+                  {
+                    id: "ws-members",
+                    label: "Members",
+                    image: "/images/settings/members.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/settings/members`
+                      : "/settings/members",
+                  },
+                  {
+                    id: "ws-integrations",
+                    label: "Integrations",
+                    image: "/images/settings/integrations.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/settings/integrations`
+                      : "/settings/integrations",
+                  },
                 ]}
               />
             </SidebarGroup>
 
             <SidebarGroup>
               <SidebarGroupLabel>
-                <span className="text-xs font-medium text-[#75777C] tracking-wide">ACCOUNT</span>
+                <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                  ACCOUNT
+                </span>
               </SidebarGroupLabel>
               <RenderNavItems
                 items={[
-                  { id: 'acc-profile', label: 'Profile', image: '/images/settings/profile.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/profile` : '/settings/profile' },
-                  { id: 'acc-notifications', label: 'Notifications', image: '/images/settings/notifications.svg', href: activeWorkspace ? `/${activeWorkspace.id}/settings/notifications` : '/settings/notifications' },
+                  {
+                    id: "acc-profile",
+                    label: "Profile",
+                    image: "/images/settings/profile.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/settings/profile`
+                      : "/settings/profile",
+                  },
+                  {
+                    id: "acc-notifications",
+                    label: "Notifications",
+                    image: "/images/settings/notifications.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/settings/notifications`
+                      : "/settings/notifications",
+                  },
                 ]}
               />
             </SidebarGroup>
           </>
-        ) : pathname.includes('/admin') ? (
+        ) : pathname.includes("/admin") ? (
           <>
             <SidebarGroup>
               <RenderNavItems
                 items={[
-                  { id: 'admin-home', label: 'Home', image: '/images/sidebar/home.svg', href: activeWorkspace ? `/${activeWorkspace.id}` : '/' },
-                  { id: 'admin-clients', label: 'Clients', image: '/images/sidebar/clients.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/clients` : '/admin/clients' },
-                  { id: 'admin-team', label: 'Team', image: '/images/sidebar/team.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/team` : '/admin/team' },
+                  {
+                    id: "admin-home",
+                    label: "Home",
+                    image: "/images/sidebar/home.svg",
+                    href: activeWorkspace ? `/${activeWorkspace.id}` : "/",
+                  },
+                  {
+                    id: "admin-clients",
+                    label: "Clients",
+                    image: "/images/sidebar/clients.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/clients`
+                      : "/admin/clients",
+                  },
+                  {
+                    id: "admin-team",
+                    label: "Team",
+                    image: "/images/sidebar/team.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/team`
+                      : "/admin/team",
+                  },
                 ]}
               />
             </SidebarGroup>
 
             <SidebarGroup>
               <SidebarGroupLabel>
-                <span className="text-xs font-medium text-[#75777C] tracking-wide">TOOLS & AUTOMATIONS</span>
+                <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                  TOOLS & AUTOMATIONS
+                </span>
               </SidebarGroupLabel>
               <RenderNavItems
                 items={[
-                  { id: 'admin-inbox', label: 'Inbox', image: '/images/sidebar/messages.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/inbox` : '/admin/inbox' },
-                  { id: 'admin-services', label: 'Services', image: '/images/sidebar/services.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/services` : '/admin/services' },
-                  { id: 'admin-forms', label: 'Forms', image: '/images/sidebar/forms.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/forms` : '/admin/forms' },
-                  { id: 'admin-automations', label: 'Automations', image: '/images/sidebar/automations.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/automations` : '/admin/automations' },
-                  { id: 'admin-files', label: 'Files', image: '/images/sidebar/files.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/files` : '/admin/files' },
-                  { id: 'admin-settings', label: 'Settings', image: '/images/sidebar/settings.svg', href: activeWorkspace ? `/${activeWorkspace.id}/admin/settings` : '/admin/settings' },
+                  {
+                    id: "admin-inbox",
+                    label: "Inbox",
+                    image: "/images/sidebar/messages.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/inbox`
+                      : "/admin/inbox",
+                  },
+                  {
+                    id: "admin-services",
+                    label: "Services",
+                    image: "/images/sidebar/services.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/services`
+                      : "/admin/services",
+                  },
+                  {
+                    id: "admin-forms",
+                    label: "Forms",
+                    image: "/images/sidebar/forms.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/forms`
+                      : "/admin/forms",
+                  },
+                  {
+                    id: "admin-automations",
+                    label: "Automations",
+                    image: "/images/sidebar/automations.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/automations`
+                      : "/admin/automations",
+                  },
+                  {
+                    id: "admin-files",
+                    label: "Files",
+                    image: "/images/sidebar/files.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/files`
+                      : "/admin/files",
+                  },
+                  {
+                    id: "admin-settings",
+                    label: "Settings",
+                    image: "/images/sidebar/settings.svg",
+                    href: activeWorkspace
+                      ? `/${activeWorkspace.id}/admin/settings`
+                      : "/admin/settings",
+                  },
                 ]}
               />
             </SidebarGroup>
@@ -764,8 +957,13 @@ export function AppSidebar() {
               <SidebarGroup>
                 <SidebarGroupLabel>
                   <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-medium text-[#75777C] tracking-wide">Boards</span>
-                    <button onClick={() => setIsAddBoardModalOpen(!!activeWorkspace)} className="hover:bg-gray-100 rounded cursor-pointer  ">
+                    <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                      Boards
+                    </span>
+                    <button
+                      onClick={() => setIsAddBoardModalOpen(!!activeWorkspace)}
+                      className="hover:bg-gray-100 rounded cursor-pointer  "
+                    >
                       <Image
                         src={`/images/sidebar/plus.svg`}
                         alt="board plus"
@@ -777,7 +975,11 @@ export function AppSidebar() {
                 </SidebarGroupLabel>
 
                 <div className="mt-1">
-                  <RenderNavItems items={boardNav} isBoard onBoardAction={handleBoardAction} />
+                  <RenderNavItems
+                    items={boardNav}
+                    isBoard
+                    onBoardAction={handleBoardAction}
+                  />
                 </div>
               </SidebarGroup>
             )}
@@ -791,10 +993,19 @@ export function AppSidebar() {
                       className="flex items-center text-[#75777C] gap-1.5"
                       onClick={() => setSocialOpen((o) => !o)}
                     >
-                      {socialOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      <span className="text-xs font-medium tracking-wide">Socials</span>
+                      {socialOpen ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                      <span className="text-xs font-medium tracking-wide">
+                        Socials
+                      </span>
                     </div>
-                    <button onClick={() => setIsManageSocialsOpen(true)} className="hover:bg-gray-100 rounded cursor-pointer">
+                    <button
+                      onClick={() => setIsManageSocialsOpen(true)}
+                      className="hover:bg-gray-100 rounded cursor-pointer"
+                    >
                       <Image
                         src={`/images/sidebar/plus.svg`}
                         alt="social plus"
@@ -838,7 +1049,7 @@ export function AppSidebar() {
       <RenameBoardDialog
         isOpen={!!renameTarget}
         onClose={() => setRenameTarget(null)}
-        currentName={renameTarget?.label || ''}
+        currentName={renameTarget?.label || ""}
         onRename={handleRenameBoard}
       />
 
