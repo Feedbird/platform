@@ -44,10 +44,9 @@ import { RenameBoardDialog } from "@/components/board/rename-board-dialog";
 import {
   NavLink as NavLinkType,
   BoardRules,
+  useFeedbirdStore,
 } from "@/lib/store/use-feedbird-store";
 import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
-
-import { useFeedbirdStore, NavLink } from "@/lib/store/use-feedbird-store";
 import { cn, getFullnameinitial } from "@/lib/utils";
 import { useClerk } from "@clerk/nextjs";
 
