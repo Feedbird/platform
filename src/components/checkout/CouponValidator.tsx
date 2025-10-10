@@ -64,7 +64,7 @@ export default function CouponValidator({}: Props) {
           <div className="flex flex-col gap-2">
             <p
               onClick={() => activateValidation(true)}
-              className="pt-[16px] text-[14px] font-normal text-[#1C1D1F] underline hover:cursor-pointer"
+              className="pt-[16px] text-[14px] font-normal text-black underline hover:cursor-pointer"
             >
               Got a coupon?
             </p>
@@ -76,7 +76,7 @@ export default function CouponValidator({}: Props) {
       ) : (
         <div className="flex flex-col pt-4 gap-2">
           <div className="flex justify-between items-center">
-            <label className="text-[#1C1D1F] font-normal text-sm">
+            <label className="text-black font-normal text-sm">
               Enter coupon code
             </label>
             <XIcon

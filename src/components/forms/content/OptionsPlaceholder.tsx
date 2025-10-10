@@ -53,7 +53,7 @@ export function OptionCard({
           height={72}
         />
       )}
-      <span className="text-[#1C1D1F] font-normal text-sm">{option.value}</span>
+      <span className="text-black font-normal text-sm">{option.value}</span>
       <Checkbox
         checked={isSelected}
         className={`bg-white ${

@@ -31,7 +31,7 @@ export default function EmptyFormsComponent() {
           <EmptyFormPreview iconColor="#79C4E4" />
         </div>
         <div className="flex flex-col text-center">
-          <span className="font-semibold text-base text-[#1C1D1F] p-1">
+          <span className="font-semibold text-base text-black p-1">
             No forms yet
           </span>
           <div className="flex flex-col font-normal text-[#5C5E63] text-sm">

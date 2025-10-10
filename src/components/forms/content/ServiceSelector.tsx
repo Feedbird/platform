@@ -31,7 +31,7 @@ export default function ServiceSelector({
     <header className="flex flex-col gap-5 p-6 max-w-[900px] mx-auto">
       <div className="p-4 rounded-[5px] border-1 border-[#D3D3D3] flex flex-col gap-2.5">
         <div className="flex flex-col">
-          <span className="text-[#1C1D1F] font-medium text-base">
+          <span className="text-black font-medium text-base">
             Select Service
           </span>
           <p className="text-[13px] text-[#5C5E63]">
@@ -40,7 +40,7 @@ export default function ServiceSelector({
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[13px] text-[#1C1D1F] font-medium">
+          <span className="text-[13px] text-black font-medium">
             Choose Services
           </span>
           <div className="flex flex-row justify-between w-full">

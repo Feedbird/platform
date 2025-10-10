@@ -25,7 +25,7 @@ export function configInputMapper(
             <label className="text-[#5C5E63] text-sm font-normal ">Title</label>
             <Input
               value={field.label}
-              className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-[#1C1D1F] min-h-[36px] bg-white"
+              className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-black min-h-[36px] bg-white"
             />
           </div>
         ));
@@ -36,7 +36,7 @@ export function configInputMapper(
             <label className="text-[#5C5E63] text-sm font-normal ">
               Placeholder
             </label>
-            <Input className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-[#1C1D1F] min-h-[36px] bg-white" />
+            <Input className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-black min-h-[36px] bg-white" />
           </div>
         ));
         break;
@@ -49,7 +49,7 @@ export function configInputMapper(
               </label>
               <p className="text-[#838488] font-light text-xs">(Optional)</p>
             </div>
-            <Textarea className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-[#1C1D1F] min-h-[56px] bg-white" />
+            <Textarea className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 text-black min-h-[56px] bg-white" />
           </div>
         ));
         break;
@@ -82,7 +82,7 @@ export function configInputMapper(
               </label>
             </div>
             <Select>
-              <SelectTrigger className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 w-full text-[#1C1D1F] min-h-[36px] bg-white"></SelectTrigger>
+              <SelectTrigger className="border-1 border-[#D3D3D3] rounded-[6px] px-2.5 py-2 w-full text-black min-h-[36px] bg-white"></SelectTrigger>
               <SelectContent>
                 <SelectItem value="something">Something</SelectItem>
               </SelectContent>

@@ -112,27 +112,25 @@ export default function FormSettingsModal({
 
           <DialogTitle>
             <div className="flex flex-row items-center gap-3">
-              <span className="text-[16px] font-semibold text-[#1C1D1F]">
+              <span className="text-[16px] font-semibold text-black">
                 Form Settings
               </span>
             </div>
           </DialogTitle>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-0.5">
-              <span className="text-[#1C1D1F] font-medium text-[13px]">
-                Title
-              </span>
+              <span className="text-black font-medium text-[13px]">Title</span>
               <Input
                 autoFocus
                 disabled={loading}
                 id="title"
                 value={settings.title}
-                className="text-[#1C1D1F] py-2 px-3 rounded-[6px]"
+                className="text-black py-2 px-3 rounded-[6px]"
                 onChange={handleTextChange}
               />
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[#1C1D1F] font-medium text-[13px]">
+              <span className="text-black font-medium text-[13px]">
                 Choose Services
               </span>
               <ModalMultiSelect
@@ -146,14 +144,14 @@ export default function FormSettingsModal({
               />
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-[#1C1D1F] font-medium text-[13px]">
+              <span className="text-black font-medium text-[13px]">
                 Description
               </span>
               <Textarea
                 disabled={loading}
                 id="description"
                 value={settings.description}
-                className="text-[#1C1D1F] py-2 px-3 rounded-[6px]"
+                className="text-black py-2 px-3 rounded-[6px]"
                 onChange={handleTextChange}
               />
             </div>
@@ -172,7 +170,7 @@ export default function FormSettingsModal({
             </Button>
             <Button
               variant={"ghost"}
-              className="rounded-[6px] border-1 border-[#D3D3D3] text-[#1C1D1F] text-[13px] font-medium hover:cursor-pointer"
+              className="rounded-[6px] border-1 border-[#D3D3D3] text-black text-[13px] font-medium hover:cursor-pointer"
               onClick={() => {
                 onClose(false);
                 setSettings(initialSettings);

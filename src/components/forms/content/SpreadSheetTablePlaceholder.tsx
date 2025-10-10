@@ -14,14 +14,14 @@ export default function SpreadSheetTablePlaceholder({
   const sampleRows = config.allowedRows?.value || 2;
 
   return (
-    <table className="w-full border-separate border-spacing-0 rounded-lg overflow-hidden border border-[#EAE9E9]">
+    <table className="w-full border-separate border-spacing-0 rounded-lg overflow-hidden border border-elementStroke">
       <thead className="">
         <tr className="bg-[#FBFBFB] text-[#5C5E63] font-medium text-left text-[13px]">
-          <th className="w-7 border-r border-b border-[#EAE9E9] first:rounded-tl-[6px]"></th>
+          <th className="w-7 border-r border-b border-elementStroke first:rounded-tl-[6px]"></th>
           {columns.map((col, index) => (
             <th
               key={col.order}
-              className={`border-r border-b border-[#EAE9E9] p-2 pt-2.5 ${
+              className={`border-r border-b border-elementStroke p-2 pt-2.5 ${
                 index === columns.length - 1
                   ? "rounded-tr-[6px] border-r-0"
                   : ""
@@ -38,7 +38,7 @@ export default function SpreadSheetTablePlaceholder({
           return (
             <tr key={rowIndex}>
               <td
-                className={`w-7 border-r border-b border-[#EAE9E9] p-2.5 text-[#5C5E63] font-normal text-xs font-mono bg-[#FBFBFB] ${
+                className={`w-7 border-r border-b border-elementStroke p-2.5 text-[#5C5E63] font-normal text-xs font-mono bg-[#FBFBFB] ${
                   isLastRow ? "rounded-bl-[6px] border-b-0" : ""
                 }`}
               >
@@ -47,7 +47,7 @@ export default function SpreadSheetTablePlaceholder({
               {columns.map((_, idx) => (
                 <td
                   key={idx + 7}
-                  className={`px-2.5 border-r border-b border-[#EAE9E9] bg-white ${
+                  className={`px-2.5 border-r border-b border-elementStroke bg-white ${
                     isLastRow && idx === columns.length - 1
                       ? "rounded-br-[6px] border-r-0 border-b-0"
                       : isLastRow

@@ -83,7 +83,7 @@ export default function MultiSelectDropdown({
                 width={18}
                 height={18}
               />
-              <span className="text-[#1C1D1F] font-medium">
+              <span className="text-black font-medium">
                 {channelsSelected[0].social_channel
                   .slice(0, 1)
                   .toLocaleUpperCase() +
@@ -127,7 +127,7 @@ export default function MultiSelectDropdown({
                       width={18}
                       height={18}
                     />
-                    <span className="text-[#1C1D1F] font-medium">
+                    <span className="text-black font-medium">
                       {channel.social_channel.slice(0, 1).toLocaleUpperCase() +
                         channel.social_channel.slice(1)}
                     </span>

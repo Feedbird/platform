@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { mapPeriodicity, ServiceCardPlan } from "./ServiceCard";
 import { ServiceFolder } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
+import Image from "next/image";
 
 type Props = {
   selectedPlans: Map<string, ServiceCardPlan>;
@@ -82,19 +83,27 @@ export default function BillingTabs({
                   key={`${service.name}-${container.plan.id}`}
                   className="flex flex-col gap-2"
                 >
-                  <h3 className="text-base font-medium text-[#1C1D1F]">
-                    {service.name}
-                  </h3>
+                  <div className="flex flex-row gap-2">
+                    <Image
+                      width={20}
+                      height={20}
+                      alt={`${service.name}_icon`}
+                      src={`/images/checkout/icons/${service.internal_icon}.svg`}
+                    />
+                    <h3 className="text-base font-medium text-black">
+                      {service.name}
+                    </h3>
+                  </div>
                   <div className="flex flex-col gap-1">
                     <div className="flex flex-row justify-between text-sm">
                       <div className="flex flex-col font-normal">
-                        <span className="text-[#1C1D1F]">
+                        <span className="text-black">
                           {container.plan.quantity}{" "}
                           {container.plan.qty_indicator}
                         </span>
                       </div>
 
-                      <span className="text-sm font-medium text-[#1C1D1F]">
+                      <span className="text-sm font-medium text-black">
                         USD ${container.plan.price}/
                         {mapPeriodicity(container.plan.period)}
                       </span>
@@ -139,7 +148,7 @@ export default function BillingTabs({
         </div>
         <div className="flex flex-col">
           <Divider className="h-[1px] bg-[#E2E2E4]" />
-          <div className="flex justify-between pt-6 text-[#1C1D1F]">
+          <div className="flex justify-between pt-6 text-black">
             <p className="text-[14px] font-medium">Total</p>
             <span className="text-[18px] font-semibold">USD ${total}/mo</span>
           </div>
@@ -159,19 +168,27 @@ export default function BillingTabs({
                   key={`${service.name}-${container.plan.id}`}
                   className="flex flex-col gap-2"
                 >
-                  <h3 className="text-base font-medium text-[#1C1D1F]">
-                    {service.name}
-                  </h3>
+                  <div className="flex flex-row gap-2">
+                    <Image
+                      width={20}
+                      height={20}
+                      alt={`${service.name}_icon`}
+                      src={`/images/checkout/icons/${service.internal_icon}.svg`}
+                    />
+                    <h3 className="text-base font-medium text-black">
+                      {service.name}
+                    </h3>
+                  </div>
                   <div className="flex flex-col gap-1">
                     <div className="flex flex-row justify-between text-sm">
                       <div className="flex flex-col font-normal">
-                        <span className="text-[#1C1D1F]">
+                        <span className="text-black">
                           {container.plan.quantity}{" "}
                           {container.plan.qty_indicator}
                         </span>
                       </div>
 
-                      <span className="text-sm font-medium text-[#1C1D1F]">
+                      <span className="text-sm font-medium text-black">
                         USD ${calculateYearlyTotal(container.plan.price, false)}
                         /yr
                       </span>
@@ -227,7 +244,7 @@ export default function BillingTabs({
         </div>
         <div className="flex flex-col">
           <Divider className="h-[1px] bg-[#E2E2E4]" />
-          <div className="flex justify-between pt-6 text-[#1C1D1F]">
+          <div className="flex justify-between pt-6 text-black">
             <p className="text-[14px] font-medium">Total</p>
             <span className="text-[18px] font-semibold">
               USD ${calculateYearlyTotal(total)}/yr
