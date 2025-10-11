@@ -2,6 +2,7 @@
 
 import React from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import DevCheckoutButton from "@/components/checkout/builder/DevCheckoutButton";
 
 export default function AdminServicesPage() {
   return (
@@ -10,9 +11,12 @@ export default function AdminServicesPage() {
         <SidebarTrigger className="cursor-pointer shrink-0" />
         <h1 className="text-base font-semibold text-black">Services</h1>
       </header>
-      <div className="p-4 text-sm text-[#5C5E63]">Services management coming soon.</div>
+      <div className="p-4 text-sm text-[#5C5E63]">
+        Services management coming soon.
+      </div>
+      <div className="p-4">
+        <DevCheckoutButton />
+      </div>
     </div>
   );
 }
-
-
