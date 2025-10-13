@@ -75,7 +75,7 @@ const SORT_OPTIONS = [
       icon: <CalendarIcon className="mr-1 h-3 w-3" />,
     },
     {
-      id: "updatedAt",
+      id: "updated_at",
       label: "Updated At",
       icon: <CalendarIcon className="mr-1 h-3 w-3" />,
     },

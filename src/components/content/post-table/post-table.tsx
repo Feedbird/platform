@@ -432,23 +432,263 @@ async function importFromCSV(file: File): Promise<Post[]> {
   });
 }
 
-/** ---------- Filter Fns (as skeletons) ---------- **/
-const statusFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
-  if (!filterValues.length) return true;
-  const cellVal = row.getValue(colId) as string;
-  return filterValues.includes(cellVal);
+/** ---------- Filter Fns (operator-aware) ---------- **/
+type OperatorLike =
+  | "is"
+  | "is_not"
+  | "any_of"
+  | "none_of"
+  | "is_empty"
+  | "not_empty"
+  | "filename_contains"
+  | "has_file_type";
+
+type ColumnFilterValue = { operator: OperatorLike; values?: string[] } | string[];
+
+const isEmpty = (v: any) => v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+
+const evalBasic = (cellVal: string | number | string[] | undefined, fv: ColumnFilterValue): boolean => {
+  // Back-compat: simple array means "any_of"
+  if (Array.isArray(fv)) {
+    const list = fv as string[];
+    if (!list.length) return true;
+    if (Array.isArray(cellVal)) return (cellVal as string[]).some((v) => list.includes(String(v)));
+    return list.includes(String(cellVal ?? ""));
+  }
+  const { operator, values = [] } = fv;
+  if (operator === "is_empty") return isEmpty(cellVal);
+  if (operator === "not_empty") return !isEmpty(cellVal);
+  const first = values[0];
+  switch (operator) {
+    case "is":
+      if (Array.isArray(cellVal)) return (cellVal as string[]).includes(String(first ?? ""));
+      return String(cellVal ?? "") === String(first ?? "");
+    case "is_not":
+      if (Array.isArray(cellVal)) return !(cellVal as string[]).includes(String(first ?? ""));
+      return String(cellVal ?? "") !== String(first ?? "");
+    case "any_of":
+      if (Array.isArray(cellVal)) return (cellVal as string[]).some((v) => values.includes(String(v)));
+      return values.includes(String(cellVal ?? ""));
+    case "none_of":
+      if (Array.isArray(cellVal)) return (cellVal as string[]).every((v) => !values.includes(String(v)));
+      return !values.includes(String(cellVal ?? ""));
+    default:
+      return true;
+  }
 };
 
-const formatFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
-  if (!filterValues.length) return true;
-  const cellVal = row.getValue(colId) as string;
-  return filterValues.includes(cellVal);
+const statusFilterFn: FilterFn<Post> = (row, colId, filterValue: ColumnFilterValue, _addMeta?: any) => {
+  const cellVal = row.getValue(colId) as string | undefined;
+  return evalBasic(cellVal ?? "", filterValue);
 };
 
-const monthFilterFn: FilterFn<Post> = (row, colId, filterValues: string[]) => {
-  if (!filterValues.length) return true;
-  const cellVal = String(row.getValue(colId));
-  return filterValues.includes(cellVal);
+const formatFilterFn: FilterFn<Post> = (row, colId, filterValue: ColumnFilterValue, _addMeta?: any) => {
+  const cellVal = row.getValue(colId) as string | undefined;
+  return evalBasic(cellVal ?? "", filterValue);
+};
+
+const monthFilterFn: FilterFn<Post> = (row, colId, filterValue: ColumnFilterValue, _addMeta?: any) => {
+  const cellVal = row.getValue(colId);
+  return evalBasic(String(cellVal ?? ""), filterValue);
+};
+
+const previewFilterFn: FilterFn<Post> = (row, colId, filterValue: ColumnFilterValue, _addMeta?: any) => {
+  const blocks = (row.getValue(colId) as Post["blocks"]) || [];
+
+  if (Array.isArray(filterValue)) {
+    // Legacy behavior: treat as any_of kinds
+    const kinds = filterValue;
+    if (!kinds.length) return true;
+    return blocks.some((b) => kinds.includes(String(b?.kind ?? "")));
+  }
+  const { operator, values = [] } = filterValue || ({} as any);
+  if (operator === "is_empty") return blocks.length === 0;
+  if (operator === "not_empty") return blocks.length > 0;
+  if (operator === "has_file_type") {
+    const want = String(values[0] ?? "");
+    if (!want) return true;
+    return blocks.some((b) => String(b?.kind ?? "") === want);
+  }
+  if (operator === "filename_contains") {
+    const needle = String(values[0] ?? "").toLowerCase();
+    if (!needle) return true;
+    for (const b of blocks) {
+      for (const v of b?.versions || []) {
+        const fileUrl = v?.file?.url || "";
+        if (fileUrl.toLowerCase().includes(needle)) return true;
+        const media = v?.media || [];
+        if (media.some((m) => String(m?.name || "").toLowerCase().includes(needle))) return true;
+      }
+    }
+    return false;
+  }
+  // Fallback
+  return true;
+};
+
+const publishDateFilterFn: FilterFn<Post> = (row, colId, filterValue: ColumnFilterValue, _addMeta?: any) => {
+  const rowDateRaw = row.getValue(colId) as Date | string | null | undefined;
+  const rowDate = rowDateRaw ? new Date(rowDateRaw as any) : null;
+
+  // Back-compat array => treat as no-op allow
+  if (Array.isArray(filterValue)) return true;
+
+  const { operator, values = [] } = (filterValue || { operator: "is" }) as any;
+
+  // Empty checks
+  if (operator === "is_empty") return !rowDate;
+  if (operator === "not_empty") return !!rowDate;
+  if (!rowDate) return false;
+
+  // Helpers
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
+
+  const opt = String(values[0] || "today");
+  const num = Number(values[1] || 0);
+
+  const resolveTarget = (): { start: Date; end: Date } | null => {
+    switch (opt) {
+      case "today": {
+        const s = startOfDay(now);
+        const e = endOfDay(now);
+        return { start: s, end: e };
+      }
+      case "tomorrow": {
+        const d = addDays(now, 1);
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "yesterday": {
+        const d = addDays(now, -1);
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "one_week_ago": {
+        const d = addDays(now, -7);
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "one_week_from_now": {
+        const d = addDays(now, 7);
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "one_month_ago": {
+        const d = addDays(now, -30);
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "one_month_from_now": {
+        const d = addDays(now, 30);
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "days_ago": {
+        const d = addDays(now, -Math.max(0, isFinite(num) ? num : 0));
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "days_from_now": {
+        const d = addDays(now, Math.max(0, isFinite(num) ? num : 0));
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      case "exact_date": {
+        const iso = String(values[1] || "");
+        if (!iso) return null;
+        const parts = iso.split("-").map(Number);
+        const d = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+        return { start: startOfDay(d), end: endOfDay(d) };
+      }
+      default: {
+        const s = startOfDay(now);
+        const e = endOfDay(now);
+        return { start: s, end: e };
+      }
+    }
+  };
+
+  const target = resolveTarget();
+  if (!target) return true;
+
+  const rd = new Date(rowDate);
+  switch (operator) {
+    case "is":
+      return rd >= target.start && rd <= target.end;
+    case "before":
+      return rd < target.start;
+    case "on_or_before":
+      return rd <= target.end;
+    case "after":
+      return rd > target.end;
+    case "on_or_after":
+      return rd >= target.start;
+    case "is_within": {
+      // Interpret option as window relative to now
+      if (opt === "days_ago" || opt === "one_week_ago" || opt === "one_month_ago") {
+        const windowStart = startOfDay(addDays(now, opt === "days_ago" ? -Math.max(0, num) : opt === "one_week_ago" ? -7 : -30));
+        const windowEnd = endOfDay(now);
+        return rd >= windowStart && rd <= windowEnd;
+      }
+      if (opt === "days_from_now" || opt === "one_week_from_now" || opt === "one_month_from_now") {
+        const windowStart = startOfDay(now);
+        const windowEnd = endOfDay(addDays(now, opt === "days_from_now" ? Math.max(0, num) : opt === "one_week_from_now" ? 7 : 30));
+        return rd >= windowStart && rd <= windowEnd;
+      }
+      // Default: treat as same-day
+      return rd >= target.start && rd <= target.end;
+    }
+    case "is_not":
+      return !(rd >= target.start && rd <= target.end);
+    default:
+      return true;
+  }
+};
+
+const approveFilterFn: FilterFn<Post> = (row, _colId, filterValue: ColumnFilterValue, _addMeta?: any) => {
+  // Approval is derived from status; interpret values as logical approval states
+  // "Revision" => status === "Needs Revisions"
+  // "Approved" => status === "Approved" OR scheduled/published
+  // "none_of" => neither of the above (show approvals icon state)
+  const status = (row.original.status || "") as string;
+  const scheduledOrPosted = row.original.status === "Scheduled" || row.original.status === "Published";
+
+  const isApprovedState = status === "Approved" || scheduledOrPosted;
+  const isRevisionState = status === "Needs Revisions";
+  const isNoneState = !isApprovedState && !isRevisionState; // matches the icon-only state
+
+  const matchFor = (val: string): boolean => {
+    if (val === "Approved") return isApprovedState;
+    if (val === "Revision") return isRevisionState;
+    if (val === "none_of") return isNoneState;
+    return false;
+  };
+
+  if (Array.isArray(filterValue)) {
+    const list = filterValue as string[];
+    if (!list.length) return true;
+    return list.some(matchFor);
+  }
+
+  const { operator, values = [] } = (filterValue || { operator: "any_of" }) as any;
+  if (!values.length && (operator !== "is_empty" && operator !== "not_empty")) return true;
+
+  switch (operator) {
+    case "is":
+      return matchFor(String(values[0]));
+    case "is_not":
+      return !matchFor(String(values[0]));
+    case "any_of": {
+      const arr: string[] = values as string[];
+      return arr.some((val: string) => matchFor(String(val)));
+    }
+    case "none_of": {
+      const arr: string[] = values as string[];
+      return arr.every((val: string) => !matchFor(String(val)));
+    }
+    case "is_empty":
+      // Approve state is considered empty only if neither approved nor revision (icon state)
+      return isNoneState;
+    case "not_empty":
+      return !isNoneState;
+    default:
+      return true;
+  }
 };
 
 const statusSortOrder: Status[] = [
@@ -518,6 +758,7 @@ export function PostTable({
     string | null
   >(null);
   const selectedPreviewCellRef = React.useRef<string | null>(null);
+  const setBoardFilterConditions = useFeedbirdStore((s) => s.setBoardFilterConditions);  
 
   // Keep ref in sync with state
   React.useEffect(() => {
@@ -719,8 +960,8 @@ export function PostTable({
   // Helpers to read/write user column values on Post.user_columns
   const getUserColumnValue = React.useCallback(
     (post: Post, columnId: string): string => {
-      const arr = post.user_columns || [];
-      const hit = arr.find((x) => x.id === columnId);
+    const arr = post.user_columns || [];
+    const hit = arr.find((x) => x.id === columnId);
       return hit?.value ?? "";
     },
     []
@@ -732,12 +973,12 @@ export function PostTable({
       columnId: string,
       value: string
     ): Array<{ id: string; value: string }> => {
-      const arr = [...(post.user_columns || [])];
-      const idx = arr.findIndex((x) => x.id === columnId);
+    const arr = [...(post.user_columns || [])];
+    const idx = arr.findIndex((x) => x.id === columnId);
 
-      if (idx >= 0) arr[idx] = { id: columnId, value };
-      else arr.push({ id: columnId, value });
-      return arr;
+    if (idx >= 0) arr[idx] = { id: columnId, value };
+    else arr.push({ id: columnId, value });
+    return arr;
     },
     []
   );
@@ -745,19 +986,19 @@ export function PostTable({
   // Mapping between internal column ids and persisted display names
   const defaultIdToName: Record<string, string> = React.useMemo(
     () => ({
-      drag: "",
-      rowIndex: "",
-      status: "Status",
-      preview: "Preview",
-      caption: "Caption",
-      platforms: "Socials",
-      format: "Format",
-      month: "Month",
-      revision: "Revision",
-      approve: "Approve",
-      settings: "Settings",
-      publish_date: "Post time",
-      updated_at: "Updated",
+    drag: "",
+    rowIndex: "",
+    status: "Status",
+    preview: "Preview",
+    caption: "Caption",
+    platforms: "Socials",
+    format: "Format",
+    month: "Month",
+    revision: "Revision",
+    approve: "Approve",
+    settings: "Settings",
+    publish_date: "Post time",
+    updated_at: "Updated",
     }),
     []
   );
@@ -805,35 +1046,35 @@ export function PostTable({
         type?: ColumnType;
         options?: any;
       }> = [];
-      let ord = 0;
-      for (const id of filtered) {
-        if (defaultIdToName[id]) {
-          // Default columns: we can optionally set a type for well-known ones
-          // For now, omit type for defaults to preserve existing behavior
+    let ord = 0;
+    for (const id of filtered) {
+      if (defaultIdToName[id]) {
+        // Default columns: we can optionally set a type for well-known ones
+        // For now, omit type for defaults to preserve existing behavior
           payload.push({
             name: defaultIdToName[id],
             is_default: true,
             order: ord++,
           });
-          continue;
-        }
+        continue;
+      }
         const u = columnsList.find((c) => c.id === id);
-        if (u) {
-          // Normalize options: support legacy string[] and new {value,color}[]
-          let optionsPayload = [];
-          if (Array.isArray(u.options)) {
+      if (u) {
+        // Normalize options: support legacy string[] and new {value,color}[]
+        let optionsPayload = [];
+        if (Array.isArray(u.options)) {
             const arr: any[] = u.options as any[];
-            if (arr.length > 0) {
+          if (arr.length > 0) {
               if (typeof arr[0] === "string") {
                 optionsPayload = (arr as string[]).map((v) => ({
                   value: v,
                   color: "",
                 }));
-              } else {
-                optionsPayload = arr;
-              }
+            } else {
+              optionsPayload = arr;
             }
           }
+        }
           payload.push({
             name: u.label,
             id: u.id,
@@ -842,9 +1083,9 @@ export function PostTable({
             type: u.type,
             options: optionsPayload,
           });
-        }
       }
-      return payload;
+    }
+    return payload;
     },
     [userColumns, defaultIdToName]
   );
@@ -936,9 +1177,7 @@ export function PostTable({
 
   // Table states
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [grouping, setGrouping] = React.useState<GroupingState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -949,13 +1188,13 @@ export function PostTable({
   const [columnSizing, setColumnSizing] = React.useState({});
   const [columnSizingInfo, setColumnSizingInfo] =
     React.useState<ColumnSizingInfoState>({
-      columnSizingStart: [],
-      deltaOffset: null,
-      deltaPercentage: null,
-      isResizingColumn: false,
-      startOffset: null,
+    columnSizingStart: [],
+    deltaOffset: null,
+    deltaPercentage: null,
+    isResizingColumn: false,
+    startOffset: null,
       startSize: null,
-    });
+  });
   const [resizingColumnId, setResizingColumnId] = React.useState<string | null>(
     null
   );
@@ -1128,11 +1367,24 @@ export function PostTable({
 
   // Filter states
   const [filterOpen, setFilterOpen] = React.useState(false);
-  const [filterTree, setFilterTree] = React.useState<ConditionGroup>({
-    id: "root",
-    andOr: "AND",
-    children: [],
+
+  // Stable default for empty filter tree to avoid creating a new object each render
+  const emptyFilterRef = React.useRef<ConditionGroup>({ id: "root", type: "group", children: [] });
+
+  // Reactively subscribe to current board filter conditions from the store
+  const filterTree = useFeedbirdStore((s) => {
+    const aw = s.workspaces.find(w => w.id === s.activeWorkspaceId);
+    const ab = aw?.boards.find(b => b.id === s.activeBoardId);
+    return ab?.filterConditions ?? emptyFilterRef.current;
   });
+
+  // Set filter conditions in store for current board
+  const setFilterTree = React.useCallback((conditions: ConditionGroup) => {
+    if (activeBoardId) {
+      setBoardFilterConditions(activeBoardId, conditions);
+    }
+  }, [activeBoardId, setBoardFilterConditions]);
+
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>({
     platforms: "Socials",
     publish_date: "Post Time",
@@ -1290,30 +1542,51 @@ export function PostTable({
     setEditFieldOpen(true);
   }
 
-  // Build the flatten filter from filterTree
+  // Build the flattened column filters from a nested filter tree
   React.useEffect(() => {
     const flat: ColumnFiltersState = [];
+    let anyOr = false;
 
-    // Convert each condition to the format expected by the respective filter functions
-    filterTree.children.forEach((condition) => {
-      // Only add filters if there are selected values
-      if (condition.selectedValues && condition.selectedValues.length > 0) {
-        flat.push({
-          id: condition.field,
-          value: condition.selectedValues, // Pass the array of selected values directly
-        });
+    const collect = (node: any, parentJoin: "and" | "or" = "and") => {
+      if (!node) return;
+      if (node.type === "condition") {
+        const c = node as Condition;
+        const op = c.operator as any;
+        const vals = c.selectedValues || [];
+        if (op === "is_empty" || op === "not_empty") {
+          flat.push({ id: c.field, value: { operator: op } as any });
+          if (parentJoin === "or") anyOr = true;
+          return;
+        }
+        if (vals.length > 0) {
+          flat.push({ id: c.field, value: { operator: op, values: vals } as any });
+          if (parentJoin === "or") anyOr = true;
+        }
+        return;
       }
-    });
-
-    setColumnFilters(flat);
+      if (node.type === "group") {
+        const children: any[] = node.children || [];
+        const joinVal: "and" | "or" = (children[1]?.join as any) || "and";
+        if (joinVal === "or") anyOr = true;
+        children.forEach((child) => collect(child, joinVal));
+      }
+    };
+    collect(filterTree);
+    setColumnFilters(anyOr ? [] : flat);
   }, [filterTree]);
 
   const hasActiveFilters = React.useMemo(() => {
-    // Check if any condition has selected values
-    return filterTree.children.some(
-      (condition) =>
-        condition.selectedValues && condition.selectedValues.length > 0
-    );
+    let active = false;
+    const check = (node: ConditionGroup | Condition) => {
+      if ((node as any).type === "condition") {
+        const c = node as Condition;
+        if (c.selectedValues && c.selectedValues.length > 0) active = true;
+      } else {
+        (node as ConditionGroup).children.forEach(check);
+      }
+    };
+    check(filterTree);
+    return active;
   }, [filterTree]);
 
   // Table instance
@@ -1618,17 +1891,17 @@ export function PostTable({
       const postsData = Array(3)
         .fill(null)
         .map(() => ({
-          caption: { synced: false, default: "" },
-          status: "Draft" as Status,
-          format: "",
-          publish_date: null,
-          platforms: [],
-          pages: [],
-          month: 1,
-          blocks: [],
-          comments: [],
-          activities: [],
-        }));
+        caption: { synced: false, default: "" },
+        status: "Draft" as Status,
+        format: "",
+        publish_date: null,
+        platforms: [],
+        pages: [],
+        month: 1,
+        blocks: [],
+        comments: [],
+        activities: [],
+      }));
 
       const board_id = tableData[0]?.board_id || store.activeBoardId;
       if (board_id) {
@@ -1763,13 +2036,13 @@ export function PostTable({
   // Now we define the functions INSIDE the component, so they have access to the map
   const platformsFilterFn: FilterFn<Post> = React.useCallback(
     (row, colId, filterValues: string[]) => {
-      if (!filterValues.length) return true;
-      const rowPages = row.getValue(colId) as string[];
-      if (!rowPages || !Array.isArray(rowPages)) return false;
+    if (!filterValues.length) return true;
+    const rowPages = row.getValue(colId) as string[];
+    if (!rowPages || !Array.isArray(rowPages)) return false;
 
-      const rowPlatforms = rowPages
+    const rowPlatforms = rowPages
         .map((pageId) => pageIdToPlatformMap.get(pageId))
-        .filter((platform): platform is Platform => platform !== undefined);
+      .filter((platform): platform is Platform => platform !== undefined);
 
       return rowPlatforms.some((platform) => filterValues.includes(platform));
     },
@@ -1778,13 +2051,13 @@ export function PostTable({
 
   const platformsSortingFn: SortingFn<Post> = React.useCallback(
     (rowA, rowB, columnId) => {
-      const a: string[] = rowA.getValue(columnId) as string[];
-      const b: string[] = rowB.getValue(columnId) as string[];
+    const a: string[] = rowA.getValue(columnId) as string[];
+    const b: string[] = rowB.getValue(columnId) as string[];
 
-      const emptyA = !a || a.length === 0;
-      const emptyB = !b || b.length === 0;
-      if (emptyA && !emptyB) return 1;
-      if (!emptyA && emptyB) return -1;
+    const emptyA = !a || a.length === 0;
+    const emptyB = !b || b.length === 0;
+    if (emptyA && !emptyB) return 1;
+    if (!emptyA && emptyB) return -1;
 
       const strA = (a ?? [])
         .map((id) => pageIdToPlatformMap.get(id) ?? "")
@@ -1792,7 +2065,7 @@ export function PostTable({
       const strB = (b ?? [])
         .map((id) => pageIdToPlatformMap.get(id) ?? "")
         .join(",");
-      return strA.localeCompare(strB);
+    return strA.localeCompare(strB);
     },
     [pageIdToPlatformMap]
   );
@@ -2290,63 +2563,63 @@ export function PostTable({
 
   const finishFillDrag = React.useCallback(
     (e: MouseEvent) => {
-      const info = fillDragRef.current;
-      if (!info) return;
+    const info = fillDragRef.current;
+    if (!info) return;
 
-      const rowEl = (e.target as HTMLElement).closest("tr");
-      const idxStr = rowEl?.getAttribute("data-rowkey");
-      if (!idxStr) return;
-      const endIndex = parseInt(idxStr, 10);
-      if (isNaN(endIndex)) return;
+    const rowEl = (e.target as HTMLElement).closest("tr");
+    const idxStr = rowEl?.getAttribute("data-rowkey");
+    if (!idxStr) return;
+    const endIndex = parseInt(idxStr, 10);
+    if (isNaN(endIndex)) return;
 
-      const { startIndex, value, columnId } = info;
-      const start = Math.min(startIndex, endIndex);
-      const end = Math.max(startIndex, endIndex);
+    const { startIndex, value, columnId } = info;
+    const start = Math.min(startIndex, endIndex);
+    const end = Math.max(startIndex, endIndex);
 
-      if (start !== end) {
-        // 1) Build new table data without mutating existing state
-        const newData = tableData.map((p, i) => {
-          if (i < start || i > end) return p;
+    if (start !== end) {
+      // 1) Build new table data without mutating existing state
+      const newData = tableData.map((p, i) => {
+        if (i < start || i > end) return p;
           if (columnId === "month") {
-            return { ...p, month: value as number };
-          }
+          return { ...p, month: value as number };
+        }
           if (columnId === "caption") {
             return { ...p, caption: value as Post["caption"] };
-          }
+        }
           if (columnId === "platforms") {
-            return { ...p, pages: value as string[] };
-          }
+          return { ...p, pages: value as string[] };
+        }
           if (columnId === "format") {
-            return { ...p, format: value as string };
-          }
-          return p;
-        });
+          return { ...p, format: value as string };
+        }
+        return p;
+      });
 
-        // 2) Apply the optimistic UI update
-        setTableData(newData);
+      // 2) Apply the optimistic UI update
+      setTableData(newData);
 
-        // 3) Persist changes to the store AFTER state update so we're not inside render
-        for (let i = start; i <= end; i++) {
-          const p = newData[i];
-          if (!p) continue;
+      // 3) Persist changes to the store AFTER state update so we're not inside render
+      for (let i = start; i <= end; i++) {
+        const p = newData[i];
+        if (!p) continue;
           if (columnId === "month") {
-            updatePost(p.id, { month: value as number });
+          updatePost(p.id, { month: value as number });
           } else if (columnId === "caption") {
             updatePost(p.id, { caption: value as Post["caption"] });
           } else if (columnId === "platforms") {
-            updatePost(p.id, { pages: value as string[] });
+          updatePost(p.id, { pages: value as string[] });
           } else if (columnId === "format") {
-            updatePost(p.id, { format: value as string });
-          }
+          updatePost(p.id, { format: value as string });
         }
       }
+    }
 
-      fillDragRef.current = null;
-      document.body.style.userSelect = "";
-      document.removeEventListener("mouseup", finishFillDrag);
-      document.removeEventListener("mousemove", handleFillMouseMove);
-      setFillDragRange(null);
-      setFillDragColumn(null);
+    fillDragRef.current = null;
+    document.body.style.userSelect = "";
+    document.removeEventListener("mouseup", finishFillDrag);
+    document.removeEventListener("mousemove", handleFillMouseMove);
+    setFillDragRange(null);
+    setFillDragColumn(null);
     },
     [tableData, updatePost]
   );
@@ -2404,44 +2677,44 @@ export function PostTable({
   /** Preview cell function - separate from baseColumns to avoid refresh **/
   const previewCellFn = React.useCallback(
     ({ row, isFocused }: { row: Row<Post>; isFocused?: boolean }) => {
-      const post = row.original;
+    const post = row.original;
 
       const handleFilesSelected = React.useCallback(
         (files: File[]) => {
-          // In a real implementation, you'd upload to your API and update the post
+      // In a real implementation, you'd upload to your API and update the post
           console.log("Files selected for post:", post.id, files);
 
-          // TODO: Implement actual file upload
-          // 1. Upload files to /api/media/upload
-          // 2. Create blocks from uploaded files
-          // 3. Update post with new blocks
+      // TODO: Implement actual file upload
+      // 1. Upload files to /api/media/upload
+      // 2. Create blocks from uploaded files
+      // 3. Update post with new blocks
         },
         [post.id]
       );
 
-      return (
-        <div
-          className="flex flex-1 h-full cursor-pointer"
-          onClick={(e) => {
+    return (
+      <div
+        className="flex flex-1 h-full cursor-pointer"
+        onClick={(e) => {
             if ((e.target as HTMLElement).closest("[data-preview-exempt]"))
               return;
 
-            // Focus handling is managed by FocusCell at the <td> level.
-            // First click focuses the cell; second click (when focused) opens the record.
-            if (isFocused) {
-              onOpen?.(post.id);
-            }
-          }}
-        >
-          <MemoBlocksPreview
-            blocks={post.blocks}
-            postId={post.id}
-            onFilesSelected={handleFilesSelected}
-            rowHeight={rowHeight}
-            isSelected={!!isFocused}
-          />
-        </div>
-      );
+          // Focus handling is managed by FocusCell at the <td> level.
+          // First click focuses the cell; second click (when focused) opens the record.
+          if (isFocused) {
+            onOpen?.(post.id);
+          }
+        }}
+      >
+        <MemoBlocksPreview
+          blocks={post.blocks}
+          postId={post.id}
+          onFilesSelected={handleFilesSelected}
+          rowHeight={rowHeight}
+          isSelected={!!isFocused}
+        />
+      </div>
+    );
     },
     [onOpen, rowHeight]
   );
@@ -2670,6 +2943,7 @@ export function PostTable({
       {
         id: "preview",
         accessorKey: "blocks",
+        filterFn: previewFilterFn,
         header: () => (
           <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image
@@ -2705,14 +2979,14 @@ export function PostTable({
             <div className="ml-auto flex items-center gap-2">
               {renderPlatformsForHeader(availablePlatforms, "sm")}
               <div data-col-interactive>
-                <Switch
-                  checked={!captionLocked}
-                  onCheckedChange={(checked) => setCaptionLocked(!checked)}
-                  className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
+              <Switch
+                checked={!captionLocked}
+                onCheckedChange={(checked) => setCaptionLocked(!checked)}
+                className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
                   title={
                     captionLocked ? "Unlock - customise per social" : "Lock"
                   }
-                />
+              />
               </div>
             </div>
           </div>
@@ -2956,7 +3230,7 @@ export function PostTable({
           const content = (
             <div
               className={cn(
-                "inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
+              "inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
                 canPerformRevisionAction
                   ? "cursor-pointer"
                   : "cursor-not-allowed opacity-50"
@@ -3019,6 +3293,7 @@ export function PostTable({
       // Approve
       {
         id: "approve",
+        filterFn: approveFilterFn,
         header: () => (
           <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
             <Image
@@ -3063,7 +3338,7 @@ export function PostTable({
           exitEdit,
         }: FocusCellContext<Post>) => {
           const post = row.original;
-
+          
           // Derive platforms from selected pages
           const selectedPages: SocialPage[] = (ws?.socialPages || []).filter(
             (page: SocialPage) => post.pages.includes(page.id)
@@ -3071,7 +3346,7 @@ export function PostTable({
           const derivedPlatforms: Platform[] = selectedPages.map(
             (page) => page.platform
           );
-
+          
           return (
             <SettingsEditCell
               value={post.settings as any}
@@ -3095,6 +3370,7 @@ export function PostTable({
       {
         id: "publish_date",
         accessorKey: "publish_date",
+        filterFn: publishDateFilterFn,
         header: () => (
           <div className="flex items-center justify-between gap-2 w-full">
             <div className="flex items-center gap-[6px] text-black text-[13px] font-medium leading-[16px]">
@@ -3107,41 +3383,41 @@ export function PostTable({
               {"Post Time"}
             </div>
             <div data-col-interactive>
-              <Switch
-                checked={!!boardRules?.autoSchedule}
-                onCheckedChange={(checked) => {
-                  if (!activeBoardId) return;
-                  const prevRules: BoardRules | undefined = boardRules;
-                  const mergedRules: BoardRules = {
-                    autoSchedule: checked,
-                    revisionRules: prevRules?.revisionRules ?? false,
-                    approvalDeadline: prevRules?.approvalDeadline ?? false,
-                    firstMonth: prevRules?.firstMonth,
-                    ongoingMonth: prevRules?.ongoingMonth,
-                    approvalDays: prevRules?.approvalDays,
-                    groupBy: prevRules?.groupBy ?? null,
-                    sortBy: prevRules?.sortBy ?? null,
-                    rowHeight: prevRules?.rowHeight ?? rowHeight,
-                  };
-                  // Optimistic update: immediately reflect in store
-                  useFeedbirdStore.setState((s) => ({
+            <Switch
+              checked={!!boardRules?.autoSchedule}
+              onCheckedChange={(checked) => {
+                if (!activeBoardId) return;
+                const prevRules: BoardRules | undefined = boardRules;
+                const mergedRules: BoardRules = {
+                  autoSchedule: checked,
+                  revisionRules: prevRules?.revisionRules ?? false,
+                  approvalDeadline: prevRules?.approvalDeadline ?? false,
+                  firstMonth: prevRules?.firstMonth,
+                  ongoingMonth: prevRules?.ongoingMonth,
+                  approvalDays: prevRules?.approvalDays,
+                  groupBy: prevRules?.groupBy ?? null,
+                  sortBy: prevRules?.sortBy ?? null,
+                  rowHeight: prevRules?.rowHeight ?? rowHeight,
+                };
+                // Optimistic update: immediately reflect in store
+                useFeedbirdStore.setState((s) => ({
                     workspaces: (s.workspaces || []).map((w) => ({
-                      ...w,
+                    ...w,
                       boards: (w.boards || []).map((b) =>
                         b.id === activeBoardId
                           ? { ...b, rules: mergedRules }
                           : b
                       ),
                     })),
-                  }));
+                }));
 
-                  // Persist to backend; revert if it fails
+                // Persist to backend; revert if it fails
                   updateBoard(activeBoardId, { rules: mergedRules }).catch(
                     (err) => {
                       console.error("Failed to update board rules:", err);
-                      useFeedbirdStore.setState((s) => ({
+                  useFeedbirdStore.setState((s) => ({
                         workspaces: (s.workspaces || []).map((w) => ({
-                          ...w,
+                      ...w,
                           boards: (w.boards || []).map((b) =>
                             b.id === activeBoardId
                               ? { ...b, rules: prevRules }
@@ -3151,23 +3427,23 @@ export function PostTable({
                       }));
                     }
                   );
-                }}
-                className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
-                icon={
-                  <span className="flex items-center justify-center w-full h-full">
-                    <img
-                      src="/images/boards/stars-01.svg"
-                      alt="star"
-                      className="w-2.5 h-2.5"
-                      style={{
+              }}
+              className="h-3.5 w-6 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-3 [&_[data-slot=switch-thumb]]:w-3"
+              icon={
+                <span className="flex items-center justify-center w-full h-full">
+                  <img
+                    src="/images/boards/stars-01.svg"
+                    alt="star"
+                    className="w-2.5 h-2.5"
+                    style={{
                         filter: boardRules?.autoSchedule
                           ? undefined
                           : "grayscale(2) brightness(0.85)",
-                      }}
-                    />
-                  </span>
-                }
-              />
+                    }}
+                  />
+                </span>
+              }
+            />
             </div>
           </div>
         ),
@@ -3587,19 +3863,17 @@ export function PostTable({
 
   // columns for filter builder
   const filterableColumns = React.useMemo(() => {
-    // Only allow filtering on: Status, Month, Socials (platforms), Format
-    const ALLOWED_FILTER_COLUMNS = new Set([
-      "status",
-      "month",
-      "platforms",
-      "format",
-    ]);
+    // Allow filtering on: Status, Month, Socials (platforms), Format, Approve, Preview, Post Time
+    const ALLOWED_FILTER_COLUMNS = new Set(["status", "month", "platforms", "format", "approve", "preview", "publish_date"]);
 
     const iconMap: Record<string, React.JSX.Element> = {
-      status: <FolderOpen className="mr-1 h-3 w-3" />,
-      month: <CalendarIcon className="mr-1 h-3 w-3" />,
-      platforms: <ListPlus className="mr-1 h-3 w-3" />,
-      format: <Film className="mr-1 h-3 w-3" />,
+      status: <Image src="/images/columns/status.svg" alt="Status" width={13} height={13} />,
+      month: <Image src="/images/columns/post-time.svg" alt="Month" width={13} height={13} />,
+      platforms: <Image src="/images/columns/socials.svg" alt="Platforms" width={13} height={13} />,
+      format: <Image src="/images/columns/format.svg" alt="Format" width={13} height={13} />,
+      approve: <Image src="/images/columns/approve.svg" alt="Approve" width={13} height={13} />,
+      preview: <Image src="/images/columns/preview.svg" alt="Preview" width={13} height={13} />,
+      publish_date: <Image src="/images/columns/post-time.svg" alt="Post Time" width={13} height={13} />,
     };
 
     return columns
@@ -3614,87 +3888,153 @@ export function PostTable({
   // Create table
   const tableConfig = React.useMemo(
     () => ({
-      data: tableData,
-      columns,
-      groupedColumnMode: false as const,
-      state: {
-        sorting,
-        columnFilters,
-        grouping,
-        columnVisibility,
-        columnOrder,
-        expanded,
-        // needed for resizing:
-        columnSizing,
-        columnSizingInfo,
-      },
-      columnResizeMode: "onChange" as ColumnResizeMode,
-      onSortingChange: setSorting,
-      onColumnFiltersChange: setColumnFilters,
-      onGroupingChange: setGrouping,
-      onColumnVisibilityChange: setColumnVisibility,
-      onColumnOrderChange: setColumnOrder,
-      onExpandedChange: setExpanded,
-      // needed for resizing:
-      onColumnSizingChange: setColumnSizing,
-      onColumnSizingInfoChange: (
-        updaterOrValue:
-          | ColumnSizingInfoState
-          | ((old: ColumnSizingInfoState) => ColumnSizingInfoState)
-      ) => {
-        setColumnSizingInfo(updaterOrValue);
-        // Track which column is being resized
-        const newInfo =
-          typeof updaterOrValue === "function"
-            ? updaterOrValue(columnSizingInfo)
-            : updaterOrValue;
+    data: (() => {
+      // Helpers to determine if a condition has a user-provided value
+      const isConditionActive = (c: any): boolean => {
+        if (!c) return false;
+        if (c.operator === "is_empty" || c.operator === "not_empty") return true;
+        const vals: string[] = Array.isArray(c.selectedValues) ? c.selectedValues : [];
+        return vals.some((v) => v != null && String(v).trim() !== "");
+      };
+      const treeHasActive = (node: any): boolean => {
+        if (!node) return false;
+        if (node.type === "condition") return isConditionActive(node);
+        if (node.type === "group") return (node.children || []).some((ch: any) => treeHasActive(ch));
+        return false;
+      };
 
-        if (newInfo.isResizingColumn && newInfo.columnSizingStart.length > 0) {
-          // Get the column ID from the first column being resized
-          const firstColumn = newInfo.columnSizingStart[0];
-          setResizingColumnId(
-            Array.isArray(firstColumn) ? firstColumn[0] : firstColumn
-          );
-        } else if (!newInfo.isResizingColumn) {
-          setResizingColumnId(null);
+      // Evaluate full tree with AND/OR semantics; apply here so table receives pre-filtered data
+      const evalTree = (post: Post, node: any): { active: boolean; result: boolean } => {
+        const getVal = (columnId: string) => {
+          switch (columnId) {
+            case "status": return post.status as any;
+            case "format": return post.format as any;
+            case "month": return post.month as any;
+            case "platforms": return post.pages as any;
+            case "preview": return post.blocks as any;
+            case "publish_date": return (post as any).publish_date as any;
+            case "approve": return post.status as any;
+            default: return (post as any)[columnId];
+          }
+        };
+        const fakeRow = {
+          original: post,
+          getValue: (colId: string) => getVal(colId),
+        } as any;
+        const evalCond = (c: any): { active: boolean; result: boolean } => {
+          if (!isConditionActive(c)) return { active: false, result: true };
+          const value: any = (c.operator === "is_empty" || c.operator === "not_empty")
+            ? { operator: c.operator }
+            : { operator: c.operator, values: c.selectedValues || [] };
+          switch (c.field) {
+            case "status": return { active: true, result: statusFilterFn(fakeRow, "status", value as any, undefined as any) };
+            case "format": return { active: true, result: formatFilterFn(fakeRow, "format", value as any, undefined as any) };
+            case "month": return { active: true, result: monthFilterFn(fakeRow, "month", value as any, undefined as any) };
+            case "platforms": return { active: true, result: platformsFilterFn(fakeRow, "pages", value as any, undefined as any) };
+            case "preview": return { active: true, result: previewFilterFn(fakeRow, "blocks", value as any, undefined as any) };
+            case "publish_date": return { active: true, result: publishDateFilterFn(fakeRow, "publish_date", value as any, undefined as any) };
+            case "approve": return { active: true, result: approveFilterFn(fakeRow, "approve", value as any, undefined as any) };
+            default: return { active: false, result: true };
+          }
+        };
+        if (!node) return { active: false, result: true };
+        if ((node as any).type === "condition") return evalCond(node);
+        const group = node as any;
+        const children = group.children || [];
+        if (children.length === 0) return { active: false, result: true };
+        const joinVal: "and" | "or" = (children[1]?.join as any) || "and";
+        const results: Array<{ active: boolean; result: boolean }> = children.map((ch: any) => evalTree(post, ch));
+        const activeChildren = results.filter((r) => r.active);
+        if (activeChildren.length === 0) return { active: false, result: true };
+        if (joinVal === "or") {
+          return { active: true, result: activeChildren.some((r) => r.result) };
         }
-      },
-
-      enableRowSelection: true,
-      enableExpanding: true,
-      enableColumnResizing: true, // main toggle
-      getExpandedRowModel: getExpandedRowModel(),
-      getGroupedRowModel: getGroupedRowModel(),
-      getFilteredRowModel: getFilteredRowModel(),
-      getSortedRowModel: getSortedRowModel(),
-      getCoreRowModel: getCoreRowModel(),
-      autoResetAll: false,
-      filterFns: {
-        statusFilterFn,
-        formatFilterFn,
-        monthFilterFn,
-        platformsFilterFn,
-      },
-    }),
-    [
-      tableData,
-      columns,
+        return { active: true, result: activeChildren.every((r) => r.result) };
+      };
+      const treeActive = treeHasActive(filterTree);
+      if (!treeActive) return tableData;
+      return tableData.filter((p) => evalTree(p, filterTree).result);
+    })(),
+    columns,
+    groupedColumnMode: false as const,
+    state: {
       sorting,
       columnFilters,
       grouping,
       columnVisibility,
       columnOrder,
       expanded,
+      // needed for resizing:
       columnSizing,
       columnSizingInfo,
-      setSorting,
-      setColumnFilters,
-      setGrouping,
-      setColumnVisibility,
-      setColumnOrder,
-      setExpanded,
-      setColumnSizing,
-      setColumnSizingInfo,
+    },
+    columnResizeMode: "onChange" as ColumnResizeMode,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGroupingChange: setGrouping,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    onExpandedChange: setExpanded,
+    // needed for resizing:
+    onColumnSizingChange: setColumnSizing,
+      onColumnSizingInfoChange: (
+        updaterOrValue:
+          | ColumnSizingInfoState
+          | ((old: ColumnSizingInfoState) => ColumnSizingInfoState)
+      ) => {
+      setColumnSizingInfo(updaterOrValue);
+      // Track which column is being resized
+        const newInfo =
+          typeof updaterOrValue === "function"
+        ? updaterOrValue(columnSizingInfo) 
+        : updaterOrValue;
+      
+      if (newInfo.isResizingColumn && newInfo.columnSizingStart.length > 0) {
+        // Get the column ID from the first column being resized
+        const firstColumn = newInfo.columnSizingStart[0];
+          setResizingColumnId(
+            Array.isArray(firstColumn) ? firstColumn[0] : firstColumn
+          );
+      } else if (!newInfo.isResizingColumn) {
+        setResizingColumnId(null);
+      }
+    },
+
+    enableRowSelection: true,
+    enableExpanding: true,
+    enableColumnResizing: true, // main toggle
+    getExpandedRowModel: getExpandedRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getCoreRowModel: getCoreRowModel(),
+    autoResetAll: false,
+    filterFns: {
+      statusFilterFn,
+      formatFilterFn,
+      monthFilterFn,
+      platformsFilterFn,
+    },
+    }),
+    [
+    tableData,
+    columns,
+    sorting,
+    columnFilters,
+    grouping,
+    columnVisibility,
+    columnOrder,
+    expanded,
+    columnSizing,
+    columnSizingInfo,
+    setSorting,
+    setColumnFilters,
+    setGrouping,
+    setColumnVisibility,
+    setColumnOrder,
+    setExpanded,
+    setColumnSizing,
+    setColumnSizingInfo,
     ]
   );
 
@@ -3798,21 +4138,21 @@ export function PostTable({
 
   const handleHeaderMenuAction = React.useCallback(
     (action: string, columnId: string) => {
-      switch (action) {
+    switch (action) {
         case "edit": {
-          // Only allow editing user-defined columns
-          if (isDefaultColumn(columnId)) {
-            break;
-          }
+        // Only allow editing user-defined columns
+        if (isDefaultColumn(columnId)) {
+          break;
+        }
 
-          setEditFieldColumnId(columnId);
+        setEditFieldColumnId(columnId);
 
-          // Set the field type based on the existing column type
+        // Set the field type based on the existing column type
           const existingColumn = userColumns.find((col) => col.id === columnId);
-          if (existingColumn) {
-            setEditFieldType(mapColumnTypeToEditFieldType(existingColumn.type));
+        if (existingColumn) {
+          setEditFieldType(mapColumnTypeToEditFieldType(existingColumn.type));
 
-            // Load existing options for select types
+          // Load existing options for select types
             if (
               existingColumn.type === "singleSelect" ||
               existingColumn.type === "multiSelect"
@@ -3821,12 +4161,12 @@ export function PostTable({
                 existingColumn.options &&
                 Array.isArray(existingColumn.options)
               ) {
-                // Handle both old string[] format and new {id, value, color} format
+              // Handle both old string[] format and new {id, value, color} format
                 if (
                   existingColumn.options.length > 0 &&
                   typeof existingColumn.options[0] === "string"
                 ) {
-                  // Convert old format to new format with default colors and IDs
+                // Convert old format to new format with default colors and IDs
                   const defaultColors = [
                     "#3B82F6",
                     "#10B981",
@@ -3835,11 +4175,11 @@ export function PostTable({
                     "#8B5CF6",
                     "#F97316",
                   ];
-                  setEditFieldOptions(
+                setEditFieldOptions(
                     (existingColumn.options as string[]).map(
                       (value, index) => ({
-                        id: `opt_${index + 1}`,
-                        value,
+                    id: `opt_${index + 1}`,
+                    value,
                         color: defaultColors[index % defaultColors.length],
                       })
                     )
@@ -3850,7 +4190,7 @@ export function PostTable({
                   existingColumn.options[0] &&
                   "id" in existingColumn.options[0]
                 ) {
-                  // Already in new format with IDs
+                // Already in new format with IDs
                   setEditFieldOptions(
                     existingColumn.options as Array<{
                       id: string;
@@ -3858,145 +4198,145 @@ export function PostTable({
                       color: string;
                     }>
                   );
-                } else {
-                  // Convert old {value, color} format to new format with IDs
-                  setEditFieldOptions(
-                    (existingColumn.options as any[]).map((opt, index) => ({
-                      id: `opt_${index + 1}`,
-                      value: opt.value,
-                      color: opt.color,
-                    }))
-                  );
-                }
               } else {
-                // No options, set defaults
-                setEditFieldOptions([
-                  { id: "opt_1", value: "Option A", color: "#3B82F6" },
-                  { id: "opt_2", value: "Option B", color: "#10B981" },
-                  { id: "opt_3", value: "Option C", color: "#F59E0B" },
-                ]);
+                // Convert old {value, color} format to new format with IDs
+                setEditFieldOptions(
+                  (existingColumn.options as any[]).map((opt, index) => ({
+                    id: `opt_${index + 1}`,
+                    value: opt.value,
+                      color: opt.color,
+                  }))
+                );
               }
+            } else {
+              // No options, set defaults
+              setEditFieldOptions([
+                { id: "opt_1", value: "Option A", color: "#3B82F6" },
+                { id: "opt_2", value: "Option B", color: "#10B981" },
+                  { id: "opt_3", value: "Option C", color: "#F59E0B" },
+              ]);
             }
           }
+        }
 
-          // Compute anchored position relative to header
-          const headerEl = headerRefs.current[columnId];
-          const container = scrollContainerRef.current;
-          if (headerEl && container) {
-            const hRect = headerEl.getBoundingClientRect();
-            const cRect = container.getBoundingClientRect();
-            const columnWidth = hRect.width;
-            const panelWidth = 280;
-            const top = hRect.bottom - cRect.top + container.scrollTop; // align panel top to header bottom
-            // Align rules
-            let left: number;
+        // Compute anchored position relative to header
+        const headerEl = headerRefs.current[columnId];
+        const container = scrollContainerRef.current;
+        if (headerEl && container) {
+          const hRect = headerEl.getBoundingClientRect();
+          const cRect = container.getBoundingClientRect();
+          const columnWidth = hRect.width;
+          const panelWidth = 280;
+          const top = hRect.bottom - cRect.top + container.scrollTop; // align panel top to header bottom
+          // Align rules
+          let left: number;
             let align: "left" | "right";
-            if (panelWidth <= columnWidth) {
-              // right edges match
+          if (panelWidth <= columnWidth) {
+            // right edges match
               left =
                 hRect.right - cRect.left - panelWidth + container.scrollLeft;
               align = "right";
-            } else {
-              // left edges match
-              left = hRect.left - cRect.left + container.scrollLeft;
-              align = "left";
-            }
-            setEditFieldPanelPos({ top, left, align });
           } else {
-            setEditFieldPanelPos(null);
+            // left edges match
+            left = hRect.left - cRect.left + container.scrollLeft;
+              align = "left";
           }
-          setHeaderMenuOpenFor(null);
-          setEditFieldOpen(true);
-          break;
+          setEditFieldPanelPos({ top, left, align });
+        } else {
+          setEditFieldPanelPos(null);
         }
+        setHeaderMenuOpenFor(null);
+        setEditFieldOpen(true);
+        break;
+      }
         case "duplicate": {
-          // Duplicate user-defined column definition if applicable
-          setUserColumns((prev) => {
+        // Duplicate user-defined column definition if applicable
+        setUserColumns((prev) => {
             const isUserCol = prev.some((c) => c.id === columnId);
-            if (!isUserCol) return prev; // Only duplicate user-defined for now
+          if (!isUserCol) return prev; // Only duplicate user-defined for now
             const orig = prev.find((c) => c.id === columnId)!;
 
-            // Generate a unique ID for the duplicated column
-            const generateUniqueId = (baseLabel: string) => {
-              let counter = 1;
-              let newId = `${baseLabel}_copy`;
+          // Generate a unique ID for the duplicated column
+          const generateUniqueId = (baseLabel: string) => {
+            let counter = 1;
+            let newId = `${baseLabel}_copy`;
               while (prev.some((c) => c.id === newId)) {
-                newId = `${baseLabel}_copy_${counter}`;
-                counter++;
-              }
-              return newId;
-            };
+              newId = `${baseLabel}_copy_${counter}`;
+              counter++;
+            }
+            return newId;
+          };
 
-            const newId = generateUniqueId(orig.label);
-            const copy = { ...orig, id: newId, label: `${orig.label} copy` };
+          const newId = generateUniqueId(orig.label);
+          const copy = { ...orig, id: newId, label: `${orig.label} copy` };
 
-            // insert right after
-            setColumnOrder((orderPrev) => {
+          // insert right after
+          setColumnOrder((orderPrev) => {
               const order = orderPrev.length
                 ? orderPrev
                 : table.getAllLeafColumns().map((c) => c.id);
-              const idx = order.indexOf(columnId);
-              if (idx === -1) return orderPrev;
-              const newOrder = normalizeOrder([...order]);
-              newOrder.splice(idx + 1, 0, newId);
+            const idx = order.indexOf(columnId);
+            if (idx === -1) return orderPrev;
+            const newOrder = normalizeOrder([...order]);
+            newOrder.splice(idx + 1, 0, newId);
               try {
                 table.setColumnOrder(normalizeOrder(newOrder));
               } catch {}
-              // Persist after duplicate - pass the updated userColumns that includes the new column
-              try {
-                if (activeBoardId) {
-                  const nextUserColumns = [...prev, copy];
+            // Persist after duplicate - pass the updated userColumns that includes the new column
+            try {
+              if (activeBoardId) {
+                const nextUserColumns = [...prev, copy];
                   const payload = buildColumnsPayloadForOrder(
                     normalizeOrder(newOrder),
                     nextUserColumns
                   );
-                  updateBoard(activeBoardId, { columns: payload as any });
-                }
+                updateBoard(activeBoardId, { columns: payload as any });
+              }
               } catch {}
-              return normalizeOrder(newOrder);
-            });
-            return [...prev, copy];
+            return normalizeOrder(newOrder);
           });
-          break;
-        }
+          return [...prev, copy];
+        });
+        break;
+      }
         case "insert-left":
         case "insert-right": {
-          // Open the same inline panel as the plus button and remember where to insert
+        // Open the same inline panel as the plus button and remember where to insert
           setPendingInsertRef({
             targetId: columnId,
             side: action === "insert-left" ? "left" : "right",
           });
-          setEditFieldColumnId(null);
-          setNewFieldLabel("");
-          setEditFieldType("single line text"); // Reset to default type for new columns
-          // Reset options to defaults for new columns
-          setEditFieldOptions([
-            { id: "opt_1", value: "Option A", color: "#3B82F6" },
-            { id: "opt_2", value: "Option B", color: "#10B981" },
+        setEditFieldColumnId(null);
+        setNewFieldLabel("");
+        setEditFieldType("single line text"); // Reset to default type for new columns
+        // Reset options to defaults for new columns
+        setEditFieldOptions([
+          { id: "opt_1", value: "Option A", color: "#3B82F6" },
+          { id: "opt_2", value: "Option B", color: "#10B981" },
             { id: "opt_3", value: "Option C", color: "#F59E0B" },
-          ]);
-          // Find the header element to anchor the panel to
-          const headerElement = headerRefs.current[columnId];
-          if (headerElement) {
-            openEditPanelAtElement(headerElement);
-          }
-          setEditFieldOpen(true);
-          break;
+        ]);
+        // Find the header element to anchor the panel to
+        const headerElement = headerRefs.current[columnId];
+        if (headerElement) {
+          openEditPanelAtElement(headerElement);
         }
+        setEditFieldOpen(true);
+        break;
+      }
         case "sort-asc": {
-          table.setSorting([{ id: columnId, desc: false }]);
-          break;
-        }
+        table.setSorting([{ id: columnId, desc: false }]);
+        break;
+      }
         case "sort-desc": {
-          table.setSorting([{ id: columnId, desc: true }]);
-          break;
-        }
+        table.setSorting([{ id: columnId, desc: true }]);
+        break;
+      }
         case "hide": {
-          table.getColumn(columnId)?.toggleVisibility(false);
-          break;
-        }
+        table.getColumn(columnId)?.toggleVisibility(false);
+        break;
+      }
         case "delete": {
-          // Remove user-defined column if present
+        // Remove user-defined column if present
           const nextUserColumns: UserColumn[] = userColumns.filter(
             (c) => c.id !== columnId
           );
@@ -4008,33 +4348,33 @@ export function PostTable({
             table.getColumn(columnId)?.toggleVisibility(false);
           } catch {}
 
-          // Handle column deletion from posts
+        // Handle column deletion from posts
           const deletedColumn = userColumns.find((c) => c.id === columnId);
-          if (deletedColumn) {
-            // Find all posts that have values for this column and remove them
+        if (deletedColumn) {
+          // Find all posts that have values for this column and remove them
             const postsToUpdate = tableData.filter((post) => {
-              if (!post.user_columns) return false;
+            if (!post.user_columns) return false;
               return post.user_columns.some((uc) => uc.id === deletedColumn.id);
-            });
+          });
 
-            if (postsToUpdate.length > 0) {
-              // Update each post to remove the column value
-              postsToUpdate.forEach((post) => {
+          if (postsToUpdate.length > 0) {
+            // Update each post to remove the column value
+            postsToUpdate.forEach((post) => {
                 const updatedUserColumns =
                   post.user_columns?.filter(
                     (uc) => uc.id !== deletedColumn.id
                   ) || [];
 
-                // Update local state immediately for better UX
+              // Update local state immediately for better UX
                 setTableData((prev) =>
                   prev.map((p) =>
-                    p.id === post.id
-                      ? { ...p, user_columns: updatedUserColumns }
-                      : p
+                p.id === post.id
+                  ? { ...p, user_columns: updatedUserColumns }
+                  : p
                   )
                 );
 
-                // Update in database
+              // Update in database
                 updatePost(post.id, {
                   user_columns: updatedUserColumns,
                 } as any).catch((error) => {
@@ -4042,18 +4382,18 @@ export function PostTable({
                     `Failed to update post ${post.id} after column deletion:`,
                     error
                   );
-                  // Revert local state on error
+                // Revert local state on error
                   setTableData((prev) =>
                     prev.map((p) => (p.id === post.id ? post : p))
                   );
-                });
               });
-            }
+            });
           }
+        }
 
-          // Persist after delete
-          try {
-            if (activeBoardId) {
+        // Persist after delete
+        try {
+          if (activeBoardId) {
               const order = normalizeOrder(
                 table
                   .getAllLeafColumns()
@@ -4064,13 +4404,13 @@ export function PostTable({
                 order,
                 nextUserColumns
               );
-              updateBoard(activeBoardId, { columns: payload as any });
-            }
+            updateBoard(activeBoardId, { columns: payload as any });
+          }
           } catch {}
-          break;
-        }
+        break;
       }
-      setHeaderMenuOpenFor(null);
+    }
+    setHeaderMenuOpenFor(null);
     },
     [
       columnNames,
@@ -4167,7 +4507,7 @@ export function PostTable({
   }
 
   // Grouped rows
-  /** Instead of your current `renderGroupedRows`
+  /** Instead of your current `renderGroupedRows` 
    *  you can use a "flat" version like this:
    */
   /** A little helper to decide how to render each group value. */
@@ -4198,9 +4538,9 @@ export function PostTable({
                 padding: "3px 6px 3px 4px",
               }}
             >
-              <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#E5EEFF]">
+                <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#E5EEFF]">
                 <Link2 className={cn("w-2.5 h-2.5 text-main")} />
-              </div>
+                </div>
               <span className="text-xs text-black font-medium">
                 Add socials
               </span>
@@ -4218,7 +4558,7 @@ export function PostTable({
                 "flex flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke"
               )}
               style={{
-                padding: "3px 6px 3px 4px",
+              padding: "3px 6px 3px 4px",
               }}
             >
               <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#FFEEE0]">
@@ -4967,8 +5307,8 @@ export function PostTable({
         {isHoveringDivider &&
           typeof window !== "undefined" &&
           createPortal(
-            <div
-              className="pointer-events-none bg-[#151515] text-white border-none rounded-md text-xs font-medium px-3 py-1 shadow-md z-[1000]"
+          <div
+            className="pointer-events-none bg-[#151515] text-white border-none rounded-md text-xs font-medium px-3 py-1 shadow-md z-[1000]"
               style={{
                 position: "fixed",
                 left: cursorPos.x,
@@ -4978,9 +5318,9 @@ export function PostTable({
             >
               {recordCountForTooltip}{" "}
               {recordCountForTooltip === 1 ? "record" : "records"}
-            </div>,
-            document.body
-          )}
+          </div>,
+          document.body
+        )}
       </>
     );
   }
@@ -5363,54 +5703,54 @@ export function PostTable({
             </>
           )}
           {groups.length == 0 && (
-            <TableBody>
-              <TableRow className="group hover:bg-[#F9FAFB]">
-                {(() => {
-                  const visibleColumns = table.getVisibleLeafColumns();
-                  const firstCol = visibleColumns[0];
-                  const secondCol = visibleColumns[1];
-                  const thirdCol = visibleColumns[2];
+              <TableBody>
+                <TableRow className="group hover:bg-[#F9FAFB]">
+                  {(() => {
+                    const visibleColumns = table.getVisibleLeafColumns();
+                    const firstCol = visibleColumns[0];
+                    const secondCol = visibleColumns[1];
+                    const thirdCol = visibleColumns[2];
 
                   const stickyWidth =
                     firstCol.getSize() +
                     secondCol.getSize() +
                     thirdCol.getSize();
-                  const restOfCols = visibleColumns.slice(3);
+                    const restOfCols = visibleColumns.slice(3);
 
-                  return (
-                    <>
-                      <TableCell
-                        colSpan={3}
-                        className="px-3 py-2.5 bg-white border-t border-b border-[#EAE9E9]"
-                        style={{
-                          ...stickyStyles("drag", 10),
-                          width: stickyWidth,
-                        }}
-                      >
-                        <button
-                          className="p-0 m-0 font-medium text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
-                          onClick={handleAddRowUngrouped}
-                        >
-                          <PlusIcon size={16} />
-                          Add new record
-                        </button>
-                      </TableCell>
-                      {restOfCols.map((col, index) => (
+                    return (
+                      <>
                         <TableCell
-                          key={col.id}
-                          className={cn(
-                            "px-3 py-2.5 bg-white border-t border-b border-[#EAE9E9]"
-                          )}
+                          colSpan={3}
+                          className="px-3 py-2.5 bg-white border-t border-b border-[#EAE9E9]"
                           style={{
-                            width: col.getSize(),
+                          ...stickyStyles("drag", 10),
+                            width: stickyWidth,
                           }}
-                        />
-                      ))}
-                    </>
-                  );
-                })()}
-              </TableRow>
-            </TableBody>
+                        >
+                          <button
+                            className="p-0 m-0 font-medium text-sm cursor-pointer flex flex-row leading-[16px] items-center gap-2"
+                            onClick={handleAddRowUngrouped}
+                          >
+                            <PlusIcon size={16} />
+                            Add new record
+                          </button>
+                        </TableCell>
+                        {restOfCols.map((col, index) => (
+                          <TableCell
+                            key={col.id}
+                            className={cn(
+                            "px-3 py-2.5 bg-white border-t border-b border-[#EAE9E9]"
+                            )}
+                            style={{
+                              width: col.getSize(),
+                            }}
+                          />
+                        ))}
+                      </>
+                    );
+                  })()}
+                </TableRow>
+              </TableBody>
           )}
         </table>
       </div>
@@ -5731,30 +6071,30 @@ export function PostTable({
               table
                 .getRowModel()
                 .rows.map((row) => (
-                  <MemoizedRow
+              <MemoizedRow
                     key={`${row.id}-${columnOrder.join("-")}`}
-                    row={row}
-                    isSelected={row.getIsSelected()}
-                    isFillTarget={isFillTarget}
-                    isFillSource={isFillSource}
-                    handleRowClick={handleRowClick}
-                    handleContextMenu={handleContextMenu}
-                    handleRowDragStart={handleRowDragStart}
-                    setDragOverIndex={setDragOverIndex}
-                    handleRowDrop={handleRowDrop}
-                    isSticky={isSticky}
-                    stickyStyles={stickyStyles}
-                    table={table}
-                    fillDragColumn={fillDragColumn}
-                    fillDragRange={fillDragRange}
-                    rowHeight={rowHeight}
-                    columnOrder={columnOrder}
-                    draggingColumnId={draggingColumnId}
-                    isRowDragging={isRowDragging}
-                    scrollContainerRef={scrollContainerRef}
-                    setRowIndicatorTop={setRowIndicatorTop}
-                  />
-                ))}
+                row={row}
+                isSelected={row.getIsSelected()}
+                isFillTarget={isFillTarget}
+                isFillSource={isFillSource}
+                handleRowClick={handleRowClick}
+                handleContextMenu={handleContextMenu}
+                handleRowDragStart={handleRowDragStart}
+                setDragOverIndex={setDragOverIndex}
+                handleRowDrop={handleRowDrop}
+                isSticky={isSticky}
+                stickyStyles={stickyStyles}
+                table={table}
+                fillDragColumn={fillDragColumn}
+                fillDragRange={fillDragRange}
+                rowHeight={rowHeight}
+                columnOrder={columnOrder}
+                draggingColumnId={draggingColumnId}
+                isRowDragging={isRowDragging}
+                scrollContainerRef={scrollContainerRef}
+                setRowIndicatorTop={setRowIndicatorTop}
+              />
+            ))}
 
             {/* "Add new record" row - only show when not scrollable */}
             {!isScrollable && (
@@ -5814,17 +6154,17 @@ export function PostTable({
   // handle context menu actions
   const handleContextMenu = React.useCallback(
     (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => {
-      e.preventDefault();
-      if (!row.getIsSelected()) {
-        table.resetRowSelection();
-        row.toggleSelected(true);
-      }
-      setContextMenuOpen(false);
-      setContextMenuRow(row);
-      setContextMenuPosition({ x: e.clientX, y: e.clientY });
-      requestAnimationFrame(() => {
-        setContextMenuOpen(true);
-      });
+    e.preventDefault();
+    if (!row.getIsSelected()) {
+      table.resetRowSelection();
+      row.toggleSelected(true);
+    }
+    setContextMenuOpen(false);
+    setContextMenuRow(row);
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    requestAnimationFrame(() => {
+      setContextMenuOpen(true);
+    });
     },
     [table]
   );
@@ -6033,58 +6373,58 @@ export function PostTable({
   // Helper function to handle option removal from posts
   const handleOptionRemoval = React.useCallback(
     async (columnId: string, removedOptionId: string) => {
-      if (!activeBoardId || !tableData.length) return;
+    if (!activeBoardId || !tableData.length) return;
 
-      // Find the column to match with post user_columns
+    // Find the column to match with post user_columns
       const column = userColumns.find((col) => col.id === columnId);
-      if (!column) return;
+    if (!column) return;
 
-      // Find all posts that have the removed option ID as a value for this column
+    // Find all posts that have the removed option ID as a value for this column
       const postsToUpdate = tableData.filter((post) => {
-        if (!post.user_columns) return false;
+      if (!post.user_columns) return false;
 
         const userColumn = post.user_columns.find((uc) => uc.id === columnId);
-        return userColumn && userColumn.value === removedOptionId;
-      });
+      return userColumn && userColumn.value === removedOptionId;
+    });
 
-      if (postsToUpdate.length === 0) return;
+    if (postsToUpdate.length === 0) return;
 
-      // Update each post to remove the option value
-      const updatePromises = postsToUpdate.map(async (post) => {
+    // Update each post to remove the option value
+    const updatePromises = postsToUpdate.map(async (post) => {
         const updatedUserColumns =
           post.user_columns?.map((uc) =>
             uc.id === columnId ? { ...uc, value: "" } : uc
-          ) || [];
+      ) || [];
 
-        // Update local state immediately for better UX
+      // Update local state immediately for better UX
         setTableData((prev) =>
           prev.map((p) =>
             p.id === post.id ? { ...p, user_columns: updatedUserColumns } : p
           )
         );
 
-        // Update in database
-        try {
+      // Update in database
+      try {
           await updatePost(post.id, {
             user_columns: updatedUserColumns,
           } as any);
-        } catch (error) {
+      } catch (error) {
           console.error(
             `Failed to update post ${post.id} after option removal:`,
             error
           );
-          // Revert local state on error
+        // Revert local state on error
           setTableData((prev) =>
             prev.map((p) => (p.id === post.id ? post : p))
           );
-        }
-      });
-
-      try {
-        await Promise.all(updatePromises);
-      } catch (error) {
-        console.error("Failed to update posts after option removal:", error);
       }
+    });
+
+    try {
+      await Promise.all(updatePromises);
+    } catch (error) {
+        console.error("Failed to update posts after option removal:", error);
+    }
     },
     [activeBoardId, tableData, userColumns, updatePost]
   );
@@ -6274,55 +6614,55 @@ export function PostTable({
               {draggingColumnId &&
                 dragOverlayLeft != null &&
                 dragOverlayWidth != null && (
-                  <div
-                    className="pointer-events-none absolute"
-                    style={{
-                      top: 0,
-                      left: dragOverlayLeft,
-                      width: dragOverlayWidth,
+                <div
+                  className="pointer-events-none absolute"
+                  style={{
+                    top: 0,
+                    left: dragOverlayLeft,
+                    width: dragOverlayWidth,
                       height: scrollContainerRef.current?.scrollHeight || 0,
                       background: "#E5E7EB",
-                      opacity: 0.6,
+                    opacity: 0.6,
                       border: "1px dashed #A3A3A3",
-                      zIndex: 50,
-                    }}
-                  />
-                )}
+                    zIndex: 50,
+                  }}
+                />
+              )}
 
               {/* Blue gap indicator showing insertion point (header-only height) */}
               {draggingColumnId &&
                 dragOverColumnId &&
                 (() => {
-                  const overEl = headerRefs.current[dragOverColumnId!];
-                  const container = scrollContainerRef.current;
-                  if (!overEl || !container) return null;
-                  const rect = overEl.getBoundingClientRect();
-                  const cRect = container.getBoundingClientRect();
+                const overEl = headerRefs.current[dragOverColumnId!];
+                const container = scrollContainerRef.current;
+                if (!overEl || !container) return null;
+                const rect = overEl.getBoundingClientRect();
+                const cRect = container.getBoundingClientRect();
                   const left =
                     (dragInsertAfter ? rect.right : rect.left) -
                     cRect.left +
                     container.scrollLeft;
-                  // Limit the indicator to the header height area only
+                // Limit the indicator to the header height area only
                   const headerEl = container.querySelector(
                     "thead"
                   ) as HTMLElement | null;
                   const headerHeight = headerEl
                     ? headerEl.getBoundingClientRect().height
                     : 40;
-                  return (
-                    <div
-                      className="pointer-events-none absolute"
-                      style={{
-                        top: 0,
-                        left,
-                        width: 3,
-                        height: headerHeight,
+                return (
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      top: 0,
+                      left,
+                      width: 3,
+                      height: headerHeight,
                         background: "#3B82F6",
-                        zIndex: 60,
-                      }}
-                    />
-                  );
-                })()}
+                      zIndex: 60,
+                    }}
+                  />
+                );
+              })()}
 
               {/* Row blue gap indicator */}
               {isRowDragging && rowIndicatorTop != null && (
@@ -6344,16 +6684,16 @@ export function PostTable({
                 rowDragIndex != null &&
                 rowDragPos &&
                 (() => {
-                  const container = scrollContainerRef.current;
-                  if (!container) return null;
-                  const cRect = container.getBoundingClientRect();
-                  const top = rowDragPos.y - cRect.top + container.scrollTop;
-                  const left = rowDragPos.x - cRect.left + container.scrollLeft;
+                const container = scrollContainerRef.current;
+                if (!container) return null;
+                const cRect = container.getBoundingClientRect();
+                const top = rowDragPos.y - cRect.top + container.scrollTop;
+                const left = rowDragPos.x - cRect.left + container.scrollLeft;
 
-                  // Build a visual of 5 cells (skip drag and rowIndex); min-width:100px each, expand to content
-                  let row: Row<Post> | null = null;
-                  if (grouping.length > 0) {
-                    // For grouped tables, get the row from the grouped model
+                // Build a visual of 5 cells (skip drag and rowIndex); min-width:100px each, expand to content
+                let row: Row<Post> | null = null;
+                if (grouping.length > 0) {
+                  // For grouped tables, get the row from the grouped model
                     const groups = getFinalGroupRows(
                       table.getGroupedRowModel().rows,
                       {},
@@ -6362,48 +6702,48 @@ export function PostTable({
                     const allLeafRows = groups.flatMap(
                       (group) => group.leafRows
                     );
-                    row = allLeafRows[rowDragIndex] || null;
-                  } else {
-                    // For ungrouped tables, use the regular row model
-                    row = table.getRowModel().rows[rowDragIndex] || null;
-                  }
-                  if (!row) return null;
-                  const dataCellsAll = row
-                    .getVisibleCells()
+                  row = allLeafRows[rowDragIndex] || null;
+                } else {
+                  // For ungrouped tables, use the regular row model
+                  row = table.getRowModel().rows[rowDragIndex] || null;
+                }
+                if (!row) return null;
+                const dataCellsAll = row
+                  .getVisibleCells()
                     .filter(
                       (c) =>
                         c.column.id !== "drag" && c.column.id !== "rowIndex"
                     );
-                  const count = Math.min(5, dataCellsAll.length);
-                  const cells = dataCellsAll.slice(0, count);
+                const count = Math.min(5, dataCellsAll.length);
+                const cells = dataCellsAll.slice(0, count);
 
-                  return (
-                    <div
-                      className="absolute pointer-events-none"
-                      style={{
-                        top,
-                        left,
-                        transform: `translate(-8px, -12px) rotate(${rowDragAngle}deg) scale(${rowDragScale})`,
+                return (
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      top,
+                      left,
+                      transform: `translate(-8px, -12px) rotate(${rowDragAngle}deg) scale(${rowDragScale})`,
                         transformOrigin: "center center",
-                        zIndex: 70,
+                      zIndex: 70,
                         transition: "transform 140ms ease-out",
                         filter: "drop-shadow(0 8px 16px rgba(16,24,40,0.18))",
-                      }}
-                    >
-                      <div
-                        className="bg-white border border-[#E4E7EC]"
-                        style={{
+                    }}
+                  >
+                    <div
+                      className="bg-white border border-[#E4E7EC]"
+                      style={{
                           display: "flex",
                           alignItems: "stretch",
-                          padding: 0,
-                        }}
-                      >
-                        {cells.map((cell) => (
-                          <div
-                            key={cell.id}
-                            className="px-2"
-                            style={{
-                              minWidth: 100,
+                        padding: 0,
+                      }}
+                    >
+                      {cells.map((cell) => (
+                        <div
+                          key={cell.id}
+                          className="px-2"
+                          style={{
+                            minWidth: 100,
                               borderRight: "1px solid #EAE9E9",
                               background: "#FFFFFF",
                               display: "flex",
@@ -6412,22 +6752,22 @@ export function PostTable({
                                   ? "flex-start"
                                   : "center",
                               justifyContent: "flex-start",
-                              height: getRowHeightPixels(rowHeight),
-                            }}
-                          >
-                            {flexRender(cell.column.columnDef.cell, {
-                              ...(cell.getContext() as any),
-                              isFocused: false,
-                              isEditing: false,
+                            height: getRowHeightPixels(rowHeight),
+                          }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, {
+                            ...(cell.getContext() as any),
+                            isFocused: false,
+                            isEditing: false,
                               enterEdit: () => {},
                               exitEdit: () => {},
-                            } as any)}
-                          </div>
-                        ))}
-                      </div>
+                          } as any)}
+                        </div>
+                      ))}
                     </div>
-                  );
-                })()}
+                  </div>
+                );
+              })()}
 
               <div className="min-w-full inline-block relative">
                 {grouping.length > 0 ? (
@@ -6514,15 +6854,15 @@ export function PostTable({
                           onOpenChange={setEditFieldTypeOpen}
                           value={editFieldType}
                           onValueChange={(v) => {
-                            setEditFieldType(v);
-                            // Clear options if changing from select type to non-select type
+                          setEditFieldType(v);
+                          // Clear options if changing from select type to non-select type
                             if (
                               (editFieldType === "Single select" ||
                                 editFieldType === "Multiple select") &&
                               v !== "Single select" &&
                               v !== "Multiple select"
                             ) {
-                              setEditFieldOptions([
+                            setEditFieldOptions([
                                 {
                                   id: "opt_1",
                                   value: "Option A",
@@ -6828,18 +7168,18 @@ export function PostTable({
                               // Update the column in userColumns
                               setUserColumns((prev) =>
                                 prev.map((col) =>
-                                  col.id === editFieldColumnId
-                                    ? {
-                                        ...col,
-                                        label: trimmed,
-                                        type: inferredType,
+                                col.id === editFieldColumnId
+                                  ? {
+                                    ...col,
+                                    label: trimmed,
+                                    type: inferredType,
                                         options:
                                           inferredType === "singleSelect" ||
                                           inferredType === "multiSelect"
-                                            ? editFieldOptions
+                                      ? editFieldOptions
                                             : undefined,
-                                      }
-                                    : col
+                                  }
+                                  : col
                                 )
                               );
 
@@ -6856,18 +7196,18 @@ export function PostTable({
                                   .map((c) => c.id);
                                 const updatedUserColumns = userColumns.map(
                                   (col) =>
-                                    col.id === editFieldColumnId
-                                      ? {
-                                          ...col,
-                                          label: trimmed,
-                                          type: inferredType,
+                                  col.id === editFieldColumnId
+                                    ? {
+                                      ...col,
+                                      label: trimmed,
+                                      type: inferredType,
                                           options:
                                             inferredType === "singleSelect" ||
                                             inferredType === "multiSelect"
-                                              ? editFieldOptions
+                                        ? editFieldOptions
                                               : undefined,
-                                        }
-                                      : col
+                                    }
+                                    : col
                                 );
                                 const payload = buildColumnsPayloadForOrder(
                                   currentOrder,
@@ -7000,9 +7340,9 @@ export function PostTable({
               if (!uc) return;
               setTableData((prev) =>
                 prev.map((p) => {
-                  if (p.id !== editingUserText.postId) return p;
-                  const newArr = buildUpdatedUserColumnsArr(p, uc.id, newVal);
-                  return { ...p, user_columns: newArr };
+                if (p.id !== editingUserText.postId) return p;
+                const newArr = buildUpdatedUserColumnsArr(p, uc.id, newVal);
+                return { ...p, user_columns: newArr };
                 })
               );
               const postId = editingUserText.postId;
@@ -7021,135 +7361,135 @@ export function PostTable({
       {selectedPosts.length > 0 &&
         !showUndoMessage &&
         !showDuplicateUndoMessage && (
-          <div
-            className="
+        <div
+          className="
             fixed bottom-4 left-1/2 -translate-x-1/2 z-10
             flex items-center gap-4
             bg-black border rounded-lg shadow-xl
             pl-2 pr-3 py-1.5 text-white gap-3
           "
+        >
+          {/* how many rows? */}
+          <div
+            className="py-2 px-3 rounded-md outline outline-1 outline-offset-[-1px] outline-white/20 inline-flex justify-start items-center gap-1 cursor-pointer"
+            onClick={() => table.resetRowSelection()}
           >
-            {/* how many rows? */}
-            <div
-              className="py-2 px-3 rounded-md outline outline-1 outline-offset-[-1px] outline-white/20 inline-flex justify-start items-center gap-1 cursor-pointer"
-              onClick={() => table.resetRowSelection()}
-            >
-              <span className="text-sm font-medium whitespace-nowrap">
-                {selectedPosts.length} Selected
-              </span>
-              <XIcon className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex justify-start items-center">
-              {/* approve */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  // Define which statuses allow approval actions
-                  const allowedStatusesForApproval = [
-                    "Pending Approval",
-                    "Revised",
-                    "Needs Revisions",
+            <span className="text-sm font-medium whitespace-nowrap">
+              {selectedPosts.length} Selected
+            </span>
+            <XIcon className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex justify-start items-center">
+            {/* approve */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                // Define which statuses allow approval actions
+                const allowedStatusesForApproval = [
+                  "Pending Approval",
+                  "Revised",
+                  "Needs Revisions",
                     "Approved",
-                  ];
+                ];
 
                   selectedPosts.forEach((post) => {
-                    // Only approve if the status allows it
-                    if (allowedStatusesForApproval.includes(post.status)) {
-                      updatePost(post.id, { status: "Approved" });
-                    }
-                  });
-                  table.resetRowSelection();
-                }}
-                className="gap-1.5 text-sm cursor-pointer"
-              >
+                  // Only approve if the status allows it
+                  if (allowedStatusesForApproval.includes(post.status)) {
+                    updatePost(post.id, { status: "Approved" });
+                  }
+                });
+                table.resetRowSelection();
+              }}
+              className="gap-1.5 text-sm cursor-pointer"
+            >
                 <Image
                   src="/images/status/approved.svg"
                   alt="approved"
                   width={16}
                   height={16}
                 />
-                Approve
-              </Button>
+              Approve
+            </Button>
 
-              {/* auto-schedule */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
+            {/* auto-schedule */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
                   selectedPosts.forEach((post) => {
-                    // Add your auto-schedule logic here
-                    updatePost(post.id, { status: "Scheduled" });
-                  });
-                  table.resetRowSelection();
-                }}
-                className="gap-1 cursor-pointer"
-              >
+                  // Add your auto-schedule logic here
+                  updatePost(post.id, { status: "Scheduled" });
+                });
+                table.resetRowSelection();
+              }}
+              className="gap-1 cursor-pointer"
+            >
                 <Image
                   src="/images/publish/clock-check.svg"
                   alt="approved"
                   width={16}
                   height={16}
                 />
-                Auto-Schedule
-              </Button>
+              Auto-Schedule
+            </Button>
 
-              {/* unschedule */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
+            {/* unschedule */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
                   selectedPosts.forEach((post) => {
-                    // Add your unschedule logic here
-                    updatePost(post.id, { status: "Draft" });
-                  });
-                  table.resetRowSelection();
-                }}
-                className="gap-1 cursor-pointer"
-              >
+                  // Add your unschedule logic here
+                  updatePost(post.id, { status: "Draft" });
+                });
+                table.resetRowSelection();
+              }}
+              className="gap-1 cursor-pointer"
+            >
                 <Image
                   src="/images/publish/clock-plus.svg"
                   alt="approved"
                   width={16}
                   height={16}
                 />
-                Unschedule
-              </Button>
+              Unschedule
+            </Button>
 
-              {/* duplicate */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleDuplicatePosts(selectedPosts)}
-                className="gap-1 cursor-pointer"
-              >
+            {/* duplicate */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDuplicatePosts(selectedPosts)}
+              className="gap-1 cursor-pointer"
+            >
                 <Image
                   src="/images/boards/duplicate.svg"
                   alt="approved"
                   width={16}
                   height={16}
                 />
-                Duplicate
-              </Button>
+              Duplicate
+            </Button>
 
-              {/* delete */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleDeletePosts(selectedPosts)}
-                className="gap-1 cursor-pointer"
-              >
+            {/* delete */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDeletePosts(selectedPosts)}
+              className="gap-1 cursor-pointer"
+            >
                 <Image
                   src="/images/boards/delete-red.svg"
                   alt="approved"
                   width={16}
                   height={16}
                 />
-                Delete
-              </Button>
-            </div>
+              Delete
+            </Button>
           </div>
-        )}
+        </div>
+      )}
 
       {/* ────────────────────────────────────────────────────────────────
           Undo message – shows up when posts are moved to trash

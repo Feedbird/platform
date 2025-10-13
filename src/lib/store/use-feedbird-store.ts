@@ -23,6 +23,7 @@ import { storeApi, commentApi, activityApi, socialAccountApi } from '@/lib/api/a
 import { getCurrentUserDisplayNameFromStore } from "@/lib/utils/user-utils";
 import { mapTikTokSettingsToPublishOptions } from "@/lib/utils/tiktok-settings-mapper";
 import { ConsoleEmailService } from "../services/email-service";
+import type { ConditionGroup } from "@/components/content/post-table/FilterPopover";
 
 
 export interface BoardRules {
@@ -257,6 +258,8 @@ export interface Board {
   columns?: Array<{ name: string; id?: string; is_default: boolean; order: number; type?: ColumnType; options?: any }>;
   createdAt: Date;
   posts: Post[]; // Posts now belong to boards, not brands
+  /** Board-specific filtering conditions */
+  filterConditions?: ConditionGroup;
 }
 
 export interface BoardTemplate {
@@ -360,6 +363,8 @@ export interface FeedbirdStore {
   setActiveWorkspace: (id: string) => void;
   setActiveBrand: (id: string) => void;
   setActiveBoard: (id: string) => void;
+  setBoardFilterConditions: (boardId: string, conditions: ConditionGroup) => void;
+  getBoardFilterConditions: (boardId: string) => ConditionGroup | undefined;
   connectSocialAccount: (brandId: string, platform: Platform, account: Pick<SocialAccount, "name" | "accountId">) => string;
   stageSocialPages: (brandId: string, platform: Platform, pages: SocialPage[], localAccountId: string) => void;
   confirmSocialPage: (brandId: string, pageId: string) => Promise<void>;
@@ -2345,6 +2350,31 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
 
         // Boards
         setActiveBoard: (id) => set({ activeBoardId: id }),
+        setBoardFilterConditions: (boardId, conditions) => {
+          set((state) => {
+            const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+            if (!workspace) return state;
+            
+            const board = workspace.boards.find(b => b.id === boardId);
+            if (!board) return state;
+            
+            // Update the board with new filter conditions
+            const updatedBoard = { ...board, filterConditions: conditions };
+            const updatedBoards = workspace.boards.map(b => b.id === boardId ? updatedBoard : b);
+            const updatedWorkspace = { ...workspace, boards: updatedBoards };
+            const updatedWorkspaces = state.workspaces.map(w => w.id === workspace.id ? updatedWorkspace : w);
+            
+            return { workspaces: updatedWorkspaces };
+          });
+        },
+        getBoardFilterConditions: (boardId) => {
+          const state = get();
+          const workspace = state.workspaces.find(w => w.id === state.activeWorkspaceId);
+          if (!workspace) return undefined;
+          
+          const board = workspace.boards.find(b => b.id === boardId);
+          return board?.filterConditions;
+        },
         addBoard: async (name: string, description?: string, image?: string, color?: string, rules?: BoardRules) => {
           try {
             const activeWorkspaceId = get().activeWorkspaceId

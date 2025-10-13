@@ -160,7 +160,7 @@ export function ApproveCell({
             <div
               style={{
                 display: "inline-flex",
-                padding: "4px",
+                padding: "2px",
                 alignItems: "center",
                 gap: "10px",
                 borderRadius: "6px",
