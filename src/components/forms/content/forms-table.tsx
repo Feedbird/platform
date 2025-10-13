@@ -1,8 +1,8 @@
 "use client";
-import {
+import FormsFiltersPopover, {
   ColumnMeta,
   ConditionGroup,
-} from "@/components/content/post-table/FilterPopover";
+} from "./FormsFiltersPopover";
 import {
   useReactTable,
   Table as ReactTableType,
@@ -12,7 +12,6 @@ import {
 import { ColumnDef } from "@tanstack/table-core";
 import { ChevronDownIcon, ChevronUpIcon, ListPlus } from "lucide-react";
 import React from "react";
-import FormsFiltersPopover from "./FormsFiltersPopover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
