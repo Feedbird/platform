@@ -179,10 +179,10 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
                     <span className="flex items-center gap-2">
                       {selectedTemplate.image && (
                         <div
-                          className="flex w-4.5 h-4.5 p-[3px] justify-center items-center rounded-[3px]"
+                          className="flex w-7 h-7 justify-center items-center rounded-[4px]"
                           style={{ backgroundColor: selectedTemplate.color || '#F4F5F6' }}
                         >
-                          <img src={selectedTemplate.image} className="w-3 h-3" />
+                          <img src={selectedTemplate.image} className="w-4 h-4" />
                         </div>
                       )}
                       <span className="text-sm font-medium text-black">{selectedTemplate.name}</span>
@@ -190,97 +190,99 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
                     <ChevronDown className="w-4 h-4 text-[#5C5E63]" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="start" className="p-0" style={{ width: `${triggerWidth}px`}}>
-                  <p className="p-2 text-xs text-[#75777C] font-semibold">START FROM SCRATCH</p>
+                <PopoverContent align="start" className="px-1 pt-3 pb-1 space-y-2" style={{ width: `${triggerWidth}px`}}>
+                  <p className="pl-1.5 text-[10px] text-[#75777C] font-semibold">START FROM SCRATCH</p>
                   <div
                     className="flex items-center gap-2 px-3 pr-3 pl-1 py-1 hover:bg-[#F4F5F6] cursor-pointer rounded-md bg-white transition-colors"
                     onClick={() => handleSelectTemplate(BLANK_TEMPLATE)}
                   >
-                    <div className="flex p-[3px] justify-center items-center rounded-[3px] bg-[#F4F5F6]">
+                    <div className="flex w-7 h-7 justify-center items-center rounded-[4px] bg-[#F4F5F6]">
                       <img src="/images/boards/templates/t0-blank.svg" className="w-3.5 h-3.5" />
                     </div>
                     <span className="text-sm font-medium text-black">Blank</span>
                   </div>
-                  <p className="p-2 text-xs text-[#75777C] font-semibold">SAVED TEMPLATE</p>
-                  {boardTemplates.map((template) => (
-                    <div key={template.id} className="flex items-center justify-between gap-2 px-3 pr-3 pl-1 py-1 hover:bg-[#F4F5F6] cursor-pointer group rounded-md bg-white transition-colors" onClick={() => handleSelectTemplate(template)}>
-                      <div className="flex items-center gap-2 flex-1">
-                        {template.image && (
-                          <div
-                            className="flex w-4.5 h-4.5 p-[3px] justify-center items-center rounded-[3px]"
-                            style={{ backgroundColor: template.color || '#F4F5F6' }}
+                  <p className="pl-1.5 text-[10px] text-[#75777C] font-semibold">SAVED TEMPLATE</p>
+                  <div className="max-h-60 overflow-y-auto pr-1">
+                    {boardTemplates.map((template) => (
+                      <div key={template.id} className="flex items-center justify-between gap-2 px-3 pr-3 pl-1 py-1 hover:bg-[#F4F5F6] cursor-pointer group rounded-md bg-white transition-colors" onClick={() => handleSelectTemplate(template)}>
+                        <div className="flex items-center gap-2 flex-1">
+                          {template.image && (
+                            <div
+                              className="flex w-7 h-7 justify-center items-center rounded-[4px]"
+                              style={{ backgroundColor: template.color || '#F4F5F6' }}
+                            >
+                              <img src={template.image} className="w-4 h-4" />
+                            </div>
+                          )}
+                          <span className="text-sm font-medium text-black">{template.name}</span>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 cursor-pointer hover:bg-gray-200 rounded transition-all" onClick={(e) => e.stopPropagation()}>
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent 
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-40 h-24 border-0 py-1 px-0 bg-white/95 rounded-md shadow-[0px_24px_24px_-12px_rgba(0,0,0,0.04)] shadow-[0px_12px_12px_-6px_rgba(0,0,0,0.04)] shadow-[0px_6px_6px_-3px_rgba(0,0,0,0.06)] shadow-[0px_3px_3px_-1.5px_rgba(0,0,0,0.06)] shadow-[0px_1px_1px_-0.5px_rgba(0,0,0,0.06)] shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06)] backdrop-blur-sm inline-flex flex-col justify-start items-start overflow-hidden"
                           >
-                            <img src={template.image} className="w-3 h-3" />
-                          </div>
-                        )}
-                        <span className="text-sm font-medium text-black">{template.name}</span>
+                            <div className="self-stretch flex flex-col justify-center items-center gap-0.5">
+                              <div className="self-stretch flex flex-col justify-start items-start">
+                                <div className="self-stretch px-1 inline-flex justify-start items-center">
+                                  <DropdownMenuItem 
+                                    onClick={() => setRenameTarget(template)} 
+                                    className="flex-1 px-2.5 py-1.5 rounded-md flex justify-start items-center gap-3 cursor-pointer hover:bg-[#F4F5F6] transition-colors"
+                                  >
+                                    <div className="flex-1 flex h-4 justify-start items-center gap-2">
+                                      <div className="w-3.5 h-3.5 relative overflow-hidden">
+                                        <img src="/images/boards/rename.svg" className="width={14} height={14}" alt="rename" />
+                                      </div>
+                                      <div className="flex-1 h-4 justify-start content-center text-black text-xs leading-none" style={{ fontSize: 13 }}>
+                                        Rename
+                                      </div>
+                                    </div>
+                                  </DropdownMenuItem>
+                                </div>
+                                <div className="self-stretch px-1 inline-flex justify-start items-center">
+                                  <DropdownMenuItem 
+                                    onClick={() => setColorIconTarget(template)} 
+                                    className="flex-1 px-2.5 py-1.5 rounded-md flex justify-start items-center gap-3 cursor-pointer hover:bg-[#F4F5F6] transition-colors"
+                                  >
+                                    <div className="flex-1 flex h-4 justify-start items-center gap-2">
+                                      <div className="w-3.5 h-3.5 relative overflow-hidden">
+                                        <img src="/images/boards/color-and-icon.svg" className="width={14} height={14}" alt="color-icon" />
+                                      </div>
+                                      <div className="flex-1 justify-start text-black text-xs leading-none" style={{ fontSize: 13 }}>
+                                        Color & Icon
+                                      </div>
+                                    </div>
+                                  </DropdownMenuItem>
+                                </div>
+                              </div>
+                              <div className="w-33 h-0 outline outline-1 outline-offset-[-0.50px] outline-gray-200"></div>
+                              <div className="self-stretch flex flex-col justify-start items-start">
+                                <div className="self-stretch px-1 inline-flex justify-start items-center">
+                                  <DropdownMenuItem 
+                                    onClick={() => removeBoardTemplate(template.id)} 
+                                    className="flex-1 px-2.5 py-1.5 rounded-md flex justify-start items-center gap-3 cursor-pointer hover:bg-[#F4F5F6] transition-colors"
+                                  >
+                                    <div className="flex-1 flex h-4 justify-start items-center gap-2">
+                                      <div className="w-3.5 h-3.5 relative overflow-hidden">
+                                        <img src="/images/boards/delete.svg" className="width={14} height={14}" alt="delete" />
+                                      </div>
+                                      <div className="flex-1 justify-start text-black text-xs leading-none" style={{ fontSize: 13 }}>
+                                        Delete
+                                      </div>
+                                    </div>
+                                  </DropdownMenuItem>
+                                </div>
+                              </div>
+                            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 cursor-pointer hover:bg-gray-200 rounded transition-all" onClick={(e) => e.stopPropagation()}>
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent 
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-40 h-24 border-0 py-1 px-0 bg-white/95 rounded-md shadow-[0px_24px_24px_-12px_rgba(0,0,0,0.04)] shadow-[0px_12px_12px_-6px_rgba(0,0,0,0.04)] shadow-[0px_6px_6px_-3px_rgba(0,0,0,0.06)] shadow-[0px_3px_3px_-1.5px_rgba(0,0,0,0.06)] shadow-[0px_1px_1px_-0.5px_rgba(0,0,0,0.06)] shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06)] backdrop-blur-sm inline-flex flex-col justify-start items-start overflow-hidden"
-                        >
-                          <div className="self-stretch flex flex-col justify-center items-center gap-0.5">
-                            <div className="self-stretch flex flex-col justify-start items-start">
-                              <div className="self-stretch px-1 inline-flex justify-start items-center">
-                                <DropdownMenuItem 
-                                  onClick={() => setRenameTarget(template)} 
-                                  className="flex-1 px-2.5 py-1.5 rounded-md flex justify-start items-center gap-3 cursor-pointer hover:bg-[#F4F5F6] transition-colors"
-                                >
-                                  <div className="flex-1 flex h-4 justify-start items-center gap-2">
-                                    <div className="w-3.5 h-3.5 relative overflow-hidden">
-                                      <img src="/images/boards/rename.svg" className="width={14} height={14}" alt="rename" />
-                                    </div>
-                                    <div className="flex-1 h-4 justify-start content-center text-black text-xs leading-none" style={{ fontSize: 13 }}>
-                                      Rename
-                                    </div>
-                                  </div>
-                                </DropdownMenuItem>
-                              </div>
-                              <div className="self-stretch px-1 inline-flex justify-start items-center">
-                                <DropdownMenuItem 
-                                  onClick={() => setColorIconTarget(template)} 
-                                  className="flex-1 px-2.5 py-1.5 rounded-md flex justify-start items-center gap-3 cursor-pointer hover:bg-[#F4F5F6] transition-colors"
-                                >
-                                  <div className="flex-1 flex h-4 justify-start items-center gap-2">
-                                    <div className="w-3.5 h-3.5 relative overflow-hidden">
-                                      <img src="/images/boards/color-and-icon.svg" className="width={14} height={14}" alt="color-icon" />
-                                    </div>
-                                    <div className="flex-1 justify-start text-black text-xs leading-none" style={{ fontSize: 13 }}>
-                                      Color & Icon
-                                    </div>
-                                  </div>
-                                </DropdownMenuItem>
-                              </div>
-                            </div>
-                            <div className="w-33 h-0 outline outline-1 outline-offset-[-0.50px] outline-gray-200"></div>
-                            <div className="self-stretch flex flex-col justify-start items-start">
-                              <div className="self-stretch px-1 inline-flex justify-start items-center">
-                                <DropdownMenuItem 
-                                  onClick={() => removeBoardTemplate(template.id)} 
-                                  className="flex-1 px-2.5 py-1.5 rounded-md flex justify-start items-center gap-3 cursor-pointer hover:bg-[#F4F5F6] transition-colors"
-                                >
-                                  <div className="flex-1 flex h-4 justify-start items-center gap-2">
-                                    <div className="w-3.5 h-3.5 relative overflow-hidden">
-                                      <img src="/images/boards/delete.svg" className="width={14} height={14}" alt="delete" />
-                                    </div>
-                                    <div className="flex-1 justify-start text-black text-xs leading-none" style={{ fontSize: 13 }}>
-                                      Delete
-                                    </div>
-                                  </div>
-                                </DropdownMenuItem>
-                              </div>
-                            </div>
-                          </div>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
@@ -322,19 +324,20 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
           </div>
 
           <DialogFooter className="flex justify-between sm:justify-between items-center">
-            <Button className="bg-backgroundHover hover:bg-backgroundHover/80 text-grey text-sm font-medium cursor-pointer border border-buttonStroke" variant="outline" onClick={onClose}>Back</Button>
+            <Button variant="tertiary" onClick={onClose}>Back</Button>
             <div className="flex gap-2">
-              <Button 
-                className={cn(
-                  "bg-backgroundHover hover:bg-backgroundHover/80 text-grey text-sm font-medium cursor-pointer border border-buttonStroke",
-                )}
-                variant="outline"
-                disabled={selectedTemplate.id === 'blank'}
-                onClick={handleUseTemplate}
-              >
-                Use template
-              </Button>
-              <Button className="bg-main hover:bg-main/80 text-white text-sm font-medium cursor-pointer px-3 py-1.5" onClick={handleCreateBoard}>
+              {
+                selectedTemplate.id === 'blank' ? (
+                  <Button variant="disabled">
+                    Use template
+                  </Button>
+                ) : (
+                  <Button variant="secondary" onClick={handleUseTemplate}>
+                    Use template
+                  </Button>
+                )
+              }
+              <Button variant="primary" onClick={handleCreateBoard}>
                 Next
               </Button>
             </div>
