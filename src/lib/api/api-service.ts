@@ -146,11 +146,9 @@ export const userApi = {
     userEmail: string,
     settings: {
       communication: {
-        enabled: boolean;
         commentsAndMentions: boolean;
       };
       boards: {
-        enabled: boolean;
         pendingApproval: boolean;
         scheduled: boolean;
         published: boolean;
@@ -158,7 +156,6 @@ export const userApi = {
         boardInviteAccepted: boolean;
       };
       workspaces: {
-        enabled: boolean;
         workspaceInviteSent: boolean;
         workspaceInviteAccepted: boolean;
       };

@@ -7,11 +7,9 @@ const NotificationSettingsSchema = z.object({
   user_email: z.string().email(),
   settings: z.object({
     communication: z.object({
-      enabled: z.boolean(),
       commentsAndMentions: z.boolean(),
     }),
     boards: z.object({
-      enabled: z.boolean(),
       pendingApproval: z.boolean(),
       scheduled: z.boolean(),
       published: z.boolean(),
@@ -19,7 +17,6 @@ const NotificationSettingsSchema = z.object({
       boardInviteAccepted: z.boolean(),
     }),
     workspaces: z.object({
-      enabled: z.boolean(),
       workspaceInviteSent: z.boolean(),
       workspaceInviteAccepted: z.boolean(),
     }),
@@ -108,9 +105,8 @@ export async function GET(req: NextRequest) {
     }
 
     const defaultSettings = {
-      communication: { enabled: true, commentsAndMentions: true },
+      communication: { commentsAndMentions: true },
       boards: {
-        enabled: true,
         pendingApproval: true,
         scheduled: true,
         published: true,
@@ -118,7 +114,6 @@ export async function GET(req: NextRequest) {
         boardInviteAccepted: true,
       },
       workspaces: {
-        enabled: true,
         workspaceInviteSent: true,
         workspaceInviteAccepted: true,
       },
