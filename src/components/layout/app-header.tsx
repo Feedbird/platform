@@ -4,7 +4,6 @@
 import { Suspense, useState, useEffect, useMemo } from 'react'
 import Image                  from 'next/image'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { UserButton } from '@clerk/nextjs'
 import { Plus } from 'lucide-react'
 
 // removed board popover & related UI
@@ -220,7 +219,6 @@ function HeaderInner() {
           <Image src="/images/header/user-plus.svg" alt="Share" width={16} height={16} />
           Share
         </Button>
-        <UserButton afterSignOutUrl="/landing" />
       </div>
 
       {/* centered upload progress */}
