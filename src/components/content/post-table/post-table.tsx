@@ -47,7 +47,6 @@ import {
   X as XIcon,
   ChevronDown,
   MoreHorizontal,
-  CircleArrowOutDownRight,
   Maximize2,
   Link2,
   File,
@@ -806,6 +805,27 @@ export function PostTable({
     [activeWorkspace, activeBoardId]
   );
   const boardRules = currentBoard?.rules;
+
+  // Persist a random passedRevisionRound per group key for the current board/rules
+  const groupRevisionRef = React.useRef<Map<string, number>>(new Map());
+  const getPassedRevisionRound = React.useCallback(
+    (groupKey: string): number => {
+      const firstMonthLimit = boardRules?.firstMonth ?? 0;
+      if (!boardRules?.revisionRules || !(firstMonthLimit > 0)) return 0;
+      const store = groupRevisionRef.current;
+      if (store.has(groupKey)) return store.get(groupKey)!;
+      const maxInclusive = Math.max(0, firstMonthLimit - 1);
+      const value = maxInclusive > 0 ? Math.floor(Math.random() * (maxInclusive + 1)) : 0;
+      store.set(groupKey, value);
+      return value;
+    },
+    [boardRules?.firstMonth, boardRules?.revisionRules]
+  );
+
+  // Reset stored randoms when board or revision limit changes
+  React.useEffect(() => {
+    groupRevisionRef.current = new Map();
+  }, [activeBoardId, boardRules?.firstMonth]);
 
   /* -----------------------------------------------------------
    *  Determine default content format based on current route
@@ -4958,6 +4978,7 @@ export function PostTable({
     onOpenGroupFeedback,
     month,
     isExpanded,
+    groupKey,
   }: {
     children: React.ReactNode;
     rowCount?: number;
@@ -4968,6 +4989,7 @@ export function PostTable({
     onOpenGroupFeedback?: (groupData: BoardGroupData, month: number) => void;
     month: number;
     isExpanded: boolean;
+    groupKey: string;
   }) {
     const visibleLeafColumns = table.getVisibleLeafColumns();
     const stickyCols = visibleLeafColumns.filter((c) => isSticky(c.id));
@@ -5147,7 +5169,7 @@ export function PostTable({
                   </>        
                   )
                 } */}
-                  <div className="no-divider-tooltip">
+                  <div className="no-divider-tooltip flex items-center">
                     <StatusChip
                       status={
                         groupPosts.every((post) => post.status === "Approved")
@@ -5157,7 +5179,7 @@ export function PostTable({
                       widthFull={false}
                     />
                   </div>
-                  {/* Revision Rules Display */}
+                  {/* Revision Rules Display / Progress */}
                   {boardRules?.revisionRules && boardRules.firstMonth && (
                     <>
                       {boardRules.firstMonth === -1 ? (
@@ -5172,12 +5194,46 @@ export function PostTable({
                           </span>
                         </div>
                       ) : boardRules.firstMonth > 0 ? (
-                        <div className="px-2 py-[2px] bg-White flex justify-center items-center gap-1 overflow-hidde">
-                          <CircleArrowOutDownRight className="w-4 h-4 text-[#2183FF]" />
-                          <span className="text-xs font-medium">
-                            {boardRules.firstMonth} Revision Round
-                            {boardRules.firstMonth > 1 ? "s" : ""}
-                          </span>
+                        <div className="px-1.5 py-[2px] bg-White flex justify-center items-center gap-1 rounded-[4px] border border-1 border-elementStroke overflow-hidde">
+                          {(() => {
+                            const total = boardRules.firstMonth;
+                            const passed = getPassedRevisionRound(groupKey);
+                            const size = 12;
+                            const stroke = 1.3;
+                            const radius = (size - stroke) / 2;
+                            const circumference = 2 * Math.PI * radius;
+                            const progress = total > 0 ? Math.min(1, passed / total) : 0;
+                            const remaining = 1 - progress;
+                            const dash = circumference * remaining;
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-2 cursor-default">
+                                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                                      <circle
+                                        cx={size / 2}
+                                        cy={size / 2}
+                                        r={radius}
+                                        fill="none"
+                                        stroke="#4670F9"
+                                        strokeWidth={stroke}
+                                        strokeDasharray={`${dash} ${circumference - dash}`}
+                                        strokeDashoffset={dash}
+                                        strokeLinecap="round"
+                                        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                                      />
+                                    </svg>
+                                    <span className="text-xs font-medium text-black">
+                                      {passed}/{total}
+                                    </span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" sideOffset={8} className="bg-[#151515] text-white border-none text-xs">
+                                  Revision rounds
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })()}
                         </div>
                       ) : null}
                     </>
@@ -5236,8 +5292,8 @@ export function PostTable({
                           alt="deadline"
                           className="w-4 h-4 flex-shrink-0"
                         />
-                        <span className="text-xs font-medium truncate">
-                          {approvalInfo.daysLeft} DAYS LEFT TO REVIEW
+                        <span className="text-xs font-medium text-black truncate">
+                          {approvalInfo.daysLeft} days left to review
                         </span>
                       </div>
                     ) : null}
@@ -5332,7 +5388,7 @@ export function PostTable({
                             alt="Group Comments"
                             className="w-4 h-4"
                           />
-                          <span className="text-xs font-medium">
+                          <span className="text-xs font-medium text-main">
                             Group Comments
                           </span>
                         </div>
@@ -5486,6 +5542,7 @@ export function PostTable({
                       }
                       month={group.groupValues.month}
                       isExpanded={isExpanded}
+                      groupKey={key}
                     >
                       <Button
                         variant="ghost"
