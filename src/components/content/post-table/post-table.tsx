@@ -3334,7 +3334,7 @@ export function PostTable({
                       width={14}
                       height={14}
                     />
-                    <span className="text-xs text-black font-medium leading-[16px]">
+                    <span className="text-xs text-black font-medium leading-[14px]">
                       Request changes
                     </span>
                   </div>
