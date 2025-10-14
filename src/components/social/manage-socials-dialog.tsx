@@ -15,10 +15,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AlertTriangle, Link, MoreHorizontal, RefreshCw, Trash, Check } from "lucide-react";
+import { AlertTriangle, Link, MoreHorizontal, RefreshCw, Trash, Check, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SocialAccountDetailDialog } from "./social-account-detail-dialog";
 
 const PLATFORMS: Platform[] = [
   "facebook", "instagram", "linkedin", "pinterest", "youtube", "tiktok", "google"
@@ -61,6 +62,8 @@ export function ManageSocialsDialog(props: {
 
   const [activePlatform, setActivePlatform] = useState<Platform>("facebook");
   const [connectingPlatform, setConnectingPlatform] = useState<Platform | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedAccountForDetail, setSelectedAccountForDetail] = useState<any | null>(null);
 
   /* ————————— Listen for popup messages ————————— */
   useEffect(() => {
@@ -334,6 +337,19 @@ export function ManageSocialsDialog(props: {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {pg.platform === 'tiktok' && pg.metadata && (
+                              <DropdownMenuItem 
+                                className="cursor-pointer" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAccountForDetail(pg);
+                                  setDetailDialogOpen(true);
+                                }}
+                              >
+                                <Eye className="w-3 h-3 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               onClick={handleDisconnectPage(pg.id)}
                               className="text-[#EC5050] hover:text-[#EC5050] border-none bg-transparent hover:bg-transparent cursor-pointer shadow-none text-xs font-semibold"
@@ -380,6 +396,13 @@ export function ManageSocialsDialog(props: {
           </p>
         </div>
       </DialogContent>
+      
+      {/* Account Detail Dialog */}
+      <SocialAccountDetailDialog 
+        open={detailDialogOpen} 
+        onOpenChange={setDetailDialogOpen}
+        account={selectedAccountForDetail}
+      />
     </Dialog>
   );
 }

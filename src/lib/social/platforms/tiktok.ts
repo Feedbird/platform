@@ -73,28 +73,46 @@ interface TikTokTokenResponse {
 
 interface TikTokUserInfo {
   user: {
+    // user.info.basic scope fields
     open_id: string;
     union_id: string;
+    avatar_url?: string;
+    avatar_url_100?: string;
+    avatar_large_url?: string;
     display_name: string;
-    bio_description: string;
-    profile_deep_link: string;
-    is_verified: boolean;
-    follower_count: number;
-    following_count: number;
-    likes_count: number;
-    video_count: number;
+    
+    // user.info.profile scope fields
+    bio_description?: string;
+    profile_deep_link?: string;
+    is_verified?: boolean;
+    username?: string;
+    
+    // user.info.stats scope fields
+    follower_count?: number;
+    following_count?: number;
+    likes_count?: number;
+    video_count?: number;
   };
 }
 
 export class TikTokPlatform extends BasePlatform {
   // Constants to avoid repetition
   private readonly USER_INFO_FIELDS = [
+    // user.info.basic scope
     'open_id',
     'union_id',
+    'avatar_url',
+    'avatar_url_100',
+    'avatar_large_url',
     'display_name',
+    
+    // user.info.profile scope
     'bio_description',
     'profile_deep_link',
     'is_verified',
+    'username',
+    
+    // user.info.stats scope
     'follower_count',
     'following_count',
     'likes_count',
@@ -260,10 +278,21 @@ export class TikTokPlatform extends BasePlatform {
       connected: true,
       status: 'active',
       metadata: {
+        // user.info.basic scope fields
+        openId: userInfo.open_id,
         unionId: userInfo.union_id,
+        avatarUrl: userInfo.avatar_url,
+        avatarUrl100: userInfo.avatar_url_100,
+        avatarLargeUrl: userInfo.avatar_large_url,
+        displayName: userInfo.display_name,
+        
+        // user.info.profile scope fields
         bio: userInfo.bio_description,
         profileUrl: userInfo.profile_deep_link,
         isVerified: userInfo.is_verified,
+        username: userInfo.username,
+        
+        // user.info.stats scope fields
         followerCount: userInfo.follower_count,
         followingCount: userInfo.following_count,
         likesCount: userInfo.likes_count,
@@ -321,11 +350,25 @@ export class TikTokPlatform extends BasePlatform {
       followerCount: userInfo.follower_count,
       postCount: userInfo.video_count,
       metadata: {
+        // user.info.basic scope fields
+        openId: userInfo.open_id,
+        unionId: userInfo.union_id,
+        avatarUrl: userInfo.avatar_url,
+        avatarUrl100: userInfo.avatar_url_100,
+        avatarLargeUrl: userInfo.avatar_large_url,
+        displayName: userInfo.display_name,
+        
+        // user.info.profile scope fields
         bio: userInfo.bio_description,
         profileUrl: userInfo.profile_deep_link,
         isVerified: userInfo.is_verified,
+        username: userInfo.username,
+        
+        // user.info.stats scope fields
+        followerCount: userInfo.follower_count,
         followingCount: userInfo.following_count,
-        likesCount: userInfo.likes_count
+        likesCount: userInfo.likes_count,
+        videoCount: userInfo.video_count
       }
     }];
   }
