@@ -28,6 +28,7 @@ import {
   Settings,
   Search,
   LogOut,
+  MoreHorizontal,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
@@ -52,27 +53,27 @@ export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
   const { signOut } = useClerk()
   const router = useRouter()
-  
+
   /* -------- store -------- */
-  const workspaces     = useFeedbirdStore(s => s.workspaces)
-  const activeId       = useFeedbirdStore(s => s.activeWorkspaceId)
-  const addWorkspace   = useFeedbirdStore(s => s.addWorkspace)
-  const addBrand       = useFeedbirdStore(s => s.addBrand)
-  const removeWs       = useFeedbirdStore(s => s.removeWorkspace)
-  const setActive      = useFeedbirdStore(s => s.setActiveWorkspace)
-  const clearUser      = useFeedbirdStore(s => s.clearUser)
-  const user           = useFeedbirdStore(s => s.user)
-  const active         = workspaces.find(w => w.id === activeId)
+  const workspaces = useFeedbirdStore(s => s.workspaces)
+  const activeId = useFeedbirdStore(s => s.activeWorkspaceId)
+  const addWorkspace = useFeedbirdStore(s => s.addWorkspace)
+  const addBrand = useFeedbirdStore(s => s.addBrand)
+  const removeWs = useFeedbirdStore(s => s.removeWorkspace)
+  const setActive = useFeedbirdStore(s => s.setActiveWorkspace)
+  const clearUser = useFeedbirdStore(s => s.clearUser)
+  const user = useFeedbirdStore(s => s.user)
+  const active = workspaces.find(w => w.id === activeId)
 
   const { show, hide } = useLoading()
-  const { isMobile }   = useSidebar() // still available if you need it
+  const { isMobile } = useSidebar() // still available if you need it
 
   /* -------- local state -------- */
-  const [menuOpen,   setMenuOpen]   = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
 
-  const [search,     setSearch]     = useState('')
+  const [search, setSearch] = useState('')
 
   const filtered = workspaces.filter(ws =>
     ws.name.toLowerCase().includes(search.toLowerCase())
@@ -87,7 +88,7 @@ export default function WorkspaceSwitcher() {
       // Navigate to the new workspace URL
       const currentPath = window.location.pathname
       let newPath = `/${id}`
-      
+
       // If we're on a content route, preserve the board ID
       if (currentPath.includes('/content/')) {
         const pathParts = currentPath.split('/')
@@ -101,7 +102,7 @@ export default function WorkspaceSwitcher() {
           }
         }
       }
-      
+
       // Use router to navigate
       router.push(newPath)
     })
@@ -222,19 +223,19 @@ export default function WorkspaceSwitcher() {
               >
                 {active?.logo
                   ? <Image src={active.logo} alt={active.name} width={24} height={24}
-                           className="rounded object-contain"/>
+                    className="rounded object-contain" />
                   : (
-                      <div className="size-8 rounded bg-[#B5B5FF] flex items-center justify-center">
-                        <span className="text-xs font-semibold uppercase text-[#5C5E63]">
-                          {active?.name ? getInitials(active.name) : ""}
-                        </span>
-                      </div>
-                    )
+                    <div className="size-8 rounded bg-[#B5B5FF] flex items-center justify-center">
+                      <span className="text-xs font-semibold uppercase text-[#5C5E63]">
+                        {active?.name ? getInitials(active.name) : ""}
+                      </span>
+                    </div>
+                  )
                 }
                 <span className="truncate font-semibold text-sm text-black group-data-[collapsible=icon]:hidden">
                   {active?.name ?? (workspaces.length === 0 ? 'No workspaces' : 'Select workspace')}
                 </span>
-                <ChevronsUpDown className="size-4 text-black group-data-[collapsible=icon]:hidden"/>
+                <ChevronsUpDown className="size-4 text-black group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
 
@@ -253,13 +254,13 @@ export default function WorkspaceSwitcher() {
                 onSelect={e => { e.preventDefault(); setMenuOpen(false); setTimeout(() => setInviteOpen(true), 0); }}
                 className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
               >
-                <UserPlus className="size-4 text-black"/>
+                <UserPlus className="size-4 text-black" />
                 Invite members
               </DropdownMenuItem>
 
               <DropdownMenuItem
-                onSelect={e => { 
-                  e.preventDefault(); 
+                onSelect={e => {
+                  e.preventDefault();
                   setMenuOpen(false);
                   const id = active?.id || activeId;
                   if (id) {
@@ -270,17 +271,30 @@ export default function WorkspaceSwitcher() {
                 }}
                 className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
               >
-                <Settings className="size-4 text-black"/>
+                <Settings className="size-4 text-black" />
                 Workspace settings
               </DropdownMenuItem>
 
-              <DropdownMenuSeparator className="mt-[8px] my-[0px]"/>
+              {/* create new */}
+              <DropdownMenuItem
+                onSelect={e => {
+                  e.preventDefault()
+                  setMenuOpen(false)
+                  setTimeout(() => setDialogOpen(true), 0)
+                }}
+                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
+              >
+                  <Plus className="size-4 text-black" />
+                  Create new workspace
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="mt-[8px] my-[0px]" />
 
               {/* search */}
               <div className="bg-sidebar">
                 <div className="px-[12px] py-2">
                   <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-4 text-[#5C5E63]"/>
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-4 text-[#5C5E63]" />
                     <input
                       type="text"
                       placeholder="Search workspaces"
@@ -309,83 +323,83 @@ export default function WorkspaceSwitcher() {
                     </div>
                   ) : (
                     filtered.map(ws => (
-                    <DropdownMenuItem
-                      key={ws.id}
-                      onSelect={e => {
-                        if ((e.target as HTMLElement).closest('.delete-workspace')) return
-                        select(ws.id)
-                      }}
-                      className="
+                      <DropdownMenuItem
+                        key={ws.id}
+                        onSelect={e => {
+                          if ((e.target as HTMLElement).closest('.delete-workspace')) return
+                          select(ws.id)
+                        }}
+                        className="
                         flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black
                       "
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {ws.logo
-                          ? <Image src={ws.logo} alt={ws.name} width={24} height={24}
-                                  className="rounded object-contain flex-shrink-0"/>
-                          : (
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {ws.logo
+                            ? <Image src={ws.logo} alt={ws.name} width={24} height={24}
+                              className="rounded object-contain flex-shrink-0" />
+                            : (
                               <div className="size-6 rounded bg-[#B5B5FF] flex-shrink-0 flex items-center justify-center">
                                 <span className="text-[10px] font-semibold uppercase text-[#5C5E63]">
                                   {getInitials(ws.name)}
                                 </span>
                               </div>
                             )
-                         }
-                        <span className="truncate">{ws.name}</span>
-                      </div>
+                          }
+                          <span className="truncate">{ws.name}</span>
+                        </div>
 
-                      <div className="flex items-center gap-2 ml-4">
-                        {ws.id === activeId && <Check className="size-4 text-black"/>}
+                        <div className="flex items-center gap-2 ml-4">
+                          {ws.id === activeId && <Check className="size-4 text-black" />}
 
-                        {workspaces.length > 1 && (
-                          <button
-                            className="
-                              delete-workspace size-4 text-muted-foreground
-                              hover:text-foreground cursor-pointer
-                              focus:outline-none
-                            "
-                            onClick={e => {
-                              e.stopPropagation()
-                              removeWs(ws.id)
-                              toast.success(`Workspace “${ws.name}” deleted`)
-                              if (ws.id === activeId) {
-                                const fallback = workspaces.find(w => w.id !== ws.id)
-                                select(fallback ? fallback.id : '')
-                              }
-                            }}
-                          >
-                            <Trash2 className="size-4 text-black"/>
-                          </button>
-                        )}
-                      </div>
-                    </DropdownMenuItem>
-                  ))
+                          {workspaces.length > 1 && (
+                            <div className="delete-workspace">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <div
+                                    className="flex items-center justify-center"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <MoreHorizontal className="size-3.5 text-darkGrey" />
+                                  </div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  side="bottom"
+                                  align="end"
+                                  sideOffset={6}
+                                  className="p-0 rounded-[8px] border border-[1px] border-elementStroke bg-white"
+                                >
+                                  <DropdownMenuItem
+                                    onSelect={e => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      removeWs(ws.id)
+                                      toast.success(`Workspace “${ws.name}” deleted`)
+                                      if (ws.id === activeId) {
+                                        const fallback = workspaces.find(w => w.id !== ws.id)
+                                        select(fallback ? fallback.id : '')
+                                      }
+                                    }}
+                                    className="flex items-center px-3 py-2 gap-1.5 text-sm font-medium text-black cursor-pointer"
+                                  >
+                                    <Trash2 className="size-4 text-grey" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
+                        </div>
+                      </DropdownMenuItem>
+                    ))
                   )}
                 </div>
-
-                {/* create new */}
-                <DropdownMenuItem
-                  onSelect={e => {
-                    e.preventDefault()
-                    setMenuOpen(false)
-                    setTimeout(() => setDialogOpen(true), 0)
-                  }}
-                  className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-[24px] h-[24px] flex items-center justify-center p-[5px] rounded border border-[1px] border-[#1C1D1F1D]">
-                      <Plus className="size-3.5 text-black"/>
-                    </div>
-                    Create new workspace
-                  </div>
-                </DropdownMenuItem>
               </div>
 
-              <DropdownMenuSeparator className="my-[0px]"/>
+              <DropdownMenuSeparator className="my-[0px]" />
 
               {/* sign out */}
               <DropdownMenuItem
-                onSelect={async (e) => { 
+                onSelect={async (e) => {
                   e.preventDefault();
                   try {
                     clearUser();
@@ -396,7 +410,7 @@ export default function WorkspaceSwitcher() {
                 }}
                 className="flex items-center gap-[6px] px-[12px] py-[12px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-semibold text-black"
               >
-                <LogOut className="size-3.5 text-black"/>
+                <LogOut className="size-3.5 text-black" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
