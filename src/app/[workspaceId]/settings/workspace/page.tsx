@@ -340,7 +340,10 @@ export default function SettingsWorkspacePage() {
           </div>
 
           {/* Allowed Posting Time – inline slot items per weekday */}
-          <div className="space-y-2">
+          <div className="p-5 rounded-[6px] border border-elementStroke space-y-2">
+            <div className="flex items-center justify-center h-8 w-8 bg-[#EDF6FF] rounded-[4px] mb-3">
+              <img src="/images/settings/clock-plus.svg" className="w-4 h-4" />
+            </div>
             <Label className="text-sm text-black font-medium">Allowed Posting Time</Label>
             <div className="text-sm font-normal text-grey">When using the ‘auto-schedule’ feature, this is where you set the allowed times of when posts are allowed to be scheduled.</div>
             <div className="flex flex-col gap-2 pr-1 w-full mt-2">
@@ -350,7 +353,20 @@ export default function SettingsWorkspacePage() {
 
                 return (
                   <div key={day} className="flex items-center gap-3 min-h-10 w-full">
-                    <div className={cn("flex justify-center items-center text-white text-xs font-semibold w-6 h-6 rounded-full", has ? "bg-[#125AFF]" : "bg-[#838488]")}>{day[0]}</div>
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      <Switch
+                        checked={has}
+                        onCheckedChange={(v) => {
+                          if (v) {
+                            setAllowedSlots((prev) => ({ ...prev, [day]: { start: "09:00", end: "17:00" } } as any));
+                          } else {
+                            setAllowedSlots((prev) => ({ ...prev, [day]: {} } as any));
+                          }
+                        }}
+                        className="h-5 w-8 data-[state=checked]:bg-[#125AFF] data-[state=unchecked]:bg-[#D3D3D3] cursor-pointer [&_[data-slot=switch-thumb]]:h-4 [&_[data-slot=switch-thumb]]:w-4"
+                      />
+                      <span className="text-sm font-medium text-black">{day}</span>
+                    </div>
                     {has ? (
                       <div className="flex-1 w-full min-w-0 flex items-center gap-1">
                         <Select value={slot.start} onValueChange={(v) => setAllowedSlots((prev) => ({ ...prev, [day]: { ...(prev as any)[day], start: v } }))}>
@@ -368,7 +384,9 @@ export default function SettingsWorkspacePage() {
                         </Select>
                       </div>
                     ) : (
-                      <div className="text-xs text-[#5C5E63] flex-1">No time is set yet</div>
+                      <>
+                        
+                      </>
                     )}
                     <button
                       className="ml-auto"
@@ -413,8 +431,14 @@ export default function SettingsWorkspacePage() {
           </div>
 
           {/* Default Board Settings */}
-          <div className="space-y-4">
-            <div className="text-sm text-black font-medium">Default Board Settings</div>
+          <div className="p-5 rounded-[6px] border border-elementStroke space-y-4">
+            <div className="flex items-center justify-center h-8 w-8 bg-[#EDF6FF] rounded-[4px] mb-3">
+              <img src="/images/settings/default-board.svg" className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-sm text-black font-medium">Default Board Settings</div>
+              <div className="text-sm font-normal text-grey">Manage the default automation and workflow rules for this board.</div>
+            </div>
             <div className="flex flex-col gap-4">
               {/* Auto-schedule styled like board-rules-modal */}
               <div className={[
