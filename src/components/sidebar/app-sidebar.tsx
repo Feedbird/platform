@@ -67,6 +67,13 @@ import {
 
 const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
   {
+    id: "dashboard",
+    label: "Dashboard",
+    image: "/images/sidebar/dashboard.svg",
+    selectedImage: "/images/sidebar/dashboard-active.svg",
+    href: workspaceId ? `/${workspaceId}/admin` : "/admin",
+  },
+  {
     id: "messages",
     label: "Inbox",
     image: "/images/sidebar/messages.svg",
@@ -90,7 +97,7 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
   {
     id: "admin",
     label: "Admin",
-    image: "/images/sidebar/forms.svg",
+    image: "/images/sidebar/dashboard.svg",
     href: workspaceId ? `/${workspaceId}/admin` : "/admin",
   },
   // {
@@ -343,25 +350,33 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     className="flex items-center gap-[6px] w-full min-w-0"
                     loadingText={`Loading ${nav.label}…`}
                   >
-                    {imageSrc && (
-                      <div
-                        className={cn(
-                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0"
-                        )}
-                        style={
-                          isBoard && boardColor
-                            ? { backgroundColor: boardColor }
-                            : undefined
-                        }
-                      >
+                    {imageSrc &&
+                      (isBoard ? (
+                        <div
+                          className={cn(
+                            "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0"
+                          )}
+                          style={
+                            boardColor
+                              ? { backgroundColor: boardColor }
+                              : undefined
+                          }
+                        >
+                          <img
+                            src={imageSrc}
+                            alt={nav.label}
+                            className="w-3 h-3"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
                         <img
                           src={imageSrc}
                           alt={nav.label}
-                          className="w-3 h-3"
+                          className="w-4.5 h-4.5"
                           loading="lazy"
                         />
-                      </div>
-                    )}
+                      ))}
                     <span
                       className={cn("text-sm font-normal truncate text-black")}
                     >
@@ -957,7 +972,7 @@ export function AppSidebar() {
               <SidebarGroup>
                 <SidebarGroupLabel>
                   <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                    <span className="text-xs font-medium text-[#75777C] tracking-wide uppercase">
                       Boards
                     </span>
                     <button
@@ -998,7 +1013,7 @@ export function AppSidebar() {
                       ) : (
                         <ChevronRight className="w-4 h-4" />
                       )}
-                      <span className="text-xs font-medium tracking-wide">
+                      <span className="text-xs font-medium tracking-wide uppercase">
                         Socials
                       </span>
                     </div>
