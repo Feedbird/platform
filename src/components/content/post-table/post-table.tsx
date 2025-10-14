@@ -2797,20 +2797,6 @@ export function PostTable({
           const isSelected = row.getIsSelected();
           const commentCount = getCommentCount(post);
 
-          const CommentBadge = () => (
-            <div className="relative w-[22px] h-[22px] cursor-pointer transition-opacity hover:opacity-80 active:opacity-60">
-              <Image
-                src={`/images/platforms/comment.svg`}
-                alt={"comments"}
-                width={22}
-                height={22}
-              />
-              <span className="absolute inset-0 flex items-center justify-center mt-[-2px] text-[10px] text-[#125AFF] leading-none font-semibold">
-                {commentCount}
-              </span>
-            </div>
-          );
-
           return (
             <div className="relative group h-6 pl-2 pr-1 w-full flex items-center justify-start">
               {/* Default: index + comment badge */}
@@ -2829,17 +2815,37 @@ export function PostTable({
                 >
                   {row.index + 1}
                 </span>
-                <div className="relative w-[22px] h-[22px] cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 group-hover:opacity-0">
-                  <Image
-                    src={`/images/platforms/comment.svg`}
-                    alt={"comments"}
-                    width={22}
-                    height={22}
-                  />
-                  <span className="absolute inset-0 flex items-center justify-center mt-[-2px] text-[10px] text-[#125AFF] leading-none font-semibold">
-                    {commentCount}
-                  </span>
-                </div>
+                {commentCount > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="relative w-[22px] h-[22px] cursor-pointer transition-opacity hover:opacity-80 active:opacity-60"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpen?.(post.id);
+                        }}
+                      >
+                        <Image
+                          src={`/images/platforms/comment.svg`}
+                          alt={"comments"}
+                          width={22}
+                          height={22}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center mt-[-2px] text-[10px] text-[#125AFF] leading-none font-semibold">
+                          {commentCount}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      sideOffset={4}
+                      className="bg-[#151515] text-white border-none text-xs"
+                    >
+                      {commentCount === 1
+                        ? "Expand to see 1 comment"
+                        : `Expand to see ${commentCount} comments`}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
 
               {/* Hover/selected: checkbox + expand icon */}
@@ -2869,18 +2875,60 @@ export function PostTable({
                       : "opacity-0 group-hover:opacity-100"
                   )}
                 />
-                <div
-                  className="w-6 h-6 bg-white rounded-[4px] border border-elementStroke cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 flex items-center justify-center group-hover:opacity-100 opacity-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpen?.(post.id);
-                  }}
-                >
-                  <Maximize2
-                    className="text-black"
-                    style={{ width: "14px", height: "14px" }}
-                  />
-                </div>
+                {commentCount > 0 ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="relative w-[22px] h-[22px] cursor-pointer transition-opacity hover:opacity-80 active:opacity-60"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpen?.(post.id);
+                        }}
+                      >
+                        <Image
+                          src={`/images/platforms/comment.svg`}
+                          alt={"comments"}
+                          width={22}
+                          height={22}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center mt-[-2px] text-[10px] text-[#125AFF] leading-none font-semibold">
+                          {commentCount}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      sideOffset={4}
+                      className="bg-[#151515] text-white border-none text-xs"
+                    >
+                      {commentCount === 1
+                        ? "Expand to see 1 comment"
+                        : `Expand to see ${commentCount} comments`}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="w-6 h-6 bg-white rounded-[4px] border border-elementStroke cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 flex items-center justify-center group-hover:opacity-100 opacity-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpen?.(post.id);
+                        }}
+                      >
+                        <Maximize2
+                          className="text-black"
+                          style={{ width: "14px", height: "14px" }}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      sideOffset={4}
+                      className="bg-[#151515] text-white border-none text-xs"
+                    >
+                      {"Expand"}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
 
               {/* prevent layout jump */}
