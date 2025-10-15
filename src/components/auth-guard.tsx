@@ -12,6 +12,7 @@ const publicRoutes = [
   "/signin",
   "/verify-email",
   "/sso-callback",
+  "/forgot-password",
 ];
 const initialRoutes = ["/accept-invite", "/client-onboarding", "/checkout"];
 
@@ -50,6 +51,11 @@ export function PublicPageWrapper({ pathname }: { pathname: string }) {
       case "/checkout":
         const CheckoutPage = require("@/app/checkout/page").default;
         return <CheckoutPage />;
+
+      case "/forgot-password":
+        const ForgotPasswordPage = require("@/app/forgot-password/page").default;
+        return <ForgotPasswordPage />;
+
       default:
         return <LandingPage />;
     }
@@ -58,7 +64,7 @@ export function PublicPageWrapper({ pathname }: { pathname: string }) {
   return (
     <div
       className={
-        ["/signup", "/signin", "/client-onboarding", "/accept-invite"].includes(
+        ["/signup", "/signin", "/client-onboarding", "/accept-invite", "/forgot-password"].includes(
           pathname
         )
           ? "w-full h-screen overflow-hidden"
