@@ -150,7 +150,7 @@ function SocialSetBlock({
 }) {
   const pathname = usePathname();
   const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
-  const [expanded, setExpanded] = React.useState(true);
+  const [expanded, setExpanded] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [draftName, setDraftName] = React.useState(setName);
   const [saving, setSaving] = React.useState(false);
