@@ -380,6 +380,13 @@ function SocialSetBlock({
                       <span className={cn("font-medium truncate text-sm", anyActive ? "text-black" : "text-darkGrey")}>
                         {platform.charAt(0).toUpperCase() + platform.slice(1)}
                       </span>
+                      <div className="ml-auto">
+                        {isOpen ? (
+                          <ChevronDown className="w-4 h-4 text-[#75777C]" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-[#75777C]" />
+                        )}
+                      </div>
                     </button>
                   </SidebarMenuItem>
 
