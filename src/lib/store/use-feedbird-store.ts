@@ -2385,8 +2385,8 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
               activeWorkspaceId,
               name,
               description,
-              !image ? '/images/boards/icons/icon-2.svg' : image,
-              color == '#FFFFFF' ? '#125AFF' : color,
+              !image ? '/images/boards/templates/t0-blank.svg' : image,
+              color,
               rules
             )
             set({ activeBoardId: bid })

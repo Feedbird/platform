@@ -24,7 +24,7 @@ const BLANK_TEMPLATE: BoardTemplate = {
   name: "Blank",
   image: "/images/boards/templates/t0-blank.svg",
   description: "",
-  color: "#FFFFFF",
+  color: "#F4F5F6",
 };
 
 interface AddBoardModalProps {
@@ -97,7 +97,7 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
         setBoardName("");
         setBoardDescription("");
         setBoardIcon(undefined);
-        setBoardColor("#FFFFFF");
+        setBoardColor("#F4F5F6");
       }
     }
   }, [isOpen, pendingBoardData]);
@@ -107,7 +107,7 @@ export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate
     setBoardName(template.id === 'blank' ? '' : template.name);
     setBoardDescription(template.description ?? "");
     setBoardIcon(template.image);
-    setBoardColor(template.color || "#125AFF");
+    setBoardColor(template.color || "#F4F5F6");
     setTemplatePopoverOpen(false);
   };
 
