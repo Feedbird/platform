@@ -19,10 +19,8 @@ export default function CheckoutBuilderSideBar({
   setCheckoutServices,
   services,
 }: CheckoutBuilderSideBarProps) {
-  const { activeWorkspaceId } = useFeedbirdStore();
-
   return (
-    <div className="border-border-primary border-l-1 w-[320px] bg-[#FAFAFA] h-full flex-shrink-0 flex flex-col overflow-auto">
+    <div className="border-border-primary border-l-1 w-[350px] bg-[#FAFAFA] h-full flex-shrink-0 flex flex-col overflow-auto">
       <header className="border-border-primary border-b-1 w-full p-3 text-black font-medium">
         Services
       </header>
