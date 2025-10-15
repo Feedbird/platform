@@ -1,21 +1,27 @@
 "use client";
 
 import React from "react";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { Button } from "@/components/ui/button";
-import { Service } from "@/lib/supabase/client";
-import ServiceSwitchCards from "./ServiceSwitchCards";
+import {
+  CheckoutFolderBuilder,
+  CheckoutServiceBuilder,
+} from "@/app/[workspaceId]/admin/services/checkout/_inner";
+import ServiceFolderEditor from "./ServiceFolderEditor";
 
 type CheckoutBuilderSideBarProps = {
   isLoading: boolean;
   setCheckoutServices: React.Dispatch<
-    React.SetStateAction<Map<string, Service[]>>
+    React.SetStateAction<Map<string, CheckoutServiceBuilder[]>>
   >;
-  services: Map<string, Service[]>;
+  services: Map<string, CheckoutServiceBuilder[]>;
+  folders: CheckoutFolderBuilder[];
+  setFolders: React.Dispatch<React.SetStateAction<CheckoutFolderBuilder[]>>;
 };
 
 export default function CheckoutBuilderSideBar({
   isLoading,
+  folders,
+  setFolders,
   setCheckoutServices,
   services,
 }: CheckoutBuilderSideBarProps) {
@@ -35,13 +41,23 @@ export default function CheckoutBuilderSideBar({
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-buttonStroke border-t-transparent"></div>
             </div>
           )}
-          {!isLoading && services.size && (
-            <ServiceSwitchCards
-              foldersMap={services}
-              setFoldersMap={setCheckoutServices}
-            />
-          )}
-          {!isLoading && !services.size && (
+          {!isLoading &&
+            folders.length &&
+            folders.map((folder) => (
+              <div
+                key={`sidebar_${folder.service_folder_id}`}
+                className="flex flex-col gap-2"
+              >
+                <ServiceFolderEditor
+                  setFolders={setFolders}
+                  setServices={setCheckoutServices}
+                  key={folder.service_folder_id}
+                  folder={folder}
+                  services={services.get(folder.service_folder_id) ?? []}
+                />
+              </div>
+            ))}
+          {!isLoading && !folders.length && (
             <p className="text-[#838488] text-sm">
               No services found. Please create a service first.
             </p>
