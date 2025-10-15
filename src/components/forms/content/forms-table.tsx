@@ -31,6 +31,7 @@ import FormDeleteModal from "./FormDeleteModal";
 import FormSettingsModal from "./FormSettingsModal";
 import FormStatusBadge from "./configs/FormStatusBadge";
 import { PopoverPortal } from "@radix-ui/react-popover";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 export interface TableForm extends Form {
   submissions_count?: number;
@@ -46,6 +47,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
   // Hooks
   const router = useRouter();
   const { selectFormForEditing } = useForms();
+  const { activeWorkspaceId } = useFeedbirdStore();
 
   // States
   const [tabledData, setTableData] = React.useState<TableForm[]>(forms);
@@ -83,7 +85,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
 
   const handleEditClick = (form: TableForm) => {
     selectFormForEditing(form);
-    router.push(`/forms/${form.id}`);
+    router.push(`forms/${form.id}`);
   };
 
   const baseColumns: ColumnDef<TableForm>[] = React.useMemo(() => {
@@ -147,7 +149,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/forms/${row.original.id}/preview`);
+                  router.push(`forms/${row.original.id}/preview`);
                 }}
                 className="px-3 py-1.5 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-[5px] hover:bg-gray-50 transition-colors hover:cursor-pointer"
               >

@@ -248,3 +248,40 @@ export interface Coupon {
   usage_count: number;
   usage_limit: number | null;
 }
+
+export interface CheckoutForm {
+  id: string;
+  created_at: string;
+  workspace_id: string;
+  title: string;
+  description: string | null;
+  general_discount: number | null;
+  payment_configuration: string | null;
+  updated_at: string;
+  folders?: CheckoutFormFolder[];
+}
+
+export interface CheckoutFormFolder {
+  id: string;
+  created_at: string;
+  service_folder_id: string;
+  is_activated: boolean;
+  checkout_form_id: string;
+  show_tooltip: boolean;
+  description: string | null;
+  folder?: ServiceFolder;
+  services?: CheckoutFormService[];
+}
+
+export interface CheckoutFormService {
+  id: string;
+  created_at: string;
+  service_id: string;
+  is_active: boolean;
+  title_override: string | null;
+  description_override: string | null;
+  icon_override: string | null;
+  discount: number | null;
+  service?: Service;
+  checkout_folder?: CheckoutFormFolder;
+}
