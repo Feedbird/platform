@@ -679,6 +679,23 @@ export function FilterPopover({
 
   /* helpers ------------------------------------------------------- */
   const MAX_DEPTH = 3; // max allowed levels including root (depth starts at 0)
+  const isConditionComplete = (cond: Condition): boolean => {
+    if (["is_empty", "not_empty"].includes(cond.operator)) return true;
+    const vals = cond.selectedValues || [];
+    return vals.length > 0 && vals.some((v) => v != null && String(v).trim() !== "");
+  };
+
+  const countFilledConditions = (group: ConditionGroup): number => {
+    let total = 0;
+    for (const child of group.children) {
+      if (child.type === "condition") {
+        if (isConditionComplete(child)) total += 1;
+      } else if (child.type === "group") {
+        total += countFilledConditions(child);
+      }
+    }
+    return total;
+  };
   const mkCond = (join?: JoinOp): Condition => ({
     id: nanoid(),
     type: "condition",
@@ -1499,6 +1516,7 @@ export function FilterPopover({
         <div
           className={cn(
             "flex items-center gap-[6px] px-2 py-[3px] rounded-xs hover:bg-[#F4F5F6] shadow-none cursor-pointer",
+            hasFilters ? "!bg-[#EFFFE3]" : ""
           )}
         >
           <Image
@@ -1508,7 +1526,7 @@ export function FilterPopover({
             height={12}
           />
           <span className="text-sm font-medium text-black leading-[16px]">
-            {hasFilters ? `Filtered by ${rootGroup.children.length} fields` : "Filter"}
+            {hasFilters ? `Filtered by ${countFilledConditions(rootGroup)} fields` : "Filter"}
           </span>
           {/* {popOpen ? (
             <ChevronUp className="h-4 w-4 opacity-70" />
