@@ -29,6 +29,7 @@ import {
   Search,
   LogOut,
   MoreHorizontal,
+  MailPlus
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
@@ -47,7 +48,7 @@ import {
 import { Toaster } from "@/components/ui/sonner"
 import { useUser } from '@clerk/nextjs';
 
-import { storeApi, inviteApi, userApi } from '@/lib/api/api-service'
+import { storeApi, inviteApi, userApi, workspaceHelperApi } from '@/lib/api/api-service'
 
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
@@ -74,6 +75,20 @@ export default function WorkspaceSwitcher() {
   const [inviteOpen, setInviteOpen] = useState(false)
 
   const [search, setSearch] = useState('')
+  const [membersCount, setMembersCount] = useState<number | null>(null)
+
+  React.useEffect(() => {
+    const loadMembersCount = async () => {
+      if (!menuOpen || !activeId) return
+      try {
+        const res = await workspaceHelperApi.getWorkspaceMembers(activeId)
+        setMembersCount((res.users || []).length)
+      } catch {
+        setMembersCount(null)
+      }
+    }
+    loadMembersCount()
+  }, [menuOpen, activeId])
 
   const filtered = workspaces.filter(ws =>
     ws.name.toLowerCase().includes(search.toLowerCase())
@@ -217,7 +232,7 @@ export default function WorkspaceSwitcher() {
                   group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:mx-auto
                   bg-transparent hover:bg-transparent
                   cursor-pointer
-                  focus:outline-none focus:ring-0
+                  focus:outline-none focus:ring-0 focus-visible:ring-0
                   p-0
                 "
               >
@@ -244,54 +259,82 @@ export default function WorkspaceSwitcher() {
               side="bottom"
               align="start"
               sideOffset={4}
-              className="min-w-[260px] rounded-[6px] border border-[1px] border-[#D3D3D3] pt-[8px] pb-[0px] px-[0px] bg-white"
+              className="min-w-66 rounded-[6px] border border-[1px] border-[#D3D3D3] pt-[8px] pb-[0px] px-[0px] bg-white"
               style={{
                 boxShadow: "0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03)",
               }}
             >
+              {/* workspace header */}
+              <div className="flex items-center gap-2 px-3 py-1 mb-1">
+                {active?.logo ? (
+                  <Image src={active.logo} alt={active.name} width={24} height={24} className="rounded object-contain" />
+                ) : (
+                  <div className="size-6 rounded bg-[#B5B5FF] flex items-center justify-center">
+                    <span className="text-[11px] font-semibold uppercase text-[#5C5E63]">
+                      {active?.name ? getInitials(active.name) : ''}
+                    </span>
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-black">{active?.name ?? 'Workspace'}</div>
+                  <div className="text-xs text-grey font-normal">{typeof membersCount === 'number' ? `${membersCount} members` : '— members'}</div>
+                </div>
+              </div>
               {/* top actions */}
-              <DropdownMenuItem
-                onSelect={e => { e.preventDefault(); setMenuOpen(false); setTimeout(() => setInviteOpen(true), 0); }}
-                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
-              >
-                <UserPlus className="size-4 text-black" />
-                Invite members
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onSelect={e => {
-                  e.preventDefault();
-                  setMenuOpen(false);
-                  const id = active?.id || activeId;
-                  if (id) {
-                    router.push(`/${id}/settings`)
-                  } else {
-                    toast.info('Please select a workspace first')
-                  }
-                }}
-                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
-              >
-                <Settings className="size-4 text-black" />
-                Workspace settings
-              </DropdownMenuItem>
-
-              {/* create new */}
+              <div className='flex justify-between items-center px-3 py-1'>
+                <div
+                  className='flex items-center gap-[6px] px-2 py-1.5 cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black leading-[16px] border border-buttonStroke rounded-[6px]'
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMenuOpen(false)
+                    router.push(`/${activeId}/settings`)
+                  }}
+                >
+                  <Settings className="size-4 text-black" />
+                  Settings
+                </div>
+                <div
+                  className='flex items-center gap-[6px] px-2 py-1.5 cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black leading-[16px] border border-buttonStroke rounded-[6px]'
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMenuOpen(false)
+                    setTimeout(() => setInviteOpen(true), 0)
+                  }}
+                >
+                  <UserPlus className="size-4 text-black" />
+                  Invite members
+                </div>
+              </div>
+              {/* workspace invite */}
               <DropdownMenuItem
                 onSelect={e => {
                   e.preventDefault()
                   setMenuOpen(false)
-                  setTimeout(() => setDialogOpen(true), 0)
+                  router.push(`/workspace-invite`)
                 }}
-                className="flex items-center gap-[6px] px-[12px] py-[8px] cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
+                className="flex items-center gap-[6px] px-3 py-2 mb-1 cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
               >
-                  <Plus className="size-4 text-black" />
-                  Create new workspace
+                 <MailPlus className="size-4 text-black" />
+                Workspace invite
               </DropdownMenuItem>
 
-              <DropdownMenuSeparator className="mt-[8px] my-[0px]" />
+
+              <DropdownMenuSeparator className="!my-0" />
 
               {/* search */}
-              <div className="bg-sidebar">
+              <div className="bg-sidebar pt-1">
+                {/* create new */}
+                <DropdownMenuItem
+                  onSelect={e => {
+                    e.preventDefault()
+                    setMenuOpen(false)
+                    setTimeout(() => setDialogOpen(true), 0)
+                  }}
+                  className="flex items-center gap-[6px] px-3 py-2 cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
+                >
+                   <Plus className="size-4 text-black" />
+                  Create new workspace
+                </DropdownMenuItem>
                 <div className="px-[12px] py-2">
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-4 text-[#5C5E63]" />
