@@ -9,10 +9,7 @@ type Props = {
 
 export default function ServiceSwitchCard({ service, isFolderActive }: Props) {
   return (
-    <div
-      key={`key-${service.id}`}
-      className="border-1 border-buttonStroke shadow-sm rounded-sm p-2"
-    >
+    <div className="border-1 border-buttonStroke shadow-sm rounded-sm p-2">
       <div
         className={`flex gap-1 ${
           !isFolderActive

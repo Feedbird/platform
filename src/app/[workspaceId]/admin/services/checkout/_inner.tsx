@@ -1,7 +1,6 @@
 "use client";
 import BuilderServiceCard from "@/components/checkout/builder/BuilderServiceCard";
 import CheckoutBuilderSideBar from "@/components/checkout/builder/CheckoutBuilderSideBar";
-import ServiceCard from "@/components/checkout/ServiceCard";
 import {
   Accordion,
   AccordionContent,
@@ -10,12 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { servicesApi } from "@/lib/api/api-service";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import {
-  CheckoutFormFolder,
-  CheckoutFormService,
-  Service,
-  ServiceFolder,
-} from "@/lib/supabase/client";
+import { Service } from "@/lib/supabase/client";
 import { Divider } from "@mui/material";
 import React from "react";
 import { toast } from "sonner";
@@ -56,6 +50,7 @@ export default function CheckoutBuilderClient() {
         const serviceList = await servicesApi.fetchServiceFolders(
           activeWorkspaceId
         );
+
         const serviceMap = new Map<string, CheckoutServiceBuilder[]>();
         const folderList: CheckoutFolderBuilder[] = [];
         serviceList.forEach((folder) => {
