@@ -1,15 +1,26 @@
 import { ChevronRight } from "lucide-react";
 import React from "react";
 import { Input } from "../ui/input";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { workspaceApi } from "@/lib/api/api-service";
 
 type Props = {
   emailSetter: React.Dispatch<React.SetStateAction<string>>;
+  setWorkspace: React.Dispatch<React.SetStateAction<string | null>>;
   email: string;
 };
 
 export default function EmailInput({ emailSetter, email }: Props) {
+  const { user } = useFeedbirdStore();
   const [editing, setEditing] = React.useState(true);
   const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    if (user && user.email) {
+      setEditing(false);
+      emailSetter(user.email);
+    }
+  }, [user]);
 
   const validateEmail = React.useCallback((email: string) => {
     return String(email)
@@ -18,6 +29,13 @@ export default function EmailInput({ emailSetter, email }: Props) {
         /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
       );
   }, []);
+
+  const fetchMember = async (email: string) => {
+    try {
+      // TODO This should be a call to a single member fetch instead of a list
+      const member = await workspaceApi;
+    } catch (e) {}
+  };
 
   const handleEnter = () => {
     if (email.length) {
@@ -68,12 +86,14 @@ export default function EmailInput({ emailSetter, email }: Props) {
           </label>
           <div className="flex justify-between items-center font-medium">
             <span className="text-black">{email}</span>
-            <span
-              onClick={() => setEditing(true)}
-              className="text-[#4670F9] hover:cursor-pointer hover:underline"
-            >
-              Edit
-            </span>
+            {!user && (
+              <span
+                onClick={() => setEditing(true)}
+                className="text-[#4670F9] hover:cursor-pointer hover:underline"
+              >
+                Edit
+              </span>
+            )}
           </div>
         </div>
       )}

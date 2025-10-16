@@ -31,7 +31,7 @@ export default function BuilderServiceCard({ serviceBuilder }: Props) {
       </div>
       <div className="flex flex-row justify-between items-center text-black">
         <div className="flex flex-row text-sm gap-1">
-          <p>from</p>
+          {plans.length > 1 && <p>from</p>}
           <span className="font-medium">
             ${plans[0]?.price ?? "-"}/{mapPeriodicity(plans[0]?.period)}
           </span>

@@ -104,7 +104,8 @@ export default function SignInPage() {
 
             if (result.status === 'complete') {
                 await setActive({ session: result.createdSessionId })
-                router.push('/')
+                const redirection = searchParams.get('redirect_uri');
+                router.push(`/${redirection ? redirection : ''}`);
             } else {
                 console.log('Sign in result:', result)
             }
