@@ -237,8 +237,11 @@ export default function WorkspaceSwitcher() {
                 "
               >
                 {active?.logo
-                  ? <Image src={active.logo} alt={active.name} width={24} height={24}
-                    className="rounded object-contain" />
+                  ? (
+                      <div className='size-8 rounded flex items-center justify-center overflow-hidden rounded'>
+                        <img src={active.logo} alt={active.name} className='w-full h-full object-cover object-center rounded'/>
+                      </div>
+                    )
                   : (
                     <div className="size-8 rounded bg-[#B5B5FF] flex items-center justify-center">
                       <span className="text-xs font-semibold uppercase text-[#5C5E63]">
@@ -267,7 +270,9 @@ export default function WorkspaceSwitcher() {
               {/* workspace header */}
               <div className="flex items-center gap-2 px-3 py-1 mb-1">
                 {active?.logo ? (
-                  <Image src={active.logo} alt={active.name} width={24} height={24} className="rounded object-contain" />
+                  <div className='size-8 rounded flex items-center justify-center overflow-hidden rounded'>
+                    <img src={active.logo} alt={active.name} className='w-full h-full object-cover object-center rounded'/>
+                  </div>
                 ) : (
                   <div className="size-6 rounded bg-[#B5B5FF] flex items-center justify-center">
                     <span className="text-[11px] font-semibold uppercase text-[#5C5E63]">

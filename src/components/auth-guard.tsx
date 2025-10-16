@@ -136,7 +136,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (
     isSignedIn &&
     user &&
-    ![...publicRoutes, "/checkout", "/client-onboarding"].includes(pathname)
+    ![...publicRoutes, "/checkout", "/client-onboarding", "/workspace-invite"].includes(pathname)
   ) {
     console.log("AuthGuard: User signed in, showing authenticated layout");
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
@@ -152,6 +152,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <div className="w-full h-full min-h-screen overflow-auto">
         <CheckoutPage />
+      </div>
+    );
+  } else if (isSignedIn && pathname === "/workspace-invite") {
+    const WorkspaceInvitePage = require("@/app/workspace-invite/page").default;
+    return (
+      <div className="w-full h-full min-h-screen overflow-auto">
+        <WorkspaceInvitePage />
       </div>
     );
   }

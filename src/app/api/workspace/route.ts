@@ -112,6 +112,7 @@ export async function GET(req: NextRequest) {
         .from('members')
         .select('workspace_id, board_id, is_workspace')
         .eq('email', email)
+        .eq('accept', true)
 
       if (memberErr) {
         console.error('Error fetching membership rows:', memberErr)

@@ -2493,3 +2493,25 @@ export const checkoutApi = {
     );
   },
 };
+
+// Invitations API functions
+export const invitationsApi = {
+  // Get pending workspace invitations for current user
+  getInvitations: async () => {
+    return apiRequest<any[]>('/invitations');
+  },
+  // Accept an invitation
+  acceptInvitation: async (invitationId: string, organizationId: string, workspaceId: string) => {
+    return apiRequest<any>(`/invitations/accept`, {
+      method: 'POST',
+      body: JSON.stringify({ organizationId: organizationId, invitationId: invitationId, workspaceId: workspaceId })
+    });
+  },
+  // Decline an invitation
+  declineInvitation: async (invitationId: string, organizationId: string, workspaceId: string) => {
+    return apiRequest<any>(`/invitations/decline`, {
+      method: 'POST',
+      body: JSON.stringify({ organizationId: organizationId, invitationId: invitationId, workspaceId: workspaceId })
+    });
+  },
+};
