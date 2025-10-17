@@ -60,6 +60,27 @@ export async function POST(req: NextRequest) {
     }
     
     console.log(`Successfully removed membership for email ${email}`)
+    // Log activity: workspace_invited_declined
+    try {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single()
+      if (userRow && userRow.id && workspaceId) {
+        await supabase
+          .from('activities')
+          .insert({
+            workspace_id: workspaceId,
+            post_id: null,
+            type: 'workspace_invited_declined',
+            actor_id: userRow.id,
+            metadata: { email, organizationId, workspaceId },
+          })
+      }
+    } catch (logErr) {
+      console.warn('Failed to log decline activity:', logErr)
+    }
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     console.error('Error in decline invitation:', e)

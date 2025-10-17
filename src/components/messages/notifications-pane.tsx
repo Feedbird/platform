@@ -74,7 +74,7 @@ export default function NotificationsPane() {
 	const [localReadNotifications, setLocalReadNotifications] = useState<Set<string>>(new Set())
 	const [isNotificationSettingsOpen, setIsNotificationSettingsOpen] = useState(false)
 	const [isManageSocialsOpen, setIsManageSocialsOpen] = useState(false)
-	
+
 	// Notification settings state
 	const [notificationSettings, setNotificationSettings] = useState({
 		communication: {
@@ -109,7 +109,7 @@ export default function NotificationsPane() {
 	useEffect(() => {
 		const fetchActivities = async () => {
 			if (!activeWorkspace?.id) return
-			
+
 			try {
 				setIsLoading(true)
 				const activitiesData = await activityApi.getWorkspaceActivities(activeWorkspace.id)
@@ -136,7 +136,7 @@ export default function NotificationsPane() {
 				const response = await fetch(
 					`/api/user/notification-settings?user_email=${encodeURIComponent(user.email)}`
 				)
-				
+
 				if (response.ok) {
 					const data = await response.json()
 					setNotificationSettings(data.settings)
@@ -161,12 +161,12 @@ export default function NotificationsPane() {
 				user.email,
 				notificationSettings
 			)
-			
+
 			// Update the store with the new notification settings
 			if (updatedUser?.notification_settings) {
 				updateUserNotificationSettings(updatedUser.notification_settings)
 			}
-			
+
 		} catch (error) {
 			console.error('Failed to save notification settings:', error)
 		} finally {
@@ -196,8 +196,8 @@ export default function NotificationsPane() {
 				post: activity.post,
 				userId: activity.actor_id,
 				authorEmail: activity.actor?.email,
-				authorName: activity.actor?.first_name ? 
-					`${activity.actor.first_name} ${activity.actor.last_name || ''}`.trim() : 
+				authorName: activity.actor?.first_name ?
+					`${activity.actor.first_name} ${activity.actor.last_name || ''}`.trim() :
 					activity.actor?.email?.split('@')[0] || 'Unknown User',
 				authorImageUrl: activity.actor?.image_url,
 				postTitle: activity.post?.caption?.text || 'Post',
@@ -251,17 +251,17 @@ export default function NotificationsPane() {
 	// Mark all notifications as read
 	const markAllAsRead = async () => {
 		if (!user?.email) return
-		
+
 		setIsLoading(true)
 		try {
 			// Add all current unread activity IDs to local read state
 			const unreadActivityIds = unread_notification
 			setLocalReadNotifications(prev => new Set([...prev, ...unreadActivityIds]))
-			
+
 			// Clear unread_notification array in the store
 			useFeedbirdStore.setState((state) => {
 				if (!state.user) return state
-				
+
 				return {
 					...state,
 					user: {
@@ -270,7 +270,7 @@ export default function NotificationsPane() {
 					}
 				}
 			})
-			
+
 			// Persist to database
 			await notificationApi.removeAllUnreadNotifications(user.email)
 		} catch (error) {
@@ -281,11 +281,11 @@ export default function NotificationsPane() {
 				unread_notification.forEach(id => newSet.delete(id))
 				return newSet
 			})
-			
+
 			// Revert store changes
 			useFeedbirdStore.setState((state) => {
 				if (!state.user) return state
-				
+
 				return {
 					...state,
 					user: {
@@ -307,17 +307,17 @@ export default function NotificationsPane() {
 		if (id.startsWith('activity-')) {
 			// Extract the activity ID from the notification ID
 			const activityId = id.replace('activity-', '')
-			
+
 			// Add to local read state immediately for UI responsiveness
 			setLocalReadNotifications(prev => new Set([...prev, activityId]))
-			
+
 			// Update the store to remove from unread_notification array
 			useFeedbirdStore.setState((state) => {
 				if (!state.user) return state
-				
+
 				const currentUnread = state.user.unread_notification || []
 				const newUnread = currentUnread.filter(notificationId => notificationId !== activityId)
-				
+
 				return {
 					...state,
 					user: {
@@ -326,7 +326,7 @@ export default function NotificationsPane() {
 					}
 				}
 			})
-			
+
 			// Persist to database
 			if (user?.email) {
 				try {
@@ -339,11 +339,11 @@ export default function NotificationsPane() {
 						newSet.delete(activityId)
 						return newSet
 					})
-					
+
 					// Revert store changes
 					useFeedbirdStore.setState((state) => {
 						if (!state.user) return state
-						
+
 						const currentUnread = state.user.unread_notification || []
 						if (!currentUnread.includes(activityId)) {
 							return {
@@ -408,7 +408,7 @@ export default function NotificationsPane() {
 
 	// Small blocks preview component for notifications
 	const NotificationBlocksPreview = memo(({ post }: { post: Post }) => {
-		
+
 		if (!post || !post.blocks || post.blocks.length === 0) {
 			return (
 				<div className="bg-gray-100 rounded border flex items-center justify-center" style={{ width: '42px', height: '56px' }}>
@@ -420,7 +420,7 @@ export default function NotificationsPane() {
 		// Show only the first block as a small preview
 		const firstBlock = post.blocks[0]
 		const currentVersion = firstBlock.versions.find(v => v.id === firstBlock.currentVersionId)
-		
+
 		if (!currentVersion?.file?.url) {
 			return (
 				<div className="bg-gray-100 rounded border flex items-center justify-center" style={{ width: '42px', height: '56px' }}>
@@ -430,7 +430,7 @@ export default function NotificationsPane() {
 		}
 
 		const isVideo = currentVersion.file.kind === 'video'
-		
+
 		return (
 			<div className="rounded border overflow-hidden bg-gray-100 flex-shrink-0" style={{ width: '42px', height: '56px' }}>
 				{isVideo ? (
@@ -453,20 +453,20 @@ export default function NotificationsPane() {
 	// Generate activity message with actor name
 	const getActivityMessageWithActor = (type: string, actorName?: string, invitedEmail?: string, workspaceId?: string, boardId?: string) => {
 		const actor = actorName || 'Someone'
-		
+
 		// Helper functions to get workspace and board names
 		const getWorkspaceName = (workspaceId?: string) => {
 			if (!workspaceId) return 'a workspace'
 			const workspace = workspaces.find(w => w.id === workspaceId)
 			return workspace?.name || 'a workspace'
 		}
-		
+
 		const getBoardName = (boardId?: string) => {
 			if (!boardId) return 'a board'
 			const board = workspaces.flatMap(w => w.boards).find(b => b.id === boardId)
 			return board?.name || 'a board'
 		}
-		
+
 		switch (type) {
 			case 'revision_request':
 				return (
@@ -548,6 +548,24 @@ export default function NotificationsPane() {
 						<span className="text-darkGrey"> workspace.</span>
 					</>
 				)
+			case 'workspace_invited_declined':
+				return (
+					<>
+						<span className="text-black">{actor}</span>
+						<span className="text-darkGrey"> declined the invitation to join the </span>
+						<span className="text-black">{getWorkspaceName(workspaceId)}</span>
+						<span className="text-darkGrey"> workspace.</span>
+					</>
+				)
+			case 'workspace_access_requested':
+				return (
+					<>
+						<span className="text-black">{actor}</span>
+						<span className="text-darkGrey"> requested to join the </span>
+						<span className="text-black">{getWorkspaceName(workspaceId)}</span>
+						<span className="text-darkGrey"> workspace.</span>
+					</>
+				)
 			default:
 				return (
 					<>
@@ -565,14 +583,14 @@ export default function NotificationsPane() {
 			return (
 				<Avatar className="w-8 h-8">
 					{metadata?.authorImageUrl && (
-						<AvatarImage 
-							src={metadata.authorImageUrl} 
+						<AvatarImage
+							src={metadata.authorImageUrl}
 							alt={metadata.authorName || 'User avatar'}
 						/>
 					)}
-								<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
-									{getFullnameinitial(undefined, undefined, metadata.authorName || metadata.authorEmail || 'U')}
-								</AvatarFallback>
+					<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
+						{getFullnameinitial(undefined, undefined, metadata.authorName || metadata.authorEmail || 'U')}
+					</AvatarFallback>
 				</Avatar>
 			)
 		}
@@ -586,7 +604,7 @@ export default function NotificationsPane() {
 			// Open the post record modal
 			setOpenPost(notification.metadata.post)
 		}
-		
+
 		// Mark as read
 		markAsRead(notification.id)
 	}
@@ -608,51 +626,51 @@ export default function NotificationsPane() {
 				<div className="flex items-center justify-between px-4 mb-8">
 					{/* View Switcher */}
 					<div className="py-0.5">
-					<div className="flex items-center gap-[4px] p-[2px] bg-[#F4F5F6] rounded-[6px] h-full">
-						{(['all', 'unread', 'comments', 'approval', 'mention'] as NotificationType[]).map((tab) => (
-						<Button
-							key={tab}
-							variant="ghost"
-							size="sm"
-							onClick={() => setActiveTab(tab)}
-							className={cn(
-								'px-[8px] text-black rounded-[6px] font-medium text-sm h-[24px] w-[102px] cursor-pointer flex items-center gap-1',
-								activeTab === tab
-									? 'bg-white shadow'
-									: ''
-							)}
-						>
-							{tab === 'all' && (
-								<>
-									All
-								</>
-							)}
-							{tab === 'unread' && (
-								<>
-									Unread
-								</>
-							)}
-							{tab === 'comments' && (
-								<>
-									<MessageCircle className="size-[14px] text-darkGrey" />
-									Comments
-								</>
-							)}
-							{tab === 'approval' && (
-								<>
-									<Check className="size-[14px] text-darkGrey" />
-									Approval
-								</>
-							)}
-							{tab === 'mention' && (
-								<>
-									<AtSign className="size-[14px] text-darkGrey" />
-									Mention
-								</>
-							)}
-						</Button>
-					))}
-					</div>
+						<div className="flex items-center gap-[4px] p-[2px] bg-[#F4F5F6] rounded-[6px] h-full">
+							{(['all', 'unread', 'comments', 'approval', 'mention'] as NotificationType[]).map((tab) => (
+								<Button
+									key={tab}
+									variant="ghost"
+									size="sm"
+									onClick={() => setActiveTab(tab)}
+									className={cn(
+										'px-[8px] text-black rounded-[6px] font-medium text-sm h-[24px] w-[102px] cursor-pointer flex items-center gap-1',
+										activeTab === tab
+											? 'bg-white shadow'
+											: ''
+									)}
+								>
+									{tab === 'all' && (
+										<>
+											All
+										</>
+									)}
+									{tab === 'unread' && (
+										<>
+											Unread
+										</>
+									)}
+									{tab === 'comments' && (
+										<>
+											<MessageCircle className="size-[14px] text-darkGrey" />
+											Comments
+										</>
+									)}
+									{tab === 'approval' && (
+										<>
+											<Check className="size-[14px] text-darkGrey" />
+											Approval
+										</>
+									)}
+									{tab === 'mention' && (
+										<>
+											<AtSign className="size-[14px] text-darkGrey" />
+											Mention
+										</>
+									)}
+								</Button>
+							))}
+						</div>
 					</div>
 
 
@@ -665,15 +683,15 @@ export default function NotificationsPane() {
 							onClick={markAllAsRead}
 							className={cn(
 								"h-6 px-2 text-sm flex items-center gap-1 cursor-pointer font-normal",
-								unreadCount > 0 
-									? "text-main hover:text-main" 
+								unreadCount > 0
+									? "text-main hover:text-main"
 									: "text-grey"
 							)}
 						>
 							<CheckCircle className={cn(
 								'size-[14px]',
 								unreadCount > 0 ? 'text-main' : 'text-grey'
-							)}/>
+							)} />
 							Mark all as read
 						</Button>
 						<Button
@@ -715,10 +733,10 @@ export default function NotificationsPane() {
 											height={16}
 											className="w-4 h-4"
 										/>
-											<p className="text-sm font-medium text-black">{page.name}</p>
-											<p className="text-sm font-normal text-darkGrey">
-												needs to be reconnected
-											</p>
+										<p className="text-sm font-medium text-black">{page.name}</p>
+										<p className="text-sm font-normal text-darkGrey">
+											needs to be reconnected
+										</p>
 									</div>
 									<Button
 										variant="outline"
@@ -766,34 +784,33 @@ export default function NotificationsPane() {
 											{dayNotifications.map((notification) => (
 												<div
 													key={notification.id}
-													className={`py-3 border-t border-borderGrey transition-colors cursor-pointer hover:bg-gray-50 ${
-														!notification.read ? 'bg-[#EDF6FF]' : ''
-													}`}
+													className={`py-3 border-t border-borderGrey transition-colors cursor-pointer hover:bg-gray-50 ${!notification.read ? 'bg-[#EDF6FF]' : ''
+														}`}
 													onClick={() => handleNotificationClick(notification)}
 												>
 													<div className="flex items-center">
 														{/* Icon/Avatar */}
 														<div className="flex-shrink-0 mr-3 relative">
 															{/* Show workspace/board icon for invitation activities */}
-															{(notification.type === 'workspace_invited_sent' || notification.type === 'workspace_invited_accepted' || notification.type === 'board_invited_sent') ? (
-																notification.type === 'workspace_invited_sent' || notification.type === 'workspace_invited_accepted' ? (
+															{(notification.type === 'workspace_invited_sent' || notification.type === 'workspace_invited_accepted' || notification.type === 'workspace_invited_declined' || notification.type === 'workspace_access_requested' || notification.type === 'board_invited_sent') ? (
+																notification.type === 'workspace_invited_sent' || notification.type === 'workspace_invited_accepted' || notification.type === 'workspace_invited_declined' || notification.type === 'workspace_access_requested' ? (
 																	(() => {
 																		const workspace = workspaces.find(w => w.id === notification.workspaceId)
 																		const workspaceName = workspace?.name || 'Workspace'
 																		const hasLogo = workspace?.logo
-																		
-																		return hasLogo ? (
-																			<div className="w-7 h-7 rounded-full flex items-center justify-center relative bg-gray-100">
+
+																		return workspace?.logo ? (
+																			<div className="w-6 h-6 rounded-[3px] flex items-center justify-center relative">
 																				<Image
-																					src={workspace.logo!}
+																					src={workspace.logo}
 																					alt="Workspace"
-																					width={16}
-																					height={16}
-																					className="w-4 h-4 filter brightness-0 invert"
+																					width={24}
+																					height={24}
+																					className="w-6 h-6 rounded-[3px]"
 																				/>
 																			</div>
 																		) : (
-																			<div className="w-7 h-7 rounded-[3px] flex items-center justify-center bg-[#B5B5FF] text-xs font-medium text-[#43439F]">
+																			<div className="w-6 h-6 rounded-[3px] flex items-center justify-center bg-[#B5B5FF] text-xs font-medium text-[#43439F]">
 																				{workspaceName.substring(0, 1).toUpperCase()}{workspaceName.substring(1, 2).toLowerCase()}
 																			</div>
 																		)
@@ -802,7 +819,7 @@ export default function NotificationsPane() {
 																	(() => {
 																		const board = workspaces.flatMap(w => w.boards).find(b => b.id === notification.metadata?.boardId)
 																		return (
-																			<div className="w-7 h-7 rounded-[3px] flex items-center justify-center relative"
+																			<div className="w-6 h-6 rounded-[3px] flex items-center justify-center relative"
 																				style={{
 																					backgroundColor: board?.color || '#f3f4f6'
 																				}}
@@ -810,9 +827,9 @@ export default function NotificationsPane() {
 																				<Image
 																					src={board?.image || '/images/boards/static-posts.svg'}
 																					alt="Board"
-																					width={14}
-																					height={14}
-																					className="w-3.5 h-3.5 filter brightness-0 invert"
+																					width={12}
+																					height={12}
+																					className="w-3 h-3"
 																				/>
 																			</div>
 																		)
@@ -822,20 +839,20 @@ export default function NotificationsPane() {
 																/* Show actor avatar for other activities */
 																(notification.metadata?.authorName || notification.metadata?.authorEmail || notification.metadata?.authorImageUrl) ? (
 																	<>
-																		<Avatar className="w-7 h-7">
+																		<Avatar className="w-6 h-6">
 																			{notification.metadata?.authorImageUrl && (
-																				<AvatarImage 
-																					src={notification.metadata.authorImageUrl} 
+																				<AvatarImage
+																					src={notification.metadata.authorImageUrl}
 																					alt={notification.metadata.authorName || 'User avatar'}
 																				/>
 																			)}
-																<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
-																	{getFullnameinitial(undefined, undefined, notification.metadata.authorName || notification.metadata.authorEmail || 'U')}
-																</AvatarFallback>
+																			<AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
+																				{getFullnameinitial(undefined, undefined, notification.metadata.authorName || notification.metadata.authorEmail || 'U')}
+																			</AvatarFallback>
 																		</Avatar>
 																		{/* Status Icon Overlay */}
 																		{notification.type && getStatusIcon(notification.type) && (
-																			<div 
+																			<div
 																				className="absolute -bottom-1 -right-1 flex items-center justify-center"
 																			>
 																				<Image
@@ -859,14 +876,14 @@ export default function NotificationsPane() {
 															{/* Activity Message with Timestamp */}
 															<div className="flex items-center justify-start">
 																<p className={`text-sm font-medium`}>
-																	{notification.type && notification.metadata?.authorName ? 
+																	{notification.type && notification.metadata?.authorName ?
 																		getActivityMessageWithActor(
-																			notification.type, 
+																			notification.type,
 																			notification.metadata.authorName,
 																			notification.metadata.invitedEmail,
 																			notification.workspaceId,
 																			notification.metadata.boardId
-																		) : 
+																		) :
 																		""
 																	}
 																</p>
@@ -874,12 +891,12 @@ export default function NotificationsPane() {
 																	{formatDistanceToNow(notification.timestamp, { addSuffix: true })}
 																</p>
 															</div>
-															
+
 															{/* Caption Summary */}
 															{notification.metadata?.post?.caption && (
 																<p className="text-sm text-black mt-1">
-																	"{notification.metadata.post.caption.default.length > 30 
-																		? `${notification.metadata.post.caption.default.substring(0, 30)}...` 
+																	"{notification.metadata.post.caption.default.length > 30
+																		? `${notification.metadata.post.caption.default.substring(0, 30)}...`
 																		: notification.metadata.post.caption.default}"
 																</p>
 															)}
@@ -891,7 +908,7 @@ export default function NotificationsPane() {
 															{notification.metadata?.post && (
 																<NotificationBlocksPreview post={notification.metadata.post} />
 															)}
-															
+
 															{/* Three Dot Button */}
 															<Button
 																variant="ghost"
@@ -939,7 +956,7 @@ export default function NotificationsPane() {
 					<DialogHeader>
 						<DialogTitle className="text-xl text-black font-semibold">Notification Settings</DialogTitle>
 					</DialogHeader>
-					
+
 					<div className="">
 						{/* Communication Section */}
 						<div className="space-y-3 pb-4">
@@ -947,10 +964,10 @@ export default function NotificationsPane() {
 								<h3 className="text-sm font-medium text-black">Communication</h3>
 								<Switch
 									checked={notificationSettings.communication.enabled}
-									onCheckedChange={(checked) => 
+									onCheckedChange={(checked) =>
 										setNotificationSettings(prev => ({
 											...prev,
-											communication: { 
+											communication: {
 												enabled: checked,
 												commentsAndMentions: checked ? prev.communication.commentsAndMentions : false
 											}
@@ -965,7 +982,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.communication.enabled && notificationSettings.communication.commentsAndMentions}
 										disabled={!notificationSettings.communication.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												communication: { ...prev.communication, commentsAndMentions: checked }
@@ -983,10 +1000,10 @@ export default function NotificationsPane() {
 								<h3 className="text-sm font-medium text-black">Boards</h3>
 								<Switch
 									checked={notificationSettings.boards.enabled}
-									onCheckedChange={(checked) => 
+									onCheckedChange={(checked) =>
 										setNotificationSettings(prev => ({
 											...prev,
-											boards: { 
+											boards: {
 												enabled: checked,
 												pendingApproval: checked ? prev.boards.pendingApproval : false,
 												scheduled: checked ? prev.boards.scheduled : false,
@@ -1005,7 +1022,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.boards.enabled && notificationSettings.boards.pendingApproval}
 										disabled={!notificationSettings.boards.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												boards: { ...prev.boards, pendingApproval: checked }
@@ -1019,7 +1036,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.boards.enabled && notificationSettings.boards.scheduled}
 										disabled={!notificationSettings.boards.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												boards: { ...prev.boards, scheduled: checked }
@@ -1033,7 +1050,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.boards.enabled && notificationSettings.boards.published}
 										disabled={!notificationSettings.boards.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												boards: { ...prev.boards, published: checked }
@@ -1047,7 +1064,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.boards.enabled && notificationSettings.boards.boardInviteSent}
 										disabled={!notificationSettings.boards.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												boards: { ...prev.boards, boardInviteSent: checked }
@@ -1061,7 +1078,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.boards.enabled && notificationSettings.boards.boardInviteAccepted}
 										disabled={!notificationSettings.boards.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												boards: { ...prev.boards, boardInviteAccepted: checked }
@@ -1079,10 +1096,10 @@ export default function NotificationsPane() {
 								<h3 className="text-sm font-medium text-black">Workspaces</h3>
 								<Switch
 									checked={notificationSettings.workspaces.enabled}
-									onCheckedChange={(checked) => 
+									onCheckedChange={(checked) =>
 										setNotificationSettings(prev => ({
 											...prev,
-											workspaces: { 
+											workspaces: {
 												enabled: checked,
 												workspaceInviteSent: checked ? prev.workspaces.workspaceInviteSent : false,
 												workspaceInviteAccepted: checked ? prev.workspaces.workspaceInviteAccepted : false
@@ -1098,7 +1115,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.workspaces.enabled && notificationSettings.workspaces.workspaceInviteSent}
 										disabled={!notificationSettings.workspaces.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												workspaces: { ...prev.workspaces, workspaceInviteSent: checked }
@@ -1112,7 +1129,7 @@ export default function NotificationsPane() {
 									<Switch
 										checked={notificationSettings.workspaces.enabled && notificationSettings.workspaces.workspaceInviteAccepted}
 										disabled={!notificationSettings.workspaces.enabled}
-										onCheckedChange={(checked) => 
+										onCheckedChange={(checked) =>
 											setNotificationSettings(prev => ({
 												...prev,
 												workspaces: { ...prev.workspaces, workspaceInviteAccepted: checked }
@@ -1124,7 +1141,7 @@ export default function NotificationsPane() {
 							</div>
 						</div>
 					</div>
-					
+
 					<DialogFooter className="flex justify-end gap-2 pt-4">
 						<Button
 							variant="outline"

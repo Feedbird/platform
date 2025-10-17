@@ -2438,7 +2438,9 @@ export const activityApi = {
       | "comment"
       | "workspace_invited_sent"
       | "board_invited_sent"
-      | "workspace_invited_accepted";
+      | "workspace_invited_accepted"
+      | "workspace_invited_declined"
+      | "workspace_access_requested";
     metadata?: any;
   }) => {
     return apiRequest<any>("/post/activity", {
@@ -2512,6 +2514,13 @@ export const invitationsApi = {
     return apiRequest<any>(`/invitations/decline`, {
       method: 'POST',
       body: JSON.stringify({ organizationId: organizationId, invitationId: invitationId, workspaceId: workspaceId })
+    });
+  },
+  // Request access logging
+  requestAccess: async (workspaceId: string, organizationId?: string) => {
+    return apiRequest<any>(`/invitations/request-access`, {
+      method: 'POST',
+      body: JSON.stringify({ workspaceId, organizationId })
     });
   },
 };

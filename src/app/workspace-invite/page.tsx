@@ -184,8 +184,14 @@ function ClientSectionInline() {
     const handleRequestAccess = async (id: string, orgId?: string) => {
         setActionLoading(prev => ({ ...prev, [id]: 'request' }))
         try {
-            const body = orgId ? `organization ${encodeURIComponent(orgId)}` : 'your workspace'
-            window.open(`mailto:support@feedbird.ai?subject=Request%20access%20to%20workspace&body=Please%20grant%20me%20access%20to%20${body}`, '_self')
+            const inv = invites.find(i => i.id === id)
+            if (inv?.workspace_id) {
+                try {
+                    await invitationsApi.requestAccess(inv.workspace_id, orgId)
+                } catch (e) {
+                    console.warn('Failed to log request access activity', e)
+                }
+            }
         } finally {
             setActionLoading(prev => ({ ...prev, [id]: null }))
         }

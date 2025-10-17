@@ -66,6 +66,27 @@ export async function POST(req: NextRequest) {
     }
     
     console.log(`Successfully accepted membership for email ${email}`)
+    // Log activity: workspace_invited_accepted
+    try {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single()
+      if (userRow && userRow.id && workspaceId) {
+        await supabase
+          .from('activities')
+          .insert({
+            workspace_id: workspaceId,
+            post_id: null,
+            type: 'workspace_invited_accepted',
+            actor_id: userRow.id,
+            metadata: { email, organizationId, workspaceId },
+          })
+      }
+    } catch (logErr) {
+      console.warn('Failed to log accept activity:', logErr)
+    }
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     console.error('Error in accept invitation:', e)
