@@ -21,10 +21,19 @@ export default function Home() {
       return
     }
 
-    // If no workspaces exist, stay on this page to show workspace creation
+    // If no workspaces exist, go to workspace-invite page only on first load per tab
+    try {
+      const alreadyRedirected =
+        typeof window !== 'undefined' && sessionStorage.getItem('ws-invite-redirected') === '1'
+      if (workspaces.length === 0 && !alreadyRedirected) {
+        sessionStorage.setItem('ws-invite-redirected', '1')
+        router.replace(`/workspace-invite`)
+        return
+      }
+    } catch {}
   }, [activeWorkspaceId, workspaces, router])
 
-  // Show loading or workspace creation interface
+  // Show welcome/home content if no workspaces (after first-load redirect)
   if (workspaces.length === 0) {
     return (
       <div className="container mx-auto p-8">
