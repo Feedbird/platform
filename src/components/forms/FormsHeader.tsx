@@ -53,7 +53,7 @@ function FormsHeaderContent() {
         throw new Error("User or active workspace not found");
       }
       const newForm = await createInitialForm(user.email, activeWorkspaceId);
-      router.push(`/forms/${newForm.id}`);
+      router.push(`forms/${newForm.id}`);
     } catch (e) {
       toast.error("Error creating Form. Please try again later");
     } finally {
@@ -107,7 +107,7 @@ function FormsHeaderContent() {
                     setAlertModalOpen(true);
                     setAlertType("navigate");
                   } else {
-                    router.push("/forms");
+                    router.push(`/${activeWorkspaceId}/admin/forms`);
                   }
                 }}
                 className="text-[#5C5E63] text-sm font-normal cursor-pointer"
@@ -117,7 +117,10 @@ function FormsHeaderContent() {
               <ChevronRight width={12} height={12} color="#838488" />
               <span
                 onClick={() => {
-                  if (isPreview) router.push(`/forms/${activeForm.id}`);
+                  if (isPreview)
+                    router.push(
+                      `/${activeWorkspaceId}/admin/forms/${activeForm.id}`
+                    );
                 }}
                 className={`${
                   isPreview
@@ -163,19 +166,21 @@ function FormsHeaderContent() {
                     height={16}
                   />
                 </Button>
-                <Button
-                  onClick={() => router.push(`/forms/${activeForm.id}/preview`)}
-                  variant="ghost"
-                  className="border-1 w-[84px] border-[#D3D3D3] text-black flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
-                >
-                  <Image
-                    src="/images/forms/play.svg"
-                    alt="play_icon"
-                    width={12}
-                    height={12}
-                  />
-                  <span className="font-medium text-[13px]">Preview</span>
-                </Button>
+                {!isPreview && (
+                  <Button
+                    onClick={() => router.push(`${activeForm.id}/preview`)}
+                    variant="ghost"
+                    className="border-1 w-[84px] border-[#D3D3D3] text-black flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
+                  >
+                    <Image
+                      src="/images/forms/play.svg"
+                      alt="play_icon"
+                      width={12}
+                      height={12}
+                    />
+                    <span className="font-medium text-[13px]">Preview</span>
+                  </Button>
+                )}
                 <DropdownMenu
                   open={isDropDownOpen}
                   onOpenChange={(open) => setIsDropdownOpen(open)}
@@ -281,7 +286,7 @@ function FormsHeaderContent() {
           action={
             alertType === "publish"
               ? handleFormPublish
-              : () => router.push("/forms")
+              : () => router.push(`/${activeWorkspaceId}/admin/forms`)
           }
         />
       </header>
