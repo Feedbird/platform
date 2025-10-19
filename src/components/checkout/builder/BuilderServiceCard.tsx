@@ -1,4 +1,7 @@
-import { CheckoutServiceBuilder } from "@/app/[workspaceId]/admin/services/checkout/_inner";
+import {
+  CheckoutServiceBuilder,
+  SidebarContext,
+} from "@/app/[workspaceId]/admin/services/checkout/_inner";
 import Image from "next/image";
 import React from "react";
 import { mapPeriodicity } from "../ServiceCard";
@@ -6,15 +9,25 @@ import { Button } from "@/components/ui/button";
 
 type Props = {
   serviceBuilder: CheckoutServiceBuilder;
+  setContext: React.Dispatch<React.SetStateAction<SidebarContext>>;
 };
 
-export default function BuilderServiceCard({ serviceBuilder }: Props) {
+export default function BuilderServiceCard({
+  serviceBuilder,
+  setContext,
+}: Props) {
   const service = serviceBuilder.service;
   const plans = service.service_plans ?? [];
 
   if (!serviceBuilder.is_active) return null;
   return (
-    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col gap-3 justify-between relative">
+    <div
+      className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col gap-3 justify-between relative"
+      onClick={(e) => {
+        e.stopPropagation();
+        setContext({ service: serviceBuilder, mode: "service" });
+      }}
+    >
       <div className="flex flex-col gap-2">
         <div className="flex flex-row gap-2">
           <Image

@@ -1,6 +1,7 @@
 import {
   CheckoutFolderBuilder,
   CheckoutServiceBuilder,
+  SidebarContext,
 } from "@/app/[workspaceId]/admin/services/checkout/_inner";
 import { Switch } from "@/components/ui/switch";
 import React from "react";
@@ -9,17 +10,15 @@ import ServiceSwitchCard from "./ServiceSwitchCard";
 type Props = {
   folder: CheckoutFolderBuilder;
   services: CheckoutServiceBuilder[];
+  setContext: React.Dispatch<React.SetStateAction<SidebarContext>>;
   setFolders: React.Dispatch<React.SetStateAction<CheckoutFolderBuilder[]>>;
-  setServices: React.Dispatch<
-    React.SetStateAction<Map<string, CheckoutServiceBuilder[]>>
-  >;
 };
 
 export default function ServiceFolderEditor({
   folder,
   services,
+  setContext,
   setFolders,
-  setServices,
 }: Props) {
   const handleToggleFolder = () => {
     setFolders((prev) =>
@@ -46,6 +45,11 @@ export default function ServiceFolderEditor({
       {services.map((service) => (
         <ServiceSwitchCard
           key={`${folder.service_folder_id}-${service.service_id}`}
+          selectService={() => {
+            if (folder.is_activated) {
+              setContext({ service: service, mode: "service" });
+            }
+          }}
           isFolderActive={folder.is_activated}
           service={service.service}
         />

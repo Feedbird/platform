@@ -4,17 +4,25 @@ import React from "react";
 
 type Props = {
   service: Service;
+  selectService: () => void;
   isFolderActive: boolean;
 };
 
-export default function ServiceSwitchCard({ service, isFolderActive }: Props) {
+export default function ServiceSwitchCard({
+  service,
+  selectService,
+  isFolderActive,
+}: Props) {
   return (
-    <div className="border-1 border-buttonStroke shadow-sm rounded-sm p-2">
+    <div
+      onClick={() => selectService()}
+      className={`border-1 border-buttonStroke shadow-sm rounded-sm p-2 ${
+        !isFolderActive ? "cursor-not-allowed" : "cursor-pointer"
+      }`}
+    >
       <div
         className={`flex gap-1 ${
-          !isFolderActive
-            ? "opacity-50 cursor-not-allowed"
-            : "border-buttonStroke opacity-100 cursor-pointer"
+          !isFolderActive ? "opacity-50" : "border-buttonStroke opacity-100"
         }`}
       >
         <Image
