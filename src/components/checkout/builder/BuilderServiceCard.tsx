@@ -22,7 +22,7 @@ export default function BuilderServiceCard({
   if (!serviceBuilder.is_active) return null;
   return (
     <div
-      className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col gap-3 justify-between relative"
+      className="bg-white rounded-[8px] hover:bg-slate-50 border-1 border-[#D3D3D3] p-5 flex flex-col gap-3 justify-between relative"
       onClick={(e) => {
         e.stopPropagation();
         setContext({ service: serviceBuilder, mode: "service" });
