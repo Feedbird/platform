@@ -4,7 +4,6 @@ import { formFieldSorter } from "@/lib/utils/transformers";
 import React from "react";
 import Loading from "./loading";
 import { Divider } from "@mui/material";
-import { useRouter } from "next/navigation";
 import ControlledPageVisualizer from "./components/ControlledPageVisualizer";
 import ControlledSubmissionSummary from "./components/ControlledSubmissionSummary";
 
@@ -41,8 +40,6 @@ const formValueInitializer = (field: FormField) => {
 };
 
 export default function SubmitFormVisualizer({ formData }: Props) {
-  const router = useRouter();
-
   const [pages, setPages] = React.useState<FormField[][]>([]);
   const [formValues, setFormValues] = React.useState<FormSubmissionData>(
     {} as FormSubmissionData
