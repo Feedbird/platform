@@ -10,7 +10,7 @@ import { TableForm } from "./forms-table";
 import { Row } from "@tanstack/table-core";
 import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
-import { set } from "nprogress";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 type Props = {
   setLocalActiveForm: React.Dispatch<React.SetStateAction<TableForm | null>>;
@@ -39,6 +39,7 @@ export default function FormTableContextMenu({
     action: null,
   });
   const [open, isOpen] = React.useState(false);
+  const { activeWorkspaceId } = useFeedbirdStore();
 
   const handleFormDuplication = async () => {
     isLoading({ isLoading: true, action: "duplicate" });
@@ -83,7 +84,8 @@ export default function FormTableContextMenu({
                 className="bg-black/10 absolute w-full h-full rounded-sm top-0 left-0 z-20"
               ></div>
             )}
-            <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+            {/* TODO Ask about why this */}
+            {/* <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
               <Image
                 src="/images/forms/write.svg"
                 alt="write_icon"
@@ -91,7 +93,7 @@ export default function FormTableContextMenu({
                 height={14}
               />
               <span>Rename</span>
-            </button>
+            </button> */}
             <button
               className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
               onClick={(e) => {
@@ -129,7 +131,17 @@ export default function FormTableContextMenu({
                 </>
               )}
             </button>
-            <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
+            <button
+              className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(
+                  `${process.env.NEXT_PUBLIC_APP_URL}/${activeWorkspaceId}/form/${row.original.id}`
+                );
+                toast.success("Form link copied to clipboard");
+                isOpen(false);
+              }}
+            >
               <Image
                 src="/images/boards/share.svg"
                 alt="share_icon"
