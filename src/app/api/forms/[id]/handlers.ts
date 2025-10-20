@@ -197,10 +197,13 @@ export class FormHandler {
     }
   }
 
-  private static async fetchForm(formId: string): Promise<Form> {
+  private static async fetchForm(
+    formId: string,
+    baseFetch: boolean = false
+  ): Promise<Form> {
     const { data, error } = await supabase
       .from("forms")
-      .select("*")
+      .select(`${baseFetch ? "id" : "*"} `)
       .eq("id", formId)
       .single();
 
@@ -221,10 +224,13 @@ export class FormHandler {
     return data;
   }
 
-  private static async fetchFormFields(formId: string): Promise<FormField[]> {
+  private static async fetchFormFields(
+    formId: string,
+    baseFetch: boolean = false
+  ): Promise<FormField[]> {
     const { data, error } = await supabase
       .from("form_fields")
-      .select("*")
+      .select(`${baseFetch ? "id" : "*"} `)
       .eq("form_id", formId);
 
     if (error) {
@@ -241,12 +247,14 @@ export class FormHandler {
   }
 
   private static async validateAndRollbackForm(formId: string): Promise<void> {
-    const form = await this.fetchForm(formId).catch(() => null);
+    const form = await this.fetchForm(formId, true).catch(() => null);
     if (form) {
       await supabase.from("forms").delete().eq("id", formId);
     }
 
-    const formFields = await this.fetchFormFields(formId).catch(() => null);
+    const formFields = await this.fetchFormFields(formId, true).catch(
+      () => null
+    );
     if (formFields && formFields.length > 0) {
       await supabase.from("form_fields").delete().eq("form_id", formId);
     }
