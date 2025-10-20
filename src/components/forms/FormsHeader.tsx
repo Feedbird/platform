@@ -81,7 +81,7 @@ function FormsHeaderContent() {
     setFormLink(
       `${process.env.NEXT_PUBLIC_APP_URL}/${activeWorkspaceId}/form/${activeForm?.id}`
     );
-  }, [activeForm]);
+  }, [activeForm, activeWorkspaceId]);
 
   const handleFormUnpublish = async () => {
     isLoading(true);
