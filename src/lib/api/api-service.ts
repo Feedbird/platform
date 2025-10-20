@@ -40,11 +40,7 @@ const API_BASE = "/api";
 
 // Generic API error handler
 class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public details?: any
-  ) {
+  constructor(message: string, public status: number, public details?: any) {
     super(message);
     this.name = "ApiError";
   }
@@ -345,6 +341,11 @@ export const formsApi = {
         answers: submissions,
         snapshot: schema,
       }),
+    });
+  },
+  duplicateForm: async (formId: string): Promise<ApiResponse<Form>> => {
+    return apiRequest<ApiResponse<Form>>(`/forms/${formId}`, {
+      method: "POST",
     });
   },
 };
@@ -968,8 +969,8 @@ export const storeApi = {
             const channelsDb = Array.isArray(channelsResp)
               ? channelsResp
               : channelsResp
-                ? [channelsResp]
-                : [];
+              ? [channelsResp]
+              : [];
             channels = channelsDb.map((c: any) => ({
               id: c.id,
               workspaceId: c.workspace_id,
@@ -1740,14 +1741,14 @@ export const storeApi = {
               (board as any).group_data !== undefined
                 ? (board as any).group_data
                 : updates.group_data !== undefined
-                  ? updates.group_data
-                  : b.groupData,
+                ? updates.group_data
+                : b.groupData,
             columns:
               (board as any).columns !== undefined
                 ? (board as any).columns
                 : updates.columns !== undefined
-                  ? updates.columns
-                  : (b as any).columns,
+                ? updates.columns
+                : (b as any).columns,
           };
         }),
       }));
@@ -2500,27 +2501,43 @@ export const checkoutApi = {
 export const invitationsApi = {
   // Get pending workspace invitations for current user
   getInvitations: async () => {
-    return apiRequest<any[]>('/invitations');
+    return apiRequest<any[]>("/invitations");
   },
   // Accept an invitation
-  acceptInvitation: async (invitationId: string, organizationId: string, workspaceId: string) => {
+  acceptInvitation: async (
+    invitationId: string,
+    organizationId: string,
+    workspaceId: string
+  ) => {
     return apiRequest<any>(`/invitations/accept`, {
-      method: 'POST',
-      body: JSON.stringify({ organizationId: organizationId, invitationId: invitationId, workspaceId: workspaceId })
+      method: "POST",
+      body: JSON.stringify({
+        organizationId: organizationId,
+        invitationId: invitationId,
+        workspaceId: workspaceId,
+      }),
     });
   },
   // Decline an invitation
-  declineInvitation: async (invitationId: string, organizationId: string, workspaceId: string) => {
+  declineInvitation: async (
+    invitationId: string,
+    organizationId: string,
+    workspaceId: string
+  ) => {
     return apiRequest<any>(`/invitations/decline`, {
-      method: 'POST',
-      body: JSON.stringify({ organizationId: organizationId, invitationId: invitationId, workspaceId: workspaceId })
+      method: "POST",
+      body: JSON.stringify({
+        organizationId: organizationId,
+        invitationId: invitationId,
+        workspaceId: workspaceId,
+      }),
     });
   },
   // Request access logging
   requestAccess: async (workspaceId: string, organizationId?: string) => {
     return apiRequest<any>(`/invitations/request-access`, {
-      method: 'POST',
-      body: JSON.stringify({ workspaceId, organizationId })
+      method: "POST",
+      body: JSON.stringify({ workspaceId, organizationId }),
     });
   },
 };

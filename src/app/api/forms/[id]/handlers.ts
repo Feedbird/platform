@@ -163,19 +163,29 @@ export class FormHandler {
         throw new ApiHandlerError("Failed to duplicate form", 500);
       }
 
-      const { error: newFormFieldsError } = await supabase
-        .from("form_fields")
-        .insert(
-          currentFormFields.map((field) => ({
-            ...field,
-            id: crypto.randomUUID(),
-            form_id: newFormUUID,
-          }))
-        );
+      if (currentFormFields.length) {
+        const { data: insertedFields, error: newFormFieldsError } =
+          await supabase
+            .from("form_fields")
+            .insert(
+              currentFormFields.map((field) => ({
+                ...field,
+                id: crypto.randomUUID(),
+                form_id: newFormUUID,
+              }))
+            )
+            .select();
 
-      if (newFormFieldsError) {
-        throw new ApiHandlerError("Failed to duplicate form fields", 500);
+        if (newFormFieldsError) {
+          throw new ApiHandlerError("Failed to duplicate form fields", 500);
+        }
+
+        newForm.fields_count = insertedFields.length;
       }
+
+      newForm.submissions_count = 0;
+      newForm.fields_count = newForm.fields_count ?? 0;
+      newForm.services = [];
 
       return newForm;
     } catch (e) {
