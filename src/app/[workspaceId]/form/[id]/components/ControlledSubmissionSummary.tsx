@@ -8,6 +8,7 @@ import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 
 type Props = {
   formValues: FormSubmissionData;
@@ -20,6 +21,7 @@ export default function ControlledSubmissionSummary({
   formData,
   setReviewActive,
 }: Props) {
+  const { activeWorkspaceId } = useFeedbirdStore();
   const [finalValues, setFinalValues] = React.useState(formValues);
   const router = useRouter();
   const [loading, isLoading] = React.useState<boolean>(false);
@@ -41,7 +43,7 @@ export default function ControlledSubmissionSummary({
 
       if (submission.data) {
         toast.success("Form submitted successfully! Thank you.");
-        router.push("/forms");
+        router.push(`/${activeWorkspaceId}`);
       } else {
         throw new Error("Submission failed");
       }

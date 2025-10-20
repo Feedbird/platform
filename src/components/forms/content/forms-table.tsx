@@ -15,12 +15,6 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import Image from "next/image";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Form, Service } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -30,8 +24,7 @@ import { useForms } from "@/contexts/FormsContext";
 import FormDeleteModal from "./FormDeleteModal";
 import FormSettingsModal from "./FormSettingsModal";
 import FormStatusBadge from "./configs/FormStatusBadge";
-import { PopoverPortal } from "@radix-ui/react-popover";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import FormTableContextMenu from "./FormTableContextMenu";
 
 export interface TableForm extends Form {
   submissions_count?: number;
@@ -47,7 +40,6 @@ export default function FormsTable({ forms }: FormsTableProps) {
   // Hooks
   const router = useRouter();
   const { selectFormForEditing } = useForms();
-  const { activeWorkspaceId } = useFeedbirdStore();
 
   // States
   const [tabledData, setTableData] = React.useState<TableForm[]>(forms);
@@ -238,106 +230,14 @@ export default function FormsTable({ forms }: FormsTableProps) {
         enableHiding: false,
         enableResizing: false,
         cell: ({ row }) => (
-          <div className="flex items-center justify-center">
-            <Popover>
-              <PopoverTrigger
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLocalActiveForm(
-                    tabledData.find((f) => f.id === row.original.id) ??
-                      tabledData[0]
-                  );
-                }}
-                className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4"
-              >
-                <Image
-                  src="/images/forms/actions.svg"
-                  alt="actions_icon"
-                  width={16}
-                  height={16}
-                />
-              </PopoverTrigger>
-              <PopoverPortal>
-                <PopoverContent
-                  // onClick={() => isDropdownOpen(false)}
-                  className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-black gap-0.5 max-w-[130px]"
-                >
-                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                    <Image
-                      src="/images/forms/write.svg"
-                      alt="write_icon"
-                      width={14}
-                      height={14}
-                    />
-                    <span>Rename</span>
-                  </button>
-                  <button
-                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSettingsModalOpen(true);
-                    }}
-                  >
-                    <Image
-                      src="/images/boards/settings.svg"
-                      alt="settings_icon"
-                      width={14}
-                      height={14}
-                    />
-                    <span>Settings</span>
-                  </button>
-                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                    <Image
-                      src="/images/boards/duplicate.svg"
-                      alt="duplicate_icon"
-                      width={14}
-                      height={14}
-                    />
-                    <span>Duplicate</span>
-                  </button>
-                  <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-                    <Image
-                      src="/images/boards/share.svg"
-                      alt="share_icon"
-                      width={14}
-                      height={14}
-                    />
-                    <span>Share</span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/test-submit/${row.original.id}`);
-                    }}
-                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                  >
-                    <Image
-                      src="/images/forms/test.svg"
-                      alt="share_icon"
-                      width={14}
-                      height={14}
-                    />
-                    <span>Test Submit</span>
-                  </button>
-                  <button
-                    className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteModalOpen(true);
-                    }}
-                  >
-                    <Image
-                      src="/images/boards/delete.svg"
-                      alt="delete_icon"
-                      width={14}
-                      height={14}
-                    />
-                    <span>Delete</span>
-                  </button>
-                </PopoverContent>
-              </PopoverPortal>
-            </Popover>
-          </div>
+          <FormTableContextMenu
+            setTableData={setTableData}
+            setLocalActiveForm={setLocalActiveForm}
+            setSettingsModalOpen={setSettingsModalOpen}
+            setDeleteModalOpen={setDeleteModalOpen}
+            tabledData={tabledData}
+            row={row}
+          />
         ),
       },
     ];

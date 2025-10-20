@@ -96,3 +96,31 @@ export async function PATCH(
     );
   }
 }
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const extractedParams = await params;
+    const formId = extractedParams.id;
+
+    if (!formId) {
+      return NextResponse.json(
+        { success: false, error: "Form ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const duplicatedForm = await FormHandler.duplicateForm(formId);
+
+    return NextResponse.json({ data: duplicatedForm });
+  } catch (error) {
+    const uiMessage = "Unable to duplicate form. Please try again later.";
+    console.error("Error in POST /api/form/[formId]:", error);
+    if (error instanceof ApiHandlerError) {
+      return NextResponse.json({ error: uiMessage }, { status: error.status });
+    }
+    return NextResponse.json({ error: uiMessage }, { status: 500 });
+  }
+}

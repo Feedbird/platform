@@ -4,7 +4,6 @@ import { formFieldSorter } from "@/lib/utils/transformers";
 import React from "react";
 import Loading from "./loading";
 import { Divider } from "@mui/material";
-import { useRouter } from "next/navigation";
 import ControlledPageVisualizer from "./components/ControlledPageVisualizer";
 import ControlledSubmissionSummary from "./components/ControlledSubmissionSummary";
 
@@ -41,8 +40,6 @@ const formValueInitializer = (field: FormField) => {
 };
 
 export default function SubmitFormVisualizer({ formData }: Props) {
-  const router = useRouter();
-
   const [pages, setPages] = React.useState<FormField[][]>([]);
   const [formValues, setFormValues] = React.useState<FormSubmissionData>(
     {} as FormSubmissionData
@@ -87,11 +84,6 @@ export default function SubmitFormVisualizer({ formData }: Props) {
 
   return (
     <div className="h-full overflow-auto bg-[#FBFBFB] w-full">
-      <div className="w-full h-9 bg-[#EDF6FF] grid items-center justify-center border-1 border-elementStroke">
-        <span className="text-[#133495] font-medium text-sm">
-          This is a dev preview of the form submission
-        </span>
-      </div>
       <div className="flex justify-center p-5 pb-12">
         {!reviewActive ? (
           <div className="w-full max-w-[900px] flex flex-col gap-5">

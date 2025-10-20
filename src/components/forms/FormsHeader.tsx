@@ -9,7 +9,7 @@ import { useFormStore } from "@/lib/store/forms-store";
 import { useForms } from "@/contexts/FormsContext";
 import Image from "next/image";
 import FormSettingsModal from "./content/FormSettingsModal";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, ExternalLink } from "lucide-react";
 import FormStatusBadge from "./content/configs/FormStatusBadge";
 import { toast } from "sonner";
 import {
@@ -43,7 +43,7 @@ function FormsHeaderContent() {
   const [alertType, setAlertType] = React.useState<string>("");
 
   const [formLink, setFormLink] = React.useState(
-    "https://nazmijavier.feedbird.com/form/a59b8a7c-2a8f-473a-aea0-648170827cff"
+    `${process.env.NEXT_PUBLIC_APP_URL}/${activeWorkspaceId}/form/${activeForm?.id}`
   );
 
   const handleInitialFormCreation = async () => {
@@ -53,7 +53,7 @@ function FormsHeaderContent() {
         throw new Error("User or active workspace not found");
       }
       const newForm = await createInitialForm(user.email, activeWorkspaceId);
-      router.push(`/forms/${newForm.id}`);
+      router.push(`forms/${newForm.id}`);
     } catch (e) {
       toast.error("Error creating Form. Please try again later");
     } finally {
@@ -76,6 +76,12 @@ function FormsHeaderContent() {
       isLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    setFormLink(
+      `${process.env.NEXT_PUBLIC_APP_URL}/${activeWorkspaceId}/form/${activeForm?.id}`
+    );
+  }, [activeForm, activeWorkspaceId]);
 
   const handleFormUnpublish = async () => {
     isLoading(true);
@@ -107,7 +113,7 @@ function FormsHeaderContent() {
                     setAlertModalOpen(true);
                     setAlertType("navigate");
                   } else {
-                    router.push("/forms");
+                    router.push(`/${activeWorkspaceId}/admin/forms`);
                   }
                 }}
                 className="text-[#5C5E63] text-sm font-normal cursor-pointer"
@@ -117,7 +123,10 @@ function FormsHeaderContent() {
               <ChevronRight width={12} height={12} color="#838488" />
               <span
                 onClick={() => {
-                  if (isPreview) router.push(`/forms/${activeForm.id}`);
+                  if (isPreview)
+                    router.push(
+                      `/${activeWorkspaceId}/admin/forms/${activeForm.id}`
+                    );
                 }}
                 className={`${
                   isPreview
@@ -163,19 +172,21 @@ function FormsHeaderContent() {
                     height={16}
                   />
                 </Button>
-                <Button
-                  onClick={() => router.push(`/forms/${activeForm.id}/preview`)}
-                  variant="ghost"
-                  className="border-1 w-[84px] border-[#D3D3D3] text-black flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
-                >
-                  <Image
-                    src="/images/forms/play.svg"
-                    alt="play_icon"
-                    width={12}
-                    height={12}
-                  />
-                  <span className="font-medium text-[13px]">Preview</span>
-                </Button>
+                {!isPreview && (
+                  <Button
+                    onClick={() => router.push(`${activeForm.id}/preview`)}
+                    variant="ghost"
+                    className="border-1 w-[84px] border-[#D3D3D3] text-black flex flex-row gap-1 rounded-[4px] hover:cursor-pointer h-7"
+                  >
+                    <Image
+                      src="/images/forms/play.svg"
+                      alt="play_icon"
+                      width={12}
+                      height={12}
+                    />
+                    <span className="font-medium text-[13px]">Preview</span>
+                  </Button>
+                )}
                 <DropdownMenu
                   open={isDropDownOpen}
                   onOpenChange={(open) => setIsDropdownOpen(open)}
@@ -213,11 +224,32 @@ function FormsHeaderContent() {
                             publicly visible
                           </p>
                         </div>
-                        <Input
-                          className="border-1 border-[#D3D3D3] rounded-[6px] text-black"
-                          onChange={(e) => setFormLink(e.target.value)}
-                          value={formLink}
-                        />
+                        <div className="relative">
+                          <Input
+                            className="border-1 border-[#D3D3D3] rounded-[6px] text-black pr-16"
+                            readOnly={true}
+                            value={formLink.slice(0, 33) + "..."}
+                          />
+                          <div className="flex flex-1">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(formLink);
+                                toast.success("Link copied to clipboard");
+                              }}
+                              className="absolute right-8 top-1/2 transform -translate-y-1/2 hover:bg-gray-100 p-1 rounded"
+                            >
+                              <Copy width={14} height={14} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                window.open(formLink, "_blank");
+                              }}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-gray-100 p-1 rounded"
+                            >
+                              <ExternalLink width={14} height={14} />
+                            </button>
+                          </div>
+                        </div>
                         <Button
                           disabled={
                             activeForm.status === "published" || loading
@@ -281,7 +313,7 @@ function FormsHeaderContent() {
           action={
             alertType === "publish"
               ? handleFormPublish
-              : () => router.push("/forms")
+              : () => router.push(`/${activeWorkspaceId}/admin/forms`)
           }
         />
       </header>
