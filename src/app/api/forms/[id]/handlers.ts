@@ -1,4 +1,4 @@
-import { Form, supabase } from "@/lib/supabase/client";
+import { Form, FormField, supabase } from "@/lib/supabase/client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { ApiHandlerError } from "../../shared";
 import { ServicesHandler } from "../../services/handler";
@@ -142,6 +142,103 @@ export class FormHandler {
         throw e;
       }
       throw new ApiHandlerError("Internal server error: " + e);
+    }
+  }
+
+  static async duplicateForm(formId: string): Promise<Form> {
+    const newFormUUID = crypto.randomUUID();
+    try {
+      // Fetch current form
+      const currentForm = await this.fetchForm(formId);
+      const currentFormFields = await this.fetchFormFields(formId);
+
+      // Duplicate the form
+      const { data: newForm, error: newFormError } = await supabase
+        .from("forms")
+        .insert({ ...currentForm, id: newFormUUID })
+        .select()
+        .single();
+
+      if (newFormError || !newForm) {
+        throw new ApiHandlerError("Failed to duplicate form", 500);
+      }
+
+      const { error: newFormFieldsError } = await supabase
+        .from("form_fields")
+        .insert(
+          currentFormFields.map((field) => ({
+            ...field,
+            id: crypto.randomUUID(),
+            form_id: newFormUUID,
+          }))
+        );
+
+      if (newFormFieldsError) {
+        throw new ApiHandlerError("Failed to duplicate form fields", 500);
+      }
+
+      return newForm;
+    } catch (e) {
+      await this.validateAndRollbackForm(newFormUUID);
+      if (e instanceof ApiHandlerError) {
+        throw e;
+      }
+      throw new ApiHandlerError("Internal server error: " + e);
+    }
+  }
+
+  private static async fetchForm(formId: string): Promise<Form> {
+    const { data, error } = await supabase
+      .from("forms")
+      .select("*")
+      .eq("id", formId)
+      .single();
+
+    if (error) {
+      throw new ApiHandlerError("Database error: " + error.message);
+    }
+    if (!data) {
+      throw new ApiHandlerError("Form not found", 404);
+    }
+
+    delete data.created_at;
+    delete data.updated_at;
+
+    data.title = `${data.title} (copy)`;
+    data.status = "draft";
+    data.published_at = null;
+
+    return data;
+  }
+
+  private static async fetchFormFields(formId: string): Promise<FormField[]> {
+    const { data, error } = await supabase
+      .from("form_fields")
+      .select("*")
+      .eq("form_id", formId);
+
+    if (error) {
+      throw new ApiHandlerError("Database error: " + error.message);
+    }
+    if (data.length) {
+      data.forEach((field) => {
+        delete field.created_at;
+        delete field.updated_at;
+      });
+    }
+
+    return data || [];
+  }
+
+  private static async validateAndRollbackForm(formId: string): Promise<void> {
+    const form = await this.fetchForm(formId).catch(() => null);
+    if (form) {
+      await supabase.from("forms").delete().eq("id", formId);
+    }
+
+    const formFields = await this.fetchFormFields(formId).catch(() => null);
+    if (formFields && formFields.length > 0) {
+      await supabase.from("form_fields").delete().eq("form_id", formId);
     }
   }
 }
