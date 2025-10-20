@@ -84,11 +84,6 @@ export default function SubmitFormVisualizer({ formData }: Props) {
 
   return (
     <div className="h-full overflow-auto bg-[#FBFBFB] w-full">
-      <div className="w-full h-9 bg-[#EDF6FF] grid items-center justify-center border-1 border-elementStroke">
-        <span className="text-[#133495] font-medium text-sm">
-          This is a dev preview of the form submission
-        </span>
-      </div>
       <div className="flex justify-center p-5 pb-12">
         {!reviewActive ? (
           <div className="w-full max-w-[900px] flex flex-col gap-5">
