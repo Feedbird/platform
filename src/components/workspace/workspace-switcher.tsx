@@ -320,7 +320,7 @@ export default function WorkspaceSwitcher() {
                 className="flex items-center gap-[6px] px-3 py-2 mb-1 cursor-pointer hover:bg-[#F4F5F6] text-sm font-medium text-black"
               >
                  <MailPlus className="size-4 text-black" />
-                Workspace invite
+                Workspace invites
               </DropdownMenuItem>
 
 
