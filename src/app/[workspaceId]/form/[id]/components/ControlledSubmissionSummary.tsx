@@ -8,7 +8,7 @@ import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { useWorkspaceStore } from "@/lib/store";
+import { useFeedbirdStore, useUserStore, useWorkspaceStore } from "@/lib/store";
 
 type Props = {
   formValues: FormSubmissionData;
@@ -22,6 +22,7 @@ export default function ControlledSubmissionSummary({
   setReviewActive,
 }: Props) {
   const { activeWorkspaceId } = useWorkspaceStore();
+  const { user } = useUserStore();
   const [finalValues, setFinalValues] = React.useState(formValues);
   const router = useRouter();
   const [loading, isLoading] = React.useState<boolean>(false);
@@ -37,6 +38,7 @@ export default function ControlledSubmissionSummary({
       const submission = await formsApi.submitForm({
         workspaceId: formData.workspace_id,
         formId: formData.id,
+        email: user?.email || "anonymous",
         submissions: finalValues,
         schema,
       });

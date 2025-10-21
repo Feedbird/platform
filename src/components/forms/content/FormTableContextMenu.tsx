@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useWorkspaceStore } from "@/lib/store";
 import { Send } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useForms } from "@/contexts/FormsContext";
 
 type Props = {
   setLocalActiveForm: React.Dispatch<React.SetStateAction<TableForm | null>>;
@@ -42,6 +43,7 @@ export default function FormTableContextMenu({
   });
   const [open, isOpen] = React.useState(false);
   const { activeWorkspaceId } = useWorkspaceStore();
+  const { setActiveForm } = useForms();
 
   const router = useRouter();
 
@@ -92,6 +94,7 @@ export default function FormTableContextMenu({
               className="flex flex-row items-center w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
               onClick={(e) => {
                 e.stopPropagation();
+                setActiveForm(row.original);
                 router.push(
                   `/${activeWorkspaceId}/admin/forms/${row.original.id}/submissions`
                 );

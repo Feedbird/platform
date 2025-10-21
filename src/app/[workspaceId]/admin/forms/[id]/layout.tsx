@@ -1,5 +1,6 @@
 "use client";
 import { FormEditorProvider } from "@/contexts/FormEditorContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
 type Props = {
@@ -7,5 +8,11 @@ type Props = {
 };
 
 export default function Layout({ children }: Props) {
-  return <FormEditorProvider>{children}</FormEditorProvider>;
+  const [queryClient] = React.useState(() => new QueryClient());
+
+  return (
+    <FormEditorProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </FormEditorProvider>
+  );
 }
