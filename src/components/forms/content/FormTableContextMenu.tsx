@@ -11,6 +11,8 @@ import { Row } from "@tanstack/table-core";
 import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { useWorkspaceStore } from "@/lib/store";
+import { Send } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   setLocalActiveForm: React.Dispatch<React.SetStateAction<TableForm | null>>;
@@ -40,6 +42,8 @@ export default function FormTableContextMenu({
   });
   const [open, isOpen] = React.useState(false);
   const { activeWorkspaceId } = useWorkspaceStore();
+
+  const router = useRouter();
 
   const handleFormDuplication = async () => {
     isLoading({ isLoading: true, action: "duplicate" });
@@ -84,16 +88,18 @@ export default function FormTableContextMenu({
                 className="bg-black/10 absolute w-full h-full rounded-sm top-0 left-0 z-20"
               ></div>
             )}
-            {/* TODO Ask about why this */}
-            {/* <button className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white">
-              <Image
-                src="/images/forms/write.svg"
-                alt="write_icon"
-                width={14}
-                height={14}
-              />
-              <span>Rename</span>
-            </button> */}
+            <button
+              className="flex flex-row items-center w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(
+                  `/${activeWorkspaceId}/admin/forms/${row.original.id}/submissions`
+                );
+              }}
+            >
+              <Send width={14} height={14} color="#9099A6" />
+              <span>Submissions</span>
+            </button>
             <button
               className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
               onClick={(e) => {
