@@ -24,6 +24,7 @@ import { workspaceHelperApi, postApi, userApi } from '@/lib/api/api-service'
 import { supabase, ChannelMessage as DbChannelMessage } from '@/lib/supabase/client'
 import ChannelSelector from './channel-selector'
 import MessageItem from './message-item'
+import { sanitizePlainText } from '@/lib/utils/sanitize'
 
 type MessageData = {
 	id: string
@@ -993,7 +994,10 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		// Create the new HTML content with the mention span
 		// Add a unique timestamp to ensure we can identify this specific span
 		const timestamp = Date.now()
-		const mentionSpanHTML = `<span style="background: #FE4C281A; border-radius: 4px; padding-left: 3px; padding-right: 3px; color: #FE4C28; display: inline-block;" data-mention-type="mention" data-timestamp="${timestamp}" contenteditable="false">@${member.first_name || member.email}</span>`
+		// Sanitize user data to prevent XSS
+		const sanitizedFirstName = sanitizePlainText(member.first_name || '')
+		const sanitizedEmail = sanitizePlainText(member.email || '')
+		const mentionSpanHTML = `<span style="background: #FE4C281A; border-radius: 4px; padding-left: 3px; padding-right: 3px; color: #FE4C28; display: inline-block;" data-mention-type="mention" data-timestamp="${timestamp}" contenteditable="false">@${sanitizedFirstName || sanitizedEmail}</span>`
 
 		// Check if caret is at the end of the text (after the search pattern)
 		const isCaretAtEnd = after.trim() === ''

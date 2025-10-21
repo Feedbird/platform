@@ -16,6 +16,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { getFullnameinitial } from '@/lib/utils'
 import EmojiPicker from 'emoji-picker-react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { sanitizeHTML } from '@/lib/utils/sanitize'
 
 type MessageItemProps = {
 	message: {
@@ -122,7 +123,7 @@ export default function MessageItem({
 					<div className="my-1 overflow-hidden">
 						<div 
 							className="text-sm whitespace-pre-wrap break-all text-black"
-							dangerouslySetInnerHTML={{ __html: message.text }}
+							dangerouslySetInnerHTML={{ __html: sanitizeHTML(message.text) }}
 						/>
 					</div>
 					

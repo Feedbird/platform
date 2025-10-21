@@ -9,6 +9,7 @@ import {
   Undo,
   Redo,
 } from "lucide-react";
+import { sanitizeRichText } from "@/lib/utils/sanitize";
 
 type Props = {
   value: string;
@@ -21,13 +22,15 @@ export default function AdvancedTextArea({ value, setter }: Props) {
   // Sync value with contentEditable
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value;
+      editorRef.current.innerHTML = sanitizeRichText(value);
     }
   }, [value]);
 
   const handleInput = () => {
     if (editorRef.current) {
-      setter(editorRef.current.innerHTML);
+      // Sanitize the HTML content before setting it
+      const sanitizedContent = sanitizeRichText(editorRef.current.innerHTML);
+      setter(sanitizedContent);
     }
   };
 
