@@ -324,11 +324,13 @@ export const formsApi = {
   submitForm: async ({
     formId,
     workspaceId,
+    email,
     submissions,
     schema,
   }: {
     formId: string;
     workspaceId: string;
+    email: string;
     submissions: Record<string, any>;
     schema: Record<string, string>;
   }) => {
@@ -336,6 +338,7 @@ export const formsApi = {
       method: "POST",
       body: JSON.stringify({
         formId,
+        email,
         workspaceId,
         answers: submissions,
         snapshot: schema,
@@ -346,6 +349,20 @@ export const formsApi = {
     return apiRequest<ApiResponse<Form>>(`/forms/${formId}`, {
       method: "POST",
     });
+  },
+
+  // Submissions
+  getFormSubmissions: async (
+    formId: string
+  ): Promise<ApiResponse<FormSubmission[]>> => {
+    return apiRequest<ApiResponse<FormSubmission[]>>(
+      `/forms/submission?formId=${formId}`
+    );
+  },
+  getSubmissionById: async (submissionId: string) => {
+    return apiRequest<ApiResponse<FormSubmission>>(
+      `/forms/submission/${submissionId}`
+    );
   },
 };
 
