@@ -200,7 +200,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 			// Update database via API
 			const response = await fetch(`/api/messages/${messageId}/emoticons`, {
-				method: 'PATCH',
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},

@@ -300,7 +300,6 @@ export async function POST(req: NextRequest) {
 // Helper function to get user from database
 async function getUserFromDatabase(email: string) {
   try {
-    const { supabase } = await import('@/lib/supabase/client')
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
