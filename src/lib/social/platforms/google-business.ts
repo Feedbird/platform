@@ -12,7 +12,7 @@ import type {
   PublishOptions,
 } from './platform-types';
 import { formatGoogleBusinessPostData } from '@/lib/utils/google-business-settings-mapper';
-import { supabase } from '@/lib/supabase/client';
+import { socialApiService } from '@/lib/api/social-api-service';
 import { SocialAPIError } from '@/lib/utils/error-handler';
 import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
@@ -336,12 +336,12 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
     const response = await fetchResp.json();
 
-    // update the acc with the new token in the supabase table
-    await supabase.from('social_accounts').update({
+    // update the account with the new token using API service
+    await socialApiService.updateSocialAccount(acc.id, {
       auth_token: response.access_token,
       refresh_token: response.refresh_token,
-      access_token_expires_at: new Date(Date.now() + response.expires_in * 1000)
-    }).eq('id', acc.id);
+      access_token_expires_at: new Date(Date.now() + response.expires_in * 1000).toISOString()
+    });
 
 
     return {
@@ -352,37 +352,29 @@ export class GoogleBusinessPlatform extends BasePlatform {
     };
   }
 
-  // Secure token fetching method with automatic refresh
+  // Secure token fetching method with automatic refresh using API service
   async getToken(pageId: string): Promise<string> {
-    const { data, error } = await supabase
-      .from('social_pages')
-      .select('account_id, auth_token, auth_token_expires_at, account:social_accounts(refresh_token, access_token_expires_at)')
-      .eq('id', pageId)
-      .single();
-
-    if (error) {
-      throw new SocialAPIError('Failed to get Google Business token. Please reconnect your account.', 'TOKEN_ERROR');
-    }
-
-    if (!data?.auth_token) {
-      throw new SocialAPIError('No auth token available', 'TOKEN_ERROR');
-    }
-
-    // Check if token needs refresh (5 minutes buffer)
-    const now = new Date();
-    const expiresAt = data.auth_token_expires_at ? new Date(data.auth_token_expires_at) : null;
-    
-    if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
-      return data.auth_token;
-    }
-
-    // Token needs refresh - get account data and refresh
-    const accountData = Array.isArray(data.account) ? data.account[0] : data.account;
-    if (!accountData?.refresh_token) {
-      throw new SocialAPIError('No refresh token available. Please reconnect your account.', 'TOKEN_ERROR');
-    }
-
     try {
+      const pageData = await socialApiService.getSocialPage(pageId);
+      
+      if (!pageData.auth_token) {
+        throw new SocialAPIError('No auth token available', 'TOKEN_ERROR');
+      }
+
+      // Check if token needs refresh (5 minutes buffer)
+      const now = new Date();
+      const expiresAt = pageData.auth_token_expires_at ? new Date(pageData.auth_token_expires_at) : null;
+      
+      if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
+        return pageData.auth_token;
+      }
+
+      // Token needs refresh - get account data and refresh
+      const accountData = await socialApiService.getSocialAccount(pageData.account_id);
+      if (!accountData?.refresh_token) {
+        throw new SocialAPIError('No refresh token available. Please reconnect your account.', 'TOKEN_ERROR');
+      }
+
       const refreshedAccount = await this.refreshToken(accountData);
       return refreshedAccount.authToken || '';
       
@@ -437,16 +429,9 @@ export class GoogleBusinessPlatform extends BasePlatform {
       throw new SocialAPIError('Location ID not found. Please reconnect your Google Business account.', 'LOCATION_ERROR');
     }
 
-    // Get account ID from page
-    const { data: pageData } = await supabase
-      .from('social_accounts')
-      .select('account_id')
-      .eq('id', page.accountId)
-      .single();
-
-    if (!pageData?.account_id) {
-      throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
-    }
+    // Get account ID from page data
+    const accountData = await socialApiService.getSocialAccount(page.accountId);
+    const accountId = accountData.account_id;
 
     // Build post data using Google Business settings if available
     let postData: any;
@@ -486,7 +471,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
     // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts#LocalPost
     const responseRaw = await fetch(
-      `${POST_URL}/accounts/${pageData.account_id}/locations/${locationId}/localPosts`,
+      `${POST_URL}/accounts/${accountId}/locations/${locationId}/localPosts`,
       {
         method: "POST",
         headers: {
@@ -570,15 +555,8 @@ export class GoogleBusinessPlatform extends BasePlatform {
       });
 
       // find account id from page
-      const { data: pageData } = await supabase
-        .from('social_accounts')
-        .select('account_id')
-        .eq('id', pg.accountId)
-        .single();
-
-      if (!pageData?.account_id) {
-        throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
-      }
+      const accountData = await socialApiService.getSocialAccount(pg.accountId);
+      const accountId = accountData.account_id;
 
 
       // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts/list
@@ -615,7 +593,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
           };
         }>;
         nextPageToken?: string;
-      }>(`${POST_URL}/accounts/${pageData.account_id}/locations/${pg.pageId}/localPosts?${queryParams}`, {
+      }>(`${POST_URL}/accounts/${accountId}/locations/${pg.pageId}/localPosts?${queryParams}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -699,16 +677,9 @@ export class GoogleBusinessPlatform extends BasePlatform {
       throw new Error('No auth token available');
     }
 
-    // Get account ID from page
-    const { data: pageData } = await supabase
-      .from('social_accounts')
-      .select('account_id')
-      .eq('id', page.accountId)
-      .single();
-
-    if (!pageData?.account_id) {
-      throw new SocialAPIError('Account ID not found', 'ACCOUNT_ERROR');
-    }
+    // Get account ID from page data
+    const accountData = await socialApiService.getSocialAccount(page.accountId);
+    const accountId = accountData.account_id;
 
     // Get the location ID from page metadata
     const locationId = page.pageId;
@@ -718,7 +689,7 @@ export class GoogleBusinessPlatform extends BasePlatform {
 
     // https://developers.google.com/my-business/reference/rest/v4/accounts.locations.localPosts/delete
     const response = await fetch(
-      `${POST_URL}/accounts/${pageData.account_id}/locations/${locationId}/localPosts/${postId}`,
+      `${POST_URL}/accounts/${accountId}/locations/${locationId}/localPosts/${postId}`,
       {
         method: 'DELETE',
         headers: {

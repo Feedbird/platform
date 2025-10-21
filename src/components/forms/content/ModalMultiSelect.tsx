@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Service } from "@/lib/supabase/client";
+import { Service } from "@/lib/supabase/interfaces";
 
 interface ModalMultiSelectProps {
   options: Service[];

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Form, Service } from "../supabase/client";
+import { Form, Service } from "../supabase/interfaces";
 import { ApiResponse, formsApi, servicesApi } from "../api/api-service";
 
 interface FormStoreState {

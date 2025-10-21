@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { notificationServiceApi } from '@/lib/api/api-service';
 import { createEmailService, EmailService } from './email-service';
 import { getFullnameinitial } from '@/lib/utils';
 
@@ -33,14 +33,9 @@ export interface EmailNotificationData {
 }
 
 export class NotificationService {
-  private supabase;
   private emailService: EmailService;
 
   constructor() {
-    this.supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
     this.emailService = createEmailService();
   }
 
@@ -50,133 +45,114 @@ export class NotificationService {
   async getUnreadMessagesForNotifications(): Promise<EmailNotificationData[]> {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
-    // Get all users with unread messages
-    const { data: users, error: usersError } = await this.supabase
-      .from('users')
-      .select('id, email, first_name, unread_msg')
-      .not('unread_msg', 'eq', '[]');
+    try {
+      // Get all users with unread messages
+      const users = await notificationServiceApi.getUsersWithUnreadMessages();
 
-    if (usersError) {
-      console.error('Error fetching users with unread messages:', usersError);
-      return [];
-    }
-
-    if (!users || users.length === 0) {
-      return [];
-    }
-
-    const notifications: EmailNotificationData[] = [];
-
-    for (const user of users) {
-      if (!user.unread_msg || !Array.isArray(user.unread_msg) || user.unread_msg.length === 0) {
-        continue;
+      if (!users || users.length === 0) {
+        return [];
       }
 
-      // Get message details for unread messages
-      const { data: messages, error: messagesError } = await this.supabase
-        .from('channel_messages')
-        .select(`
-          id,
-          content,
-          author_email,
-          created_at,
-          channel_id,
-          workspace_id,
-          sent_notification
-        `)
-        .in('id', user.unread_msg)
-        .lt('created_at', thirtyMinutesAgo)
-        .eq('sent_notification', false);
+      const notifications: EmailNotificationData[] = [];
 
-      if (messagesError || !messages) {
-        console.error('Error fetching messages for user:', user.email, messagesError);
-        continue;
-      }
-
-      if (messages.length === 0) {
-        continue;
-      }
-
-      // Get channel and author information
-      const channelIds = [...new Set(messages.map(m => m.channel_id))];
-      const authorEmails = [...new Set(messages.map(m => m.author_email))];
-
-      const { data: channels } = await this.supabase
-        .from('channels')
-        .select('id, name')
-        .in('id', channelIds);
-
-      const { data: authors } = await this.supabase
-        .from('users')
-        .select('email, first_name, image_url')
-        .in('email', authorEmails);
-
-      const channelsMap = new Map(channels?.map(c => [c.id, c.name]) || []);
-      const authorsMap = new Map(authors?.map(a => [a.email, { name: a.first_name, imageUrl: a.image_url }]) || []);
-
-      // Group messages by channel, then by author
-      const channelGroups = new Map<string, ChannelSection>();
-
-      for (const message of messages) {
-        const channelId = message.channel_id;
-        const channelName = channelsMap.get(channelId) || 'Unknown Channel';
-        const authorEmail = message.author_email;
-        const authorInfo = authorsMap.get(authorEmail);
-
-        if (!channelGroups.has(channelId)) {
-          channelGroups.set(channelId, {
-            channelId,
-            channelName,
-            totalMessageCount: 0,
-            authorSections: []
-          });
+      for (const user of users) {
+        if (!user.unread_msg || !Array.isArray(user.unread_msg) || user.unread_msg.length === 0) {
+          continue;
         }
 
-        const channelGroup = channelGroups.get(channelId)!;
+        // Get message details for unread messages
+        const messages = await notificationServiceApi.getMessagesForNotifications(user.unread_msg);
         
-        // Find or create author section
-        let authorSection = channelGroup.authorSections.find(a => a.authorEmail === authorEmail);
-        if (!authorSection) {
-          authorSection = {
+        if (!messages || messages.length === 0) {
+          continue;
+        }
+
+        // Filter messages older than 30 minutes and not sent
+        const filteredMessages = messages.filter(m => 
+          m.created_at < thirtyMinutesAgo && !m.sent_notification
+        );
+
+        if (filteredMessages.length === 0) {
+          continue;
+        }
+
+        // Get channel and author information
+        const channelIds = [...new Set(filteredMessages.map(m => m.channel_id))];
+        const authorEmails = [...new Set(filteredMessages.map(m => m.author_email))];
+
+        const channels = await notificationServiceApi.getChannelsInfo(channelIds);
+        const authors = await notificationServiceApi.getAuthorsInfo(authorEmails);
+
+        const channelsMap = new Map(channels?.map(c => [c.id, c.name]) || []);
+        const authorsMap = new Map(authors?.map(a => [a.email, { name: a.first_name, imageUrl: a.image_url }]) || []);
+
+        // Group messages by channel, then by author
+        const channelGroups = new Map<string, ChannelSection>();
+
+        for (const message of filteredMessages) {
+          const channelId = message.channel_id;
+          const channelName = channelsMap.get(channelId) || 'Unknown Channel';
+          const authorEmail = message.author_email;
+          const authorInfo = authorsMap.get(authorEmail);
+
+          if (!channelGroups.has(channelId)) {
+            channelGroups.set(channelId, {
+              channelId,
+              channelName,
+              totalMessageCount: 0,
+              authorSections: []
+            });
+          }
+
+          const channelGroup = channelGroups.get(channelId)!;
+          
+          // Find or create author section
+          let authorSection = channelGroup.authorSections.find(a => a.authorEmail === authorEmail);
+          if (!authorSection) {
+            authorSection = {
+              authorEmail,
+              authorName: authorInfo?.name || authorEmail,
+              authorImageUrl: authorInfo?.imageUrl,
+              messages: [],
+              messageCount: 0
+            };
+            channelGroup.authorSections.push(authorSection);
+          }
+
+          // Add message to author section
+          authorSection.messages.push({
+            id: message.id,
+            content: message.content,
             authorEmail,
             authorName: authorInfo?.name || authorEmail,
             authorImageUrl: authorInfo?.imageUrl,
-            messages: [],
-            messageCount: 0
-          };
-          channelGroup.authorSections.push(authorSection);
+            createdAt: message.created_at
+          });
+          authorSection.messageCount++;
+          channelGroup.totalMessageCount++;
         }
 
-        // Add message to author section
-        authorSection.messages.push({
-          id: message.id,
-          content: message.content,
-          authorEmail,
-          authorName: authorInfo?.name || authorEmail,
-          authorImageUrl: authorInfo?.imageUrl,
-          createdAt: message.created_at
+        const notificationData = {
+          userEmail: user.email,
+          userName: user.first_name || user.email,
+          channelSections: Array.from(channelGroups.values())
+        };
+        
+        console.log(`📧 Generated notification data for ${user.email}:`, {
+          userEmail: notificationData.userEmail,
+          userName: notificationData.userName,
+          channelCount: notificationData.channelSections.length,
+          totalMessages: notificationData.channelSections.reduce((sum, cs) => sum + cs.totalMessageCount, 0)
         });
-        authorSection.messageCount++;
-        channelGroup.totalMessageCount++;
+        
+        notifications.push(notificationData);
       }
 
-      const notificationData = {
-        userEmail: user.email,
-        userName: user.first_name || user.email,
-        channelSections: Array.from(channelGroups.values())
-      };
-      
-      console.log(`📧 Generated notification data for ${user.email}:`, {
-        userEmail: notificationData.userEmail,
-        userName: notificationData.userName,
-        channelCount: notificationData.channelSections.length,
-        totalMessages: notificationData.channelSections.reduce((sum, cs) => sum + cs.totalMessageCount, 0)
-      });
-      
-      notifications.push(notificationData);
+      return notifications;
+    } catch (error) {
+      console.error('Error fetching unread messages for notifications:', error);
+      return [];
     }
-
-    return notifications;
   }
 
   /**
@@ -185,13 +161,11 @@ export class NotificationService {
   async markNotificationsAsSent(messageIds: string[]): Promise<void> {
     if (messageIds.length === 0) return;
 
-    const { error } = await this.supabase
-      .from('channel_messages')
-      .update({ sent_notification: true })
-      .in('id', messageIds);
-
-    if (error) {
+    try {
+      await notificationServiceApi.markNotificationsAsSent(messageIds);
+    } catch (error) {
       console.error('Error marking notifications as sent:', error);
+      throw error;
     }
   }
 

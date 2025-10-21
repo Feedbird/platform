@@ -1,4 +1,4 @@
-import { Service, ServiceChannel, ServicePlan } from "@/lib/supabase/client";
+import { Service, ServiceChannel, ServicePlan } from "@/lib/supabase/interfaces";
 import React from "react";
 import { Button } from "../ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";

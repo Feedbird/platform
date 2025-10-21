@@ -1,4 +1,5 @@
-import { Form, FormField, supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
+import { Form, FormField } from "@/lib/supabase/interfaces";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { ApiHandlerError } from "../../shared";
 import { ServicesHandler } from "../../services/handler";

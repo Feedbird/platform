@@ -9,7 +9,7 @@ import ServiceSection from "@/components/checkout/ServiceSection";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { ServiceFolder, Workspace } from "@/lib/supabase/client";
+import { ServiceFolder, Workspace } from "@/lib/supabase/interfaces";
 import { UserButton } from "@clerk/nextjs";
 import { Divider } from "@mui/material";
 import Image from "next/image";

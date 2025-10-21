@@ -15,7 +15,7 @@ import { withLoading } from '@/lib/utils/loading-manager';
 import { validatePostContent, validateScheduledTime } from '@/lib/utils/validation';
 import { normalizePostHistory } from '@/lib/utils/api-response';
 import { calculateEngagementRate } from '@/lib/utils/analytics';
-import { supabase } from '@/lib/supabase/client';
+import { socialApiService } from '@/lib/api/social-api-service';
 import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
 const IS_BROWSER = typeof window !== 'undefined';
@@ -156,19 +156,14 @@ export class FacebookPlatform extends BasePlatform {
     );
   }
 
-  // Secure token fetching method (like LinkedIn)
+  // Secure token fetching method using API service
   async getToken(pageId: string): Promise<string> {
-    const { data, error } = await supabase
-      .from('social_pages')
-      .select('account_id, auth_token, auth_token_expires_at')
-      .eq('id', pageId)
-      .single();
-
-    if (error) {
+    try {
+      const pageData = await socialApiService.getSocialPage(pageId);
+      return pageData.auth_token;
+    } catch (error) {
       throw new Error('Failed to get Facebook token. Please reconnect your Facebook account.');
     }
-
-    return data?.auth_token;
   }
 
   async connectAccount(code: string): Promise<SocialAccount> {

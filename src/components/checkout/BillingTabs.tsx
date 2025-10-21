@@ -1,7 +1,7 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { mapPeriodicity, ServiceCardPlan } from "./ServiceCard";
-import { ServiceFolder } from "@/lib/supabase/client";
+import { ServiceFolder } from "@/lib/supabase/interfaces";
 import { Divider } from "@mui/material";
 import Image from "next/image";
 

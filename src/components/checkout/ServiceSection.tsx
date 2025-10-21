@@ -1,5 +1,5 @@
 import { servicesApi } from "@/lib/api/api-service";
-import { ServiceFolder } from "@/lib/supabase/client";
+import { ServiceFolder } from "@/lib/supabase/interfaces";
 import React from "react";
 import { toast } from "sonner";
 import FolderAccordion from "./FolderAccordion";

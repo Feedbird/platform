@@ -1,4 +1,4 @@
-import { ServiceFolder } from "@/lib/supabase/client";
+import { ServiceFolder } from "@/lib/supabase/interfaces";
 import React from "react";
 import {
   Accordion,

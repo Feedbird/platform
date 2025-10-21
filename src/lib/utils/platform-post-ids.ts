@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { socialApiService } from '@/lib/api/social-api-service';
 
 /**
  * Updates the platform post ID for a specific post and platform
@@ -35,17 +35,8 @@ export async function updatePlatformPostId(
   pageId: string
 ): Promise<void> {
   try {
-    // Get current platform_post_ids
-    const { data: currentPost, error: fetchError } = await supabase
-      .from('posts')
-      .select('platform_post_ids')
-      .eq('id', postId)
-      .single();
-
-    if (fetchError) {
-      console.error('Error fetching current post:', fetchError);
-      throw fetchError;
-    }
+    // Get current post data using API service
+    const currentPost = await socialApiService.getPost(postId);
 
     // Update or add the platform post ID for the specific page
     const currentIds = currentPost?.platform_post_ids || {};
@@ -58,16 +49,11 @@ export async function updatePlatformPostId(
       [platformKey]: platformPostId
     };
 
-    // Update the post
-    const { error: updateError } = await supabase
-      .from('posts')
-      .update({ platform_post_ids: updatedIds, publish_date: new Date().toISOString() })
-      .eq('id', postId);
-
-    if (updateError) {
-      console.error('Error updating platform post ID:', updateError);
-      throw updateError;
-    }
+    // Update the post using API service
+    await socialApiService.updatePost(postId, {
+      platform_post_id: JSON.stringify(updatedIds),
+      published_at: new Date().toISOString()
+    });
 
     console.log(`Updated ${platform} post ID for post ${postId} and page ${pageId}: ${platformPostId}`);
   } catch (error) {

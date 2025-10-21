@@ -21,10 +21,11 @@ import { getFullnameinitial } from '@/lib/utils'
 import EmojiPicker from 'emoji-picker-react'
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { workspaceHelperApi, postApi, userApi } from '@/lib/api/api-service'
-import { supabase, ChannelMessage as DbChannelMessage } from '@/lib/supabase/client'
+import { ChannelMessage as DbChannelMessage } from '@/lib/supabase/interfaces'
 import ChannelSelector from './channel-selector'
 import MessageItem from './message-item'
 import { sanitizePlainText } from '@/lib/utils/sanitize'
+import { createClient } from '@supabase/supabase-js'
 
 type MessageData = {
 	id: string
@@ -67,6 +68,10 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 	const [showSidebar, setShowSidebar] = useState(true)
 	const [activeSidebarTab, setActiveSidebarTab] = useState<'info' | 'board' | 'media'>('info')
+	
+	// Supabase client state
+	const [supabase, setSupabase] = useState<any>(null)
+	const [supabaseInitialized, setSupabaseInitialized] = useState(false)
 
 	const endRef = useRef<HTMLDivElement>(null)
 	const textareaRef = useRef<HTMLDivElement | HTMLTextAreaElement>(null)
@@ -108,6 +113,27 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		expanded: boolean
 	}>>([])
 	const [loadingBoardData, setLoadingBoardData] = useState(false)
+
+	// Initialize Supabase client
+	useEffect(() => {
+		const initializeSupabase = async () => {
+			try {
+				const response = await fetch('/api/supabase/config')
+				if (!response.ok) {
+					throw new Error('Failed to fetch Supabase config')
+				}
+				
+				const { supabaseUrl, supabaseAnonKey } = await response.json()
+				const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+				setSupabase(supabaseClient)
+				setSupabaseInitialized(true)
+			} catch (error) {
+				console.error('Error initializing Supabase client:', error)
+			}
+		}
+
+		initializeSupabase()
+	}, [])
 
 	// Close emoji pickers when clicking outside
 	useEffect(() => {
@@ -172,16 +198,20 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 			// Real-time subscription will handle UI updates for all users
 
-			// Update database
-			const { error } = await supabase
-				.from('channel_messages')
-				.update({
+			// Update database via API
+			const response = await fetch(`/api/messages/${messageId}/emoticons`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
 					emoticons: [...(currentMessage.emoticons || []), newReaction]
 				})
-				.eq('id', messageId)
+			})
 
-			if (error) {
-				console.error('Error adding emoji reaction:', error)
+			if (!response.ok) {
+				const errorData = await response.json()
+				console.error('Error adding emoji reaction:', errorData.error)
 				// Revert local state on error
 				if (channelId === 'all') {
 					useFeedbirdStore.setState(state => ({
@@ -360,7 +390,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 	// Thread view real-time subscription for parent message updates
 	useEffect(() => {
-		if (!isThreadView || !selectedThreadMessage || !activeWorkspaceId) return
+		if (!isThreadView || !selectedThreadMessage || !activeWorkspaceId || !supabaseInitialized || !supabase) return
 
 		// Subscribe to updates on the specific parent message
 		const threadMessageChannel = supabase
@@ -417,7 +447,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		return () => {
 			supabase.removeChannel(threadMessageChannel)
 		}
-	}, [isThreadView, selectedThreadMessage?.id, channelId, activeWorkspaceId])
+	}, [isThreadView, selectedThreadMessage?.id, channelId, activeWorkspaceId, supabaseInitialized, supabase])
 
 	const EMPTY_CHANNELS: any[] = []
 
@@ -1260,7 +1290,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 	// Realtime subscriptions: DB inserts and typing broadcasts with auto-reconnect
 	useEffect(() => {
-		if (channelId === 'all') {
+		if (channelId === 'all' || !supabaseInitialized || !supabase) {
 			// For all messages view, we need to subscribe to all channels in the workspace
 			// This is more complex, so for now we'll just load messages on demand
 			return
@@ -1361,12 +1391,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			// Typing broadcast
 			const typingChannel = supabase
 				.channel(`typing:${channelId}`, { config: { broadcast: { self: false } } })
-				.on('broadcast', { event: 'typing' }, ({ payload }) => {
+				.on('broadcast', { event: 'typing' }, ({ payload }: { payload: any }) => {
 					const email = payload?.email as string | undefined
 					if (!email) return
 					setTypingUsers((prev) => ({ ...prev, [email]: Date.now() }))
 				})
-				.on('broadcast', { event: 'stop_typing' }, ({ payload }) => {
+				.on('broadcast', { event: 'stop_typing' }, ({ payload }: { payload: any }) => {
 					const email = payload?.email as string | undefined
 					if (!email) return
 					setTypingUsers((prev) => {
@@ -1413,11 +1443,11 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current)
 			reconnectAttemptRef.current = 0
 		}
-	}, [channelId, user?.email])
+	}, [channelId, user?.email, supabaseInitialized, supabase])
 
 	// Realtime for 'all' view: subscribe to all messages in active workspace
 	useEffect(() => {
-		if (channelId !== 'all' || !activeWorkspaceId) return
+		if (channelId !== 'all' || !activeWorkspaceId || !supabaseInitialized || !supabase) return
 
 		// Clean previous
 		if (allDbChannelRef.current) supabase.removeChannel(allDbChannelRef.current)
@@ -1497,7 +1527,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		return () => {
 			if (allDbChannelRef.current) supabase.removeChannel(allDbChannelRef.current)
 		}
-	}, [channelId, activeWorkspaceId, user?.email])
+	}, [channelId, activeWorkspaceId, user?.email, supabaseInitialized, supabase])
 
 	// Reap stale typing indicators
 	useEffect(() => {
@@ -1558,6 +1588,15 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 	// Global websocket subscription is now handled at the FeedbirdProvider level
 	// to ensure users receive updates even when not viewing the message panel
+
+	// Show loading state while Supabase is initializing
+	if (!supabaseInitialized) {
+		return (
+			<div className="h-full w-full flex items-center justify-center">
+				<div className="text-sm text-gray-500">Initializing messaging system...</div>
+			</div>
+		)
+	}
 
 	return (
 		<div className="h-full w-full flex overflow-hidden">

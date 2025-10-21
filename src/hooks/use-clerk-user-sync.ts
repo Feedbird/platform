@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
-import { getUserFromDatabase } from '@/lib/supabase/user-sync';
+import { userApi } from '@/lib/api/api-service';
 
 export function useClerkUserSync() {
   const { user, isLoaded } = useUser();
@@ -31,7 +31,7 @@ export function useClerkUserSync() {
 
       // Then fetch complete user data from database (including unread_msg)
       if (userEmail) {
-        getUserFromDatabase(userEmail)
+        userApi.getUser({ email: userEmail })
           .then((dbUser) => {
             if (dbUser) {
               
@@ -44,7 +44,7 @@ export function useClerkUserSync() {
                 imageUrl: dbUser.image_url || undefined,
                 unread_msg: dbUser.unread_msg || [],
                 unread_notification: dbUser.unread_notification || [],
-                notification_settings: dbUser.notification_settings || [],
+                notification_settings: dbUser.notification_settings || undefined,
                 createdAt: new Date(dbUser.created_at),
               });
             }

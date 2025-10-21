@@ -1,7 +1,7 @@
 /* ────────────────────────────────────────────────────────────
    lib/social/platforms/pinterest.ts      ◇ SERVER-ONLY DRIVER
    ──────────────────────────────────────────────────────────── */
-   import { supabase } from '@/lib/supabase/client'
+   import { socialApiService } from '@/lib/api/social-api-service';
 import { updatePlatformPostId } from '@/lib/utils/platform-post-ids'
 import type {
     PlatformOperations,
@@ -240,63 +240,47 @@ import type {
     }
 
     async getToken(pageId: string): Promise<string> {
+      try {
+        const pageData = await socialApiService.getSocialPage(pageId);
+        
+        // check if the token is expired
+        const now = new Date();
+        const expiresAt = pageData.auth_token_expires_at ? new Date(pageData.auth_token_expires_at) : null;
+        if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
+          return pageData.auth_token;
+        }
 
-      // get token from database
-      const { data, error } = await supabase
-        .from('social_pages')
-        .select('auth_token, auth_token_expires_at, account_id')
-        .eq('id', pageId)
-        .single();
-    
-      if (error) {
+        // fetch the account from the database
+        const account = await socialApiService.getSocialAccount(pageData.account_id);
+        
+        if (!account) {
+          throw new Error('Failed to get account');
+        }
+        
+        // refresh the token
+        const refreshedToken = await this.refreshToken(account as any);
+        if (!refreshedToken?.authToken) {
+          throw new Error('Failed to refresh Pinterest token. Please reconnect your Pinterest account.');
+        }
+
+        // update the token in the database
+        await socialApiService.updateSocialPage(pageId, {
+          auth_token: refreshedToken.authToken,
+          auth_token_expires_at: refreshedToken.accessTokenExpiresAt?.toISOString() || null
+        });
+
+        // update the social_accounts table with the new token
+        await socialApiService.updateSocialAccount(pageData.account_id, {
+          auth_token: refreshedToken.authToken,
+          access_token_expires_at: refreshedToken.accessTokenExpiresAt?.toISOString() || null,
+          refresh_token: refreshedToken.refreshToken,
+          refresh_token_expires_at: refreshedToken.refreshTokenExpiresAt?.toISOString() || null
+        });
+
+        return refreshedToken.authToken;
+      } catch (error) {
         throw new Error('Failed to get Pinterest token. Please reconnect your Pinterest account.');
       }
-
-      // check if the token is expired
-      const now = new Date();
-      const expiresAt = data?.auth_token_expires_at ? new Date(data.auth_token_expires_at) : null;
-      if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
-        return data?.auth_token;
-      }
-
-      // fetch the account from the database
-      const {data: account, error: accountError} = await supabase
-        .from('social_accounts')
-        .select('*')
-        .eq('id', data?.account_id)
-        .single();
-        
-      if (accountError) {
-        throw new Error('Failed to get account');
-      }
-      // refresh the token
-      const refreshedToken = await this.refreshToken(account as any);
-      if (!refreshedToken?.authToken) {
-        throw new Error('Failed to refresh Pinterest token. Please reconnect your Pinterest account.');
-      }
-
-      // update the token in the database
-        await supabase
-          .from('social_pages')
-          .update({ 
-            auth_token: refreshedToken.authToken, 
-            auth_token_expires_at: refreshedToken.accessTokenExpiresAt,
-          })
-          .eq('id', pageId);
-
-          // update the social_accounts table with the new token
-          if (data?.account_id) {
-          await supabase
-            .from('social_accounts')
-            .update({
-              auth_token: refreshedToken.authToken,
-              access_token_expires_at: refreshedToken.accessTokenExpiresAt,
-              refresh_token: refreshedToken.refreshToken,
-              refresh_token_expires_at: refreshedToken.refreshTokenExpiresAt
-            })
-            .eq('id', data?.account_id);
-          }
-      return refreshedToken.authToken;
     }
     
 

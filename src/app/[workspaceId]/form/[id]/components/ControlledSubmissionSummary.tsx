@@ -1,6 +1,6 @@
 import React from "react";
 import { FormSubmissionData } from "../_inner";
-import { Form, FormField } from "@/lib/supabase/client";
+import { Form, FormField } from "@/lib/supabase/interfaces";
 import ReviewCard from "./ReviewCard";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";

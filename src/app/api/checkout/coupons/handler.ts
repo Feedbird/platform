@@ -1,4 +1,5 @@
-import { Coupon, supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
+import { Coupon } from "@/lib/supabase/interfaces";
 import { ApiHandlerError } from "../../shared";
 
 export class CouponsHandler {

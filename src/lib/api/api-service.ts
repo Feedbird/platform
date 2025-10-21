@@ -1,7 +1,17 @@
 import { TableForm } from "@/components/forms/content/forms-table";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
 import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { Coupon, FormField, ServiceFolder } from "@/lib/supabase/client";
+import {
+  Coupon, FormField, ServiceFolder, User,
+  Workspace,
+  Brand,
+  Board,
+  Post,
+  Channel,
+  ChannelMessage,
+  Form,
+  Service,
+} from "@/lib/supabase/interfaces";
 
 export interface ApiResponse<T> {
   data: T;
@@ -23,17 +33,6 @@ function normalizeActivities(items: any[] | undefined) {
     } as any;
   });
 }
-import {
-  User,
-  Workspace,
-  Brand,
-  Board,
-  Post,
-  Channel,
-  ChannelMessage,
-  Form,
-  Service,
-} from "@/lib/supabase/client";
 
 // API Base URL
 const API_BASE = "/api";
@@ -196,9 +195,9 @@ export const userApi = {
     useFeedbirdStore.setState((prev: any) => ({
       user: prev.user
         ? {
-            ...prev.user,
-            unread_msg: response.unread_msg,
-          }
+          ...prev.user,
+          unread_msg: response.unread_msg,
+        }
         : null,
     }));
 
@@ -225,9 +224,9 @@ export const userApi = {
     useFeedbirdStore.setState((prev: any) => ({
       user: prev.user
         ? {
-            ...prev.user,
-            unread_msg: response.unread_msg,
-          }
+          ...prev.user,
+          unread_msg: response.unread_msg,
+        }
         : null,
     }));
 
@@ -643,8 +642,8 @@ export const channelMessageApi = {
   }): Promise<
     | (ChannelMessage & { author_name?: string; author_image_url?: string })
     | Array<
-        ChannelMessage & { author_name?: string; author_image_url?: string }
-      >
+      ChannelMessage & { author_name?: string; author_image_url?: string }
+    >
   > => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append("id", params.id);
@@ -859,7 +858,7 @@ export const storeApi = {
       // Transform workspaces - boards are already included from the API
       const transformedWorkspaces = workspaces.map((ws) => {
         // Transform boards that came with the workspace
-        const boards = (ws.boards || []).map((b) => ({
+        const boards = (ws.boards || []).map((b: Board) => ({
           id: b.id,
           name: b.name,
           image: b.image,
@@ -969,8 +968,8 @@ export const storeApi = {
             const channelsDb = Array.isArray(channelsResp)
               ? channelsResp
               : channelsResp
-              ? [channelsResp]
-              : [];
+                ? [channelsResp]
+                : [];
             channels = channelsDb.map((c: any) => ({
               id: c.id,
               workspaceId: c.workspace_id,
@@ -1051,14 +1050,14 @@ export const storeApi = {
             channels,
             brand: brand
               ? {
-                  id: brand.id,
-                  name: brand.name,
-                  logo: brand.logo,
-                  styleGuide: (brand as any).style_guide,
-                  link: (brand as any).link,
-                  voice: (brand as any).voice,
-                  prefs: (brand as any).prefs,
-                }
+                id: brand.id,
+                name: brand.name,
+                logo: brand.logo,
+                styleGuide: (brand as any).style_guide,
+                link: (brand as any).link,
+                voice: (brand as any).voice,
+                prefs: (brand as any).prefs,
+              }
               : undefined,
             // socialAccounts/socialPages already set in the initial transform
           };
@@ -1741,14 +1740,14 @@ export const storeApi = {
               (board as any).group_data !== undefined
                 ? (board as any).group_data
                 : updates.group_data !== undefined
-                ? updates.group_data
-                : b.groupData,
+                  ? updates.group_data
+                  : b.groupData,
             columns:
               (board as any).columns !== undefined
                 ? (board as any).columns
                 : updates.columns !== undefined
-                ? updates.columns
-                : (b as any).columns,
+                  ? updates.columns
+                  : (b as any).columns,
           };
         }),
       }));
@@ -2007,11 +2006,11 @@ export const storeApi = {
           posts: b.posts.map((p) =>
             p.id === postId
               ? {
-                  ...p,
-                  blocks: result.post.blocks,
-                  updatedAt: new Date(result.post.updated_at),
-                  last_updated_by: userEmail,
-                }
+                ...p,
+                blocks: result.post.blocks,
+                updatedAt: new Date(result.post.updated_at),
+                last_updated_by: userEmail,
+              }
               : p
           ),
         })),
@@ -2430,18 +2429,18 @@ export const activityApi = {
     post_id?: string;
     actor_id: string;
     type:
-      | "revision_request"
-      | "revised"
-      | "approved"
-      | "scheduled"
-      | "published"
-      | "failed_publishing"
-      | "comment"
-      | "workspace_invited_sent"
-      | "board_invited_sent"
-      | "workspace_invited_accepted"
-      | "workspace_invited_declined"
-      | "workspace_access_requested";
+    | "revision_request"
+    | "revised"
+    | "approved"
+    | "scheduled"
+    | "published"
+    | "failed_publishing"
+    | "comment"
+    | "workspace_invited_sent"
+    | "board_invited_sent"
+    | "workspace_invited_accepted"
+    | "workspace_invited_declined"
+    | "workspace_access_requested";
     metadata?: any;
   }) => {
     return apiRequest<any>("/post/activity", {
@@ -2483,6 +2482,66 @@ export const notificationApi = {
         }),
       }
     );
+  },
+};
+
+// Notification Service API functions
+export const notificationServiceApi = {
+  // Get users with unread messages for notifications
+  getUsersWithUnreadMessages: async () => {
+    return apiRequest<Array<{
+      id: string;
+      email: string;
+      first_name: string;
+      unread_msg: string[];
+    }>>("/notification-service?endpoint=users-with-unread-messages");
+  },
+
+  // Get message details for notification processing
+  getMessagesForNotifications: async (messageIds: string[]) => {
+    return apiRequest<Array<{
+      id: string;
+      content: string;
+      author_email: string;
+      created_at: string;
+      channel_id: string;
+      workspace_id: string;
+      sent_notification: boolean;
+    }>>("/notification-service", {
+      method: "POST",
+      body: JSON.stringify({ message_ids: messageIds }),
+    });
+  },
+
+  // Get channel information
+  getChannelsInfo: async (channelIds: string[]) => {
+    return apiRequest<Array<{
+      id: string;
+      name: string;
+    }>>("/notification-service", {
+      method: "POST",
+      body: JSON.stringify({ channel_ids: channelIds }),
+    });
+  },
+
+  // Get authors information
+  getAuthorsInfo: async (authorEmails: string[]) => {
+    return apiRequest<Array<{
+      email: string;
+      first_name: string;
+      image_url: string;
+    }>>("/notification-service", {
+      method: "POST",
+      body: JSON.stringify({ author_emails: authorEmails }),
+    });
+  },
+
+  // Mark messages as notification sent
+  markNotificationsAsSent: async (messageIds: string[]) => {
+    return apiRequest<{ success: boolean }>("/notification-service", {
+      method: "PATCH",
+      body: JSON.stringify({ message_ids: messageIds }),
+    });
   },
 };
 

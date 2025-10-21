@@ -15,7 +15,7 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Form, Service } from "@/lib/supabase/client";
+import { Form, Service } from "@/lib/supabase/interfaces";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import EmptyFormsComponent from "../EmptyForms";

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlatformOperations } from '@/lib/social/platforms';
-import { socialAccountApi } from '@/lib/api/social-accounts';
 import { supabase } from '@/lib/supabase/client';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
 import { SOCIAL_ACCOUNT_WITH_TOKENS } from '@/lib/utils/secure-queries';
@@ -70,10 +69,38 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
 
     if (pagesForSameAccount.length === 1) {
       // Only page - delete entire account
-      await socialAccountApi.deleteSocialAccount(account.id);
+      // Delete pages first (due to foreign key constraint)
+      const { error: pagesError } = await supabase
+        .from('social_pages')
+        .delete()
+        .eq('account_id', account.id);
+
+      if (pagesError) {
+        console.error('Failed to delete social pages:', pagesError);
+        throw new Error('Failed to delete pages');
+      }
+
+      // Then delete account
+      const { error: accountError } = await supabase
+        .from('social_accounts')
+        .delete()
+        .eq('id', account.id);
+
+      if (accountError) {
+        console.error('Failed to delete social account:', accountError);
+        throw new Error('Failed to delete account');
+      }
     } else {
       // Multiple pages - delete only this page
-      await socialAccountApi.deleteSocialPage(pageId);
+      const { error } = await supabase
+        .from('social_pages')
+        .delete()
+        .eq('id', pageId);
+
+      if (error) {
+        console.error('Failed to delete social page:', error);
+        throw new Error('Failed to delete page');
+      }
     }
 
     return NextResponse.json({ success: true, message: 'Page disconnected' });

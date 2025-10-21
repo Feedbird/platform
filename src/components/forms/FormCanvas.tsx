@@ -1,5 +1,5 @@
 "use client";
-import { Form } from "@/lib/supabase/client";
+import { Form } from "@/lib/supabase/interfaces";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,

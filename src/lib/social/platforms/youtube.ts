@@ -7,7 +7,7 @@
     PostHistory, PostHistoryResponse, SocialPlatformConfig, PostContent, PublishOptions
   } from "./platform-types";
   import { BasePlatform } from "./base-platform";
-import { supabase } from "@/lib/supabase/client";
+import { socialApiService } from '@/lib/api/social-api-service';
 import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
   
   /* —— static meta —— */
@@ -138,11 +138,11 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
           }),
         });
 
-        // update the supabase table with the new token
-      await supabase.from('social_accounts').update({
+        // update the account with the new token using API service
+        await socialApiService.updateSocialAccount(acc.id, {
           auth_token: tok.access_token,
-          access_token_expires_at: new Date(Date.now() + tok.expires_in * 1_000)
-        }).eq('id', acc.id);
+          access_token_expires_at: new Date(Date.now() + tok.expires_in * 1_000).toISOString()
+        });
 
       return { ...acc,
         authToken: tok.access_token,
@@ -175,33 +175,21 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
     async disconnectPage(p: SocialPage)           { p.connected = false; p.status = "expired"; }
     async checkPageStatus(p: SocialPage)          { return { ...p }; }
   
-    async getToken(pageId: string): Promise<string> {
-
-      const { data, error } = await supabase
-        .from('social_pages')
-        .select('auth_token, auth_token_expires_at, account_id')
-        .eq('id', pageId)
-        .single();
-        
-      if (error) {
-        throw new Error('Failed to get YouTube token. Please reconnect your YouTube account.');
-      }
+  async getToken(pageId: string): Promise<string> {
+    try {
+      const pageData = await socialApiService.getSocialPage(pageId);
       
       // check if the token is expired
       const now = new Date();
-      const expiresAt = data?.auth_token_expires_at ? new Date(data.auth_token_expires_at) : null;
+      const expiresAt = pageData.auth_token_expires_at ? new Date(pageData.auth_token_expires_at) : null;
       if (expiresAt && expiresAt.getTime() - now.getTime() > 5 * 60 * 1000) {
-        return data?.auth_token;
+        return pageData.auth_token;
       }
 
       // fetch the account from the database
-      const {data: account, error: accountError} = await supabase
-        .from('social_accounts')
-        .select('*')
-        .eq('id', data?.account_id)
-        .single();
-        
-      if (accountError) {
+      const account = await socialApiService.getSocialAccount(pageData.account_id);
+      
+      if (!account) {
         throw new Error('Failed to get account');
       }
 
@@ -210,15 +198,18 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
       if (!refreshedToken.authToken) {
         throw new Error('Failed to refresh YouTube token. Please reconnect your YouTube account.');
       }
+      
       // update the token in the database
-      await supabase
-        .from('social_pages')
-        .update({ auth_token: refreshedToken.authToken, auth_token_expires_at: refreshedToken.accessTokenExpiresAt })
-        .eq('id', pageId);
-
+      await socialApiService.updateSocialPage(pageId, {
+        auth_token: refreshedToken.authToken,
+        auth_token_expires_at: refreshedToken.accessTokenExpiresAt?.toISOString() || null
+      });
 
       return refreshedToken.authToken;
+    } catch (error) {
+      throw new Error('Failed to get YouTube token. Please reconnect your YouTube account.');
     }
+  }
     /* 5 ─ upload video */
     async publishPost(
       page: SocialPage,
@@ -627,7 +618,7 @@ import { updatePlatformPostId } from "@/lib/utils/platform-post-ids";
           const uploadResponse = await fetch(uploadUrl, {
             method: 'PUT',
             headers,
-            body: chunk,
+            body: new Uint8Array(chunk),
           });
 
           console.log(`Uploaded chunk ${startByte} to ${endByte}, status: ${uploadResponse.status}`);

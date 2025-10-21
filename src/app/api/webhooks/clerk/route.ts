@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { syncUserToDatabase, updateUserInDatabase } from '@/lib/supabase/user-sync'
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { clerkClient } from '@clerk/nextjs/server'
@@ -7,6 +6,75 @@ import { supabase } from '@/lib/supabase/client'
 
 // Webhook secret from Clerk
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
+
+export interface UserSignUpData {
+  email: string
+  first_name?: string
+  last_name?: string
+  image_url?: string
+}
+
+/**
+ * Sync user data to Supabase when a new user signs up
+ */
+async function syncUserToDatabase(userData: UserSignUpData) {
+  try {
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', userData.email)
+      .single()
+
+    if (existingUser) {
+      console.log('User already exists in database:', userData.email)
+      return { success: true, user: existingUser, isNew: false }
+    }
+
+    // Create new user
+    const { data: newUser, error } = await supabase
+      .from('users')
+      .insert([userData])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating user in database:', error)
+      throw error
+    }
+
+    console.log('User created in database:', newUser.id)
+    return { success: true, user: newUser, isNew: true }
+  } catch (error) {
+    console.error('Error syncing user to database:', error)
+    throw error
+  }
+}
+
+/**
+ * Update user data in Supabase
+ */
+async function updateUserInDatabase(userId: string, updates: Partial<UserSignUpData>) {
+  try {
+    const { data: updatedUser, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating user in database:', error)
+      throw error
+    }
+
+    console.log('User updated in database:', updatedUser.id)
+    return { success: true, user: updatedUser }
+  } catch (error) {
+    console.error('Error updating user in database:', error)
+    throw error
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

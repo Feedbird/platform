@@ -1,4 +1,4 @@
-import { FormField } from "@/lib/supabase/client";
+import { FormField } from "@/lib/supabase/interfaces";
 import React from "react";
 import {
   AttachmentControlled,

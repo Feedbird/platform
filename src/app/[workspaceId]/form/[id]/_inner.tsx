@@ -1,5 +1,5 @@
 "use client";
-import { Form, FormField } from "@/lib/supabase/client";
+import { Form, FormField } from "@/lib/supabase/interfaces";
 import { formFieldSorter } from "@/lib/utils/transformers";
 import React from "react";
 import Loading from "./loading";

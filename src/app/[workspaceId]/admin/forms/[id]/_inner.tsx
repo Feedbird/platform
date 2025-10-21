@@ -12,7 +12,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import React from "react";
 import { useForms } from "@/contexts/FormsContext";
 import ServiceSelector from "@/components/forms/content/ServiceSelector";
-import { Form } from "@/lib/supabase/client";
+import { Form } from "@/lib/supabase/interfaces";
 import {
   FormFieldsArray,
   FormFieldType,

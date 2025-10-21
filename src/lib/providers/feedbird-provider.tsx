@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useFeedbirdStore, usePostStatusTimeUpdater } from '@/lib/store/use-feedbird-store'
-import { supabase, ChannelMessage as DbChannelMessage } from '@/lib/supabase/client'
+import { ChannelMessage as DbChannelMessage } from '@/lib/supabase/interfaces'
+import { createClient } from '@supabase/supabase-js'
+
 import { userApi } from '@/lib/api/api-service'
 
 export default function FeedbirdProvider({ children }: { children: React.ReactNode }) {
@@ -11,13 +13,38 @@ export default function FeedbirdProvider({ children }: { children: React.ReactNo
   const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId)
   const currentChannelId = useFeedbirdStore(s => s.currentChannelId)
 
+  // Supabase client state
+  const [supabase, setSupabase] = useState<any>(null)
+  const [supabaseInitialized, setSupabaseInitialized] = useState(false)
+
   // Initialize post status time updater
   usePostStatusTimeUpdater();
+
+  // Initialize Supabase client
+  useEffect(() => {
+    const initializeSupabase = async () => {
+      try {
+        const response = await fetch('/api/supabase/config')
+        if (!response.ok) {
+          throw new Error('Failed to fetch Supabase config')
+        }
+        
+        const { supabaseUrl, supabaseAnonKey } = await response.json()
+        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+        setSupabase(supabaseClient)
+        setSupabaseInitialized(true)
+      } catch (error) {
+        console.error('Error initializing Supabase client in FeedbirdProvider:', error)
+      }
+    }
+
+    initializeSupabase()
+  }, [])
 
   // Global websocket subscription for handling unread messages
   // This ensures users receive websocket updates even when not viewing the message panel
   useEffect(() => {
-    if (!user?.email || !activeWorkspaceId) return
+    if (!user?.email || !activeWorkspaceId || !supabaseInitialized || !supabase) return
 
     // Subscribe to all new messages in the active workspace
     const globalMessageChannel = supabase
@@ -72,7 +99,7 @@ export default function FeedbirdProvider({ children }: { children: React.ReactNo
     return () => {
       supabase.removeChannel(globalMessageChannel)
     }
-  }, [user?.email, activeWorkspaceId, currentChannelId])
+  }, [user?.email, activeWorkspaceId, currentChannelId, supabaseInitialized, supabase])
 
   return <>{children}</>
 }

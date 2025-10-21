@@ -13,7 +13,7 @@ import type {
 } from './platform-types';
 import { getSecureToken } from '@/lib/utils/token-manager';
 import { postApi } from '@/lib/api/api-service';
-import { supabase } from '@/lib/supabase/client';
+import { socialApiService } from '@/lib/api/social-api-service';
 import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 
 const IS_BROWSER = typeof window !== 'undefined';
@@ -233,12 +233,12 @@ export class TikTokPlatform extends BasePlatform {
       status = statusResponse.data.status;
 
       if (status === 'PUBLISH_COMPLETE') {
-        // Update the post status to published in the supabase
-        await supabase.from('posts').update({ status: 'published' }).eq('id', postId);
+        // Update the post status to published using API service
+        await socialApiService.updatePost(postId, { status: 'published' });
 
         return; // Exit early on success
       } else if (status === 'FAILED') {
-        await supabase.from('posts').update({ status: 'failed' }).eq('id', postId);
+        await socialApiService.updatePost(postId, { status: 'failed' });
         return; // Exit early on failure
       }
     }

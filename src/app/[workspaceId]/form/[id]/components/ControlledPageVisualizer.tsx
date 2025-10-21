@@ -1,4 +1,4 @@
-import { Form, FormField } from "@/lib/supabase/client";
+import { Form, FormField } from "@/lib/supabase/interfaces";
 import Image from "next/image";
 import React from "react";
 import InputRender from "../controlled/InputRender";

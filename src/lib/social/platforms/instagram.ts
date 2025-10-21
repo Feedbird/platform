@@ -4,7 +4,7 @@
 import { BasePlatform } from './base-platform';
 import { SocialPlatformConfig, SocialAccount, SocialPage, PostContent, PostHistory, PublishOptions } from './platform-types';
 import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
-import { supabase } from '@/lib/supabase/client';
+import { socialApiService } from '@/lib/api/social-api-service';
 
 const IS_BROWSER = typeof window !== 'undefined';
 
@@ -176,20 +176,16 @@ export class InstagramPlatform extends BasePlatform {
     return `${this.activeConfig.authUrl}?${params.toString()}`;
   }
 
-  // Get secure token from database
+  // Get secure token from database using API service
   private async getToken(pageId: string): Promise<string> {
     try {
-      const { data: page } = await supabase
-        .from('social_pages')
-        .select('auth_token, metadata')
-        .eq('id', pageId)
-        .single();
-
-      if (!page?.auth_token) {
+      const pageData = await socialApiService.getSocialPage(pageId);
+      
+      if (!pageData.auth_token) {
         throw new Error('No auth token available');
       }
 
-      return page.auth_token;
+      return pageData.auth_token;
     } catch (error) {
       console.error('Error getting token:', error);
       throw new Error('Failed to get auth token');

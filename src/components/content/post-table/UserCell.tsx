@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Post } from "@/lib/store/use-feedbird-store";
-import { User } from "@/lib/supabase/client";
+import { User } from "@/lib/supabase/interfaces";
 import { userApi } from "@/lib/api/api-service";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";

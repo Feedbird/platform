@@ -1,5 +1,6 @@
 import { CanvasFormField } from "@/components/forms/FormCanvas";
-import { FormField, supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
+import { FormField } from "@/lib/supabase/interfaces";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { ApiHandlerError } from "../../shared";
 import { nestedObjectEqual } from "@/lib/utils/transformers";

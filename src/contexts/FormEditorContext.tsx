@@ -1,5 +1,5 @@
 import { CanvasFormField } from "@/components/forms/FormCanvas";
-import { Form } from "@/lib/supabase/client";
+import { Form } from "@/lib/supabase/interfaces";
 import React, { useContext } from "react";
 
 interface FormEditorState {

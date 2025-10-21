@@ -2,7 +2,7 @@ import OptionalInputChip from "@/components/forms/content/OptionalInputChip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FormField } from "@/lib/supabase/client";
+import { FormField } from "@/lib/supabase/interfaces";
 import React from "react";
 
 import { ComplexObjectType } from "@/lib/forms/field.config";
