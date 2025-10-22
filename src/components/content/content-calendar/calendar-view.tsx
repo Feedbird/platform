@@ -38,14 +38,13 @@ import {
   DropdownMenuContent,
 } from "@/components/ui/dropdown-menu";
 
-import { Post, Status } from "@/lib/store/use-feedbird-store";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import {
   ChannelIcons,
   statusConfig,
 } from "@/components/content/shared/content-post-ui";
 import { cn, getMonthColor, getBulletColor } from '@/lib/utils'
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { usePostStore, Post, Status } from "@/lib/store";
 import { useSidebar } from "@/components/ui/sidebar";
 // Reuse existing thumbnail component for consistent video/image preview
 
@@ -448,7 +447,7 @@ interface EventProps {
   thumb?: string; // still useful fallback
   format: string;
   month: number;
-  block?: import("@/lib/store/use-feedbird-store").Block;
+  block?: import("@/lib/store").Block;
 }
 
 /** Convert Post[] -> FC events */
@@ -671,7 +670,7 @@ export default function CalendarView({
     }
 
     // Persist the change to the Zustand store so it's saved (and persisted by the middleware)
-    const updatePost = useFeedbirdStore.getState().updatePost;
+    const updatePost = usePostStore.getState().updatePost;
     updatePost(arg.event.id, {
       publish_date: newDate,
       status: "Scheduled",
@@ -1174,14 +1173,14 @@ export default function CalendarView({
                 const event = api?.getEventById(selectorEvent.id);
                 event?.setStart?.(d);
                 event?.setEnd?.(new Date(d.getTime() + 1000));
-                useFeedbirdStore.getState().updatePost(selectorEvent.id, {
+                usePostStore.getState().updatePost(selectorEvent.id, {
                   publish_date: d,
                   status: "Scheduled",
                 });
                 setSelectorOpen(false);
               }}
               onPublishNow={() => {
-                const publishNow = useFeedbirdStore.getState().publishPostToAllPages as any;
+                const publishNow = usePostStore.getState().publishPostToAllPages as any;
                 if (typeof publishNow === 'function') publishNow(selectorEvent.id);
                 setSelectorOpen(false);
               }}

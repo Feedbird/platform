@@ -12,13 +12,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useUserStore, useSocialStore } from "@/lib/store";
 import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 import { SocialPage } from "@/lib/social/platforms/platform-types";
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { socialSetApi, socialPageApi } from "@/lib/api/api-service";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 function PageStatusBadge({ page }: { page: SocialPage }) {
 	const status = page.status;
@@ -57,9 +58,9 @@ export default function SettingsSocialsPage() {
 	const params = useParams();
 	const workspaceId = (params?.workspaceId as string) || "";
 
-	const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
-	const checkPageStatus = useFeedbirdStore((s) => s.checkPageStatus);
-	const disconnectPage = useFeedbirdStore((s) => s.disconnectSocialPage);
+	const activeWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
+	const checkPageStatus = useSocialStore((s) => s.checkPageStatus);
+	const disconnectPage = useSocialStore((s) => s.disconnectSocialPage);
 
 	const [search, setSearch] = React.useState("");
 	const [openDialog, setOpenDialog] = React.useState(false);
@@ -208,7 +209,7 @@ export default function SettingsSocialsPage() {
 		try {
 			setSavingRenameSetId(editingSetId);
 			// optimistic update
-			useFeedbirdStore.setState((prev: any) => {
+			useWorkspaceStore.setState((prev: any) => {
 				const wsList = prev.workspaces || [];
 				const updated = wsList.map((w: any) => {
 					if (w.id !== (activeWorkspace?.id || workspaceId)) return w;
@@ -223,7 +224,7 @@ export default function SettingsSocialsPage() {
 			setDraftSetName("");
 		} catch (e) {
 			// revert on failure
-			useFeedbirdStore.setState((prev: any) => {
+			useWorkspaceStore.setState((prev: any) => {
 				const wsList = prev.workspaces || [];
 				const updated = wsList.map((w: any) => {
 					if (w.id !== (activeWorkspace?.id || workspaceId)) return w;
@@ -278,7 +279,7 @@ export default function SettingsSocialsPage() {
 		}
 
 		// Apply state update optimistically
-		useFeedbirdStore.setState((prev: any) => {
+		useWorkspaceStore.setState((prev: any) => {
 			const workspaces = (prev.workspaces || []).map((w: any) => {
 				if (w.id !== workspaceId) return w;
 				const nextPages = (w.socialPages || []).map((p: any) => {
@@ -663,7 +664,7 @@ export default function SettingsSocialsPage() {
 									setIsCreatingSet(true);
 									const created = await socialSetApi.createSocialSet(workspaceId, createName.trim());
 									// Update store
-									useFeedbirdStore.setState((prev: any) => {
+									useWorkspaceStore.setState((prev: any) => {
 										const wsList = prev.workspaces || [];
 										const next = wsList.map((w: any) => {
 											if (w.id !== workspaceId) return w;

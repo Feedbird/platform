@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn, getFullnameinitial } from "@/lib/utils";
 import * as React from "react";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useUserStore } from "@/lib/store";
 import { inviteApi, workspaceHelperApi } from "@/lib/api/api-service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -22,8 +22,8 @@ interface InviteMembersModalProps {
 }
 
 export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
-  const user = useFeedbirdStore((s) => s.user);
-  const activeWorkspaceId = useFeedbirdStore((s) => s.activeWorkspaceId);
+  const user = useUserStore((s) => s.user);
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
 
   const [email, setEmail] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);

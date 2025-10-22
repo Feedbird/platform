@@ -2,13 +2,13 @@
 import EmptyFormPreview from "./content/EmptyFormPreview";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { useFormStore } from "@/lib/store/forms-store";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useUserStore, useFormStore } from "@/lib/store";
 import { toast } from "sonner";
 
 export default function EmptyFormsComponent() {
   const router = useRouter();
-  const { activeWorkspaceId, user } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const { user } = useUserStore();
   const { createInitialForm } = useFormStore();
 
   const handleInitialFormCreation = async () => {

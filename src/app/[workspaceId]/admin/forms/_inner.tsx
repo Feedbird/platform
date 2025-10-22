@@ -1,14 +1,13 @@
 "use client";
 import FormsTable, { TableForm } from "@/components/forms/content/forms-table";
-import { useFormStore } from "@/lib/store/forms-store";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useFormStore } from "@/lib/store";
 import { useEffect } from "react";
 import Loading from "./[id]/loading";
 import { useForms } from "@/contexts/FormsContext";
 import { toast } from "sonner";
 
 export default function FormsInner() {
-  const { activeWorkspaceId } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const { getFormsByWorkspaceId } = useFormStore();
   const {
     forms,
@@ -24,8 +23,8 @@ export default function FormsInner() {
     if (!activeWorkspaceId) return;
     setLoading(true);
     try {
-      const { data } = await getFormsByWorkspaceId(activeWorkspaceId);
-      setForms(data as TableForm[]);
+      const forms = await getFormsByWorkspaceId(activeWorkspaceId);
+      setForms(forms as TableForm[]);
     } catch (e) {
       toast.error("Failed to fetch forms. Please try again.");
     } finally {

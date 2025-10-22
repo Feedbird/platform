@@ -28,10 +28,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getFullnameinitial } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
 import { workspaceHelperApi } from '@/lib/api/api-service'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { IconAndColorPicker } from '@/components/board/icon-and-color-picker'
+import { useMessageStore, useWorkspaceStore } from '@/lib/store'
+import { WorkspaceStore } from '@/lib/store/workspace-store'
+import { MessageStore } from '@/lib/store/message-store'
+import { Workspace } from '@/lib/store/types'
 
 type Tab = 'messages' | 'notifications'
 
@@ -51,8 +54,8 @@ export default function MessagesPage() {
     const pathname = usePathname()
     const searchParams = useSearchParams()
 
-    const addChannel = useFeedbirdStore((s) => s.addChannel)
-    const activeWorkspaceId = useFeedbirdStore((s) => s.activeWorkspaceId)
+    const addChannel = useMessageStore((s: MessageStore) => s.addChannel)
+    const activeWorkspaceId = useWorkspaceStore((s: WorkspaceStore) => s.activeWorkspaceId)
     
 
     const [leftPaneMode, setLeftPaneMode] = useState<'sidebar' | 'create' | 'members'>('sidebar')
@@ -143,9 +146,9 @@ export default function MessagesPage() {
         router.replace(`${pathname}?${p.toString()}`)
     }
 
-    const rawChannels = useFeedbirdStore((s) => {
+    const rawChannels = useWorkspaceStore((s: WorkspaceStore) => {
         const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
-        return (ws as any)?.channels ?? EMPTY_CHANNELS
+        return (ws as Workspace)?.channels ?? EMPTY_CHANNELS
     }) as any[]
     const channels: Channel[] = useMemo(() => {
         return (rawChannels || []).map((c: any) => ({

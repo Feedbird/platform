@@ -1,11 +1,11 @@
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
+import { useUserStore } from '@/lib/store';
 
 /**
  * Gets the current user's display name (first name or fallback)
  * @returns The user's first name or "You" as fallback
  */
 export function getCurrentUserDisplayName(): string {
-  const store = useFeedbirdStore.getState();
+  const store = useUserStore.getState();
   const user = store.user;
   
   if (user?.firstName) {
@@ -21,7 +21,8 @@ export function getCurrentUserDisplayName(): string {
  * @param store The store instance
  * @returns The user's first name or "You" as fallback
  */
-export function getCurrentUserDisplayNameFromStore(store: any): string {
+export function getCurrentUserDisplayNameFromStore(): string {
+  const store = useUserStore.getState();
   const user = store.user;
   
   if (user?.firstName) {

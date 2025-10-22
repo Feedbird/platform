@@ -7,12 +7,15 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { TimezonePicker } from '@/components/ui/timezone-picker'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore, useUserStore, useSocialStore } from '@/lib/store'
 import { workspaceApi, inviteApi } from '@/lib/api/api-service'
 import { X, ChevronLeft, User, Plus } from 'lucide-react'
 import PlatformPreview from '@/components/platform-preview/platform-preview'
 import { ChannelIcons } from '@/components/content/shared/content-post-ui'
 import { cn } from '@/lib/utils'
+import { WorkspaceStore } from '@/lib/store/workspace-store'
+import { SocialStore } from '@/lib/store/social-store'
+import { UserStore } from '@/lib/store/user-store'
 
 const STEPS = [
     { id: 1, title: 'Set up your profile', description: 'Basic information' },
@@ -78,11 +81,11 @@ export default function ClientOnboardingPage() {
     const [verifying, setVerifying] = React.useState(false)
     const [resending, setResending] = React.useState(false)
 
-    const setActiveWorkspace = useFeedbirdStore(s => s.setActiveWorkspace)
-    const handleOAuthSuccess = useFeedbirdStore(s => s.handleOAuthSuccess)
+    const setActiveWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.setActiveWorkspace)
+    const handleOAuthSuccess = useSocialStore((s: SocialStore) => s.handleOAuthSuccess)
   
-  const workspaces = useFeedbirdStore(s => s.workspaces)
-  const user = useFeedbirdStore(s => s.user)
+  const workspaces = useWorkspaceStore((s: WorkspaceStore) => s.workspaces)
+  const user = useUserStore(s => s.user)
 
     const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp()
     const { isSignedIn, isLoaded: authLoaded } = useAuth()

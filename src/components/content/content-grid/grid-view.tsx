@@ -23,12 +23,12 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Post, Status } from "@/lib/store/use-feedbird-store";
 import { postApi } from "@/lib/api/api-service";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { ChannelIcons, statusConfig, StatusChip, FormatBadge } from "@/components/content/shared/content-post-ui";
 import { cn, getMonthColor, getBulletColor } from "@/lib/utils";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, usePostStore, Post, Status } from "@/lib/store";
+import { PostStore } from "@/lib/store/post-store";
 
 interface GridViewProps {
   posts: Post[];
@@ -587,7 +587,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
   const hasInitialOrderedRef = React.useRef<boolean>(initialFiltered.length > 0);
 
   const [items, setItems] = React.useState<Post[]>(() => initialFiltered.sort(sortByPublishDate));
-  const setActivePosts = useFeedbirdStore((s) => s.setActivePosts);
+  const setActivePosts = usePostStore((s: PostStore) => s.setActivePosts);
 
   // Update local state when posts prop changes
   React.useEffect(() => {
@@ -650,7 +650,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
 
         // Optimistically update store times so other views reflect the change immediately
         {
-          const store = useFeedbirdStore.getState();
+          const store = useWorkspaceStore.getState();
           store.workspaces = store.workspaces.map(w => ({
             ...w,
             boards: w.boards.map(bd => ({
@@ -662,7 +662,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
               })
             }))
           }));
-          useFeedbirdStore.setState({ workspaces: store.workspaces });
+          useWorkspaceStore.setState({ workspaces: store.workspaces });
         }
 
         // Persist swapped times to backend, then update store and local state times
@@ -682,7 +682,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
             // Optional: revert position swap on error
             setItems(itemsSnapshot);
             // Revert store times on error
-            const store = useFeedbirdStore.getState();
+            const store = useWorkspaceStore.getState();
             store.workspaces = store.workspaces.map(w => ({
               ...w,
               boards: w.boards.map(bd => ({
@@ -694,7 +694,7 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
                 })
               }))
             }));
-            useFeedbirdStore.setState({ workspaces: store.workspaces });
+            useWorkspaceStore.setState({ workspaces: store.workspaces });
           }
         })();
       }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity } from '@/lib/store/use-feedbird-store';
+import { Activity } from '@/lib/store';
 import { cn, formatTimeAgo } from '@/lib/utils';
 import {
   ChevronLeft, X, MessageCircle, Clock,

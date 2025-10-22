@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ColumnType } from "@/lib/store/use-feedbird-store";
+import { ColumnType } from "@/lib/store";
 import {
   EditIcon,
   FilePlus,

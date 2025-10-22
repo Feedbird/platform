@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Block } from '@/lib/store/use-feedbird-store';
+import { Block } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
 export default function VersionRail({

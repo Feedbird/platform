@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Hash, ChevronDown, X } from 'lucide-react'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 interface ChannelSelectorProps {
@@ -16,9 +16,9 @@ export default function ChannelSelector({ onChannelSelect, selectedChannelId, on
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   
-  const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId)
+  const activeWorkspaceId = useWorkspaceStore(s => s.activeWorkspaceId)
   const EMPTY_CHANNELS: any[] = []
-  const rawChannels = useFeedbirdStore((s) => {
+  const rawChannels = useWorkspaceStore((s) => {
     const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
     return (ws as any)?.channels ?? EMPTY_CHANNELS
   }) as any[]

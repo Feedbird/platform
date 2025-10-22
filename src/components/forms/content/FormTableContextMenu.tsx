@@ -10,7 +10,7 @@ import { TableForm } from "./forms-table";
 import { Row } from "@tanstack/table-core";
 import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 
 type Props = {
   setLocalActiveForm: React.Dispatch<React.SetStateAction<TableForm | null>>;
@@ -39,7 +39,7 @@ export default function FormTableContextMenu({
     action: null,
   });
   const [open, isOpen] = React.useState(false);
-  const { activeWorkspaceId } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
 
   const handleFormDuplication = async () => {
     isLoading({ isLoading: true, action: "duplicate" });

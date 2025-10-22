@@ -8,14 +8,15 @@ import {
   HoverCardContent,
 } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 import { Platform, SocialPage } from "@/lib/social/platforms/platform-types";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 export default function BrandSocialIcons() {
   const [isClient, setIsClient] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const ws = useFeedbirdStore(s => s.getActiveWorkspace());
+  const ws = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
 
   React.useEffect(() => {
     setIsClient(true);

@@ -8,7 +8,7 @@ import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 
 type Props = {
   formValues: FormSubmissionData;
@@ -21,7 +21,7 @@ export default function ControlledSubmissionSummary({
   formData,
   setReviewActive,
 }: Props) {
-  const { activeWorkspaceId } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const [finalValues, setFinalValues] = React.useState(formValues);
   const router = useRouter();
   const [loading, isLoading] = React.useState<boolean>(false);

@@ -3,7 +3,7 @@ import BuilderServiceCard from "@/components/checkout/builder/BuilderServiceCard
 import CheckoutBuilderSideBar from "@/components/checkout/builder/CheckoutBuilderSideBar";
 import CheckoutFormInfo from "@/components/checkout/builder/CheckoutFormInfo";
 import { servicesApi } from "@/lib/api/api-service";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 import { Service } from "@/lib/supabase/interfaces";
 import { Divider } from "@mui/material";
 import React from "react";
@@ -36,7 +36,7 @@ export type CheckoutFormInformation = {
 };
 
 export default function CheckoutBuilderClient() {
-  const { activeWorkspaceId } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const [loading, isLoading] = React.useState(false);
   const [checkoutServices, setCheckoutServices] = React.useState<
     Map<string, CheckoutServiceBuilder[]>

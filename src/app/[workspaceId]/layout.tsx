@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useParams } from 'next/navigation'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore } from '@/lib/store'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -14,7 +14,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const router = useRouter()
-  const { setActiveWorkspace, workspaces, activeWorkspaceId } = useFeedbirdStore()
+  const { setActiveWorkspace, workspaces, activeWorkspaceId } = useWorkspaceStore()
 
   useEffect(() => {
     // If the workspace ID in the URL doesn't match the active workspace, switch to it

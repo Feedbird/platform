@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Folder } from "lucide-react";
@@ -149,7 +149,7 @@ function SocialSetBlock({
   onSetDrop: (e: React.DragEvent, setId: string) => void;
 }) {
   const pathname = usePathname();
-  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const activeWorkspace = useWorkspaceStore((s) => s.getActiveWorkspace());
   const [expanded, setExpanded] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [draftName, setDraftName] = React.useState(setName);
@@ -226,7 +226,7 @@ function SocialSetBlock({
     try {
       setSaving(true);
       // Optimistic update in store
-      useFeedbirdStore.setState((prev: any) => {
+      useWorkspaceStore.setState((prev: any) => {
         const workspaces = prev.workspaces || [];
         const activeId = activeWorkspace?.id;
         const updated = workspaces.map((w: any) => {
@@ -243,7 +243,7 @@ function SocialSetBlock({
       setIsEditing(false);
     } catch (e) {
       // Revert on failure
-      useFeedbirdStore.setState((prev: any) => {
+      useWorkspaceStore.setState((prev: any) => {
         const workspaces = prev.workspaces || [];
         const activeId = activeWorkspace?.id;
         const updated = workspaces.map((w: any) => {
@@ -513,7 +513,7 @@ function SocialSetBlock({
 }
 
 export default function SocialShortcuts() {
-  const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const workspace = useWorkspaceStore((s) => s.getActiveWorkspace());
   const [isClient, setIsClient] = React.useState(false);
   const [draggingPageId, setDraggingPageId] = React.useState<string | null>(null);
   const [dragOverSetId, setDragOverSetId] = React.useState<string | null>(null);
@@ -588,13 +588,13 @@ export default function SocialShortcuts() {
     if (sourceSetId === targetSetId) return;
 
     // optimistic update
-    const prev = useFeedbirdStore.getState();
+    const prev = useWorkspaceStore.getState();
     const prevWorkspaces = prev.workspaces;
     const prevWorkspaceIdx = prevWorkspaces.findIndex((w: any) => w.id === wsId);
     const prevWorkspace = prevWorkspaces[prevWorkspaceIdx];
     const prevPages = ((prevWorkspace?.socialPages as any[]) || []).map((p: any) => ({ ...p }));
 
-    useFeedbirdStore.setState((st: any) => {
+    useWorkspaceStore.setState((st: any) => {
       const workspaces = (st.workspaces || []).map((w: any) => {
         if (w.id !== wsId) return w;
         const nextPages = (w.socialPages || []).map((p: any) =>
@@ -610,7 +610,7 @@ export default function SocialShortcuts() {
     } catch (err) {
       console.error("Failed to move page to set", err);
       // revert
-      useFeedbirdStore.setState((st: any) => {
+      useWorkspaceStore.setState((st: any) => {
         const workspaces = (st.workspaces || []).map((w: any) => {
           if (w.id !== wsId) return w;
           return { ...w, socialPages: prevPages };

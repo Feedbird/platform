@@ -1,7 +1,7 @@
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useSocialStore } from '@/lib/store'
 
 export function usePostHistoryLoading(pageId: string) {
-  const isLoading = useFeedbirdStore(s => s.syncingPostHistory[pageId] ?? false)
+  const isLoading = useSocialStore(s => s.syncingPostHistory[pageId] ?? false)
   
   return isLoading
 } 

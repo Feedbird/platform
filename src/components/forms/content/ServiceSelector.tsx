@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect } from "react";
 import { ModalMultiSelect } from "./ModalMultiSelect";
-import { useFormStore } from "@/lib/store/forms-store";
+import { useFormStore } from "@/lib/store";
 import { useForms } from "@/contexts/FormsContext";
 
 type ServiceSelectorProps = {

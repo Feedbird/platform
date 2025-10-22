@@ -1,47 +1,107 @@
-import { create } from "zustand";
-import { Form, Service } from "../supabase/interfaces";
-import { ApiResponse, formsApi, servicesApi } from "../api/api-service";
+import { createPersistedStore } from './store-utils';
+import { formsApi, servicesApi } from '@/lib/api/api-service';
+import type { Form, Service } from '@/lib/supabase/interfaces';
 
-interface FormStoreState {
-  getFormsByWorkspaceId: (workspaceId: string) => Promise<ApiResponse<Form[]>>;
-  getFormById: (id: string) => Promise<ApiResponse<Form>>;
-  createInitialForm: (
-    creatorEmail: string,
-    workspaceId: string
-  ) => Promise<Form>;
+export interface FormsStore {
+  // State
+  unsavedFormChanges: boolean;
+  forms: Form[];
   services: Service[];
-  fetchServices: (workspaceId: string) => void;
+  loading: boolean;
+
+  // Forms methods
+  setUnsavedFormChanges: (unsaved: boolean) => void;
+  getFormsByWorkspaceId: (workspaceId: string) => Promise<Form[]>;
+  getFormById: (id: string) => Promise<Form>;
+  createInitialForm: (creatorEmail: string, workspaceId: string) => Promise<Form>;
+  fetchServices: (workspaceId: string, available?: boolean) => Promise<Service[]>;
+  setForms: (forms: Form[]) => void;
+  setServices: (services: Service[]) => void;
+  setLoading: (loading: boolean) => void;
 }
 
-export const useFormStore = create<FormStoreState>((set, get) => ({
-  getFormsByWorkspaceId: async (workspaceId: string) => {
-    return formsApi.getFormsByWorkspaceId(workspaceId);
-  },
-  getFormById: async (id: string) => {
-    const form = formsApi.getFormById(id);
-    if (!form) {
-      throw new Error(`Form with id ${id} not found`);
-    }
-    return form;
-  },
-  createInitialForm: async (creatorEmail: string, workspaceId: string) => {
-    try {
-      const form = await formsApi.createInitialForm(creatorEmail, workspaceId);
-      console.log(`✅ Initial form created successfully`);
-      return form;
-    } catch (error) {
-      console.error("❌ Failed to create initial form:", error);
-      throw error;
-    }
-  },
-  services: [],
-  fetchServices: async (workspaceId: string) => {
-    try {
-      const services = await servicesApi.fetchAllServices(workspaceId);
-      console.log(`✅ Services fetched successfully`);
-      set({ services: services.data || [] });
-    } catch (e) {
-      throw e;
-    }
-  },
-}));
+export const useFormStore = createPersistedStore<FormsStore>(
+  "forms-store",
+  (set, get) => ({
+    // State
+    unsavedFormChanges: false,
+    forms: [],
+    services: [],
+    loading: false,
+
+    // Forms methods
+    setUnsavedFormChanges: (unsaved: boolean) => {
+      set(() => ({ unsavedFormChanges: unsaved }));
+    },
+
+    getFormsByWorkspaceId: async (workspaceId: string) => {
+      try {
+        set(() => ({ loading: true }));
+        const response = await formsApi.getFormsByWorkspaceId(workspaceId);
+        const forms = response.data || [];
+        set(() => ({ forms, loading: false }));
+        return forms;
+      } catch (error) {
+        console.error('Failed to fetch forms:', error);
+        set(() => ({ loading: false }));
+        throw error;
+      }
+    },
+
+    getFormById: async (id: string) => {
+      try {
+        set(() => ({ loading: true }));
+        const response = await formsApi.getFormById(id);
+        const form = response.data;
+        set(() => ({ loading: false }));
+        return form;
+      } catch (error) {
+        console.error('Failed to fetch form:', error);
+        set(() => ({ loading: false }));
+        throw error;
+      }
+    },
+
+    createInitialForm: async (creatorEmail: string, workspaceId: string) => {
+      try {
+        set(() => ({ loading: true }));
+        const form = await formsApi.createInitialForm(creatorEmail, workspaceId);
+        set((state: FormsStore) => ({ 
+          forms: [...state.forms, form],
+          loading: false 
+        }));
+        return form;
+      } catch (error) {
+        console.error('Failed to create form:', error);
+        set(() => ({ loading: false }));
+        throw error;
+      }
+    },
+
+    fetchServices: async (workspaceId: string, available?: boolean) => {
+      try {
+        set(() => ({ loading: true }));
+        const response = await servicesApi.fetchAllServices(workspaceId);
+        const services = response.data || [];
+        set(() => ({ services, loading: false }));
+        return services;
+      } catch (error) {
+        console.error('Failed to fetch services:', error);
+        set(() => ({ loading: false }));
+        throw error;
+      }
+    },
+
+    setForms: (forms: Form[]) => {
+      set(() => ({ forms }));
+    },
+
+    setServices: (services: Service[]) => {
+      set(() => ({ services }));
+    },
+
+    setLoading: (loading: boolean) => {
+      set(() => ({ loading }));
+    },
+  })
+);

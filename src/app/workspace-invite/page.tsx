@@ -6,7 +6,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useUserStore, useWorkspaceStore } from '@/lib/store'
 import { workspaceHelperApi, invitationsApi, storeApi } from '@/lib/api/api-service'
 import { LockKeyholeOpen } from 'lucide-react'
 
@@ -36,47 +36,6 @@ function Header() {
         </header>
     )
 }
-// async function fetchInvitations(): Promise<InvitationDTO[]> {
-//   const { userId } = await auth()
-//   if (!userId) return []
-//   const clerk = await clerkClient()
-//   const user = await clerk.users.getUser(userId)
-//   const primaryEmailId = (user as any).primaryEmailAddressId || (user as any).primary_email_address_id
-//   const emailObj = (user as any).emailAddresses?.find((e: any) => e.id === primaryEmailId) || (user as any).email_addresses?.find((e: any) => e.id === primaryEmailId)
-//   const email = emailObj?.emailAddress || emailObj?.email_address
-//   if (!email) return []
-
-//   const secret = process.env.CLERK_SECRET_KEY
-//   if (!secret) return []
-//   try {
-//     const res = await fetch(`https://api.clerk.com/v1/invitations?email_address=${encodeURIComponent(email)}`, {
-//       headers: { Authorization: `Bearer ${secret}` },
-//       cache: 'no-store',
-//     })
-//     if (!res.ok) return []
-//     const data = await res.json()
-//     const invitations: InvitationDTO[] = Array.isArray(data)
-//       ? data.map((inv: any) => ({
-//           id: inv.id,
-//           status: inv.status,
-//           organization_id: inv.organization_id,
-//           expires_at: inv.expires_at,
-//         }))
-//       : []
-
-//     const uniqueOrgIds = Array.from(new Set(invitations.map(i => i.organization_id).filter(Boolean))) as string[]
-//     const orgMap = new Map<string, string>()
-//     await Promise.all(uniqueOrgIds.map(async (orgId) => {
-//       try {
-//         const org = await clerk.organizations.getOrganization({ organizationId: orgId })
-//         orgMap.set(orgId, (org as any).name)
-//       } catch {}
-//     }))
-//     return invitations.map(i => ({ ...i, organization_name: i.organization_id ? orgMap.get(i.organization_id) : undefined }))
-//   } catch {
-//     return []
-//   }
-// }
 
 export default function WorkspaceInvitePage() {
     return (
@@ -88,8 +47,8 @@ export default function WorkspaceInvitePage() {
 }
 function ClientSectionInline() {
     const router = useRouter()
-    const workspaces = useFeedbirdStore((s) => s.workspaces)
-    const user = useFeedbirdStore((s) => s.user)
+    const workspaces = useWorkspaceStore((s) => s.workspaces)
+    const user = useUserStore((s) => s.user)
     const [membersCountByWs, setMembersCountByWs] = React.useState<Record<string, number>>({})
     const [invites, setInvites] = React.useState<InvitationDTO[]>([])
     const [loading, setLoading] = React.useState(true)

@@ -15,19 +15,20 @@ import {
 import { Check, ChevronsUpDown, House } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore } from '@/lib/store'
 import { useLoading } from '@/lib/providers/loading-provider'
 import { startTransition } from 'react'
 import React from 'react'
+import { WorkspaceStore } from '@/lib/store/workspace-store'
 
 export default function BrandSwitcher() {
   const [isClient, setIsClient] = useState(false);
-  const workspaces = useFeedbirdStore(s => s.workspaces)
-  const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId)
+  const workspaces = useWorkspaceStore((s: WorkspaceStore) => s.workspaces)
+  const activeWorkspaceId = useWorkspaceStore((s: WorkspaceStore) => s.activeWorkspaceId)
   const ws = React.useMemo(() => workspaces.find(w => w.id === activeWorkspaceId), [workspaces, activeWorkspaceId])
 
-  const activeId = useFeedbirdStore(s => s.activeBrandId)
-  const setBrand = useFeedbirdStore(s => s.setActiveBrand)
+  const activeId = useWorkspaceStore((s: WorkspaceStore) => s.activeBrandId)
+  const setBrand = useWorkspaceStore((s: WorkspaceStore) => s.setActiveBrand)
   const { show, hide } = useLoading()
   const [open, setOpen] = useState(false)
 

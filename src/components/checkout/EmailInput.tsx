@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import React from "react";
 import { Input } from "../ui/input";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useUserStore } from "@/lib/store";
 import { workspaceApi } from "@/lib/api/api-service";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default function EmailInput({ emailSetter, email }: Props) {
-  const { user } = useFeedbirdStore();
+  const { user } = useUserStore();
   const [editing, setEditing] = React.useState(true);
   const [error, setError] = React.useState("");
 

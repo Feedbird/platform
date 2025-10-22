@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 // equality function not supported in our zustand version
-import { useFeedbirdStore, FileKind, Post } from "@/lib/store/use-feedbird-store";
+import { FileKind, Post, useWorkspaceStore, usePostStore } from "@/lib/store";
 import { toast } from "sonner";
 import { useUploadStore, UploadStatus } from "@/lib/store/upload-store";
 import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
@@ -66,11 +66,11 @@ export function useUploader({ postId }: { postId: string }) {
   const uploads = useMemo(() => allUploads.filter((u) => u.postId === postId), [allUploads, postId]);
   const uploadActions = useUploadStore.getState();
 
-  const wid = useFeedbirdStore((s) => s.activeWorkspaceId);
-  const bid = useFeedbirdStore((s) => s.activeBrandId);
-  const addBlock = useFeedbirdStore((s) => s.addBlock);
-  const addVersion = useFeedbirdStore((s) => s.addVersion);
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const wid = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const bid = useWorkspaceStore((s) => s.activeBrandId);
+  const addBlock = usePostStore((s) => s.addBlock);
+  const addVersion = usePostStore((s) => s.addVersion);
+  const updatePost = usePostStore((s) => s.updatePost);
   const updatePostAfterUpload = useUploadStore.getState().updatePostAfterUpload;
   // const uploadStore = useUploadStore.getState(); // no longer needed
 
@@ -258,7 +258,7 @@ export function useUploader({ postId }: { postId: string }) {
              const versionId = addVersion(postId, blockId, { by: currentUser, caption: "", file: { kind, url: publicUrl, ...(thumbnailPublicUrl ? { thumbnailUrl: thumbnailPublicUrl } : {}) } });
              
              // 4. Get the updated post data from Zustand store
-             const store = useFeedbirdStore.getState();
+             const store = usePostStore.getState();
              const post = store.getPost(postId);
              
              if (post) {
@@ -310,7 +310,7 @@ export function useUploader({ postId }: { postId: string }) {
     });
 
     Promise.allSettled(uploadPromises).then(() => {
-      const state = useFeedbirdStore.getState();
+      const state = usePostStore.getState();
       const post = state.getPost(postId);
       if (post) {
         const imgCnt = post.blocks.filter((b) => b.kind === "image").length;

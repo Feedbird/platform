@@ -25,8 +25,8 @@ import {
   Post,
   Block,
   BaseComment,
-  useFeedbirdStore,
-} from "@/lib/store/use-feedbird-store";
+  usePostStore,
+} from "@/lib/store";
 import { cn, formatTimeAgo } from "@/lib/utils";
 
 const COLORS = [
@@ -127,9 +127,9 @@ export function CommentsPanel({
   isPost?: boolean;
 }) {
   // Store actions
-  const addPostComment = useFeedbirdStore((s) => s.addPostComment);
-  const addBlockComment = useFeedbirdStore((s) => s.addBlockComment);
-  const addVersionComment = useFeedbirdStore((s) => s.addVersionComment);
+  const addPostComment = usePostStore((s) => s.addPostComment);
+  const addBlockComment = usePostStore((s) => s.addBlockComment);
+  const addVersionComment = usePostStore((s) => s.addVersionComment);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // comments data

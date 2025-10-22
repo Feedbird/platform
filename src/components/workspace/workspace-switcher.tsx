@@ -32,23 +32,19 @@ import {
   MailPlus
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useUserStore, useWorkspaceStore } from '@/lib/store'
 import { useLoading } from '@/lib/providers/loading-provider'
 import { useClerk } from '@clerk/nextjs'
 import { WorkspaceModal } from '@/components/workspace/workspace-modal'
 import { InviteMembersModal } from '@/components/workspace/invite-members-modal'
 import { useMounted } from '@/hooks/use-mounted'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { Toaster } from "@/components/ui/sonner"
 import { useUser } from '@clerk/nextjs';
 
 import { storeApi, inviteApi, userApi, workspaceHelperApi } from '@/lib/api/api-service'
+import { WorkspaceStore } from '@/lib/store/workspace-store'
+import { UserStore } from '@/lib/store/user-store'
 
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
@@ -56,14 +52,14 @@ export default function WorkspaceSwitcher() {
   const router = useRouter()
 
   /* -------- store -------- */
-  const workspaces = useFeedbirdStore(s => s.workspaces)
-  const activeId = useFeedbirdStore(s => s.activeWorkspaceId)
-  const addWorkspace = useFeedbirdStore(s => s.addWorkspace)
-  const addBrand = useFeedbirdStore(s => s.addBrand)
-  const removeWs = useFeedbirdStore(s => s.removeWorkspace)
-  const setActive = useFeedbirdStore(s => s.setActiveWorkspace)
-  const clearUser = useFeedbirdStore(s => s.clearUser)
-  const user = useFeedbirdStore(s => s.user)
+  const workspaces = useWorkspaceStore((s: WorkspaceStore) => s.workspaces)
+  const activeId = useWorkspaceStore((s: WorkspaceStore) => s.activeWorkspaceId)
+  const addWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.addWorkspace)
+  const addBrand = useWorkspaceStore((s: WorkspaceStore) => s.addBrand)
+  const removeWs = useWorkspaceStore((s: WorkspaceStore) => s.removeWorkspace)
+  const setActive = useWorkspaceStore((s: WorkspaceStore) => s.setActiveWorkspace)
+  const clearUser = useUserStore((s: UserStore) => s.clearUser)
+  const user = useUserStore((s: UserStore) => s.user)
   const active = workspaces.find(w => w.id === activeId)
 
   const { show, hide } = useLoading()
@@ -135,7 +131,7 @@ export default function WorkspaceSwitcher() {
     const initialRules = additionalData?.boardRules
     const wsId = await addWorkspace(name, userEmail, logo ?? '', initialRules)
     // Resolve Clerk organization ID for the newly created workspace
-    const orgId = useFeedbirdStore.getState().workspaces.find(w => w.id === wsId)?.clerk_organization_id
+    const orgId = useWorkspaceStore.getState().workspaces.find(w => w.id === wsId)?.clerk_organization_id
 
     // Handle additional data (boards, rules, invitations)
     if (additionalData) {
@@ -143,7 +139,7 @@ export default function WorkspaceSwitcher() {
 
       // 2) Create boards for selected templates with given rules
       try {
-        const store = useFeedbirdStore.getState()
+        const store = useWorkspaceStore.getState()
         const templates = store.boardTemplates
         const toCreate = templates.filter(t => selectedBoards.includes(t.id))
         for (const t of toCreate) {
@@ -185,7 +181,7 @@ export default function WorkspaceSwitcher() {
         if (setAsDefault && user?.email) {
           await userApi.updateUser({ email: user.email }, { default_board_rules: boardRules })
           // Update store copy
-          useFeedbirdStore.setState(s => ({
+          useUserStore.setState(s => ({
             user: s.user ? ({ ...s.user, default_board_rules: boardRules } as any) : s.user
           }))
         }

@@ -20,9 +20,8 @@ import { cn } from "@/lib/utils";
 
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { usePostStore, useWorkspaceStore, useUserStore, Post, Block, BoardGroupData, GroupComment } from "@/lib/store";
 import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
-import { Post, Block, BoardGroupData, GroupComment } from "@/lib/store/use-feedbird-store";
 import { Platform } from "@/lib/social/platforms/platform-types";
 
 /* sub-components (cloned or adapted) */
@@ -88,11 +87,13 @@ import { PinterestSettingsPanel } from './pinterest-settings';
 import type { TikTokSettings, GoogleBusinessSettings, YouTubeSettings, PinterestSettings } from '@/lib/social/platforms/platform-types';
 import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-settings-mapper';
 import { getDefaultYouTubeSettings } from '@/lib/utils/youtube-settings-mapper';
+import { PostStore } from "@/lib/store/post-store";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 // Wrapper component to convert between platform names and page IDs
 function PlatformsEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
-  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const updatePost = usePostStore((s: PostStore) => s.updatePost);
+  const ws = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
   const [open, setOpen] = React.useState(false);
   
   // Convert platform names to page IDs
@@ -240,7 +241,7 @@ function PlatformsEditor({ post }: { post: Post }) {
 
 // Format editor component using the same style as FormatEditCell
 function FormatEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const updatePost = usePostStore((s: PostStore) => s.updatePost);
   const [open, setOpen] = React.useState(false);
   const hasValue = Boolean(post.format);
 
@@ -298,8 +299,8 @@ function FormatEditor({ post }: { post: Post }) {
 
 // Settings editor component using the same style as SettingsCell
 function SettingsEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
-  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const updatePost = usePostStore((s: PostStore) => s.updatePost);
+  const ws = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
   const [open, setOpen] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
 
@@ -793,7 +794,7 @@ function SettingsEditor({ post }: { post: Post }) {
 
 // Hashtags editor component using the same style as CaptionEditor
 function HashtagsEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const updatePost = usePostStore((s: PostStore) => s.updatePost);
   const [currentPlatform, setCurrentPlatform] = React.useState<Platform>(
     post.platforms[0] || "instagram"
   );
@@ -932,14 +933,8 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
   onClose(): void;
   onPostSelect?: (postId: string) => void;
 }) {
-  const { updatePost, activeWorkspace } = useStoreWithEqualityFn(
-    useFeedbirdStore,
-    (s) => ({
-      updatePost: s.updatePost,
-      activeWorkspace: s.getActiveWorkspace(),
-    }),
-    shallow
-  );
+  const updatePost = usePostStore((s: PostStore) => s.updatePost);
+  const activeWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
   const activeBoard = activeWorkspace?.boards.find(b => b.id === selectedPost.board_id);
   const posts = activeBoard?.posts;
   const post = posts?.find(p => p.id === selectedPost.id);
@@ -1195,7 +1190,7 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
                         let latestUnreaded: GroupComment | null = null;
 
                         totalCount = groupComments.length;
-                        const email = useFeedbirdStore.getState().user?.email;
+                        const email = useUserStore.getState().user?.email;
                         const unreaded = groupComments.filter((c: GroupComment) => !c.resolved && (!email || !(c.readBy || []).includes(email)));
                         unreadedCount = unreaded.length;
                         if (unreadedCount > 0) {

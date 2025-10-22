@@ -1,11 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { ChevronRight, ChevronsUpDown, LayoutGrid, CalendarIcon, FolderOpen, GripVertical, Filter, MoreHorizontal, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react'
-import { Status } from '@/lib/store/use-feedbird-store'
+import { ChevronsUpDown } from 'lucide-react'
+import { Status } from '@/lib/store'
 import { statusConfig } from '@/components/content/shared/content-post-ui'
 import { cn } from '@/lib/utils'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import Image from 'next/image'
 
 function NameBar({

@@ -13,11 +13,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from "@/components/ui/separator";
 import { ChevronDown, MoreHorizontal, Smile } from "lucide-react";
 import * as React from "react";
-import { useFeedbirdStore, BoardTemplate, BoardRules } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, BoardTemplate, BoardRules } from "@/lib/store";
 import { IconAndColorPicker } from "@/components/board/icon-and-color-picker";
 import { RenameTemplateDialog } from "@/components/board/rename-template-dialog";
 import { ColorAndIconDialog } from "@/components/board/color-and-icon-dialog";
 import { cn } from '@/lib/utils';
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 const BLANK_TEMPLATE: BoardTemplate = {
   id: "blank",
@@ -54,12 +55,10 @@ interface AddBoardModalProps {
 }
 
 export function AddBoardModal({ isOpen, onClose, onBoardDataReady, onUseTemplate, pendingBoardData }: AddBoardModalProps) {
-  const { 
-    boardTemplates, 
-    addBoard, 
-    removeBoardTemplate, 
-    updateBoardTemplate 
-  } = useFeedbirdStore();
+  const boardTemplates = useWorkspaceStore((s: WorkspaceStore) => s.boardTemplates);
+  const addBoard = useWorkspaceStore((s: WorkspaceStore) => s.addBoard);
+  const removeBoardTemplate = useWorkspaceStore((s: WorkspaceStore) => s.removeBoardTemplate);
+  const updateBoardTemplate = useWorkspaceStore((s: WorkspaceStore) => s.updateBoardTemplate);
 
   const [selectedTemplate, setSelectedTemplate] = React.useState<BoardTemplate>(BLANK_TEMPLATE);
   const [boardName, setBoardName] = React.useState("");

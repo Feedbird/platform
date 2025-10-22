@@ -9,9 +9,7 @@ import { Plus } from 'lucide-react'
 // removed board popover & related UI
 import { SidebarTrigger }     from '@/components/ui/sidebar'
 import { Button }             from '@/components/ui/button'
-import BrandSwitcher          from '@/components/brand/brand-switcher'
 import BrandSocialIcons       from '@/components/brand/brand-social-icons'
-import NotificationBell       from '@/components/notifications/notification-bell'
 import BrandKitDrawer         from '@/components/brand/brand-kit-drawer'
 import BrandDialog            from '@/components/brand/brand-dialog'
 import BrandDetailsSidebar    from '@/components/brand/brand-details-sidebar'
@@ -19,8 +17,7 @@ import UploadTray from "@/components/layout/upload-tray";
 import { AddBoardModal } from '@/components/board/add-board-modal'
 import { BoardRulesModal } from '@/components/board/board-rules-modal'
 
-import { useFeedbirdStore }   from '@/lib/store/use-feedbird-store'
-import Link                   from 'next/link'
+import { useWorkspaceStore }   from '@/lib/store'
 import { cn, truncateText }   from '@/lib/utils'
 
 export function AppHeader() {
@@ -39,15 +36,15 @@ function HeaderInner() {
   const searchParams  = useSearchParams()
 
   /* boards from centralized store */
-  const boardNav      = useFeedbirdStore(s => s.boardNav)
+  const boardNav      = useWorkspaceStore(s => s.boardNav)
   const activeBoard   = boardNav.find(b => b.href && (
     // For workspace-scoped routes, check if the pathname contains the route
     b.href.includes('/content/') ? pathname.includes(b.href.split('/').pop() || '') :
     // For other routes, check if pathname starts with the href
     pathname.startsWith(b.href)
   ))
-  const brand         = useFeedbirdStore(s => s.getActiveBrand())
-  const activeWorkspace = useFeedbirdStore(s => s.getActiveWorkspace())
+  const brand         = useWorkspaceStore(s => s.getActiveBrand())
+  const activeWorkspace = useWorkspaceStore(s => s.getActiveWorkspace())
   
   // Client-side hydration state
   const [isClient, setIsClient] = useState(false)
@@ -75,8 +72,8 @@ function HeaderInner() {
     if (!activeWorkspace || !activeBoard?.id) return undefined
     return activeWorkspace.boards.find(b => b.id === activeBoard.id)
   }, [activeWorkspace, activeBoard?.id])
-  const updateBoard = useFeedbirdStore(s => s.updateBoard)
-  const addBoard = useFeedbirdStore(s => s.addBoard)
+  const updateBoard = useWorkspaceStore(s => s.updateBoard)
+  const addBoard = useWorkspaceStore(s => s.addBoard)
 
   /* view switcher (table | calendar | grid) --------------------------- */
   const inContent = pathname.includes('/content/')

@@ -1,9 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
-import { Post } from "@/lib/store/use-feedbird-store";
 import { Platform } from "@/lib/social/platforms/platform-types";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { usePostStore, Post } from "@/lib/store";
 import { Lock, Unlock } from "lucide-react";
 import {
   Select,
@@ -49,7 +48,7 @@ export function CaptionEditor({
   post: Post;
   onChange: (cap: Partial<Post["caption"]>) => void;
 }) {
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const updatePost = usePostStore((s) => s.updatePost);
 
   const [currentPlatform, setCurrentPlatform] = useState<Platform>(
     post.platforms[0] || "instagram"

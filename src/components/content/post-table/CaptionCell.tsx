@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Post } from "@/lib/store/use-feedbird-store";
+import { Post } from "@/lib/store";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { checkCaptionQuality } from "./CaptionRules";
 import { Maximize2 } from "lucide-react"; // or any icon you prefer

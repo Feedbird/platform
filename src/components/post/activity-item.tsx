@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity } from "@/lib/store/use-feedbird-store";
+import { Activity } from "@/lib/store";
 import { format } from "date-fns";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";

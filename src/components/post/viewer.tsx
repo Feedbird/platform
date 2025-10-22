@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Maximize2 } from 'lucide-react';
-import { Block } from '@/lib/store/use-feedbird-store';
+import { Block } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
 export default function ContentViewer({

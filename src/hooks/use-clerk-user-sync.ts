@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
+import { useUserStore, useWorkspaceStore } from '@/lib/store';
 import { userApi } from '@/lib/api/api-service';
 
 export function useClerkUserSync() {
   const { user, isLoaded } = useUser();
-  const { setUser, clearUser, loadUserWorkspaces } = useFeedbirdStore();
+  const { setUser, clearUser } = useUserStore();
+  const { loadUserWorkspaces } = useWorkspaceStore();
   const didSyncRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
 
@@ -15,7 +16,6 @@ export function useClerkUserSync() {
     if (user) {
       const userEmail = user.emailAddresses[0]?.emailAddress || '';
       const userId = user.id;
-      const store = useFeedbirdStore.getState();
 
       // Skip if we've already synced for this user in this session
       if (didSyncRef.current && lastUserIdRef.current === userId) return;
@@ -54,8 +54,8 @@ export function useClerkUserSync() {
           });
 
         // Load user's workspaces only if not initialized yet
-        if (!store.workspacesInitialized) {
-          loadUserWorkspaces(userEmail).catch(error => {
+        if (!useWorkspaceStore.getState().workspacesInitialized) {
+          loadUserWorkspaces(userEmail).catch((error: any) => {
             console.error('Failed to load user workspaces:', error);
           });
         }

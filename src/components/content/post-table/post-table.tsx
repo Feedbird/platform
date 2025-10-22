@@ -175,14 +175,17 @@ import {
   ContentFormat,
   Post,
   Status,
-  useFeedbirdStore,
   UserColumn,
   ColumnType,
   BoardRules,
   BoardGroupData,
   GroupComment,
   GroupMessage,
-} from "@/lib/store/use-feedbird-store";
+  useWorkspaceStore,
+  usePostStore,
+  useSocialStore,
+  useUserStore,
+} from "@/lib/store";
 import {
   StatusChip,
   ChannelIcons,
@@ -757,41 +760,36 @@ export function PostTable({
     string | null
   >(null);
   const selectedPreviewCellRef = React.useRef<string | null>(null);
-  const setBoardFilterConditions = useFeedbirdStore((s) => s.setBoardFilterConditions);  
+  const setBoardFilterConditions = useWorkspaceStore((s) => s.setBoardFilterConditions);  
 
   // Keep ref in sync with state
   React.useEffect(() => {
     selectedPreviewCellRef.current = selectedPreviewCell;
   }, [selectedPreviewCell]);
 
-  const store = useFeedbirdStore();
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
-  const updateBoard = useFeedbirdStore((s) => s.updateBoard);
-  const getPageCounts = useFeedbirdStore((s) => s.getPageCounts);
-  const addGroupComment = useFeedbirdStore((s) => s.addGroupComment);
-  const addGroupMessage = useFeedbirdStore((s) => s.addGroupMessage);
-  const resolveGroupComment = useFeedbirdStore((s) => s.resolveGroupComment);
-  const markGroupCommentRead = useFeedbirdStore((s) => s.markGroupCommentRead);
-  const deleteGroupCommentAiSummaryItem = useFeedbirdStore(
+  const updatePost = usePostStore((s) => s.updatePost);
+  const updateBoard = useWorkspaceStore((s) => s.updateBoard);
+  const getPageCounts = useSocialStore((s) => s.getPageCounts);
+  const addGroupComment = useWorkspaceStore((s) => s.addGroupComment);
+  const addGroupMessage = useWorkspaceStore((s) => s.addGroupMessage);
+  const resolveGroupComment = useWorkspaceStore((s) => s.resolveGroupComment);
+  const markGroupCommentRead = useWorkspaceStore((s) => s.markGroupCommentRead);
+  const deleteGroupCommentAiSummaryItem = useWorkspaceStore(
     (s) => s.deleteGroupCommentAiSummaryItem
   );
-  const requestChanges = useFeedbirdStore((s) => s.requestChanges);
-  const approvePost = useFeedbirdStore((s) => s.approvePost);
+  const requestChanges = usePostStore((s) => s.requestChanges);
+  const approvePost = usePostStore((s) => s.approvePost);
 
   // Store subscriptions - subscribe to the actual data that changes
-  const workspaces = useFeedbirdStore((s) => s.workspaces);
-  const activeWorkspaceId = useFeedbirdStore((s) => s.activeWorkspaceId);
-  const activeBoardId = useFeedbirdStore((s) => s.activeBoardId);
+  const workspaces = useWorkspaceStore((s) => s.workspaces);
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const activeBoardId = useWorkspaceStore((s) => s.activeBoardId);
 
   // Subscribe directly to posts data from the store to ensure re-renders on updates
-  const posts = useFeedbirdStore((s) => {
+  const posts = usePostStore((s) => {
     if (!activeBoardId) return initialPosts;
-    const activeWorkspace = s.workspaces.find(
-      (w) => w.id === activeWorkspaceId
-    );
-    const activeBoard = activeWorkspace?.boards.find(
-      (b) => b.id === activeBoardId
-    );
+    const activeWorkspace = useWorkspaceStore((s) => s.getActiveWorkspace());
+    const activeBoard = activeWorkspace?.boards.find((b) => b.id === activeBoardId);
     return activeBoard?.posts || initialPosts;
   });
 
@@ -862,7 +860,7 @@ export function PostTable({
     const imported = await importFromCSV(file);
     const merged = [...tableData, ...imported];
     setTableData(merged);
-    store.setActivePosts(merged);
+    usePostStore.getState().setActivePosts(merged);
     e.target.value = "";
   }
   function handleImport() {
@@ -877,7 +875,7 @@ export function PostTable({
     });
     // Mark unresolved and unread comments as read for current user
     if (activeBoardId) {
-      const email = useFeedbirdStore.getState().user?.email;
+      const email = useUserStore.getState().user?.email;
       if (email) {
         (groupData?.comments || [])
           .filter((c) => !c.resolved && !(c.readBy || []).includes(email))
@@ -1392,7 +1390,7 @@ export function PostTable({
   const emptyFilterRef = React.useRef<ConditionGroup>({ id: "root", type: "group", children: [] });
 
   // Reactively subscribe to current board filter conditions from the store
-  const filterTree = useFeedbirdStore((s) => {
+  const filterTree = useWorkspaceStore((s) => {
     const aw = s.workspaces.find(w => w.id === s.activeWorkspaceId);
     const ab = aw?.boards.find(b => b.id === s.activeBoardId);
     return ab?.filterConditions ?? emptyFilterRef.current;
@@ -1787,7 +1785,7 @@ export function PostTable({
 
           setTableData(newTableData);
           // Update the store with the new order
-          store.setActivePosts(newTableData);
+          usePostStore.getState().setActivePosts(newTableData);
         }
       } else {
         // Moving between different groups is not allowed
@@ -1805,7 +1803,7 @@ export function PostTable({
           moved
         );
         // Update the store with the new order
-        store.setActivePosts(newArr);
+        usePostStore.getState().setActivePosts(newArr);
         return newArr;
       });
     }
@@ -1923,17 +1921,17 @@ export function PostTable({
         activities: [],
       }));
 
-      const board_id = tableData[0]?.board_id || store.activeBoardId;
+      const board_id = tableData[0]?.board_id || useWorkspaceStore.getState().activeBoardId;
       if (board_id) {
-        await store.bulkAddPosts(board_id, postsData);
+        await usePostStore.getState().bulkAddPosts(board_id, postsData);
       }
     } else {
-      const newPost = await store.addPost();
+      const newPost = await usePostStore.getState().addPost();
     }
   }
 
   async function handleAddRowForGroup(groupValues: Record<string, any>) {
-    const newPost = await store.addPost();
+    const newPost = await usePostStore.getState().addPost();
     if (!newPost) return;
 
     // Apply group values to the new post
@@ -1981,11 +1979,11 @@ export function PostTable({
       }));
 
       const board_id = posts[0].board_id;
-      duplicatedPosts.push(...(await store.bulkAddPosts(board_id, postsData)));
+      duplicatedPosts.push(...(await usePostStore.getState().bulkAddPosts(board_id, postsData)));
     } else {
       // For single post, use the existing duplicatePost method
       for (const orig of posts) {
-        const dup = await store.duplicatePost(orig);
+        const dup = await usePostStore.getState().duplicatePost(orig);
         if (dup) {
           duplicatedPosts.push(dup);
         }
@@ -2021,7 +2019,7 @@ export function PostTable({
     // Use bulk delete for better performance
     const postIdsToRemove = postsToRemove.map((post) => post.id);
     if (postIdsToRemove.length > 0) {
-      await store.bulkDeletePosts(postIdsToRemove);
+      await usePostStore.getState().bulkDeletePosts(postIdsToRemove);
     }
 
     setShowDuplicateUndoMessage(false);
@@ -2046,7 +2044,7 @@ export function PostTable({
     }
   }, [captionLocked]);
 
-  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const ws = useWorkspaceStore((s) => s.getActiveWorkspace());
 
   const pageIdToPlatformMap = React.useMemo(() => {
     const pages: any[] = (ws?.socialPages || []) ?? [];
@@ -3468,7 +3466,7 @@ export function PostTable({
                   rowHeight: prevRules?.rowHeight ?? rowHeight,
                 };
                 // Optimistic update: immediately reflect in store
-                useFeedbirdStore.setState((s) => ({
+                useWorkspaceStore.setState((s) => ({
                     workspaces: (s.workspaces || []).map((w) => ({
                     ...w,
                       boards: (w.boards || []).map((b) =>
@@ -3483,7 +3481,7 @@ export function PostTable({
                   updateBoard(activeBoardId, { rules: mergedRules }).catch(
                     (err) => {
                       console.error("Failed to update board rules:", err);
-                  useFeedbirdStore.setState((s) => ({
+                  useWorkspaceStore.setState((s) => ({
                         workspaces: (s.workspaces || []).map((w) => ({
                       ...w,
                           boards: (w.boards || []).map((b) =>
@@ -3530,7 +3528,7 @@ export function PostTable({
               allPosts={tableData}
               updatePost={(id, data) => {
                 // calls your store's update => auto set updatedAt, etc.
-                store.updatePost(id, data);
+                usePostStore.getState().updatePost(id, data);
               }}
             />
           );
@@ -5308,7 +5306,7 @@ export function PostTable({
                     let latestUnreaded: GroupComment | null = null;
 
                     totalCount = groupComments.length;
-                    const email = useFeedbirdStore.getState().user?.email;
+                    const email = useUserStore.getState().user?.email;
                     const unreaded = groupComments.filter(
                       (c: GroupComment) =>
                         !c.resolved &&
@@ -6297,7 +6295,7 @@ export function PostTable({
       setShowUndoMessage(false);
       // When timeout expires, permanently delete the posts from store using bulk delete
       const postIds = selected.map((p) => p.id);
-      await store.bulkDeletePosts(postIds);
+      await usePostStore.getState().bulkDeletePosts(postIds);
     }, 5000);
   }
 

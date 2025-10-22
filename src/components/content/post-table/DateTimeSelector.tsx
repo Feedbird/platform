@@ -3,10 +3,9 @@
 import React from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Post } from "@/lib/store/use-feedbird-store";
+import { Post } from "@/lib/store";
 import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
 import { format } from "date-fns";
-import { CalendarDays, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {

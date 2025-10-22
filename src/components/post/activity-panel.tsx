@@ -1,17 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, Fragment, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import Image                            from 'next/image'
-import { motion } from "framer-motion";
 import {
   Smile,
-  Send,
-  MessageCircle,
-  Bell,
-  BellOff,
-  MoreVertical,
-  Check,
-  X,
   AtSign,
   MessageSquare,
 } from "lucide-react";
@@ -20,9 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 
 import {
@@ -30,8 +20,10 @@ import {
   Block,
   BaseComment,
   Activity,
-  useFeedbirdStore,
-} from "@/lib/store/use-feedbird-store";
+  usePostStore,
+  useWorkspaceStore,
+  useUserStore,
+} from "@/lib/store";
 import { cn, getFullnameinitial } from "@/lib/utils";
 import { StatusChip } from "@/components/content/shared/content-post-ui";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -352,9 +344,9 @@ export function ActivityPanel({
   onSwitchToVersion?: () => void; // Callback to switch to version panel
 }) {
   // Store actions
-  const addPostComment = useFeedbirdStore((s) => s.addPostComment);
-  const addBlockComment = useFeedbirdStore((s) => s.addBlockComment);
-  const addVersionComment = useFeedbirdStore((s) => s.addVersionComment);
+  const addPostComment = usePostStore((s) => s.addPostComment);
+  const addBlockComment = usePostStore((s) => s.addBlockComment);
+  const addVersionComment = usePostStore((s) => s.addVersionComment);
 
   // Get user information from the store
   const getActorDisplayName = (actorId: string, actor?: any) => {
@@ -446,14 +438,14 @@ export function ActivityPanel({
       const commentId = await addPostComment(post.id, input.trim(), reply?.id, markAsRevision);
       
       // Add revision request activity if marked as revision
-      const addActivity = useFeedbirdStore.getState().addActivity;
-      const workspace = useFeedbirdStore.getState().getActiveWorkspace();
+      const addActivity = usePostStore.getState().addActivity;
+      const workspace = useWorkspaceStore.getState().getActiveWorkspace();
       if (markAsRevision) {
         if (workspace) {
           addActivity({
             postId: post.id,
             workspaceId: workspace.id,
-            actorId: useFeedbirdStore.getState().user?.id || '',
+            actorId: useUserStore.getState().user?.id || '',
             type: "revision_request",
             metadata: {
               revisionComment: input.trim(),
@@ -466,7 +458,7 @@ export function ActivityPanel({
           addActivity({
             postId: post.id,
             workspaceId: workspace.id,
-            actorId: useFeedbirdStore.getState().user?.id || '',
+            actorId: useUserStore.getState().user?.id || '',
             type: "comment",
             metadata: {
               revisionComment: input.trim(),

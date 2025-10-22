@@ -9,9 +9,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-import { Post, Status, ContentFormat } from "@/lib/store/use-feedbird-store";
+import { Post, Status, ContentFormat, usePostStore, useWorkspaceStore, useUserStore } from "@/lib/store";
 import { Platform } from "@/lib/social/platforms/platform-types";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { StatusChip, ChannelIcons, FormatBadge } from "@/components/content/shared/content-post-ui";
 import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
 import { format } from "date-fns";
@@ -29,13 +28,14 @@ import { StatusSelectPopup } from "../post-table/StatusSelectPopup";
 import { ChannelsMultiSelectPopup } from "../post-table/ChannelsMultiSelectPopup";
 import { FormatSelectPopup } from "../post-table/FormatSelectPopup";
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
+import { useUser } from "@clerk/nextjs";
 
 /* ------------------------------------------------------------------
    1) InlineStatusEditor
    uses StatusSelectPopup
 ------------------------------------------------------------------ */
 export function InlineStatusEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore(s => s.updatePost);
+  const updatePost = usePostStore(s => s.updatePost);
   const [open, setOpen] = useState(false);
 
   return (
@@ -84,7 +84,7 @@ const PLATFORMS: Platform[] = [
    uses ChannelsMultiSelectPopup + optional hover-card
 ------------------------------------------------------------------ */
 export function InlinePlatformsEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const updatePost = usePostStore((s) => s.updatePost);
   const [open, setOpen] = useState(false);
   const [platforms, setPlatforms] = useState<Platform[]>(post.platforms);
 
@@ -151,7 +151,7 @@ export function InlinePlatformsEditor({ post }: { post: Post }) {
    uses FormatSelectPopup
 ------------------------------------------------------------------ */
 export function InlineFormatEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore(s => s.updatePost);
+  const updatePost = usePostStore(s => s.updatePost);
   const [open, setOpen] = useState(false);
 
   return (
@@ -193,8 +193,8 @@ export function InlineFormatEditor({ post }: { post: Post }) {
    similar to your "PublishDateCell", but with local open
 ------------------------------------------------------------------ */
 export function InlineDateEditor({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore(s => s.updatePost);
-  const addActivity = useFeedbirdStore(s => s.addActivity);
+  const updatePost = usePostStore(s => s.updatePost);
+  const addActivity = usePostStore(s => s.addActivity);
 
   const savedDate  = post.publish_date ? new Date(post.publish_date) : null;
   const hasDate    = !!savedDate;
@@ -214,7 +214,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
   );
 
   function autoSchedule() {
-    const allPosts = useFeedbirdStore.getState().getActivePosts();
+    const allPosts = usePostStore.getState().getActivePosts();
     const suggestions = getSuggestedSlots(post, allPosts, 5);
     let scheduledDate: Date;
     
@@ -232,8 +232,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
-      actorId: useFeedbirdStore.getState().user?.id || '',
+      workspaceId: useWorkspaceStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useUserStore.getState().user?.id || '',
       type: "scheduled",
       metadata: {
         publishTime: scheduledDate
@@ -249,8 +249,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
-      actorId: useFeedbirdStore.getState().user?.id || '',
+      workspaceId: useWorkspaceStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useUserStore.getState().user?.id || '',
       type: "scheduled",
       metadata: {
         publishTime: dt
@@ -265,8 +265,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add scheduling activity
     addActivity({
       postId: post.id,
-      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
-      actorId: useFeedbirdStore.getState().user?.id || '',
+      workspaceId: useWorkspaceStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useUserStore.getState().user?.id || '',
       type: "scheduled",
       metadata: {
         publishTime: post.publish_date || new Date()
@@ -283,8 +283,8 @@ export function InlineDateEditor({ post }: { post: Post }) {
     // Add publishing activity
     addActivity({
       postId: post.id,
-      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
-      actorId: useFeedbirdStore.getState().user?.id || '',
+      workspaceId: useWorkspaceStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useUserStore.getState().user?.id || '',
       type: "published",
       metadata: {
         publishTime
@@ -382,8 +382,8 @@ function buildHalfHourSlots() {
    For the modal, or do you want the same icon? 
 ------------------------------------------------------------------ */
 export function ApproveCell({ post }: { post: Post }) {
-  const approvePost = useFeedbirdStore(s => s.approvePost);
-  const requestChanges = useFeedbirdStore(s => s.requestChanges);
+  const approvePost = usePostStore(s => s.approvePost);
+  const requestChanges = usePostStore(s => s.requestChanges);
 
   const isApproved = post.status === "Approved";
   const isInRevision = post.status === "Needs Revisions";

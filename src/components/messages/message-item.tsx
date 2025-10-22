@@ -9,13 +9,13 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn, formatTimeAgo } from '@/lib/utils'
-import { Reply, Copy, Pin, Forward, CheckSquare, Flag, Trash2 } from 'lucide-react'
-import { format, isToday, isYesterday } from 'date-fns'
+import { cn } from '@/lib/utils'
+import { Reply } from 'lucide-react'
+import { format } from 'date-fns'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { getFullnameinitial } from '@/lib/utils'
 import EmojiPicker from 'emoji-picker-react'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore, usePostStore } from '@/lib/store'
 import { sanitizeHTML } from '@/lib/utils/sanitize'
 
 type MessageItemProps = {
@@ -134,8 +134,8 @@ export default function MessageItem({
 						if (!boards || boards.length === 0) return null;
 						
 						// Get board data directly from store using board IDs
-						const boardNav = useFeedbirdStore(s => s.boardNav);
-						const getAllPosts = useFeedbirdStore(s => s.getAllPosts);
+						const boardNav = useWorkspaceStore(s => s.boardNav);
+						const getAllPosts = usePostStore(s => s.getAllPosts);
 						
 						const boardData = boards.map((board_id: string) => {
 							const board = boardNav.find(b => b.id === board_id);

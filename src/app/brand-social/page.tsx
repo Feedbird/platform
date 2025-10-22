@@ -3,7 +3,9 @@
 
 import { useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useSocialStore } from "@/lib/store";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
+import { SocialStore } from "@/lib/store/social-store";
 
 function BrandSocialCallbackInner() {
   const searchParams = useSearchParams();
@@ -12,15 +14,15 @@ function BrandSocialCallbackInner() {
   const accessToken = searchParams.get("access_token");
   const error = searchParams.get("error");
   // We'll assume you always have some active brand, or you store it in session, etc.
-  const brandId = useFeedbirdStore((s) => s.activeBrandId);
-  const connectAccount = useFeedbirdStore((s) => s.connectSocialAccount);
-  const stagePages = useFeedbirdStore((s) => s.stageSocialPages);
+  const brandId = useWorkspaceStore((s: WorkspaceStore) => s.activeBrandId);
+  const connectAccount = useSocialStore((s: SocialStore) => s.connectSocialAccount);
+  const stagePages = useSocialStore((s: SocialStore) => s.stageSocialPages);
 
   useEffect(() => {
     if (error) {
       // If user canceled or something, just redirect or show error
       alert("Error connecting Facebook: " + error);
-      const activeWorkspace = useFeedbirdStore.getState().getActiveWorkspace();
+      const activeWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
       if (activeWorkspace) {
         router.replace(`/${activeWorkspace.id}`);
       } else {
@@ -52,7 +54,7 @@ function BrandSocialCallbackInner() {
         }
       ], localAccountId);
       // Then redirect to brand or somewhere
-      const activeWorkspace = useFeedbirdStore.getState().getActiveWorkspace();
+      const activeWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
       if (activeWorkspace) {
         router.replace(`/${activeWorkspace.id}/brands`);
       } else {

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Block, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { Block, useUserStore, useWorkspaceStore } from "@/lib/store";
 import { Paperclip, Maximize2, MessageCircleMore, ImageIcon, Trash2, Play, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { cn, calculateAspectRatioWidth, getAspectRatioType } from "@/lib/utils";
 import { storeApi } from "@/lib/api/api-service";
@@ -185,7 +185,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
       const blob = await canvasToBlob(canvas);
       const file = new File([blob], `${block.id}-thumbnail.jpg`, { type: "image/jpeg" });
 
-      const state = useFeedbirdStore.getState();
+      const state = useWorkspaceStore.getState();
       const wid = state.activeWorkspaceId;
       const bid = state.activeBrandId;
       if (!wid) throw new Error("Missing workspace id");
@@ -222,7 +222,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
         return { ...b, versions: updatedVersions, __oldThumb: oldThumb } as any;
       });
 
-      const userEmail = state.user?.email;
+      const userEmail = useUserStore.getState().user?.email;
       // Persist to DB and store
       const post = await storeApi.updatePostBlocksAndUpdateStore(postId, updatedBlocks.map(({ __oldThumb, ...rest }: any) => rest), userEmail);
 
@@ -248,7 +248,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
   async function uploadFileAndSave(block: Block, file: File) {
     try {
       setSavingBlockId(block.id);
-      const state = useFeedbirdStore.getState();
+      const state = useWorkspaceStore.getState();
       const wid = state.activeWorkspaceId;
       const bid = state.activeBrandId;
       if (!wid) throw new Error("Missing workspace id");
@@ -282,7 +282,7 @@ export function BlocksViewer({ postId, blocks, onExpandBlock, onRemoveBlock }: B
         return { ...b, versions: updatedVersions, __oldThumb: oldThumb } as any;
       });
 
-      const userEmail = state.user?.email;
+      const userEmail = useUserStore.getState().user?.email;
       await storeApi.updatePostBlocksAndUpdateStore(postId, updatedBlocks.map(({ __oldThumb, ...rest }: any) => rest), userEmail);
 
       const updatedBlock = updatedBlocks.find((b: any) => b.id === block.id);

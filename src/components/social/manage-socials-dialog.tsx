@@ -5,7 +5,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useFeedbirdStore, Platform } from "@/lib/store/use-feedbird-store";
+import { Platform, useSocialStore, useWorkspaceStore } from "@/lib/store";
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
 import { cn } from "@/lib/utils";
 import { useAsyncLoading } from "@/hooks/use-async-loading";
@@ -51,14 +51,14 @@ export function ManageSocialsDialog(props: {
   const { workspaceId, open, onOpenChange, targetSetId } = props;
   const { executeWithLoading, isLoading } = useAsyncLoading();
 
-  const ws = useFeedbirdStore(s => s.getActiveWorkspace());
+  const ws = useWorkspaceStore((s) => s.getActiveWorkspace());
 
-  const connectAccount = useFeedbirdStore(s => s.connectSocialAccount);
-  const stagePages = useFeedbirdStore(s => s.stageSocialPages);
-  const confirmPage = useFeedbirdStore(s => s.confirmSocialPage);
-  const disconnectPage = useFeedbirdStore(s => s.disconnectSocialPage);
-  const checkPageStatus = useFeedbirdStore(s => s.checkPageStatus);
-  const handleOAuthSuccess = useFeedbirdStore(s => s.handleOAuthSuccess);
+  const connectAccount = useSocialStore((s) => s.connectSocialAccount);
+  const stagePages = useSocialStore((s) => s.stageSocialPages);
+  const confirmPage = useSocialStore((s) => s.confirmSocialPage);
+  const disconnectPage = useSocialStore((s) => s.disconnectSocialPage);
+  const checkPageStatus = useSocialStore((s) => s.checkPageStatus);
+  const handleOAuthSuccess = useSocialStore((s) => s.handleOAuthSuccess);
 
   const [activePlatform, setActivePlatform] = useState<Platform>("facebook");
   const [connectingPlatform, setConnectingPlatform] = useState<Platform | null>(null);
@@ -162,7 +162,7 @@ export function ManageSocialsDialog(props: {
       try {
         const { socialPageApi } = await import("@/lib/api/api-service");
         // Optimistic local update
-        useFeedbirdStore.setState((prev: any) => ({
+        useWorkspaceStore.setState((prev: any) => ({
           workspaces: (prev.workspaces || []).map((w: any) => ({
             ...w,
             socialPages: (w.socialPages || []).map((p: any) => p.id === pageId ? { ...p, socialSetId: targetSetId ?? null } : p)
@@ -171,7 +171,7 @@ export function ManageSocialsDialog(props: {
         await socialPageApi.moveToSet(pageId, targetSetId ?? null);
       } catch (err) {
         // On failure, reload socials to ensure consistency
-        try { await useFeedbirdStore.getState().loadSocialAccounts(workspaceId); } catch { }
+        try { await useSocialStore.getState().loadSocialAccounts(workspaceId); } catch { }
         console.error("Failed to assign page to set:", err);
       }
     }

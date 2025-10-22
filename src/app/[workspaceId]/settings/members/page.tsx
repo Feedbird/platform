@@ -5,15 +5,17 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useUserStore } from "@/lib/store";
 import { inviteApi, workspaceHelperApi } from "@/lib/api/api-service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn, getFullnameinitial } from "@/lib/utils";
+import { UserStore } from "@/lib/store/user-store";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 export default function SettingsMembersPage() {
-  const user = useFeedbirdStore((s) => s.user);
-  const activeWorkspaceId = useFeedbirdStore((s) => s.activeWorkspaceId);
+  const user = useUserStore((s: UserStore) => s.user);
+  const activeWorkspaceId = useWorkspaceStore((s: WorkspaceStore) => s.activeWorkspaceId);
 
   const [email, setEmail] = React.useState("");
   const [roleSelect, setRoleSelect] = React.useState<"Client" | "Team">("Client");

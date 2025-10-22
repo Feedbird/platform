@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { toast } from "sonner";
 import { useUploadStore, UploadStatus } from "@/lib/store/upload-store";
-import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
+import { usePostStore, useWorkspaceStore } from "../store";
+import { toast } from "sonner";
 import { Attachment } from "@/components/content/post-table/AttachmentCell";
 
 export type AttachmentUploadItem = {
@@ -21,9 +20,9 @@ export function useAttachmentUploader({ postId, columnId }: { postId: string; co
   const uploads = useMemo(() => allUploads.filter((u) => u.postId === postId && u.columnId === columnId), [allUploads, postId, columnId]);
   const uploadActions = useUploadStore.getState();
 
-  const wid = useFeedbirdStore((s) => s.activeWorkspaceId);
-  const bid = useFeedbirdStore((s) => s.activeBrandId);
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const wid = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const bid = useWorkspaceStore((s) => s.activeBrandId);
+  const updatePost = usePostStore((s) => s.updatePost);
 
   const startUploads = (files: File[]) => {
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -138,7 +137,7 @@ export function useAttachmentUploader({ postId, columnId }: { postId: string; co
             };
 
             // 4. Get the current post and update its user columns
-            const store = useFeedbirdStore.getState();
+            const store = usePostStore.getState();
             const post = store.getPost(postId);
             
             if (post) {

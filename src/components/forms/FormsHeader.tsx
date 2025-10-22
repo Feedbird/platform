@@ -4,8 +4,7 @@ import { SidebarTrigger } from "../ui/sidebar";
 import { Button } from "../ui/button";
 import { UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { useFormStore } from "@/lib/store/forms-store";
+import { useWorkspaceStore, useUserStore, useFormStore } from "@/lib/store";
 import { useForms } from "@/contexts/FormsContext";
 import Image from "next/image";
 import FormSettingsModal from "./content/FormSettingsModal";
@@ -34,7 +33,9 @@ function FormsHeaderContent() {
   const [loading, isLoading] = React.useState(false);
 
   const router = useRouter();
-  const { user, activeWorkspaceId, unsavedFormChanges } = useFeedbirdStore();
+  const { user } = useUserStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const { unsavedFormChanges } = useFormStore();
   const { createInitialForm } = useFormStore();
   const { activeForm, setActiveForm, isEditing, isPreview } = useForms();
 

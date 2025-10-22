@@ -6,12 +6,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Trash2Icon, EditIcon, Copy, SquareArrowOutUpRight } from "lucide-react";
-import { Post, useFeedbirdStore, Workspace } from "@/lib/store/use-feedbird-store";
+import { Post, useWorkspaceStore, usePostStore } from "@/lib/store";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-
 interface PostContextMenuProps {
   selectedPosts: Post[];
   onEdit: (post: Post) => void;
@@ -28,7 +27,7 @@ export function PostContextMenu({
   contextMenuPosition,
 }: PostContextMenuProps) {
   const canEditOrDup = selectedPosts.length === 1;
-  const store = useFeedbirdStore();
+  const store = useWorkspaceStore();
   const [shareDialogOpen, setShareDialogOpen] = React.useState(false);
   const [targetBrandId, setTargetBrandId] = React.useState<string>("");
 
@@ -48,7 +47,7 @@ export function PostContextMenu({
   function doShare() {
     if (!targetBrandId) return;
     const ids = selectedPosts.map((p) => p.id);
-    store.sharePostsToBrand(ids, targetBrandId);
+    usePostStore.getState().sharePostsToBrand(ids, targetBrandId);
     setShareDialogOpen(false);
   }
 

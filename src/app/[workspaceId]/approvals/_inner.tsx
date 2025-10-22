@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Status, useFeedbirdStore, FeedbirdStore, Post } from "@/lib/store/use-feedbird-store";
+import { usePostStore, useWorkspaceStore, Post } from "@/lib/store";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 
@@ -11,6 +11,7 @@ import { PostTable } from "@/components/content/post-table/post-table";
 import CalendarView from "@/components/content/content-calendar/calendar-view";
 import GridView from "@/components/content/content-grid/grid-view";
 import { PostRecordModal } from "@/components/content/post-record-modal/post-record-modal";
+import { PostStore } from "@/lib/store/post-store";
 
 export function ApprovalsInner() {
   // Decide which view: 'table', 'calendar', or 'grid'
@@ -21,9 +22,9 @@ export function ApprovalsInner() {
   // Gather posts across *all boards* in the active workspace, filtering for
   // those that are either Pending Approval or Revised.
   const posts = useStoreWithEqualityFn(
-    useFeedbirdStore,
-    (s: FeedbirdStore): Post[] => {
-      const ws = s.getActiveWorkspace();
+    usePostStore,
+    (s: PostStore): Post[] => {
+      const ws = useWorkspaceStore.getState().getActiveWorkspace();
       const allPosts = ws ? s.getAllPosts() : [];
       return allPosts?.filter(
         (p) => p.status === "Pending Approval" || p.status === "Revised"

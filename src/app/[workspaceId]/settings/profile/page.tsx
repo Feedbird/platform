@@ -1,6 +1,6 @@
 "use client";
 
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useUserStore, useWorkspaceStore } from "@/lib/store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useImageUploader } from "@/hooks/use-image-uploader";
 import { userApi } from "@/lib/api/api-service";
@@ -11,10 +11,12 @@ import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useUser, useReverification } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { UserStore } from "@/lib/store/user-store";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 export default function SettingsProfilePage() {
-  const user = useFeedbirdStore((s) => s.user);
-  const workspaceId = useFeedbirdStore((s) => s.activeWorkspaceId) as string;
+  const user = useUserStore((s: UserStore) => s.user);
+  const workspaceId = useWorkspaceStore((s: WorkspaceStore) => s.activeWorkspaceId) as string;
   const { user: clerkUser } = useUser();
 
   const { upload, uploading } = useImageUploader({
@@ -120,13 +122,13 @@ export default function SettingsProfilePage() {
       
       if (Object.keys(updates).length > 0) {
         await userApi.updateUser({ email: user.email }, updates);
-        useFeedbirdStore.setState((s: any) => ({
+        useUserStore.setState((s: UserStore) => ({
           user: s.user
             ? {
                 ...s.user,
                 firstName: updates.first_name !== undefined ? firstName : s.user.firstName,
                 lastName: updates.last_name !== undefined ? lastName : s.user.lastName,
-                imageUrl: updates.image_url !== undefined ? (avatarUrl || null) : s.user.imageUrl,
+                imageUrl: updates.image_url !== undefined ? (avatarUrl ?? undefined) : s.user.imageUrl,
               }
             : s.user,
         }));
@@ -173,7 +175,7 @@ export default function SettingsProfilePage() {
                 if (old) await old.destroy();
               } catch {}
               await userApi.updateUser({ email: user.email }, { email: newEmail });
-              useFeedbirdStore.setState((s: any) => ({ user: s.user ? { ...s.user, email: newEmail } : s.user }));
+              useUserStore.setState((s: UserStore) => ({ user: s.user ? { ...s.user, email: newEmail } : s.user }));
               setShowChangeEmail(false);
               setEmailVerificationComplete(false);
               setEmailVerificationId(null);
@@ -196,7 +198,7 @@ export default function SettingsProfilePage() {
               if (old) await old.destroy();
             } catch {}
             await userApi.updateUser({ email: user.email }, { email: newEmail });
-            useFeedbirdStore.setState((s: any) => ({ user: s.user ? { ...s.user, email: newEmail } : s.user }));
+            useUserStore.setState((s: UserStore) => ({ user: s.user ? { ...s.user, email: newEmail } : s.user }));
             setShowChangeEmail(false);
             setEmailVerificationComplete(false);
             setEmailVerificationId(null);
@@ -249,7 +251,7 @@ export default function SettingsProfilePage() {
       }
 
       await userApi.updateUser({ email: oldEmail }, { email: newEmail });
-      useFeedbirdStore.setState((s: any) => ({ user: s.user ? { ...s.user, email: newEmail } : s.user }));
+      useUserStore.setState((s: UserStore) => ({ user: s.user ? { ...s.user, email: newEmail } : s.user }));
 
       setShowChangeEmail(false);
       setEmailVerificationComplete(false);

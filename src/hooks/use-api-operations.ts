@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useUserStore, useWorkspaceStore } from '@/lib/store'
 import { storeApi, userApi } from '@/lib/api/api-service'
 import { ApiError } from '@/lib/api/api-service'
 
@@ -15,7 +15,7 @@ export function useApiOperations() {
   const [loading, setLoading] = useState<LoadingState>({})
   const [errors, setErrors] = useState<ErrorState>({})
   
-  const store = useFeedbirdStore()
+  const workspaceStore = useWorkspaceStore()
 
   // Helper function to manage loading states
   const withLoading = useCallback(async <T>(
@@ -44,16 +44,16 @@ export function useApiOperations() {
 
   // Workspace operations
   const createWorkspace = useCallback(async (name: string, email: string, logo?: string) => {
-    return withLoading('createWorkspace', () => store.addWorkspace(name, email, logo))
-  }, [store, withLoading])
+    return withLoading('createWorkspace', () => workspaceStore.addWorkspace(name, email, logo))
+  }, [workspaceStore, withLoading])
 
   const updateWorkspace = useCallback(async (id: string, updates: { name?: string; logo?: string }) => {
     return withLoading('updateWorkspace', () => storeApi.updateWorkspaceAndUpdateStore(id, updates))
   }, [withLoading])
 
   const deleteWorkspace = useCallback(async (id: string) => {
-    return withLoading('deleteWorkspace', () => store.removeWorkspace(id))
-  }, [store, withLoading])
+    return withLoading('deleteWorkspace', () => workspaceStore.removeWorkspace(id))
+  }, [workspaceStore, withLoading])
 
   // Brand operations
   const createBrand = useCallback(async (
@@ -64,16 +64,16 @@ export function useApiOperations() {
     voice?: string,
     prefs?: string
   ) => {
-    return withLoading('createBrand', () => store.addBrand(name, logo, styleGuide, link, voice, prefs))
-  }, [store, withLoading])
+    return withLoading('createBrand', () => workspaceStore.addBrand(name, logo, styleGuide, link, voice, prefs))
+  }, [workspaceStore, withLoading])
 
   const updateBrand = useCallback(async (id: string, updates: any) => {
-    return withLoading('updateBrand', () => store.updateBrand(id, updates))
-  }, [store, withLoading])
+    return withLoading('updateBrand', () => workspaceStore.updateBrand(id, updates))
+  }, [workspaceStore, withLoading])
 
   const deleteBrand = useCallback(async (id: string) => {
-    return withLoading('deleteBrand', () => store.removeBrand(id))
-  }, [store, withLoading])
+    return withLoading('deleteBrand', () => workspaceStore.removeBrand(id))
+  }, [workspaceStore, withLoading])
 
   // Board operations
   const createBoard = useCallback(async (
@@ -84,16 +84,16 @@ export function useApiOperations() {
     rules?: any
   ) => {
     console.log("createBoard", name, description, image, color, rules);
-    return withLoading('createBoard', () => store.addBoard(name, description, image, color, rules))
-  }, [store, withLoading])
+    return withLoading('createBoard', () => workspaceStore.addBoard(name, description, image, color, rules))
+  }, [workspaceStore, withLoading])
 
   const updateBoard = useCallback(async (id: string, updates: any) => {
-    return withLoading('updateBoard', () => store.updateBoard(id, updates))
-  }, [store, withLoading])
+    return withLoading('updateBoard', () => workspaceStore.updateBoard(id, updates))
+  }, [workspaceStore, withLoading])
 
   const deleteBoard = useCallback(async (id: string) => {
-    return withLoading('deleteBoard', () => store.removeBoard(id))
-  }, [store, withLoading])
+    return withLoading('deleteBoard', () => workspaceStore.removeBoard(id))
+  }, [workspaceStore, withLoading])
 
   // Post operations
   const createPost = useCallback(async (
@@ -101,10 +101,10 @@ export function useApiOperations() {
     board_id: string,
     postData: any
   ) => {
-    const userEmail = store.user?.email
+    const userEmail = useUserStore.getState().user?.email
     if (!userEmail) throw new Error('No user email available')
     return withLoading('createPost', () => storeApi.createPostAndUpdateStore(workspaceId, board_id, postData, userEmail))
-  }, [store.user?.email, withLoading])
+  }, [useUserStore.getState().user?.email, withLoading])
 
   const updatePost = useCallback(async (id: string, updates: any) => {
     return withLoading('updatePost', () => storeApi.updatePostAndUpdateStore(id, updates))

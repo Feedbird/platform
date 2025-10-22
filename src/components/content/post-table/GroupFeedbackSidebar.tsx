@@ -6,7 +6,7 @@ import { getFullnameinitial } from "@/lib/utils";
 import { X, Bell, ArrowRight, Smile, AtSign, MessageSquare, CheckCircle, ChevronDown, ChevronLeft, Copy, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { GroupComment, GroupMessage } from "@/lib/store/use-feedbird-store";
+import { GroupComment, GroupMessage } from "@/lib/store";
 import EmojiPicker from "emoji-picker-react";
 import { formatTimeAgo as sharedFormatTimeAgo } from "@/lib/utils";
 

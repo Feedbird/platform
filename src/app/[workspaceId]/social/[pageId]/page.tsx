@@ -5,23 +5,25 @@ import { useParams }  from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Image          from 'next/image';
 import { Trash2, Eye, Heart } from 'lucide-react';
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
+import { useWorkspaceStore, useSocialStore, usePostStore } from '@/lib/store';
 import type { PostHistory } from '@/lib/social/platforms/platform-types';
 import { Button } from '@/components/ui/button';
 import { useAsyncLoading } from '@/hooks/use-async-loading';
 import { usePostHistoryLoading } from '@/hooks/use-post-history-loading';
 import { DynamicTitle } from '@/components/layout/dynamic-title';
+import { WorkspaceStore } from '@/lib/store/workspace-store';
+import { SocialStore } from '@/lib/store/social-store';
 
 export default function SocialPagePosts() {
   const { pageId } = useParams() as { pageId: string };
   const { executeWithLoading } = useAsyncLoading();
 
-  const brandId          = useFeedbirdStore(s => s.activeBrandId);
-  const postHistory      = useFeedbirdStore(s => s.postHistory);
-  const syncPostHistory  = useFeedbirdStore(s => s.syncPostHistory);
-  const nextPage         = useFeedbirdStore(s => s.nextPage[pageId]);
-  const deletePagePost   = useFeedbirdStore(s => s.deletePagePost);
-  const workspace        = useFeedbirdStore(s => s.getActiveWorkspace());
+  const brandId          = useWorkspaceStore((s: WorkspaceStore) => s.activeBrandId);
+  const postHistory      = useSocialStore((s: SocialStore) => s.postHistory);
+  const syncPostHistory  = useSocialStore((s: SocialStore) => s.syncPostHistory);
+  const nextPage         = useSocialStore((s: SocialStore) => s.nextPage[pageId]);
+  const deletePagePost   = useSocialStore((s: SocialStore) => s.deletePagePost);
+  const workspace        = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
   
   // Check if the store is currently syncing this page
   const isStoreSyncing   = usePostHistoryLoading(pageId);

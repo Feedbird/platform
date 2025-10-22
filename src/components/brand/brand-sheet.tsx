@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuTrigger,
   DropdownMenuContent, DropdownMenuItem,
 }                               from '@/components/ui/dropdown-menu'
-import { useFeedbirdStore }     from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore }     from '@/lib/store'
 import { toast }                from 'sonner'
 import { cn }                   from '@/lib/utils'
 
@@ -51,7 +51,7 @@ export default function BrandSheet() {
   const open    = Boolean(id) || isNew
 
   /* store -------------------------------------------------------- */
-  const store   = useFeedbirdStore()
+  const store   = useWorkspaceStore()
   const brand   = id ? store.getActiveWorkspace()?.brand : null
 
   /* local state -------------------------------------------------- */

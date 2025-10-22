@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { BlocksPreview } from './BlocksPreview';
-import { Block } from '@/lib/store/use-feedbird-store';
+import { Block } from '@/lib/store';
 import { RowHeightType } from "@/lib/utils";
 
 export type BlocksPreviewProps = {

@@ -25,8 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, AtSign, Image as ImageIcon, X, AlertCircle } from "lucide-react";
+import { X, AlertCircle } from "lucide-react";
 import type { PostSettings, Platform, TikTokSettings, GoogleBusinessSettings, YouTubeSettings, PinterestSettings } from "@/lib/social/platforms/platform-types";
 import { TikTokSettingsPanel } from '../post-record-modal/tiktok-settings';
 import { GoogleBusinessSettingsPanel } from '../post-record-modal/google-business-settings';
@@ -34,7 +33,7 @@ import { YouTubeSettingsPanel } from '../post-record-modal/youtube-settings';
 import { PinterestSettingsPanel } from '../post-record-modal/pinterest-settings';
 import { getDefaultGoogleBusinessSettings } from '@/lib/utils/google-business-settings-mapper';
 import { getDefaultYouTubeSettings } from '@/lib/utils/youtube-settings-mapper';
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 
 /* ------------------------------------------------------------ */
 /* Types & helpers                                               */
@@ -105,7 +104,7 @@ export function SettingsEditCell({
   enterEdit,
   exitEdit,
 }: Props) {
-  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const ws = useWorkspaceStore((s) => s.getActiveWorkspace());
 
   // Get the first TikTok page ID if TikTok is selected
   const tiktokPageId = React.useMemo(() => {

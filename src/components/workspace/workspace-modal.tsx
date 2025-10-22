@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { X, ImageIcon, ChevronRight, ChevronLeft, CalendarIcon, FolderOpen, Columns2, ChevronDown, ChevronUp, ListPlus, Film, EditIcon, Rows4, Rows3, Rows2, RectangleHorizontal, Maximize2, User, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useUserStore, useWorkspaceStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { ROW_HEIGHT_CONFIG, RowHeightType } from '@/lib/utils'
 import PlatformPreview from '@/components/platform-preview/platform-preview'
@@ -180,7 +180,7 @@ const getAvatarColor = (index: number, avatarColors: Record<number, string>) => 
 
 export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
   const router = useRouter()
-  const boardTemplates = useFeedbirdStore(state => state.boardTemplates)
+  const boardTemplates = useWorkspaceStore(state => state.boardTemplates)
   const [currentStep, setCurrentStep] = React.useState(1)
   const [boardRules, setBoardRules] = React.useState<BoardRules>({
     autoSchedule: false,
@@ -242,7 +242,7 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
         inviteEmails: ['', '', '']
       }))
       try {
-        const defaultRules = (useFeedbirdStore.getState().user as any)?.default_board_rules
+        const defaultRules = (useUserStore.getState().user as any)?.default_board_rules
         if (defaultRules) {
           setBoardRules(defaultRules as BoardRules)
         } else {

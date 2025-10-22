@@ -1,17 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useFeedbirdStore, usePostStatusTimeUpdater } from '@/lib/store/use-feedbird-store'
+import { use, useEffect, useState } from 'react'
+import { useWorkspaceStore, usePostStatusTimeUpdater, useUserStore, useMessageStore } from '@/lib/store'
 import { ChannelMessage as DbChannelMessage } from '@/lib/supabase/interfaces'
 import { createClient } from '@supabase/supabase-js'
 
 import { userApi } from '@/lib/api/api-service'
 
 export default function FeedbirdProvider({ children }: { children: React.ReactNode }) {
-  const workspaces = useFeedbirdStore(s => s.workspaces)
-  const user = useFeedbirdStore(s => s.user)
-  const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId)
-  const currentChannelId = useFeedbirdStore(s => s.currentChannelId)
+  const workspaces = useWorkspaceStore(s => s.workspaces)
+  const user = useUserStore(s => s.user)
+  const activeWorkspaceId = useWorkspaceStore(s => s.activeWorkspaceId)
+  const currentChannelId = useMessageStore(s => s.currentChannelId)
 
   // Supabase client state
   const [supabase, setSupabase] = useState<any>(null)
@@ -66,7 +66,7 @@ export default function FeedbirdProvider({ children }: { children: React.ReactNo
           // If user is viewing this channel context, remove from unread_msg
           // If user is NOT viewing this channel context, add to local store
           
-          const store = useFeedbirdStore.getState()
+          const store = useMessageStore.getState()
           const currentChannelId = store.currentChannelId
           let shouldMarkAsRead = false
           

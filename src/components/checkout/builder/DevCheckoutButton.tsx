@@ -1,12 +1,13 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 export default function DevCheckoutButton() {
   const router = useRouter();
-  const { activeWorkspaceId } = useFeedbirdStore();
+  const activeWorkspaceId = useWorkspaceStore((s: WorkspaceStore) => s.activeWorkspaceId);
   return (
     <Button
       variant="ghost"

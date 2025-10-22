@@ -10,13 +10,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  useFeedbirdStore, Post,
-} from '@/lib/store/use-feedbird-store';
+  usePostStore, Post,
+} from '@/lib/store';
 import { Platform } from '@/lib/social/platforms/platform-types';
 import { ChannelIcons } from '@/components/content/shared/content-post-ui';
+import { PostStore } from '@/lib/store/post-store';
 
 export default function PlatformSelector({ post }: { post: Post }) {
-  const updatePost = useFeedbirdStore((s) => s.updatePost);
+  const updatePost = usePostStore((s: PostStore) => s.updatePost);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Platform[]>(post.platforms);
 

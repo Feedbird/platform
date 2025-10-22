@@ -44,9 +44,11 @@ import { RenameBoardDialog } from "@/components/board/rename-board-dialog";
 import {
   NavLink as NavLinkType,
   BoardRules,
-  useFeedbirdStore,
   NavLink,
-} from "@/lib/store/use-feedbird-store";
+  usePostStore,
+  useUserStore,
+  useWorkspaceStore,
+} from "@/lib/store";
 import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 import { cn, getFullnameinitial } from "@/lib/utils";
 import { useClerk } from "@clerk/nextjs";
@@ -133,7 +135,7 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
 /* --------------------------------------------------------------------- */
 
 function useBoardCount(board_id: string): number | null {
-  const count = useFeedbirdStore((s) => {
+  const count = usePostStore((s) => {
     const posts = s.getAllPosts();
     return posts.filter((p) => p.board_id === board_id).length;
   });
@@ -270,10 +272,10 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const pathname = usePathname();
   const { state, hoverReveal } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
-  const unreadMsgCount = useFeedbirdStore((s) =>
+  const unreadMsgCount = useUserStore((s) =>
     s.user?.unread_msg ? s.user.unread_msg.length : 0
   );
-  const unreadNotificationCount = useFeedbirdStore((s) =>
+  const unreadNotificationCount = useUserStore((s) =>
     s.user?.unread_notification ? s.user.unread_notification.length : 0
   );
   const totalUnreadCount = unreadMsgCount + unreadNotificationCount;
@@ -461,11 +463,11 @@ export const RenderNavItems = React.memo(function RenderNavItems({
 
 function UserProfileSection() {
   const { state, hoverReveal } = useSidebar();
-  const user = useFeedbirdStore((s) => s.user);
-  const clearUser = useFeedbirdStore((s) => s.clearUser);
+  const user = useUserStore((s) => s.user);
+  const clearUser = useUserStore((s) => s.clearUser);
   const [isClient, setIsClient] = React.useState(false);
   const { signOut } = useClerk();
-  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const activeWorkspace = useWorkspaceStore((s) => s.getActiveWorkspace());
   const router = useRouter();
 
   React.useEffect(() => {
@@ -597,8 +599,8 @@ export function AppSidebar() {
     rules?: BoardRules;
   } | null>(null);
 
-  const { updateBoard, addBoard, removeBoard } = useFeedbirdStore();
-  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const { updateBoard, addBoard, removeBoard } = useWorkspaceStore();
+  const activeWorkspace = useWorkspaceStore((s) => s.getActiveWorkspace());
   const [colorIconTarget, setColorIconTarget] =
     React.useState<NavLinkType | null>(null);
   const [renameTarget, setRenameTarget] = React.useState<NavLinkType | null>(
@@ -606,7 +608,7 @@ export function AppSidebar() {
   );
   const [isManageSocialsOpen, setIsManageSocialsOpen] = React.useState(false);
 
-  const activeBrand = useFeedbirdStore((s) => s.getActiveBrand());
+  const activeBrand = useWorkspaceStore((s) => s.getActiveBrand());
 
   React.useEffect(() => {
     setIsClient(true);
@@ -615,7 +617,7 @@ export function AppSidebar() {
   const platformNav = React.useMemo(() => {
     return getDefaultPlatformNav(activeWorkspace?.id);
   }, [activeWorkspace]);
-  const boardNav = useFeedbirdStore((s) => s.boardNav);
+  const boardNav = useWorkspaceStore((s) => s.boardNav);
 
   /* open / collapse state for the two accordion groups */
   const [boardsOpen, setBoardsOpen] = React.useState(true);
@@ -654,7 +656,7 @@ export function AppSidebar() {
       // TODO: Add to favorites functionality
       alert(`Add ${item.label} to favorites`);
     } else if (action === "duplicate") {
-      const duplicatedBoard = useFeedbirdStore
+      const duplicatedBoard = useWorkspaceStore
         .getState()
         .workspaces.flatMap((w) => w.boards)
         .find((b) => b.id === item.id);

@@ -1,9 +1,8 @@
 "use client";
 import { FormsProvider } from "@/contexts/FormsContext";
 import { FormsHeader } from "@/components/forms/FormsHeader";
-import { useFormStore } from "@/lib/store/forms-store";
 import { useEffect } from "react";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useFormStore } from "@/lib/store";
 
 export default function FormsLayout({
   children,
@@ -11,7 +10,7 @@ export default function FormsLayout({
   children: React.ReactNode;
 }) {
   const { fetchServices } = useFormStore();
-  const { activeWorkspaceId } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   useEffect(() => {
     fetchServices(activeWorkspaceId!);
   }, [fetchServices]);

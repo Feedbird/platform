@@ -26,7 +26,7 @@ import Loading from "./loading";
 import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
 import { useFormEditor } from "@/contexts/FormEditorContext";
 import { formFieldSorter, nestedObjectEqual } from "@/lib/utils/transformers";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useFormStore } from "@/lib/store";
 
 type SelectedField = {
   id: string;
@@ -36,7 +36,7 @@ type SelectedField = {
 
 export default function FormInnerVisualizer() {
   const { setIsEditing, setActiveForm, activeForm } = useForms();
-  const { setUnsavedFormChanges } = useFeedbirdStore();
+  const { setUnsavedFormChanges } = useFormStore();
   const params = useParams();
   const formId = params.id as string;
 

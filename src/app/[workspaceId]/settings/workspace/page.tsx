@@ -14,8 +14,9 @@ import { Trash2, Upload, X, Plus } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useUserStore } from "@/lib/store";
 import { workspaceApi, storeApi } from "@/lib/api/api-service";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 
@@ -68,7 +69,7 @@ export default function SettingsWorkspacePage() {
 
   const wsLogoInput = React.useRef<HTMLInputElement | null>(null);
 
-  const storeWorkspace = useFeedbirdStore((s) => s.workspaces.find((w) => w.id === workspaceId));
+  const storeWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.workspaces.find((w) => w.id === workspaceId));
 
   React.useEffect(() => {
     if (!storeWorkspace) return;
@@ -115,7 +116,7 @@ export default function SettingsWorkspacePage() {
         week_start: weekStart,
         time_format: timeFormat,
       });
-      useFeedbirdStore.setState((s) => ({
+      useWorkspaceStore.setState((s: WorkspaceStore) => ({
         workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
           ...w,
           name,
@@ -139,7 +140,7 @@ export default function SettingsWorkspacePage() {
       const updated = await workspaceApi.updateWorkspace(ws.id, {
         allowed_posting_time: allowedSlots,
       });
-      useFeedbirdStore.setState((s) => ({
+      useWorkspaceStore.setState((s: WorkspaceStore) => ({
         workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
           ...w,
           allowed_posting_time: allowedSlots,
@@ -159,7 +160,7 @@ export default function SettingsWorkspacePage() {
       const updated = await workspaceApi.updateWorkspace(ws.id, {
         default_board_rules: rules,
       });
-      useFeedbirdStore.setState((s) => ({
+      useWorkspaceStore.setState((s: WorkspaceStore) => ({
         workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
           ...w,
           default_board_rules: rules,

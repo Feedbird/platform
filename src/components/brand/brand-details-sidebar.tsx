@@ -10,8 +10,9 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   X, Edit, Globe, Palette, Type, MessageSquare, Settings,
 } from 'lucide-react'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { WorkspaceStore } from '@/lib/store/workspace-store'
 
 /* ─────────────────────────────────────────────── */
 interface BrandDetailsSidebarProps {
@@ -26,8 +27,7 @@ export default function BrandDetailsSidebar({
   onEditClick 
 }: BrandDetailsSidebarProps) {
   /* store -------------------------------------------------------- */
-  const store = useFeedbirdStore()
-  const brand = store.getActiveBrand()
+  const brand = useWorkspaceStore((s: WorkspaceStore) => s.getActiveBrand());
 
   const close = () => onOpenChange(false)
 

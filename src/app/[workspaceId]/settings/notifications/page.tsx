@@ -5,15 +5,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useUserStore, useWorkspaceStore } from "@/lib/store";
 import { userApi } from "@/lib/api/api-service";
+import { UserStore } from "@/lib/store/user-store";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 export default function SettingsNotificationsPage() {
   const params = useParams();
   const workspaceId = (params?.workspaceId as string) || "";
-  const user = useFeedbirdStore((s) => s.user);
-  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
-  const updateUserNotificationSettings = useFeedbirdStore((s) => s.updateUserNotificationSettings);
+  const user = useUserStore((s: UserStore) => s.user);
+  const activeWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
+  const updateUserNotificationSettings = useUserStore((s: UserStore) => s.updateUserNotificationSettings);
 
   const [notificationSettings, setNotificationSettings] = useState({
     communication: {

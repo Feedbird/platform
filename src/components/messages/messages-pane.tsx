@@ -19,7 +19,7 @@ import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { getFullnameinitial } from '@/lib/utils'
 import EmojiPicker from 'emoji-picker-react'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { NavLink, useMessageStore, usePostStore, useUserStore, useWorkspaceStore } from '@/lib/store'
 import { workspaceHelperApi, postApi, userApi } from '@/lib/api/api-service'
 import { ChannelMessage as DbChannelMessage } from '@/lib/supabase/interfaces'
 import ChannelSelector from './channel-selector'
@@ -177,7 +177,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		document.addEventListener('mousedown', handleClickOutside)
 		return () => document.removeEventListener('mousedown', handleClickOutside)
 	}, [openEmoticonsEmojiId, openEmojiId, emoji, showMentions, showPlusDropdown, showBoardList])
-	const channelMessagesMap = useFeedbirdStore(s => s.channelMessagesByChannelId)
+	const channelMessagesMap = useMessageStore(s => s.channelMessagesByChannelId)
 
 	// Function to add emoji reaction to a message
 	const addEmojiReaction = async (messageId: string, emoji: string) => {
@@ -214,14 +214,14 @@ export default function MessagesPane({ channelName, channelDescription, members:
 				console.error('Error adding emoji reaction:', errorData.error)
 				// Revert local state on error
 				if (channelId === 'all') {
-					useFeedbirdStore.setState(state => ({
+					useMessageStore.setState(state => ({
 						channelMessagesByChannelId: {
 							...state.channelMessagesByChannelId,
 							'all': messages
 						}
 					}))
 				} else {
-					useFeedbirdStore.setState(state => ({
+					useMessageStore.setState(state => ({
 						channelMessagesByChannelId: {
 							...state.channelMessagesByChannelId,
 							[channelId]: messages
@@ -236,12 +236,12 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	const messages = channelId === 'all'
 		? (channelMessagesMap?.['all'] ?? []) as MessageData[]
 		: (channelMessagesMap?.[channelId] ?? []) as MessageData[]
-	const activeWorkspaceId = useFeedbirdStore(s => s.activeWorkspaceId)
-	const user = useFeedbirdStore(s => s.user)
+	const activeWorkspaceId = useWorkspaceStore(s => s.activeWorkspaceId)
+	const user = useUserStore(s => s.user)
 	// Removed store subscriptions for loadChannelMessages and loadAllWorkspaceMessages to prevent re-renders
-	const sendChannelMessage = useFeedbirdStore(s => s.sendChannelMessage)
-	const boardNav = useFeedbirdStore(s => s.boardNav)
-	const getAllPosts = useFeedbirdStore(s => s.getAllPosts)
+	const sendChannelMessage = useMessageStore(s => s.sendChannelMessage)
+	const boardNav = useWorkspaceStore(s => s.boardNav)
+	const getAllPosts = usePostStore(s => s.getAllPosts)
 
 	// Fetch board data when workspace changes
 	useEffect(() => {
@@ -272,7 +272,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	// Function to handle board quick view navigation
 	const handleBoardQuickView = (board_id: string) => {
 		// Find the board in boardNav
-		const board = boardNav.find(b => b.id === board_id);
+		const board = boardNav.find((b: NavLink) => b.id === board_id);
 		if (board) {
 			// Use the same navigation method as app-sidebar
 			// This will navigate to the board content page and show the post table
@@ -416,7 +416,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					}
 
 					// Also update in the store to keep everything in sync
-					useFeedbirdStore.setState((prev: any) => {
+					useMessageStore.setState((prev: any) => {
 						const byId = prev.channelMessagesByChannelId || {}
 						const channelMessages = byId[channelId] || []
 						const allMessages = byId['all'] || []
@@ -453,7 +453,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 
 
-	const rawChannels = useFeedbirdStore((s) => {
+	const rawChannels = useWorkspaceStore((s) => {
 		const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 		return (ws as any)?.channels ?? EMPTY_CHANNELS
 	}) as any[]
@@ -1237,7 +1237,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 
 			// Clear any existing messages from the previous workspace
 			// This ensures we don't show stale data
-			useFeedbirdStore.setState((prev: any) => ({
+			useMessageStore.setState((prev: any) => ({
 				channelMessagesByChannelId: {
 					...prev.channelMessagesByChannelId,
 					all: [],
@@ -1255,7 +1255,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 			// This ensures we show the current workspace's messages
 			setLoadingAllMessages(true)
 			// Get function directly from store to avoid ref issues
-			useFeedbirdStore.getState().loadAllWorkspaceMessages()
+			useMessageStore.getState().loadAllWorkspaceMessages()
 				.catch(() => { })
 				.finally(() => setLoadingAllMessages(false))
 		}
@@ -1280,11 +1280,11 @@ export default function MessagesPane({ channelName, channelDescription, members:
 	useEffect(() => {
 		if (channelId === 'all') {
 			setLoadingAllMessages(true)
-			useFeedbirdStore.getState().loadAllWorkspaceMessages()
+			useMessageStore.getState().loadAllWorkspaceMessages()
 				.catch(() => { })
 				.finally(() => setLoadingAllMessages(false))
 		} else {
-			useFeedbirdStore.getState().loadChannelMessages(channelId).catch(() => { })
+			useMessageStore.getState().loadChannelMessages(channelId).catch(() => { })
 		}
 	}, [channelId]) // Removed loadChannelMessages and loadAllWorkspaceMessages from dependencies
 
@@ -1312,20 +1312,8 @@ export default function MessagesPane({ channelName, channelDescription, members:
 						// Ignore our own messages to avoid echo
 						if (m.author_email && user?.email && m.author_email === user.email) return
 						// Avoid duplicates if already in store
-						const current = (useFeedbirdStore.getState() as any).channelMessagesByChannelId?.[channelId] || []
+						const current = (useMessageStore.getState() as any).channelMessagesByChannelId?.[channelId] || []
 						if (current.some((x: any) => x.id === m.id)) return
-
-						// Handle unread message logic
-						const store = useFeedbirdStore.getState()
-						// const currentUserEmail = store.user?.email
-						// const activeWorkspaceId = store.activeWorkspaceId
-
-						// if (currentUserEmail && activeWorkspaceId) {
-						// 	// Case 1: User is viewing this specific channel - mark as read immediately
-						// 	console.log('User is viewing this channel, marking message as read:', m.id)
-						// 	userApi.removeUnreadMessage(currentUserEmail, m.id)
-
-						// }
 
 						const profile = profilesRef.current?.[m.author_email]
 						const authorName = profile?.first_name || m.author_email
@@ -1343,7 +1331,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 							emoticons: (m as any).emoticons,
 							channelId: channelId,
 						}
-						useFeedbirdStore.setState((prev: any) => {
+						useMessageStore.setState((prev: any) => {
 							const byId = prev.channelMessagesByChannelId || {}
 							return {
 								channelMessagesByChannelId: {
@@ -1361,7 +1349,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					(payload: any) => {
 						const m = payload.new as DbChannelMessage
 						// Update emoticons in existing message - show to all users including sender
-						useFeedbirdStore.setState((prev: any) => {
+						useMessageStore.setState((prev: any) => {
 							const byId = prev.channelMessagesByChannelId || {}
 							const channelMessages = byId[channelId] || []
 							const allMessages = byId['all'] || []
@@ -1462,7 +1450,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 					// Ignore our own messages to avoid echo
 					if (m.author_email && user?.email && m.author_email === user.email) return
 					// Avoid duplicates in 'all'
-					const currentAll = (useFeedbirdStore.getState() as any).channelMessagesByChannelId?.['all'] || []
+					const currentAll = (useMessageStore.getState() as any).channelMessagesByChannelId?.['all'] || []
 					if (currentAll.some((x: any) => x.id === m.id)) return
 					const profile = profilesRef.current?.[m.author_email]
 					const authorName = profile?.first_name || m.author_email
@@ -1480,7 +1468,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 						emoticons: (m as any).emoticons,
 						channelId: (m as any).channel_id,
 					}
-					useFeedbirdStore.setState((prev: any) => ({
+					useMessageStore.setState((prev: any) => ({
 						channelMessagesByChannelId: {
 							...(prev.channelMessagesByChannelId || {}),
 							all: [...(prev.channelMessagesByChannelId?.['all'] || []), message],
@@ -1494,7 +1482,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 				(payload: any) => {
 					const m = payload.new as DbChannelMessage
 					// Update emoticons in existing message - show to all users including sender
-					useFeedbirdStore.setState((prev: any) => {
+					useMessageStore.setState((prev: any) => {
 						const byId = prev.channelMessagesByChannelId || {}
 						const allMessages = byId['all'] || []
 
@@ -1551,7 +1539,7 @@ export default function MessagesPane({ channelName, channelDescription, members:
 		return `${names.join(', ')} typing...`
 	}, [typingUsers, profilesByEmail, user?.email])
 
-	const { setCurrentChannelId } = useFeedbirdStore()
+	const { setCurrentChannelId } = useMessageStore()
 
 	// Set current channel ID in store for unread message logic
 	useEffect(() => {

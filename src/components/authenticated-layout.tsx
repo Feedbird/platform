@@ -14,7 +14,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TopProgressBar } from "@/components/layout/top-progress-bar";
 import { DynamicTitle } from "@/components/layout/dynamic-title";
 import PortalRoot from "@/components/portal-root/portal-root";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
 
 interface AuthenticatedLayoutProps {
   children: React.ReactNode;
@@ -23,10 +24,8 @@ interface AuthenticatedLayoutProps {
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const { isLoaded, isSignedIn, user } = useUser();
   const pathname = usePathname();
-  const workspacesLoading = useFeedbirdStore((s) => s.workspacesLoading);
-  const workspacesInitialized = useFeedbirdStore(
-    (s) => s.workspacesInitialized
-  );
+  const workspacesLoading = useWorkspaceStore((s: WorkspaceStore) => s.workspacesLoading);
+  const workspacesInitialized = useWorkspaceStore((s: WorkspaceStore) => s.workspacesInitialized);
 
   // Debug logging
   console.log("AuthenticatedLayout state:", {

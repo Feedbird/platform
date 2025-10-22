@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore } from '@/lib/store'
 
 export default function Home() {
   const router = useRouter()
-  const { workspaces, activeWorkspaceId } = useFeedbirdStore()
+  const { workspaces, activeWorkspaceId } = useWorkspaceStore()
 
   useEffect(() => {
     // If there's an active workspace, redirect to it

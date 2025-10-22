@@ -50,11 +50,12 @@ import { avatarColor, CommentsPanel } from "@/components/post/comments-panel";
 import { formatTimeAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
-  useFeedbirdStore,
   Block,
   VersionComment,
   Post,
-} from "@/lib/store/use-feedbird-store";
+  usePostStore,
+} from "@/lib/store";
+import { PostStore } from "@/lib/store/post-store";
 import { Avatar } from "@/components/post/comments-panel";
 
 /* ------------------------------------------------------------------
@@ -132,7 +133,7 @@ function PinCommentPanel({
   versionId: string;
   rootId: string;          // pinned root's ID
 }) {
-  const store = useFeedbirdStore();
+  const store = usePostStore((s: PostStore) => s);
 
   // 1) re-fetch the entire version from store (so new comments appear)
   const version = store
@@ -415,7 +416,7 @@ interface ContentModalProps {
 }
 
 export function ContentModal({ postId, block, onClose, initialVersionId }: ContentModalProps) {
-  const store = useFeedbirdStore();
+  const store = usePostStore();
 
   // find the updated block from store
   const realBlock =

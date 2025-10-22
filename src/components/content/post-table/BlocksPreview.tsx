@@ -1,12 +1,12 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Block } from "@/lib/store/use-feedbird-store";
 import { Paperclip, X, CircleCheck, ArrowDownCircle } from "lucide-react";
 import { cn, calculateAspectRatioWidth, getAspectRatioType, RowHeightType, getRowHeightPixels } from "@/lib/utils";
 import { BlockThumbnail } from "./BlockThumbnail";
 import ClipLoader from "react-spinners/ClipLoader";
 import { useUploader } from "@/lib/hooks/use-uploader";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { usePostStore, Block } from "@/lib/store";
+import { PostStore } from "@/lib/store/post-store";
 
 type AspectRatioType = "1:1" | "4:5" | "9:16";
 
@@ -34,7 +34,7 @@ export function BlocksPreview({
   const [showText, setShowText] = useState(false);
 
   // Subscribe directly to the store to get the latest blocks data
-  const blocks = useFeedbirdStore((state) => {
+  const blocks = usePostStore((state: PostStore) => {
     const post = state.getPost(postId);
     return post?.blocks || initialBlocks;
   });

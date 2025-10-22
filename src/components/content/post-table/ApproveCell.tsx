@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Post, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { Post, usePostStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -11,9 +11,9 @@ export function ApproveCell({
 }: {
   post: Post;
 }) {
-  const approvePost = useFeedbirdStore(s => s.approvePost);
-  const requestChanges = useFeedbirdStore(s => s.requestChanges);
-  const setPostRevised = useFeedbirdStore(s => s.setPostRevised);
+  const approvePost = usePostStore(s => s.approvePost);
+  const requestChanges = usePostStore(s => s.requestChanges);
+  const setPostRevised = usePostStore(s => s.setPostRevised);
   
   const isApproved = post.status === "Approved";
   const isInRevision = post.status === "Needs Revisions";

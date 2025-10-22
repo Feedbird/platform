@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Post } from "@/lib/store/use-feedbird-store";
+import { Post } from "@/lib/store";
 import { User } from "@/lib/supabase/interfaces";
 import { userApi } from "@/lib/api/api-service";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";

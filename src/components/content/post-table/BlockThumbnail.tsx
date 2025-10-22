@@ -1,9 +1,8 @@
 "use client";
 
-import { Block } from "@/lib/store/use-feedbird-store";
+import { Block } from "@/lib/store";
 import { cn, calculateAspectRatioWidth, getAspectRatioType, RowHeightType } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { Play } from "lucide-react";
 
 type AspectRatioType = "1:1" | "4:5" | "9:16";
 

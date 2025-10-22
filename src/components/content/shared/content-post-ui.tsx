@@ -1,12 +1,8 @@
 import * as React from 'react'
 import Image from 'next/image'
 import { Platform } from '@/lib/social/platforms/platform-types';
-import { Chip, Avatar, Stack, Tooltip } from "@mui/material";
-import { Block, Status } from '@/lib/store/use-feedbird-store';
-import {
-  Videocam, PlayArrow, Visibility, CheckCircle, RadioButtonUnchecked, Edit, Collections,
-  Image as ImageIcon, Email, Drafts, Schedule, Warning, Done, Send, Error, Movie
-} from '@mui/icons-material';
+import { Tooltip } from "@mui/material";
+import { Status } from '@/lib/store';
 
 // Status configuration with updated styles and icons
 export const statusConfig: Record<Status, {

@@ -12,7 +12,8 @@ import { Textarea }             from '@/components/ui/textarea'
 import {
   ChevronLeft, MoreHorizontal, X, ImageIcon, Trash,
 }                               from 'lucide-react'
-import { useFeedbirdStore }     from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore }     from '@/lib/store'
+import { WorkspaceStore } from '@/lib/store/workspace-store'
 import { toast }                from 'sonner'
 import { cn }                   from '@/lib/utils'
 
@@ -39,7 +40,7 @@ interface BrandDialogProps {
 
 export default function BrandDialog({ open, onOpenChange, mode = 'create', brandId }: BrandDialogProps) {
   /* store -------------------------------------------------------- */
-  const store   = useFeedbirdStore()
+  const store   = useWorkspaceStore()
   const brand   = mode === 'edit' ? store.getActiveBrand() : null
 
   /* local state -------------------------------------------------- */

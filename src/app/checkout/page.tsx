@@ -8,18 +8,21 @@ import { ServiceCardPlan } from "@/components/checkout/ServiceCard";
 import ServiceSection from "@/components/checkout/ServiceSection";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useUserStore } from "@/lib/store";
 import { ServiceFolder, Workspace } from "@/lib/supabase/interfaces";
 import { UserButton } from "@clerk/nextjs";
 import { Divider } from "@mui/material";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { WorkspaceStore } from "@/lib/store/workspace-store";
+import { UserStore } from "@/lib/store/user-store";
 
 export default function Checkout() {
   // TODO Ensure that If uses goes to login, they are redirected back to checkout
   const router = useRouter();
-  const { activeWorkspaceId, user } = useFeedbirdStore();
+  const activeWorkspaceId = useWorkspaceStore((s: WorkspaceStore) => s.activeWorkspaceId);
+  const user = useUserStore((s: UserStore) => s.user);
   const [serviceFolders, setServiceFolders] = React.useState<ServiceFolder[]>(
     []
   );

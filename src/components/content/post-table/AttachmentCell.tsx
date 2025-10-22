@@ -3,8 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Paperclip, X, CircleCheck, FileText, FileImage, FileVideo, File, ArrowDownCircle } from "lucide-react";
 import { cn, getRowHeightPixels, RowHeightType } from "@/lib/utils";
 import { useAttachmentUploader } from "@/lib/hooks/use-attachment-uploader";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import type { FileKind } from "@/lib/store/use-feedbird-store";
+import { usePostStore, FileKind } from "@/lib/store";
 import { AttachmentContentModal } from "@/components/content/content-modal/attachment-content-modal";
 
 export type Attachment = {
@@ -110,8 +109,8 @@ export function AttachmentCell({
   const handleRemoveAttachment = (attachmentId: string) => {
     const newAttachments = attachments.filter(a => a.id !== attachmentId);
     // Update the store directly like BlocksPreview does
-    const { updatePost } = useFeedbirdStore.getState();
-    const post = useFeedbirdStore.getState().getPost(postId);
+    const { updatePost } = usePostStore.getState();
+    const post = usePostStore.getState().getPost(postId);
     if (post && post.user_columns) {
       const newUserColumns = [...post.user_columns];
       const columnIndex = newUserColumns.findIndex(col => col.id === columnId);

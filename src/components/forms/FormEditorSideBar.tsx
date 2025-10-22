@@ -10,7 +10,7 @@ import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { useForms } from "@/contexts/FormsContext";
 import { useFormEditor } from "@/contexts/FormEditorContext";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useFormStore } from "@/lib/store";
 
 type FormEditorSideBarProps = {
   onAddField?: (fieldType: FormFieldType) => void;
@@ -23,7 +23,8 @@ export default function FormEditorSideBar({
   formFields,
   formId,
 }: FormEditorSideBarProps) {
-  const { activeWorkspaceId, setUnsavedFormChanges } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const { setUnsavedFormChanges } = useFormStore();
   const { activeForm } = useForms();
   const [loading, isLoading] = React.useState(false);
   const { filesToUpload } = useFormEditor();

@@ -7,8 +7,8 @@ import { ChevronLeft, ChevronDown, MoreHorizontal, Download, Trash2, Copy } from
 
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Post, Block, Version, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
-import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
+import { Post, Block, Version, usePostStore, useWorkspaceStore, useUserStore } from "@/lib/store";
+import { PostStore } from "@/lib/store/post-store";
 
 // Avatar component for author display
 function Avatar({ name }: { name: string }) {
@@ -121,9 +121,9 @@ export function VersionPanel({ post, onPreviewVersion }: VersionPanelProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Store functions
-  const addVersion = useFeedbirdStore((s) => s.addVersion);
-  const setCurrentVersion = useFeedbirdStore((s) => s.setCurrentVersion);
-  const addActivity = useFeedbirdStore((s) => s.addActivity);
+  const addVersion = usePostStore((s: PostStore) => s.addVersion);
+  const setCurrentVersion = usePostStore((s: PostStore) => s.setCurrentVersion);
+  const addActivity = usePostStore((s: PostStore) => s.addActivity);
 
   const toggleGroup = (date: string) => {
     setCollapsedGroups(prev => {
@@ -144,7 +144,7 @@ export function VersionPanel({ post, onPreviewVersion }: VersionPanelProps) {
   const handleRestoreVersion = (block: Block, version: Version) => {
     // Create a new version that duplicates the selected version
     const newVersionId = addVersion(post.id, block.id, {
-      by: useFeedbirdStore.getState().user?.firstName || useFeedbirdStore.getState().user?.email?.split('@')[0] || 'User',
+      by: useUserStore.getState().user?.firstName || useUserStore.getState().user?.email?.split('@')[0] || 'User',
       caption: version.caption,
       file: version.file
     });
@@ -155,8 +155,8 @@ export function VersionPanel({ post, onPreviewVersion }: VersionPanelProps) {
     // Add activity to track this action
     addActivity({
       postId: post.id,
-      workspaceId: useFeedbirdStore.getState().getActiveWorkspace()?.id || '',
-      actorId: useFeedbirdStore.getState().user?.id || '',
+      workspaceId: useWorkspaceStore.getState().getActiveWorkspace()?.id || '',
+      actorId: useUserStore.getState().user?.id || '',
       type: "revised",
       metadata: {
         versionNumber: block.versions.length + 1

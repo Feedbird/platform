@@ -1,6 +1,6 @@
 import { TableForm } from "@/components/forms/content/forms-table";
 import { CanvasFormField } from "@/components/forms/FormCanvas";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useMessageStore, useUserStore, useWorkspaceStore } from "@/lib/store";
 import {
   Coupon, FormField, ServiceFolder, User,
   Workspace,
@@ -192,7 +192,7 @@ export const userApi = {
     );
 
     // Update the store after successful API request
-    useFeedbirdStore.setState((prev: any) => ({
+    useUserStore.setState((prev: any) => ({
       user: prev.user
         ? {
           ...prev.user,
@@ -221,7 +221,7 @@ export const userApi = {
     );
 
     // Update the store after successful API request
-    useFeedbirdStore.setState((prev: any) => ({
+    useUserStore.setState((prev: any) => ({
       user: prev.user
         ? {
           ...prev.user,
@@ -830,11 +830,11 @@ export const storeApi = {
   loadUserWorkspaces: async (email: string) => {
     try {
       // mark loading in store
-      useFeedbirdStore.setState({ workspacesLoading: true });
+      useWorkspaceStore.setState({ workspacesLoading: true });
 
       if (!email) {
         console.warn("No email provided for loading workspaces");
-        useFeedbirdStore.setState({
+        useWorkspaceStore.setState({
           workspaces: [],
           workspacesLoading: false,
           workspacesInitialized: true,
@@ -843,11 +843,11 @@ export const storeApi = {
       }
 
       const workspaces = await workspaceApi.getWorkspacesByCreator(email);
-      const store = useFeedbirdStore.getState();
+      const workspaceStore = useWorkspaceStore.getState();
 
       if (!workspaces || workspaces.length === 0) {
         console.warn("No workspaces found for user:", email);
-        useFeedbirdStore.setState({
+        useWorkspaceStore.setState({
           workspaces: [],
           workspacesLoading: false,
           workspacesInitialized: true,
@@ -1067,7 +1067,7 @@ export const storeApi = {
       // Decide active workspace:
       // - keep existing selection if it still exists
       // - otherwise, auto-select the first workspace (if any)
-      let nextActiveWorkspaceId = store.activeWorkspaceId ?? null;
+      let nextActiveWorkspaceId = workspaceStore.activeWorkspaceId ?? null;
       if (
         !nextActiveWorkspaceId ||
         !workspacesWithBrands.some((w) => w.id === nextActiveWorkspaceId)
@@ -1085,7 +1085,7 @@ export const storeApi = {
       const activeBrandId = activeWs?.brand?.id ?? null;
       const activeBoardId = activeWs?.boards[0]?.id ?? null;
 
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: workspacesWithBrands,
         activeWorkspaceId: nextActiveWorkspaceId,
         activeBrandId,
@@ -1099,7 +1099,7 @@ export const storeApi = {
     } catch (error) {
       console.error("Failed to load user workspaces:", error);
       // ensure loading flags reset even on error
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspacesLoading: false,
         workspacesInitialized: true,
       });
@@ -1128,7 +1128,7 @@ export const storeApi = {
         color,
       });
 
-      const store = useFeedbirdStore.getState();
+      const workspaceStore = useWorkspaceStore.getState();
       const storeChannel = {
         id: channel.id,
         workspaceId: channel.workspace_id,
@@ -1145,14 +1145,14 @@ export const storeApi = {
           ? new Date(channel.updated_at)
           : new Date(),
       };
-      const updatedWorkspaces = store.workspaces.map((w) => {
+      const updatedWorkspaces = workspaceStore.workspaces.map((w) => {
         if (w.id !== workspaceId) return w;
         const nextChannels = Array.isArray((w as any).channels)
           ? [...(w as any).channels, storeChannel]
           : [storeChannel];
         return { ...w, channels: nextChannels };
       });
-      useFeedbirdStore.setState({ workspaces: updatedWorkspaces });
+      useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
       return channel.id;
     } catch (error) {
       console.error("Failed to create channel:", error);
@@ -1163,7 +1163,7 @@ export const storeApi = {
   updateChannelAndUpdateStore: async (id: string, updates: any) => {
     try {
       const channel = await channelApi.updateChannel(id, updates);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
       const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
         channels:
@@ -1171,7 +1171,7 @@ export const storeApi = {
             c.id === id ? { ...c, ...updates } : c
           ) || (w as any).channels,
       }));
-      useFeedbirdStore.setState({ workspaces: updatedWorkspaces });
+      useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
       return channel;
     } catch (error) {
       console.error("Failed to update channel:", error);
@@ -1182,14 +1182,14 @@ export const storeApi = {
   deleteChannelAndUpdateStore: async (id: string) => {
     try {
       await channelApi.deleteChannel(id);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
       const updatedWorkspaces = store.workspaces.map((w) => ({
         ...w,
         channels:
           (w as any).channels?.filter((c: Channel) => c.id !== id) ||
           (w as any).channels,
       }));
-      useFeedbirdStore.setState({ workspaces: updatedWorkspaces });
+      useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
     } catch (error) {
       console.error("Failed to delete channel:", error);
       throw error;
@@ -1217,8 +1217,8 @@ export const storeApi = {
         channelId: channelId, // Add channel ID for consistency
       }));
 
-      const prev = useFeedbirdStore.getState().channelMessagesByChannelId || {};
-      useFeedbirdStore.setState({
+      const prev = useMessageStore.getState().channelMessagesByChannelId || {};
+      useMessageStore.setState({
         channelMessagesByChannelId: {
           ...prev,
           [channelId]: transformed,
@@ -1227,7 +1227,7 @@ export const storeApi = {
 
       // Mark messages as read for current user
       try {
-        const store = useFeedbirdStore.getState();
+        const store = useUserStore.getState();
         const currentUserEmail = store.user?.email;
         if (currentUserEmail && items.length > 0) {
           // Get message IDs that should be marked as read
@@ -1241,7 +1241,7 @@ export const storeApi = {
           );
           const newRead = currentUnread.filter((id) => messageIds.includes(id));
           if (newUnread.length !== currentUnread.length) {
-            useFeedbirdStore.setState({
+            useUserStore.setState({
               user: {
                 ...store.user!,
                 unread_msg: newUnread,
@@ -1268,7 +1268,7 @@ export const storeApi = {
 
   fetchAllWorkspaceMessagesAndUpdateStore: async () => {
     try {
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
       const activeWorkspaceId = store.activeWorkspaceId;
       if (!activeWorkspaceId) throw new Error("No active workspace");
 
@@ -1291,8 +1291,8 @@ export const storeApi = {
       }));
 
       // Store all workspace messages under a special 'all' key
-      const prev = store.channelMessagesByChannelId || {};
-      useFeedbirdStore.setState({
+      const prev = useMessageStore.getState().channelMessagesByChannelId || {};
+      useMessageStore.setState({
         channelMessagesByChannelId: {
           ...prev,
           all: transformed,
@@ -1301,22 +1301,23 @@ export const storeApi = {
 
       // Mark messages as read for current user
       try {
-        const currentUserEmail = store.user?.email;
+        const userStore = useUserStore.getState();
+        const currentUserEmail = userStore.user?.email;
         if (currentUserEmail && items.length > 0) {
           // Get message IDs that should be marked as read
           const messageIds = items.map((m) => m.id);
 
           // Update unread messages in store
-          const currentUnread = store.user?.unread_msg || [];
+          const currentUnread = userStore.user?.unread_msg || [];
           const newUnread = currentUnread.filter(
             (id) => !messageIds.includes(id)
           );
           const newRead = currentUnread.filter((id) => messageIds.includes(id));
 
           if (newUnread.length !== currentUnread.length) {
-            useFeedbirdStore.setState({
+            useUserStore.setState({
               user: {
-                ...store.user!,
+                ...userStore.user!,
                 unread_msg: newUnread,
               },
             });
@@ -1358,7 +1359,7 @@ export const storeApi = {
       });
 
       // Use current user profile for sender display
-      const store = useFeedbirdStore.getState();
+      const store = useUserStore.getState();
       const senderDisplayName = (store as any)?.user?.firstName || authorEmail;
       const senderImageUrl = (store as any)?.user?.imageUrl || undefined;
 
@@ -1382,7 +1383,7 @@ export const storeApi = {
         (store as any).channelMessagesByChannelId?.["all"] || [];
       const channelMessages =
         (store as any).channelMessagesByChannelId?.[channelId] || [];
-      useFeedbirdStore.setState({
+      useMessageStore.setState({
         channelMessagesByChannelId: {
           ...(store as any).channelMessagesByChannelId,
           [channelId]: [...channelMessages, message],
@@ -1418,7 +1419,7 @@ export const storeApi = {
         email,
         default_board_rules,
       });
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       const newWorkspace = {
         id: workspace.id,
@@ -1450,7 +1451,7 @@ export const storeApi = {
   ) => {
     try {
       const workspace = await workspaceApi.updateWorkspace(id, updates);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using Zustand setter to trigger re-renders
       const updatedWorkspaces = store.workspaces.map((w) =>
@@ -1458,7 +1459,7 @@ export const storeApi = {
       );
 
       // Use Zustand setter to update store
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
       });
 
@@ -1472,7 +1473,7 @@ export const storeApi = {
   deleteWorkspaceAndUpdateStore: async (id: string) => {
     try {
       await workspaceApi.deleteWorkspace(id);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using Zustand setter to trigger re-renders
       const newWorkspaces = store.workspaces.filter((w) => w.id !== id);
@@ -1487,7 +1488,7 @@ export const storeApi = {
       }
 
       // Use Zustand setter to update store
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: newWorkspaces,
         activeWorkspaceId: newActiveWorkspaceId,
         activeBrandId: newActiveBrandId,
@@ -1520,7 +1521,7 @@ export const storeApi = {
         prefs,
       });
 
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using Zustand setter to trigger re-renders
       const updatedWorkspaces = store.workspaces.map((w) => {
@@ -1546,7 +1547,7 @@ export const storeApi = {
       });
 
       // Use Zustand setter to update store
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
       });
 
@@ -1560,7 +1561,7 @@ export const storeApi = {
   updateBrandAndUpdateStore: async (id: string, updates: any) => {
     try {
       const brand = await brandApi.updateBrand(id, updates);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using Zustand setter to trigger re-renders
       const updatedWorkspaces = store.workspaces.map((w) => ({
@@ -1570,7 +1571,7 @@ export const storeApi = {
       }));
 
       // Use Zustand setter to update store
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
       });
 
@@ -1584,7 +1585,7 @@ export const storeApi = {
   deleteBrandAndUpdateStore: async (id: string) => {
     try {
       await brandApi.deleteBrand(id);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using Zustand setter to trigger re-renders
       const updatedWorkspaces = store.workspaces.map((w) => ({
@@ -1602,7 +1603,7 @@ export const storeApi = {
       }
 
       // Use Zustand setter to update store
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
         activeBrandId: newActiveBrandId,
       });
@@ -1648,7 +1649,7 @@ export const storeApi = {
         })
       );
 
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using Zustand setter to trigger re-renders
       const updatedWorkspaces = store.workspaces.map((w) => {
@@ -1705,7 +1706,7 @@ export const storeApi = {
         : [];
 
       // Use Zustand setter to update store
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
         boardNav: newBoardNav,
       });
@@ -1720,7 +1721,7 @@ export const storeApi = {
   updateBoardAndUpdateStore: async (id: string, updates: any) => {
     try {
       const board = await boardApi.updateBoard(id, updates);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using the server's latest board data to avoid drift
       const updatedWorkspaces = store.workspaces.map((w) => ({
@@ -1760,7 +1761,7 @@ export const storeApi = {
         ? boardsToNav(activeWorkspace.boards, activeWorkspace.id)
         : [];
 
-      useFeedbirdStore.setState({
+        useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
         boardNav: newBoardNav,
       });
@@ -1775,7 +1776,7 @@ export const storeApi = {
   deleteBoardAndUpdateStore: async (id: string) => {
     try {
       await boardApi.deleteBoard(id);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store using Zustand setter to trigger re-renders
       const updatedWorkspaces = store.workspaces.map((w) => ({
@@ -1801,7 +1802,7 @@ export const storeApi = {
         : [];
 
       // Use Zustand setter to update store
-      useFeedbirdStore.setState({
+      useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
         activeBoardId: newActiveBoardId,
         boardNav: newBoardNav,
@@ -1829,7 +1830,7 @@ export const storeApi = {
         last_updated_by: userEmail,
       });
 
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store
       store.workspaces = store.workspaces.map((w) => ({
@@ -1871,7 +1872,7 @@ export const storeApi = {
         }),
       }));
       // Trigger store update for listeners
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      useWorkspaceStore.setState({ workspaces: store.workspaces });
 
       return post.id;
     } catch (error) {
@@ -1893,7 +1894,7 @@ export const storeApi = {
 
       const post = await postApi.updatePost(id, postUpdates);
       console.log("post", post);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store
       store.workspaces = store.workspaces.map((w) => ({
@@ -1922,7 +1923,7 @@ export const storeApi = {
         })),
       }));
       // Trigger store update for listeners
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      useWorkspaceStore.setState({ workspaces: store.workspaces });
 
       return post;
     } catch (error) {
@@ -1934,7 +1935,7 @@ export const storeApi = {
   autoScheduleAndUpdateStore: async (postId: string, status: string) => {
     try {
       const updated = await postApi.autoSchedule(postId, status);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store with server values
       store.workspaces = store.workspaces.map((w) => ({
@@ -1956,7 +1957,7 @@ export const storeApi = {
           }),
         })),
       }));
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      useWorkspaceStore.setState({ workspaces: store.workspaces });
       return updated;
     } catch (error) {
       console.error("Failed to auto-schedule post:", error);
@@ -1998,7 +1999,7 @@ export const storeApi = {
       const result = await response.json();
 
       // Update Zustand store with the database result
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
       store.workspaces = store.workspaces.map((w) => ({
         ...w,
         boards: w.boards.map((b) => ({
@@ -2017,7 +2018,7 @@ export const storeApi = {
       }));
 
       // Trigger store update for listeners
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      useWorkspaceStore.setState({ workspaces: store.workspaces });
 
       return result.post;
     } catch (error) {
@@ -2029,7 +2030,7 @@ export const storeApi = {
   deletePostAndUpdateStore: async (id: string) => {
     try {
       await postApi.deletePost(id);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store
       store.workspaces = store.workspaces.map((w) => ({
@@ -2040,7 +2041,7 @@ export const storeApi = {
         })),
       }));
       // Trigger store update for listeners
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      useWorkspaceStore.setState({ workspaces: store.workspaces });
     } catch (error) {
       console.error("Failed to delete post:", error);
       throw error;
@@ -2063,7 +2064,7 @@ export const storeApi = {
       }));
 
       const result = await postApi.bulkCreatePosts(postsWithUserFields);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Transform posts to match store format
       const transformedPosts = result.posts.map((post) => ({
@@ -2103,7 +2104,7 @@ export const storeApi = {
         }),
       }));
       // Trigger store update for listeners
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      useWorkspaceStore.setState({ workspaces: store.workspaces });
 
       return result.posts.map((p) => p.id);
     } catch (error) {
@@ -2116,7 +2117,7 @@ export const storeApi = {
   bulkDeletePostsAndUpdateStore: async (postIds: string[]) => {
     try {
       const result = await postApi.bulkDeletePosts(postIds);
-      const store = useFeedbirdStore.getState();
+      const store = useWorkspaceStore.getState();
 
       // Update store
       store.workspaces = store.workspaces.map((w) => ({
@@ -2127,7 +2128,7 @@ export const storeApi = {
         })),
       }));
       // Trigger store update for listeners
-      useFeedbirdStore.setState({ workspaces: store.workspaces });
+      useWorkspaceStore.setState({ workspaces: store.workspaces });
 
       return result.deleted_posts;
     } catch (error) {

@@ -6,7 +6,7 @@ import { Play, Eye, Zap, Clock, Heart, MessageSquare, Repeat2, BarChart3 } from 
 import { cn } from '@/lib/utils'
 import { StatusChip } from '@/components/content/shared/content-post-ui'
 import { format } from 'date-fns'
-import { Post } from '@/lib/store/use-feedbird-store'
+import { Post } from '@/lib/store'
 
 interface AnalyticsPanelProps {
     post: Post

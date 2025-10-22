@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
@@ -16,12 +16,11 @@ export function ChannelsMultiSelectPopup({
   value: string[];
   onChange: (v: string[]) => void;
 }) {
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
   const [vals, setVals] = React.useState(value);
   const [showManageDialog, setShowManageDialog] = React.useState(false);
 
   // Get all available pages from the workspace
-  const ws = useFeedbirdStore(s => s.getActiveWorkspace());
+  const ws = useWorkspaceStore(s => s.getActiveWorkspace());
   const availablePages = (ws?.socialPages || []).filter((page: any) => page.connected) ?? [];
 
   function toggle(pageId: string, e: React.MouseEvent) {

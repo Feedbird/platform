@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useFeedbirdStore } from '@/lib/store/use-feedbird-store';
+import { useWorkspaceStore } from '@/lib/store';
 
 interface PinterestBoard {
   id: string;
@@ -35,7 +35,7 @@ export function usePinterestBoards({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const ws = useWorkspaceStore((s) => s.getActiveWorkspace());
 
   const fetchBoards = async () => {
     if (!pageId || !enabled) return;

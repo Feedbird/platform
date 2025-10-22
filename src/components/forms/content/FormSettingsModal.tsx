@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import React, { SetStateAction, Dispatch } from "react";
 import { TableForm } from "./forms-table";
 import { ModalMultiSelect } from "./ModalMultiSelect";
-import { useFormStore } from "@/lib/store/forms-store";
+import { useFormStore } from "@/lib/store";
 import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { nestedObjectEqual } from "@/lib/utils/transformers";

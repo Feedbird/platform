@@ -15,7 +15,7 @@ import {
 import { Button }                       from '@/components/ui/button'
 import { EmptyState }                   from '@/components/empty-state/empty-state'
 import BrandSheet                       from '@/components/brand/brand-sheet'
-import { useFeedbirdStore }             from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore }             from '@/lib/store'
 import { toast }                        from 'sonner'
 import { ChannelIcons } from '@/components/content/shared/content-post-ui'
 
@@ -39,7 +39,7 @@ function RowMenu (
   { id: string; name: string },
 ) {
   const router        = useRouter()
-  const { removeBrand } = useFeedbirdStore()
+  const { removeBrand } = useWorkspaceStore()
 
   const del = () => {
     removeBrand(id)
@@ -94,7 +94,7 @@ export function BrandsInner () {
   const {
     getActiveWorkspace,
     setActiveBrand,
-  } = useFeedbirdStore()
+  } = useWorkspaceStore()
 
   const brand = getActiveWorkspace()?.brand;
 

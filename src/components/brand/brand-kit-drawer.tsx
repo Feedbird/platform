@@ -11,8 +11,9 @@ import {
 }                                     from '@/components/ui/dropdown-menu'
 import { Button }                     from '@/components/ui/button'
 import { ChevronRight, Plus, ArrowRightToLine, ChevronDown  }         from 'lucide-react'
-import { useFeedbirdStore }           from '@/lib/store/use-feedbird-store'
+import { useWorkspaceStore }           from '@/lib/store'
 import { cn }                         from '@/lib/utils'
+import { WorkspaceStore } from '@/lib/store/workspace-store'
 
 /* tiny helper ------------------------------------------------------ */
 const Field = ({ label, children }:{
@@ -34,7 +35,7 @@ export default function BrandKitDrawer(
   const {
     workspaces, activeWorkspaceId, activeBrandId,
     setActiveBrand, addBrand,
-  } = useFeedbirdStore()
+  } = useWorkspaceStore((s: WorkspaceStore) => s)
 
   const ws     = workspaces.find(w => w.id === activeWorkspaceId)
   const brand  = ws?.brand

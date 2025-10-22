@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, memo } from 'react'
-import { Post, useFeedbirdStore } from '@/lib/store/use-feedbird-store'
+import { Post, useSocialStore, useUserStore, useWorkspaceStore, usePostStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -98,13 +98,11 @@ export default function NotificationsPane() {
 	const [isLoadingSettings, setIsLoadingSettings] = useState(false)
 	const [isSavingSettings, setIsSavingSettings] = useState(false)
 
-	const user = useFeedbirdStore((s) => s.user)
-	const activeBrand = useFeedbirdStore((s) => s.getActiveBrand())
-	const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace())
-	const workspaces = useFeedbirdStore((s) => s.workspaces)
-	const checkPageStatus = useFeedbirdStore((s) => s.checkPageStatus)
-	const updateUserNotificationSettings = useFeedbirdStore((s) => s.updateUserNotificationSettings)
-	const unread_notification = useFeedbirdStore((s) => s.user?.unread_notification || [])
+	const user = useUserStore((s) => s.user)
+	const activeWorkspace = useWorkspaceStore((s) => s.getActiveWorkspace())
+	const workspaces = useWorkspaceStore((s) => s.workspaces)
+	const updateUserNotificationSettings = useUserStore((s) => s.updateUserNotificationSettings)
+	const unread_notification = useUserStore((s) => s.user?.unread_notification || [])
 	// Fetch activities for the workspace
 	useEffect(() => {
 		const fetchActivities = async () => {
@@ -259,7 +257,7 @@ export default function NotificationsPane() {
 			setLocalReadNotifications(prev => new Set([...prev, ...unreadActivityIds]))
 
 			// Clear unread_notification array in the store
-			useFeedbirdStore.setState((state) => {
+			useUserStore.setState((state) => {
 				if (!state.user) return state
 
 				return {
@@ -283,7 +281,7 @@ export default function NotificationsPane() {
 			})
 
 			// Revert store changes
-			useFeedbirdStore.setState((state) => {
+			useUserStore.setState((state) => {
 				if (!state.user) return state
 
 				return {
@@ -312,7 +310,7 @@ export default function NotificationsPane() {
 			setLocalReadNotifications(prev => new Set([...prev, activityId]))
 
 			// Update the store to remove from unread_notification array
-			useFeedbirdStore.setState((state) => {
+			useUserStore.setState((state) => {
 				if (!state.user) return state
 
 				const currentUnread = state.user.unread_notification || []
@@ -341,7 +339,7 @@ export default function NotificationsPane() {
 					})
 
 					// Revert store changes
-					useFeedbirdStore.setState((state) => {
+					useUserStore.setState((state) => {
 						if (!state.user) return state
 
 						const currentUnread = state.user.unread_notification || []
@@ -941,7 +939,7 @@ export default function NotificationsPane() {
 					onClose={() => setOpenPost(null)}
 					onPostSelect={(postId) => {
 						// Find the post by ID from all posts in the workspace
-						const allPosts = useFeedbirdStore.getState().getAllPosts();
+						const allPosts = usePostStore.getState().getAllPosts();
 						const post = allPosts.find(p => p.id === postId);
 						if (post) {
 							setOpenPost(post);

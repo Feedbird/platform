@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useParams } from "next/navigation";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import { useFeedbirdStore, FeedbirdStore, Post } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, Post } from "@/lib/store";
+import { usePostStore, PostStore } from "@/lib/store/post-store";
 import { shallow } from "zustand/shallow";
 
 import dynamic from "next/dynamic";
@@ -33,7 +34,7 @@ export function BoardInner() {
   const params = useParams();
   const board_id = (params?.board_id as string) ?? "";
   // 2. Ensure the correct board is active in the global store so that nav etc. update.
-  const setActiveBoard = useFeedbirdStore((s) => s.setActiveBoard);
+  const setActiveBoard = useWorkspaceStore((s) => s.setActiveBoard);
   useEffect(() => {
     if (board_id) setActiveBoard(board_id);
   }, [setActiveBoard, board_id]);
@@ -48,8 +49,8 @@ export function BoardInner() {
   // reference only changes when posts themselves change, this prevents
   // re-rendering on unrelated store updates (e.g. other settings toggles).
   const allPosts = useStoreWithEqualityFn(
-    useFeedbirdStore,
-    (s: FeedbirdStore): Post[] => s.getAllPosts(),
+    usePostStore,
+    (s: PostStore): Post[] => s.getAllPosts(),
     shallow,
   );
 

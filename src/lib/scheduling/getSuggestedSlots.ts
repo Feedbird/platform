@@ -1,5 +1,5 @@
 /* lib/scheduling/getSuggestedSlots.ts */
-import { Post } from "@/lib/store/use-feedbird-store";
+import { Post } from "@/lib/store";
 import { Platform } from "@/lib/social/platforms/platform-types";
 
 const BEST_TIMES: Record<Platform, Record<number, number[]>> = {

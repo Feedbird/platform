@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { useWorkspaceStore, useSocialStore } from "@/lib/store";
 import {
   Popover,
   PopoverTrigger,
@@ -60,9 +60,9 @@ export const ChannelsEditCell = React.memo(function ChannelsEditCell({
   exitEdit,
 }: ChannelsEditCellProps) {
   const [open, setOpen] = React.useState(false);
-  const brand = useFeedbirdStore((s) => s.getActiveBrand());
-  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
-  const checkPageStatus = useFeedbirdStore((s) => s.checkPageStatus);
+  const brand = useWorkspaceStore((s) => s.getActiveBrand());
+  const ws = useWorkspaceStore((s) => s.getActiveWorkspace());
+  const checkPageStatus = useSocialStore((s) => s.checkPageStatus);
 
   // Local state to hold selected page IDs while user is editing
   const [selectedPages, setSelectedPages] = React.useState<string[]>(value);

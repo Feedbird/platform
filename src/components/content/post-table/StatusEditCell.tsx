@@ -5,7 +5,7 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { StatusChip } from "@/components/content/shared/content-post-ui";
 import { StatusSelectPopup } from "./StatusSelectPopup";
-import { Status } from "@/lib/store/use-feedbird-store";
+import { Status } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface StatusEditCellProps {

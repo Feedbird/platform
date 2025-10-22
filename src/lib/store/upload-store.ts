@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { storeApi } from "@/lib/api/api-service";
 
 export type UploadStatus = "uploading" | "processing" | "done" | "error";
@@ -47,8 +46,8 @@ export const useUploadStore = create<UploadStoreState>((set, get) => ({
   updatePostAfterUpload: async (postId: string, blocks: any[]) => {
     try {
       // Get current user email from the store
-      const { useFeedbirdStore } = await import('@/lib/store/use-feedbird-store');
-      const store = useFeedbirdStore.getState();
+      const { useUserStore } = await import('@/lib/store');
+      const store = useUserStore.getState();
       const userEmail = store.user?.email;
 
       // Update post blocks in database using the API service

@@ -55,9 +55,8 @@ import {
   ChannelIcons,
   FormatBadge,
 } from "@/components/content/shared/content-post-ui";
-import { Status, ContentFormat } from "@/lib/store/use-feedbird-store";
+import { Status, ContentFormat } from "@/lib/store";
 import { Platform } from "@/lib/social/platforms/platform-types";
-import type { FileKind } from "@/lib/store/use-feedbird-store";
 
 // dnd-kit
 import {

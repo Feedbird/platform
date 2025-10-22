@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { Post } from "@/lib/store/use-feedbird-store";
+import { Post } from "@/lib/store";
 import { storeApi } from "@/lib/api/api-service";
 import { format } from "date-fns";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { usePostStore, useWorkspaceStore } from "@/lib/store";
 import { Plus, X, ChevronDown, Send, Clock4 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAsyncLoading } from "@/hooks/use-async-loading";
 import { DateTimeSelector } from "./DateTimeSelector";
 import { PostingSettingsPanel } from "./PostingSettingsPanel";
+import { PostStore } from "@/lib/store/post-store";
 
 export function PublishDateCell({
   post,
@@ -85,8 +86,8 @@ export function PublishDateCell({
   const statusStyling = getStatusStyling();
 
   // Board rule: auto-schedule on?
-  const activeWorkspace = useFeedbirdStore((s) => s.getActiveWorkspace());
-  const activeBoardId = useFeedbirdStore((s) => s.activeBoardId);
+  const activeWorkspace = useWorkspaceStore((s) => s.getActiveWorkspace());
+  const activeBoardId = useWorkspaceStore((s) => s.activeBoardId);
   const currentBoard = React.useMemo(
     () => activeWorkspace?.boards.find((b) => b.id === activeBoardId),
     [activeWorkspace, activeBoardId]
@@ -108,7 +109,7 @@ export function PublishDateCell({
   const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
 
   // Access your store's publish method
-  const publishPostToAllPages = useFeedbirdStore((s) => s.publishPostToAllPages);
+  const publishPostToAllPages = usePostStore((s: PostStore) => s.publishPostToAllPages);
 
   /* ---------- Actions ---------- */
   async function handleAutoSchedule() {
@@ -475,7 +476,7 @@ function ConfirmScheduleDialog({
   open: boolean;
 }) {
   const { executeWithLoading } = useAsyncLoading();
-  const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const workspace = useWorkspaceStore((s) => s.getActiveWorkspace());
   const dt = post.publish_date ? formatDateTime(new Date(post.publish_date)) : "(none)";
 
   // Get the actual pages for post.pages
@@ -554,7 +555,7 @@ function ConfirmPublishNowDialog({
   open: boolean;
 }) {
   const { executeWithLoading } = useAsyncLoading();
-  const workspace = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const workspace = useWorkspaceStore((s) => s.getActiveWorkspace());
   const dt = format(new Date(), "MMM dd, yyyy 'at' h:mm aa");
 
   // Get the actual pages for post.pages

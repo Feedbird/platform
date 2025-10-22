@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { useFormStore } from "@/lib/store/forms-store";
+import { useFormStore } from "@/lib/store";
 
 interface ServicesMultiSelectProps {
   selectedServices: string[];

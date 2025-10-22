@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Check, Upload, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { defaultIcons, defaultColors } from '@/lib/store/use-feedbird-store';
+import { defaultIcons, defaultColors } from '@/lib/store/store-utils';
 
 interface IconAndColorPickerProps {
   selectedIcon: string | undefined;

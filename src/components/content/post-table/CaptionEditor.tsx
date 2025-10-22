@@ -6,7 +6,7 @@ import { motion, useDragControls, useMotionValue } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
 import { Lock, Unlock, X } from "lucide-react";
-import { Post, CaptionData, useFeedbirdStore } from "@/lib/store/use-feedbird-store";
+import { Post, CaptionData, useWorkspaceStore } from "@/lib/store";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { checkCaptionQuality } from "./CaptionRules";
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
@@ -82,7 +82,7 @@ export function CaptionEditor({
     height: 420,
   });
   
-  const ws = useFeedbirdStore((s) => s.getActiveWorkspace());
+  const ws = useWorkspaceStore((s) => s.getActiveWorkspace());
 
   const availablePlatforms = React.useMemo(() => {
     const pages = ws?.socialPages || [];
