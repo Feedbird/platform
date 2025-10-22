@@ -33,8 +33,7 @@ export default function BrandKitDrawer(
   { open:boolean; onOpenChange:(o:boolean)=>void },
 ) {
   const {
-    workspaces, activeWorkspaceId, activeBrandId,
-    setActiveBrand, addBrand,
+    workspaces, activeWorkspaceId,
   } = useWorkspaceStore((s: WorkspaceStore) => s)
 
   const ws     = workspaces.find(w => w.id === activeWorkspaceId)
