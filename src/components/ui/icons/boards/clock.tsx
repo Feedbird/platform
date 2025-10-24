@@ -1,0 +1,10 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const ClockIcon = createIcon(
+  <path d="M7 3.84994V6.99994L9.1 8.04994M12.25 6.99994C12.25 9.89943 9.89949 12.2499 7 12.2499C4.1005 12.2499 1.75 9.89943 1.75 6.99994C1.75 4.10044 4.1005 1.74994 7 1.74994C9.89949 1.74994 12.25 4.10044 12.25 6.99994Z" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>,
+  '0 0 14 14',
+  'ClockIcon'
+);
+
+export default ClockIcon;

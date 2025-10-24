@@ -7,6 +7,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { AuthGuard } from '@/components/auth-guard'
 import { ClerkUserSync } from '@/components/clerk-user-sync'
 
+
 export const metadata: Metadata = {
   title: 'FeedBird Platform',
   description: 'Social media management platform',

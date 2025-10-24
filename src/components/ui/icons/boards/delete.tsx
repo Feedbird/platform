@@ -1,0 +1,10 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const DeleteIcon = createIcon(
+  <path d="M5.25 2.07739H8.75M1.75 3.82739H12.25M11.0833 3.82739L10.6742 9.96364C10.6129 10.8843 10.5822 11.3446 10.3833 11.6936C10.2083 12.0009 9.94422 12.248 9.62597 12.4022C9.26448 12.5774 8.80314 12.5774 7.88045 12.5774H6.11955C5.19686 12.5774 4.73552 12.5774 4.37403 12.4022C4.05577 12.248 3.79172 12.0009 3.61666 11.6936C3.41781 11.3446 3.38713 10.8843 3.32575 9.96365L2.91667 3.82739M5.83333 6.45239V9.36906M8.16667 6.45239V9.36906" stroke="var(--icon-color, currentColor)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>,
+  '0 0 14 15',
+  'DeleteIcon'
+);
+
+export default DeleteIcon;

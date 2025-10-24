@@ -1,0 +1,12 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const EyeIcon = createIcon(
+  <>
+  <g clipPath="url(#clip0_4802_137111)"><path d="M1.61096 7.41604C1.53151 7.29025 1.49179 7.22736 1.46956 7.13035C1.45286 7.05748 1.45286 6.94256 1.46956 6.86969C1.49179 6.77268 1.53151 6.70979 1.61096 6.584C2.26744 5.54451 4.22154 2.91669 7.19945 2.91669C10.1774 2.91669 12.1315 5.54451 12.788 6.584C12.8674 6.70979 12.9071 6.77268 12.9294 6.86969C12.9461 6.94256 12.9461 7.05748 12.9294 7.13035C12.9071 7.22736 12.8674 7.29025 12.788 7.41604C12.1315 8.45553 10.1774 11.0834 7.19945 11.0834C4.22154 11.0834 2.26744 8.45553 1.61096 7.41604Z" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/><path d="M7.19945 8.75002C8.16595 8.75002 8.94945 7.96652 8.94945 7.00002C8.94945 6.03352 8.16595 5.25002 7.19945 5.25002C6.23296 5.25002 5.44945 6.03352 5.44945 7.00002C5.44945 7.96652 6.23296 8.75002 7.19945 8.75002Z" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/></g><defs><clipPath id="clip0_4802_137111"><rect width="14" height="14" fill="var(--icon-color, currentColor)" transform="translate(0.199219)"/></clipPath></defs>
+  </>,
+  '0 0 15 14',
+  'EyeIcon'
+);
+
+export default EyeIcon;

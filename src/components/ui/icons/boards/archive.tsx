@@ -1,0 +1,14 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const ArchiveIcon = createIcon(
+  <>
+    <path d="M1.98403 10.7969L1.49986 7.30258C1.33327 6.10036 2.26722 5.02808 3.48093 5.02808H10.5189C11.7326 5.02808 12.6665 6.10036 12.5 7.30258L12.0158 10.7969C11.8787 11.7859 11.0332 12.5224 10.0347 12.5224H3.96511C2.96661 12.5224 2.12108 11.7859 1.98403 10.7969Z" stroke="var(--icon-color, currentColor)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10.2385 4.54333L9.9467 2.95207C9.85963 2.47728 9.44582 2.13245 8.96311 2.13245H5.03676C4.55405 2.13245 4.14024 2.47728 4.05316 2.95207L3.76134 4.54333" stroke="var(--icon-color, currentColor)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5.06158 8.90479H8.9384" stroke="var(--icon-color, currentColor)" strokeWidth="1.3" strokeLinecap="round"/>
+  </>,
+  '0 0 14 15',
+  'ArchiveIcon'
+);
+
+export default ArchiveIcon;

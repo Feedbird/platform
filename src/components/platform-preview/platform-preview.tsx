@@ -41,6 +41,8 @@ function StatusChip({
     textColor: "#1C1D1F"
   };
 
+  const IconComponent = config.icon;
+
   return (
     <div
       style={{
@@ -56,12 +58,10 @@ function StatusChip({
       }}
       className="text-xs font-semibold whitespace-nowrap tracking-[-0.24px]"
     >
-      <Image
-        className='w-[16px] h-[16px]'
-        src={config.icon}
-        alt={status}
-        width={16}
-        height={16}
+      <IconComponent
+        size={16}
+        color={config.textColor}
+        className="flex-shrink-0"
       />
       <span className="text-transparent select-none">{status}</span>
     </div>

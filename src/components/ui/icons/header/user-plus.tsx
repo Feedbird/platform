@@ -1,0 +1,10 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const UserPlusIcon = createIcon(
+  <path d="M6.99935 9.04167H4.37435C3.56027 9.04167 3.15323 9.04167 2.82202 9.14214C2.07628 9.36836 1.49271 9.95193 1.26649 10.6977C1.16602 11.0289 1.16602 11.4359 1.16602 12.25M11.0827 12.25V8.75M9.33268 10.5H12.8327M8.45768 4.375C8.45768 5.82475 7.28243 7 5.83268 7C4.38293 7 3.20768 5.82475 3.20768 4.375C3.20768 2.92525 4.38293 1.75 5.83268 1.75C7.28243 1.75 8.45768 2.92525 8.45768 4.375Z" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>,
+  '0 0 14 14',
+  'UserPlusIcon'
+);
+
+export default UserPlusIcon;

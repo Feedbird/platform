@@ -1,0 +1,9 @@
+// Auto-generated index file for status
+export { ApprovedIcon } from './approved';
+export { DraftIcon } from './draft';
+export { FailedPublishingIcon } from './failed-publishing';
+export { NeedsRevisionIcon } from './needs-revision';
+export { PendingApprovalIcon } from './pending-approval';
+//export { PublishedIcon } from './published';
+export { RevisedIcon } from './revised';
+export { ScheduledIcon } from './scheduled';

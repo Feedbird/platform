@@ -1,0 +1,13 @@
+import { createIcon } from '../../../icon';
+
+export const DualEmailIcon = createIcon(
+  <>
+    <path d="M14.166 15.8334C14.166 16.2754 13.9904 16.6993 13.6779 17.0119C13.3653 17.3245 12.9414 17.5001 12.4993 17.5001H3.33268C2.89065 17.5001 2.46673 17.3245 2.15417 17.0119C1.84161 16.6993 1.66602 16.2754 1.66602 15.8334V9.16672C1.66602 8.87417 1.74304 8.58677 1.88932 8.33341C2.0356 8.08006 2.24599 7.86967 2.49935 7.72339" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M18.334 4.58325L12.9848 8.06575C12.7161 8.23839 12.4034 8.33018 12.084 8.33018C11.7646 8.33018 11.4519 8.23839 11.1832 8.06575L5.83398 4.58325" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16.6673 2.5H7.50065C6.58018 2.5 5.83398 3.24619 5.83398 4.16667V10.8333C5.83398 11.7538 6.58018 12.5 7.50065 12.5H16.6673C17.5878 12.5 18.334 11.7538 18.334 10.8333V4.16667C18.334 3.24619 17.5878 2.5 16.6673 2.5Z" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>
+  </>,
+  '0 0 20 20',
+  'DualEmailIcon'
+);
+
+export default DualEmailIcon;

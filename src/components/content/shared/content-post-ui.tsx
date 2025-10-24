@@ -3,64 +3,75 @@ import Image from 'next/image'
 import { Platform } from '@/lib/social/platforms/platform-types';
 import { Tooltip } from "@mui/material";
 import { Status } from '@/lib/store';
+import { 
+  DraftIcon, 
+  PendingApprovalIcon, 
+  NeedsRevisionIcon, 
+  RevisedIcon, 
+  ApprovedIcon, 
+  ScheduledIcon, 
+  PublishIcon, 
+  PublishedIcon, 
+  FailedPublishingIcon 
+} from '@/components/ui/icons';
 
 // Status configuration with updated styles and icons
 export const statusConfig: Record<Status, {
-  icon: string, // Path to SVG icon
+  icon: React.ComponentType<{ size?: number; color?: string; className?: string }>, // React icon component
   bgColor: string,
   borderColor: string,
   textColor: string
 }> = {
   "Draft": {
-    icon: "/images/status/draft.svg",
+    icon: DraftIcon,
     bgColor: "#F4F7FA",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
   "Pending Approval": {
-    icon: "/images/status/pending-approval.svg", 
+    icon: PendingApprovalIcon, 
     bgColor: "#FAF2CA",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
   "Needs Revisions": {
-    icon: "/images/status/needs-revision.svg",
+    icon: NeedsRevisionIcon,
     bgColor: "#FCE4E5",
     borderColor: "rgba(28, 29, 31, 0.05)", 
     textColor: "#1C1D1F"
   },
   "Revised": {
-    icon: "/images/status/revised.svg",
+    icon: RevisedIcon,
     bgColor: "#FEEEE1",
     borderColor: "#F3E4D7",
     textColor: "#1C1D1F"
   },
   "Approved": {
-    icon: "/images/status/approved.svg",
+    icon: ApprovedIcon,
     bgColor: "#DDF9E4",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
   "Scheduled": {
-    icon: "/images/status/scheduled.svg",
+    icon: ScheduledIcon,
     bgColor: "#F1F4F9",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
   "Publishing": {
-    icon: "/images/publish/publish.svg",
+    icon: PublishIcon,
     bgColor: "#F1F4F9",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
   "Published": {
-    icon: "/images/status/published.svg",
+    icon: PublishedIcon,
     bgColor: "#E5EEFF",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   },
   "Failed Publishing": {
-    icon: "/images/status/failed-publishing.svg",
+    icon: FailedPublishingIcon,
     bgColor: "#F5EEFF",
     borderColor: "#EAE4F4",
     textColor: "#1C1D1F"
@@ -78,11 +89,13 @@ export function StatusChip({
   widthFull?: boolean;
 }) {
   const config = statusConfig[status] || {
-    icon: "/images/status/draft.svg",
+    icon: DraftIcon,
     bgColor: "#F1F4F9",
     borderColor: "rgba(28, 29, 31, 0.05)",
     textColor: "#1C1D1F"
   };
+
+  const IconComponent = config.icon;
 
   return (
     <div
@@ -99,12 +112,10 @@ export function StatusChip({
       }}
       className="text-xs font-medium whitespace-nowrap tracking-[-0.24px]"
     >
-      <Image
-        className='w-[16px] h-[16px]'
-        src={config.icon}
-        alt={status}
-        width={16}
-        height={16}
+      <IconComponent
+        size={16}
+        color={config.textColor}
+        className="flex-shrink-0"
       />
       <span>{status}</span>
     </div>

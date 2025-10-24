@@ -1,0 +1,16 @@
+// Auto-generated index file for columns
+export { ApproveIcon } from './approve';
+export { CaptionIcon } from './caption';
+export { CreatedByIcon } from './created-by';
+export { FormatIcon } from './format';
+export { LongTextIcon } from './long-text';
+export { PostTimeIcon } from './post-time';
+export { PreviewIcon } from './preview';
+export { RequestIcon } from './request';
+export { RevisionIcon } from './revision';
+//export { SettingsIcon } from './settings';
+export { SingleLineTextIcon } from './single-line-text';
+export { SocialMediaIcon } from './social-media';
+export { SocialsIcon } from './socials';
+export { StatusIcon } from './status';
+export { UpdatedTimeIcon } from './updated-time';

@@ -1,0 +1,10 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const ShareIcon = createIcon(
+  <path d="M7.00002 9.36906H4.37502C3.56094 9.36906 3.1539 9.36906 2.82269 9.46953C2.07695 9.69575 1.49338 10.2793 1.26716 11.0251C1.16669 11.3563 1.16669 11.7633 1.16669 12.5774M11.0834 12.5774V9.07739M9.33335 10.8274H12.8334M8.45835 4.70239C8.45835 6.15214 7.2831 7.32739 5.83335 7.32739C4.38361 7.32739 3.20835 6.15214 3.20835 4.70239C3.20835 3.25265 4.38361 2.07739 5.83335 2.07739C7.2831 2.07739 8.45835 3.25265 8.45835 4.70239Z" stroke="var(--icon-color, currentColor)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>,
+  '0 0 14 15',
+  'ShareIcon'
+);
+
+export default ShareIcon;

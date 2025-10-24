@@ -1,0 +1,14 @@
+// Auto-generated index file for settings
+export { AtSignIcon } from './at-sign';
+export { BillingIcon } from './billing';
+//export { ClockPlusIcon } from './clock-plus';
+export { DefaultBoardIcon } from './default-board';
+//export { ImageIcon } from './image';
+export { IntegrationsIcon } from './integrations';
+export { MapIcon } from './map';
+export { MembersIcon } from './members';
+export { NotificationsIcon } from './notifications';
+export { ProfileIcon } from './profile';
+export { SlackIcon } from './slack';
+//export { SocialsIcon } from './socials';
+//export { WorkspaceIcon } from './workspace';

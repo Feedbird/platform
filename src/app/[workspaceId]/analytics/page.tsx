@@ -22,6 +22,7 @@ import type { Metric } from '@/components/analytics/metric-card'
 import { DynamicTitle } from '@/components/layout/dynamic-title'
 import { FollowersLocationMap } from '@/components/analytics/followers-location-map'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
+import { UserPlusIcon } from '@/components/ui/icons'
 
 export default function AnalyticsPage() {
   const [showAlert] = useState(true)
@@ -48,7 +49,8 @@ export default function AnalyticsPage() {
       {
         metric: 'followers',
         label: 'Followers',
-        icon: <img src="/images/analytics/user-plus.svg" alt="Followers" />,
+        icon: <UserPlusIcon size={16} color='#4670F9'/>,
+        //icon: <img src="/images/analytics/user-plus.svg" alt="Followers" />,
         value: 226,
       },
       {

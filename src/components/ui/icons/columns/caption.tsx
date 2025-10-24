@@ -1,0 +1,13 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const CaptionIcon = createIcon(
+  <>
+    <path d="M13 3.16211H8.34066M10.8796 7.08921H7.56415M13 10.8378H1" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M0.939453 3.41922C0.939453 3.15386 0.939453 3.02118 0.982805 2.91651C1.04061 2.77697 1.15148 2.6661 1.29103 2.60829C1.39569 2.56494 1.52837 2.56494 1.79373 2.56494H4.64133C4.90669 2.56494 5.03937 2.56494 5.14403 2.60829C5.28358 2.6661 5.39445 2.77697 5.45225 2.91651C5.49561 3.02118 5.49561 3.15386 5.49561 3.41922M2.36325 7.12109H4.07181M3.21753 2.56494V7.12109" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>
+  </>,
+  '0 0 14 14',
+  'CaptionIcon'
+);
+
+export default CaptionIcon;

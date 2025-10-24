@@ -1,0 +1,17 @@
+// Auto-generated index file for boards/icons
+export { Icon1Icon } from './icon-1';
+export { Icon10Icon } from './icon-10';
+export { Icon11Icon } from './icon-11';
+export { Icon12Icon } from './icon-12';
+export { Icon13Icon } from './icon-13';
+export { Icon14Icon } from './icon-14';
+export { Icon15Icon } from './icon-15';
+export { Icon16Icon } from './icon-16';
+export { Icon2Icon } from './icon-2';
+export { Icon3Icon } from './icon-3';
+export { Icon4Icon } from './icon-4';
+export { Icon5Icon } from './icon-5';
+export { Icon6Icon } from './icon-6';
+export { Icon7Icon } from './icon-7';
+export { Icon8Icon } from './icon-8';
+export { Icon9Icon } from './icon-9';

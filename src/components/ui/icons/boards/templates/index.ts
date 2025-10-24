@@ -1,0 +1,16 @@
+// Auto-generated index file for boards/templates
+export { T0BlankIcon } from './t0-blank';
+export { T1SocialMediaPostIcon } from './t1-social-media-post';
+export { T10ProductFeedOptimizationIcon } from './t10-product-feed-optimization';
+export { T11FullEmailMarketingIcon } from './t11-full-email-marketing';
+export { T12SeoBlogPostsIcon } from './t12-seo-blog-posts';
+export { T13ConversionTrackingSetupIcon } from './t13-conversion-tracking-setup';
+export { T14InstagramGrowthIcon } from './t14-instagram-growth';
+export { T2ShortFormVideosIcon } from './t2-short-form-videos';
+export { T3EmailDesignIcon } from './t3-email-design';
+export { T4MetaAdsIcon } from './t4-meta-ads';
+export { T5GoogleAdsIcon } from './t5-google-ads';
+export { T6VideoAdsIcon } from './t6-video-ads';
+export { T7StaticAdsIcon } from './t7-static-ads';
+export { T8UgcVideosIcon } from './t8-ugc-videos';
+export { T9SeoBacklinksIcon } from './t9-seo-backlinks';

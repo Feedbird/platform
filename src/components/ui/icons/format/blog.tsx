@@ -1,0 +1,14 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const BlogIcon = createIcon(
+  <>
+    <rect y="0.513672" width="15" height="15" rx="7.5" fill="var(--icon-color, currentColor)"/>
+    <path d="M5.59863 5.9632C5.59863 5.58103 5.59863 5.38995 5.66107 5.23923C5.74431 5.03826 5.90398 4.87859 6.10495 4.79534C6.25568 4.73291 6.44676 4.73291 6.82892 4.73291H10.9299C11.312 4.73291 11.5031 4.73291 11.6538 4.79534C11.8548 4.87859 12.0145 5.03826 12.0977 5.23923C12.1602 5.38995 12.1602 5.58103 12.1602 5.9632M7.64911 11.2944H10.1097M8.87939 4.73291V11.2944" stroke="var(--icon-color, currentColor)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2.83984 8.82916C2.83984 8.65244 2.83984 8.56408 2.86871 8.49438C2.90721 8.40145 2.98104 8.32762 3.07397 8.28912C3.14367 8.26025 3.23203 8.26025 3.40875 8.26025H5.30511C5.48183 8.26025 5.57019 8.26025 5.63989 8.28912C5.73282 8.32762 5.80665 8.40145 5.84515 8.49438C5.87402 8.56408 5.87402 8.65244 5.87402 8.82916M3.78802 11.2944H4.92584M4.35693 8.26025V11.2944" stroke="var(--icon-color, currentColor)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+  </>,
+  '0 0 15 16',
+  'BlogIcon'
+);
+
+export default BlogIcon;

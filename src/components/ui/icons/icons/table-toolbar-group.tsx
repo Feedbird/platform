@@ -1,0 +1,23 @@
+import React from 'react';
+import { createIcon } from '../../icon';
+
+export const TableToolbarGroupIcon = createIcon(
+  <>
+    <g clipPath="url(#clip0_3838_51789)">
+      <path d="M1.15234 3.73726L1.15234 8.26299C1.15234 9.16822 1.15234 9.62084 1.32851 9.96659C1.48348 10.2707 1.73074 10.518 2.03488 10.673C2.38063 10.8491 2.83325 10.8491 3.73848 10.8491L8.26421 10.8491C9.16944 10.8491 9.62206 10.8491 9.96781 10.673C10.2719 10.518 10.5192 10.2707 10.6742 9.96659C10.8503 9.62083 10.8503 9.16822 10.8503 8.26299L10.8503 3.73726C10.8503 2.83202 10.8503 2.37941 10.6742 2.03366C10.5192 1.72952 10.2719 1.48226 9.96781 1.32729C9.62206 1.15112 9.16944 1.15112 8.26421 1.15112L3.73848 1.15112C2.83324 1.15112 2.38063 1.15112 2.03488 1.32729C1.73074 1.48226 1.48348 1.72952 1.32851 2.03366C1.15234 2.37941 1.15234 2.83202 1.15234 3.73726Z" stroke="var(--icon-color, currentColor)" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M3.55859 4.41797H3.55849" stroke="var(--icon-color, currentColor)" strokeLinecap="round"/>
+      <path d="M3.55859 7.58203H3.55849" stroke="var(--icon-color, currentColor)" strokeLinecap="round"/>
+      <path d="M5.44141 4.41797H8.44141" stroke="var(--icon-color, currentColor)" strokeLinecap="round"/>
+      <path d="M5.44141 7.58203H8.44141" stroke="var(--icon-color, currentColor)" strokeLinecap="round"/>
+    </g>
+    <defs>
+      <clipPath id="clip0_3838_51789">
+        <rect width="12" height="12" fill="var(--icon-color, currentColor)"/>
+      </clipPath>
+    </defs>
+  </>,
+  '0 0 12 12',
+  'TableToolbarGroupIcon'
+);
+
+export default TableToolbarGroupIcon;
