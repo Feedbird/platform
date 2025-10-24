@@ -2,10 +2,10 @@
  * Place any data transformers here, for humanizing / normalizing data
  */
 
-import { CanvasFormField } from "@/components/forms/FormCanvas";
+import { CanvasFormField } from '@/components/forms/FormCanvas';
 
 export function humanizeDate(date: Date | string): string {
-  const standardizedDate = typeof date === "string" ? new Date(date) : date;
+  const standardizedDate = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
 
   // Check if the date is within the same minute
@@ -13,22 +13,46 @@ export function humanizeDate(date: Date | string): string {
   const oneMinuteInMs = 60 * 1000;
 
   if (timeDiffInMs < oneMinuteInMs) {
-    return "Just now";
+    return 'Just now';
+  }
+
+  // Check if it's today (but not within the last minute)
+  const isToday =
+    standardizedDate.getFullYear() === now.getFullYear() &&
+    standardizedDate.getMonth() === now.getMonth() &&
+    standardizedDate.getDate() === now.getDate();
+
+  if (isToday) {
+    return 'Today';
+  }
+
+  // Check if it's yesterday
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  // Compare just the date parts (year, month, day) ignoring time
+  const isYesterday =
+    standardizedDate.getFullYear() === yesterday.getFullYear() &&
+    standardizedDate.getMonth() === yesterday.getMonth() &&
+    standardizedDate.getDate() === yesterday.getDate();
+
+  if (isYesterday) {
+    return 'Yesterday';
   }
 
   const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   const month = months[standardizedDate.getMonth()];

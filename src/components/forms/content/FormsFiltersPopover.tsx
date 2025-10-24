@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { ListFilter, ListPlus } from 'lucide-react';
+import { ListFilter, ListFilterIcon, ListPlus } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
@@ -71,15 +71,10 @@ export default function FormsFiltersPopover({
       <PopoverTrigger asChild>
         <div
           className={cn(
-            'flex cursor-pointer items-center gap-[6px] rounded-xs px-2 py-[3px] shadow-none hover:bg-[#F4F5F6]'
+            'flex cursor-pointer items-center gap-1.5 rounded-xs px-2 py-[3px] shadow-none hover:bg-[#F4F5F6]'
           )}
         >
-          <Image
-            src="/images/icons/table-toolbar-filter.svg"
-            alt="Filter"
-            width={12}
-            height={12}
-          />
+          <ListFilterIcon size={14} color="black" />
           <span className="text-sm leading-[16px] font-medium text-black">
             {hasFilters
               ? `Filtered by ${rootGroup.children.length} fields`

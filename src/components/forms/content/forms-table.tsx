@@ -9,9 +9,20 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
 } from '@tanstack/react-table';
 import { ColumnDef } from '@tanstack/table-core';
-import { ChevronDownIcon, ChevronUpIcon, ListPlus } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  Clock4,
+  FileInputIcon,
+  FolderPen,
+  LayersIcon,
+  ListCheckIcon,
+  ListPlus,
+  TrendingUp,
+} from 'lucide-react';
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -26,6 +37,7 @@ import FormDeleteModal from './FormDeleteModal';
 import FormSettingsModal from './FormSettingsModal';
 import FormStatusBadge from './configs/FormStatusBadge';
 import FormTableContextMenu from './FormTableContextMenu';
+import FormSearchPopover from './FormSearchPopover';
 
 export interface TableForm extends Form {
   submissions_count?: number;
@@ -76,6 +88,8 @@ export default function FormsTable({ forms }: FormsTableProps) {
     );
   }, [filterTree]);
 
+  const originalData = React.useMemo(() => forms, [forms]);
+
   const handleEditClick = (form: TableForm) => {
     selectFormForEditing(form);
     router.push(`forms/${form.id}`);
@@ -114,9 +128,16 @@ export default function FormsTable({ forms }: FormsTableProps) {
       {
         id: 'name',
         accessorKey: 'formName',
+        enableSorting: true,
+        sortingFn: (rowA, rowB) => {
+          const a = rowA.original.title?.toLowerCase() || '';
+          const b = rowB.original.title?.toLowerCase() || '';
+          return a.localeCompare(b);
+        },
         header: () => (
-          <div className="flex items-center text-sm font-medium text-black">
-            Name
+          <div className="flex items-center gap-1 text-sm font-medium text-black">
+            <FolderPen color="#5C5E63" width={16} height={16} />
+            <p>Name</p>
           </div>
         ),
         minSize: 275,
@@ -125,7 +146,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
           <div className="group flex items-center py-1">
             {/* <span className="text-lg">{row.original.icon}</span> */}
             <div className="flex flex-1 flex-col gap-0.5">
-              <span className="text-sm font-medium text-[#4670F9]">
+              <span className="text-sm font-medium text-black">
                 {row.original.title}
               </span>
               <span className="text-xs font-normal text-[#838488]">
@@ -154,21 +175,24 @@ export default function FormsTable({ forms }: FormsTableProps) {
       },
       {
         id: 'type',
-        accessorKey: 'services',
+        accessorKey: 'service',
         header: () => (
-          <div className="flex items-center text-sm font-medium text-black">
-            Services
+          <div className="flex items-center gap-1 text-sm font-medium text-black">
+            <LayersIcon size={16} color="#5C5E63" />
+            Service
           </div>
         ),
         minSize: 120,
         size: 150,
+        enableSorting: false,
         cell: ({ row }) => (
           <div className="flex flex-row flex-wrap gap-1 text-sm font-medium text-black">
             {row.original.services.map((s) => (
               <div
                 key={s.id}
-                className="rounded-[5px] border-1 border-[#D3D3D3] px-1.5"
+                className="flex items-center gap-1 rounded-full bg-[#D2E2FF] px-2 text-black"
               >
+                <TrendingUp size={14} color="black" />
                 {s.name}
               </div>
             ))}
@@ -178,8 +202,14 @@ export default function FormsTable({ forms }: FormsTableProps) {
       {
         id: 'submissions',
         accessorKey: 'submissionsCount',
+        sortingFn: (rowA, rowB) => {
+          const a = rowA.original.submissions_count || 0;
+          const b = rowB.original.submissions_count || 0;
+          return a - b;
+        },
         header: () => (
           <div className="flex items-center gap-[6px] text-sm font-medium text-black">
+            <FileInputIcon size={16} color="#5C5E63" />
             Submissions
           </div>
         ),
@@ -196,6 +226,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         accessorKey: 'status',
         header: () => (
           <div className="flex items-center gap-[6px] text-sm font-medium text-black">
+            <ListCheckIcon size={16} color="#5C5E63" />
             Status
           </div>
         ),
@@ -210,8 +241,15 @@ export default function FormsTable({ forms }: FormsTableProps) {
       {
         id: 'lastUpdated',
         accessorKey: 'lastEditedAt',
+        enableSorting: true,
+        sortingFn: (rowA, rowB) => {
+          const a = new Date(rowA.original.updated_at);
+          const b = new Date(rowB.original.updated_at);
+          return a.getTime() - b.getTime();
+        },
         header: () => (
           <div className="flex items-center gap-[6px] text-sm font-medium text-black">
+            <Clock4 color="#5C5E63" width={16} height={16} />
             Last updated
           </div>
         ),
@@ -276,6 +314,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
     debugTable: true,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     initialState: {
       pagination: {
         pageSize: 10, // Default page size
@@ -419,6 +458,10 @@ export default function FormsTable({ forms }: FormsTableProps) {
             rootGroup={filterTree}
             setRootGroup={setFilterTree}
             hasFilters={hasActiveFilters}
+          />
+          <FormSearchPopover
+            setFormTableData={setTableData}
+            originalData={originalData}
           />
         </div>
       </div>
