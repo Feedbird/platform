@@ -8,7 +8,7 @@ import { formsApi } from "@/lib/api/api-service";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { useFeedbirdStore, useUserStore, useWorkspaceStore } from "@/lib/store";
+import { useUserStore, useWorkspaceStore } from "@/lib/store";
 
 type Props = {
   formValues: FormSubmissionData;

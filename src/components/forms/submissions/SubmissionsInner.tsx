@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formsApi } from "@/lib/api/api-service";
 import Loading from "@/components/shared/Loading";
 import { useRouter } from "next/navigation";
-import { useFeedbirdStore } from "@/lib/store/use-feedbird-store";
 import { toast } from "sonner";
 import {
   Table,
@@ -18,16 +17,17 @@ import { useForms } from "@/contexts/FormsContext";
 import { TableForm } from "../content/forms-table";
 import { humanizeDate } from "@/lib/utils/transformers";
 import { SquareChartGantt } from "lucide-react";
-import { FormSubmission } from "@/lib/supabase/client";
 import ReviewCard from "@/app/[workspaceId]/form/[id]/components/ReviewCard";
 import Image from "next/image";
+import { useWorkspaceStore } from "@/lib/store";
+import { FormSubmission } from "@/lib/supabase/interfaces";
 
 type Props = {
   formId?: string;
 };
 
 export default function SubmissionsInner({ formId }: Props) {
-  const { activeWorkspaceId } = useFeedbirdStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const { activeForm, setActiveForm } = useForms();
   const [localLoading, isLocalLoading] = useState(false);
   const [activeSubmission, setActiveSubmission] =

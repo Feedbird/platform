@@ -277,3 +277,14 @@ export interface NotificationSettings {
     service?: Service;
     checkout_folder?: CheckoutFormFolder;
   }
+
+  export interface FormSubmission {
+  id: string;
+  workspace_id: string;
+  form_id: string;
+  form_version: number;
+  submitted_by: string;
+  answers: Record<string, { type: string; value: string | string[] }>;
+  schema_snapshot: Record<string, string>;
+  created_at: string;
+}

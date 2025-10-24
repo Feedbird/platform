@@ -1,5 +1,6 @@
 import { ApiHandlerError } from "@/app/api/shared";
-import { FormSubmission, supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
+import { FormSubmission } from "@/lib/supabase/interfaces";
 
 export class SubmissionHandler {
   static async getSubmission(submissionId: string): Promise<FormSubmission> {
