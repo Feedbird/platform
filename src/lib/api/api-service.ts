@@ -1,8 +1,11 @@
-import { TableForm } from "@/components/forms/content/forms-table";
-import { CanvasFormField } from "@/components/forms/FormCanvas";
-import { useMessageStore, useUserStore, useWorkspaceStore } from "@/lib/store";
+import { TableForm } from '@/components/forms/content/forms-table';
+import { CanvasFormField } from '@/components/forms/FormCanvas';
+import { useMessageStore, useUserStore, useWorkspaceStore } from '@/lib/store';
 import {
-  Coupon, FormField, ServiceFolder, User,
+  Coupon,
+  FormField,
+  ServiceFolder,
+  User,
   Workspace,
   Brand,
   Board,
@@ -11,7 +14,8 @@ import {
   ChannelMessage,
   Form,
   Service,
-} from "@/lib/supabase/interfaces";
+  FormSubmission,
+} from '@/lib/supabase/interfaces';
 
 export interface ApiResponse<T> {
   data: T;
@@ -35,13 +39,17 @@ function normalizeActivities(items: any[] | undefined) {
 }
 
 // API Base URL
-const API_BASE = "/api";
+const API_BASE = '/api';
 
 // Generic API error handler
 class ApiError extends Error {
-  constructor(message: string, public status: number, public details?: any) {
+  constructor(
+    message: string,
+    public status: number,
+    public details?: any
+  ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
   }
 }
 
@@ -54,11 +62,11 @@ async function apiRequest<T>(
 
   // Attempt to attach Clerk session token on the client if available
   let authHeader: Record<string, string> = {};
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     try {
       const maybeClerk: any = (window as any).Clerk;
       const token: string | undefined = await maybeClerk?.session?.getToken?.();
-      if (token && !("Authorization" in (options.headers || ({} as any)))) {
+      if (token && !('Authorization' in (options.headers || ({} as any)))) {
         authHeader = { Authorization: `Bearer ${token}` };
       }
     } catch {
@@ -68,9 +76,9 @@ async function apiRequest<T>(
 
   const response = await fetch(url, {
     // Ensure auth cookies are sent to API routes
-    credentials: "include",
+    credentials: 'include',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...authHeader,
       ...options.headers,
     },
@@ -94,8 +102,8 @@ export const userApi = {
   // Get user by ID or email
   getUser: async (params: { id?: string; email?: string }): Promise<User> => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
-    if (params.email) searchParams.append("email", params.email);
+    if (params.id) searchParams.append('id', params.id);
+    if (params.email) searchParams.append('email', params.email);
     return apiRequest(`/user?${searchParams.toString()}`);
   },
 
@@ -107,8 +115,8 @@ export const userApi = {
     image_url?: string;
     default_board_rules?: any;
   }): Promise<User> => {
-    return apiRequest<User>("/user", {
-      method: "POST",
+    return apiRequest<User>('/user', {
+      method: 'POST',
       body: JSON.stringify(userData),
     });
   },
@@ -128,10 +136,10 @@ export const userApi = {
     }
   ): Promise<User> => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
-    if (params.email) searchParams.append("email", params.email);
+    if (params.id) searchParams.append('id', params.id);
+    if (params.email) searchParams.append('email', params.email);
     return apiRequest<User>(`/user?${searchParams.toString()}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(updates),
     });
   },
@@ -156,8 +164,8 @@ export const userApi = {
       };
     }
   ): Promise<User> => {
-    return apiRequest<User>("/user/notification-settings", {
-      method: "POST",
+    return apiRequest<User>('/user/notification-settings', {
+      method: 'POST',
       body: JSON.stringify({
         user_email: userEmail,
         settings,
@@ -171,11 +179,11 @@ export const userApi = {
     email?: string;
   }): Promise<{ message: string }> => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
-    if (params.email) searchParams.append("email", params.email);
+    if (params.id) searchParams.append('id', params.id);
+    if (params.email) searchParams.append('email', params.email);
 
     return apiRequest<{ message: string }>(`/user?${searchParams.toString()}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 
@@ -184,10 +192,10 @@ export const userApi = {
     messageId: string
   ): Promise<{ unread_msg: string[] }> => {
     const response = await apiRequest<{ unread_msg: string[] }>(
-      "/user/unread-messages",
+      '/user/unread-messages',
       {
-        method: "POST",
-        body: JSON.stringify({ email, message_id: messageId, action: "add" }),
+        method: 'POST',
+        body: JSON.stringify({ email, message_id: messageId, action: 'add' }),
       }
     );
 
@@ -195,9 +203,9 @@ export const userApi = {
     useUserStore.setState((prev: any) => ({
       user: prev.user
         ? {
-          ...prev.user,
-          unread_msg: response.unread_msg,
-        }
+            ...prev.user,
+            unread_msg: response.unread_msg,
+          }
         : null,
     }));
 
@@ -209,13 +217,13 @@ export const userApi = {
     messageId: string
   ): Promise<{ unread_msg: string[] }> => {
     const response = await apiRequest<{ unread_msg: string[] }>(
-      "/user/unread-messages",
+      '/user/unread-messages',
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           email,
           message_id: messageId,
-          action: "remove",
+          action: 'remove',
         }),
       }
     );
@@ -224,9 +232,9 @@ export const userApi = {
     useUserStore.setState((prev: any) => ({
       user: prev.user
         ? {
-          ...prev.user,
-          unread_msg: response.unread_msg,
-        }
+            ...prev.user,
+            unread_msg: response.unread_msg,
+          }
         : null,
     }));
 
@@ -243,18 +251,18 @@ export const workspaceHelperApi = {
       email: string;
       first_name?: string;
       image_url?: string;
-      role?: "admin" | "client" | "team";
+      role?: 'admin' | 'client' | 'team';
       accept?: boolean;
     }[];
   }> => {
     const searchParams = new URLSearchParams();
-    searchParams.append("workspace_id", workspace_id);
+    searchParams.append('workspace_id', workspace_id);
     return apiRequest<{
       users: {
         email: string;
         first_name?: string;
         image_url?: string;
-        role?: "admin" | "client" | "team";
+        role?: 'admin' | 'client' | 'team';
         accept?: boolean;
       }[];
     }>(`/workspace/members?${searchParams.toString()}`);
@@ -263,10 +271,10 @@ export const workspaceHelperApi = {
   updateWorkspaceMemberRole: async (
     workspace_id: string,
     email: string,
-    role: "client" | "team"
+    role: 'client' | 'team'
   ): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/workspace/members`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify({ workspace_id, email, role }),
     });
   },
@@ -275,12 +283,12 @@ export const workspaceHelperApi = {
 export const formsApi = {
   // Create new empty form
   createInitialForm: async (creatorEmail: string, workspaceId: string) => {
-    return apiRequest<Form>("/forms/initial", {
-      method: "POST",
+    return apiRequest<Form>('/forms/initial', {
+      method: 'POST',
       body: JSON.stringify({
-        type: "intake",
+        type: 'intake',
         workspace_id: workspaceId,
-        title: "Untitled form",
+        title: 'Untitled form',
         createdBy: creatorEmail,
         location_tags: [],
         account_tags: [],
@@ -298,7 +306,7 @@ export const formsApi = {
   // Delete form
   deleteForm: async (id: string) => {
     return apiRequest<{ message: string }>(`/forms/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
   updateForm: async (
@@ -306,7 +314,7 @@ export const formsApi = {
     updates: Partial<TableForm>
   ): Promise<ApiResponse<TableForm>> => {
     return apiRequest<{ data: TableForm }>(`/forms/${id}`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(updates),
     });
   },
@@ -317,7 +325,7 @@ export const formsApi = {
   },
   updateFormFields: async (formId: string, fields: CanvasFormField[]) => {
     return apiRequest<{ message: string }>(`/forms/fields`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({ formId, formFields: fields }),
     });
   },
@@ -335,7 +343,7 @@ export const formsApi = {
     schema: Record<string, string>;
   }) => {
     return apiRequest<{ data: any }>(`/forms/submission`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({
         formId,
         email,
@@ -347,7 +355,7 @@ export const formsApi = {
   },
   duplicateForm: async (formId: string): Promise<ApiResponse<Form>> => {
     return apiRequest<ApiResponse<Form>>(`/forms/${formId}`, {
-      method: "POST",
+      method: 'POST',
     });
   },
 
@@ -369,12 +377,12 @@ export const formsApi = {
 export const servicesApi = {
   fetchAllServices: async (workspaceId: string) => {
     return apiRequest<ApiResponse<Service[]>>(
-      "/services" + "?workspaceId=" + workspaceId
+      '/services' + '?workspaceId=' + workspaceId
     );
   },
   fetchServiceFolders: async (workspaceId: string) => {
     const { data } = await apiRequest<ApiResponse<ServiceFolder[]>>(
-      "/services/folders" + "?workspaceId=" + workspaceId
+      '/services/folders' + '?workspaceId=' + workspaceId
     );
 
     return data.sort((a, b) => a.order - b.order);
@@ -403,7 +411,7 @@ export const slackApi = {
 export const workspaceApi = {
   // Get workspace by ID or list all
   getWorkspace: async (id?: string): Promise<Workspace | Workspace[]> => {
-    const endpoint = id ? `/workspace?id=${id}` : "/workspace";
+    const endpoint = id ? `/workspace?id=${id}` : '/workspace';
     return apiRequest<Workspace | Workspace[]>(endpoint);
   },
 
@@ -421,15 +429,15 @@ export const workspaceApi = {
       email: string;
       default_board_rules?: Record<string, any>;
       timezone?: string;
-      week_start?: "monday" | "sunday";
-      time_format?: "24h" | "12h";
+      week_start?: 'monday' | 'sunday';
+      time_format?: '24h' | '12h';
       allowed_posting_time?: Record<string, any>;
     },
     authToken?: string
   ): Promise<Workspace> => {
-    console.log("workspaceData", workspaceData);
-    return apiRequest<Workspace>("/workspace", {
-      method: "POST",
+    console.log('workspaceData', workspaceData);
+    return apiRequest<Workspace>('/workspace', {
+      method: 'POST',
       headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
       body: JSON.stringify(workspaceData),
     });
@@ -442,14 +450,14 @@ export const workspaceApi = {
       name?: string;
       logo?: string;
       timezone?: string;
-      week_start?: "monday" | "sunday";
-      time_format?: "24h" | "12h";
+      week_start?: 'monday' | 'sunday';
+      time_format?: '24h' | '12h';
       allowed_posting_time?: Record<string, any>;
       default_board_rules?: Record<string, any>;
     }
   ): Promise<Workspace> => {
     return apiRequest<Workspace>(`/workspace?id=${id}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(updates),
     });
   },
@@ -457,7 +465,7 @@ export const workspaceApi = {
   // Delete workspace
   deleteWorkspace: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/workspace?id=${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 };
@@ -471,10 +479,10 @@ export const brandApi = {
     include_social?: boolean;
   }): Promise<Brand | null> => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
+    if (params.id) searchParams.append('id', params.id);
     if (params.workspace_id)
-      searchParams.append("workspace_id", params.workspace_id);
-    if (params.include_social) searchParams.append("include_social", "true");
+      searchParams.append('workspace_id', params.workspace_id);
+    if (params.include_social) searchParams.append('include_social', 'true');
 
     return apiRequest<Brand | null>(`/brand?${searchParams.toString()}`);
   },
@@ -489,8 +497,8 @@ export const brandApi = {
     voice?: string;
     prefs?: string;
   }): Promise<Brand> => {
-    return apiRequest<Brand>("/brand", {
-      method: "POST",
+    return apiRequest<Brand>('/brand', {
+      method: 'POST',
       body: JSON.stringify(brandData),
     });
   },
@@ -508,7 +516,7 @@ export const brandApi = {
     }
   ): Promise<Brand> => {
     return apiRequest<Brand>(`/brand?id=${id}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(updates),
     });
   },
@@ -516,7 +524,7 @@ export const brandApi = {
   // Delete brand
   deleteBrand: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/brand?id=${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 };
@@ -529,9 +537,9 @@ export const boardApi = {
     workspace_id?: string;
   }): Promise<Board | Board[]> => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
+    if (params.id) searchParams.append('id', params.id);
     if (params.workspace_id)
-      searchParams.append("workspace_id", params.workspace_id);
+      searchParams.append('workspace_id', params.workspace_id);
 
     return apiRequest<Board | Board[]>(`/board?${searchParams.toString()}`);
   },
@@ -552,8 +560,8 @@ export const boardApi = {
       options?: any;
     }>;
   }): Promise<Board> => {
-    return apiRequest<Board>("/board", {
-      method: "POST",
+    return apiRequest<Board>('/board', {
+      method: 'POST',
       body: JSON.stringify(boardData),
     });
   },
@@ -579,7 +587,7 @@ export const boardApi = {
     }
   ): Promise<Board> => {
     return apiRequest<Board>(`/board?id=${id}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(updates),
     });
   },
@@ -587,7 +595,7 @@ export const boardApi = {
   // Delete board
   deleteBoard: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/board?id=${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 };
@@ -600,9 +608,9 @@ export const channelApi = {
     workspace_id?: string;
   }): Promise<Channel | Channel[]> => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
+    if (params.id) searchParams.append('id', params.id);
     if (params.workspace_id)
-      searchParams.append("workspace_id", params.workspace_id);
+      searchParams.append('workspace_id', params.workspace_id);
     return apiRequest<Channel | Channel[]>(
       `/channel?${searchParams.toString()}`
     );
@@ -618,8 +626,8 @@ export const channelApi = {
     icon?: string;
     color?: string;
   }): Promise<Channel> => {
-    return apiRequest<Channel>("/channel", {
-      method: "POST",
+    return apiRequest<Channel>('/channel', {
+      method: 'POST',
       body: JSON.stringify(channelData),
     });
   },
@@ -636,7 +644,7 @@ export const channelApi = {
     }
   ): Promise<Channel> => {
     return apiRequest<Channel>(`/channel?id=${id}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(updates),
     });
   },
@@ -644,7 +652,7 @@ export const channelApi = {
   // Delete channel
   deleteChannel: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/channel?id=${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 };
@@ -659,14 +667,14 @@ export const channelMessageApi = {
   }): Promise<
     | (ChannelMessage & { author_name?: string; author_image_url?: string })
     | Array<
-      ChannelMessage & { author_name?: string; author_image_url?: string }
-    >
+        ChannelMessage & { author_name?: string; author_image_url?: string }
+      >
   > => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
-    if (params.channel_id) searchParams.append("channel_id", params.channel_id);
+    if (params.id) searchParams.append('id', params.id);
+    if (params.channel_id) searchParams.append('channel_id', params.channel_id);
     if (params.workspace_id)
-      searchParams.append("workspace_id", params.workspace_id);
+      searchParams.append('workspace_id', params.workspace_id);
     return apiRequest(`/channel-message?${searchParams.toString()}`);
   },
 
@@ -681,8 +689,8 @@ export const channelMessageApi = {
     author_email: string;
     emoticons?: any;
   }): Promise<ChannelMessage> => {
-    return apiRequest<ChannelMessage>("/channel-message", {
-      method: "POST",
+    return apiRequest<ChannelMessage>('/channel-message', {
+      method: 'POST',
       body: JSON.stringify(messageData),
     });
   },
@@ -698,7 +706,7 @@ export const channelMessageApi = {
     }
   ): Promise<ChannelMessage> => {
     return apiRequest<ChannelMessage>(`/channel-message?id=${id}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(updates),
     });
   },
@@ -706,7 +714,7 @@ export const channelMessageApi = {
   // Delete channel message
   deleteChannelMessage: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/channel-message?id=${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 };
@@ -720,10 +728,10 @@ export const postApi = {
     board_id?: string;
   }): Promise<Post | Post[]> => {
     const searchParams = new URLSearchParams();
-    if (params.id) searchParams.append("id", params.id);
+    if (params.id) searchParams.append('id', params.id);
     if (params.workspace_id)
-      searchParams.append("workspace_id", params.workspace_id);
-    if (params.board_id) searchParams.append("board_id", params.board_id);
+      searchParams.append('workspace_id', params.workspace_id);
+    if (params.board_id) searchParams.append('board_id', params.board_id);
 
     return apiRequest<Post | Post[]>(`/post?${searchParams.toString()}`);
   },
@@ -749,9 +757,9 @@ export const postApi = {
     created_by: string;
     last_updated_by: string;
   }): Promise<Post> => {
-    console.log("postData", postData);
-    return apiRequest<Post>("/post", {
-      method: "POST",
+    console.log('postData', postData);
+    return apiRequest<Post>('/post', {
+      method: 'POST',
       body: JSON.stringify(postData),
     });
   },
@@ -778,7 +786,7 @@ export const postApi = {
     }
   ): Promise<Post> => {
     return apiRequest<Post>(`/post?id=${id}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(updates),
     });
   },
@@ -786,7 +794,7 @@ export const postApi = {
   // Delete post
   deletePost: async (id: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/post?id=${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   },
 
@@ -813,8 +821,8 @@ export const postApi = {
       last_updated_by: string;
     }[]
   ): Promise<{ message: string; posts: Post[] }> => {
-    return apiRequest<{ message: string; posts: Post[] }>("/post/bulk", {
-      method: "POST",
+    return apiRequest<{ message: string; posts: Post[] }>('/post/bulk', {
+      method: 'POST',
       body: JSON.stringify({ posts }),
     });
   },
@@ -824,9 +832,9 @@ export const postApi = {
     postIds: string[]
   ): Promise<{ message: string; deleted_posts: Post[] }> => {
     return apiRequest<{ message: string; deleted_posts: Post[] }>(
-      "/post/bulk",
+      '/post/bulk',
       {
-        method: "DELETE",
+        method: 'DELETE',
         body: JSON.stringify({ post_ids: postIds }),
       }
     );
@@ -834,8 +842,8 @@ export const postApi = {
 
   // Auto-schedule post (server computes publish_date)
   autoSchedule: async (postId: string, status: string): Promise<Post> => {
-    return apiRequest<Post>("/post/auto-schedule", {
-      method: "POST",
+    return apiRequest<Post>('/post/auto-schedule', {
+      method: 'POST',
       body: JSON.stringify({ post_id: postId, status: status }),
     });
   },
@@ -850,7 +858,7 @@ export const storeApi = {
       useWorkspaceStore.setState({ workspacesLoading: true });
 
       if (!email) {
-        console.warn("No email provided for loading workspaces");
+        console.warn('No email provided for loading workspaces');
         useWorkspaceStore.setState({
           workspaces: [],
           workspacesLoading: false,
@@ -863,7 +871,7 @@ export const storeApi = {
       const workspaceStore = useWorkspaceStore.getState();
 
       if (!workspaces || workspaces.length === 0) {
-        console.warn("No workspaces found for user:", email);
+        console.warn('No workspaces found for user:', email);
         useWorkspaceStore.setState({
           workspaces: [],
           workspacesLoading: false,
@@ -913,7 +921,7 @@ export const storeApi = {
               socialPages: (acc.social_pages || []).map((p: any) => ({
                 id: p.id,
                 platform: p.platform,
-                entityType: p.entity_type || "page",
+                entityType: p.entity_type || 'page',
                 name: p.name,
                 pageId: p.page_id,
                 connected: p.connected,
@@ -936,7 +944,7 @@ export const storeApi = {
             .map((p: any) => ({
               id: p.id,
               platform: p.platform,
-              entityType: p.entity_type || "page",
+              entityType: p.entity_type || 'page',
               name: p.name,
               pageId: p.page_id,
               connected: p.connected,
@@ -1067,14 +1075,14 @@ export const storeApi = {
             channels,
             brand: brand
               ? {
-                id: brand.id,
-                name: brand.name,
-                logo: brand.logo,
-                styleGuide: (brand as any).style_guide,
-                link: (brand as any).link,
-                voice: (brand as any).voice,
-                prefs: (brand as any).prefs,
-              }
+                  id: brand.id,
+                  name: brand.name,
+                  logo: brand.logo,
+                  styleGuide: (brand as any).style_guide,
+                  link: (brand as any).link,
+                  voice: (brand as any).voice,
+                  prefs: (brand as any).prefs,
+                }
               : undefined,
             // socialAccounts/socialPages already set in the initial transform
           };
@@ -1114,7 +1122,7 @@ export const storeApi = {
 
       return workspacesWithBrands;
     } catch (error) {
-      console.error("Failed to load user workspaces:", error);
+      console.error('Failed to load user workspaces:', error);
       // ensure loading flags reset even on error
       useWorkspaceStore.setState({
         workspacesLoading: false,
@@ -1172,7 +1180,7 @@ export const storeApi = {
       useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
       return channel.id;
     } catch (error) {
-      console.error("Failed to create channel:", error);
+      console.error('Failed to create channel:', error);
       throw error;
     }
   },
@@ -1191,7 +1199,7 @@ export const storeApi = {
       useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
       return channel;
     } catch (error) {
-      console.error("Failed to update channel:", error);
+      console.error('Failed to update channel:', error);
       throw error;
     }
   },
@@ -1208,7 +1216,7 @@ export const storeApi = {
       }));
       useWorkspaceStore.setState({ workspaces: updatedWorkspaces });
     } catch (error) {
-      console.error("Failed to delete channel:", error);
+      console.error('Failed to delete channel:', error);
       throw error;
     }
   },
@@ -1252,7 +1260,7 @@ export const storeApi = {
 
           // Update unread messages in store
           const currentUnread = store.user?.unread_msg || [];
-          console.log("currentUnread: ", store.user);
+          console.log('currentUnread: ', store.user);
           const newUnread = currentUnread.filter(
             (id) => !messageIds.includes(id)
           );
@@ -1265,20 +1273,20 @@ export const storeApi = {
               },
             });
           }
-          console.log("channelmessageIds:", newRead);
+          console.log('channelmessageIds:', newRead);
           // Update unread messages in database for each message
           for (const messageId of newRead) {
             await userApi.removeUnreadMessage(currentUserEmail, messageId);
           }
         }
       } catch (unreadError) {
-        console.error("Error marking messages as read:", unreadError);
+        console.error('Error marking messages as read:', unreadError);
         // Don't fail the message loading if unread update fails
       }
 
       return transformed;
     } catch (error) {
-      console.error("Failed to fetch channel messages:", error);
+      console.error('Failed to fetch channel messages:', error);
       throw error;
     }
   },
@@ -1287,7 +1295,7 @@ export const storeApi = {
     try {
       const store = useWorkspaceStore.getState();
       const activeWorkspaceId = store.activeWorkspaceId;
-      if (!activeWorkspaceId) throw new Error("No active workspace");
+      if (!activeWorkspaceId) throw new Error('No active workspace');
 
       const resp = (await channelMessageApi.getChannelMessage({
         workspace_id: activeWorkspaceId,
@@ -1339,20 +1347,20 @@ export const storeApi = {
               },
             });
           }
-          console.log("workspacemessageIds:", newRead);
+          console.log('workspacemessageIds:', newRead);
           // Update unread messages in database for each message
           for (const messageId of newRead) {
             await userApi.removeUnreadMessage(currentUserEmail, messageId);
           }
         }
       } catch (unreadError) {
-        console.error("Error marking messages as read:", unreadError);
+        console.error('Error marking messages as read:', unreadError);
         // Don't fail the message loading if unread update fails
       }
 
       return transformed;
     } catch (error) {
-      console.error("Failed to fetch all workspace messages:", error);
+      console.error('Failed to fetch all workspace messages:', error);
       throw error;
     }
   },
@@ -1397,7 +1405,7 @@ export const storeApi = {
       };
 
       const allMessages =
-        (store as any).channelMessagesByChannelId?.["all"] || [];
+        (store as any).channelMessagesByChannelId?.['all'] || [];
       const channelMessages =
         (store as any).channelMessagesByChannelId?.[channelId] || [];
       useMessageStore.setState({
@@ -1410,12 +1418,12 @@ export const storeApi = {
 
       return created.id;
     } catch (error) {
-      console.error("Failed to create channel message:", error);
+      console.error('Failed to create channel message:', error);
       // If it's an API error with validation details, log them
-      if (error && typeof error === "object" && "message" in error) {
+      if (error && typeof error === 'object' && 'message' in error) {
         const apiError = error as any;
-        if (apiError.message === "Validation error" && apiError.details) {
-          console.error("Validation error details:", apiError.details);
+        if (apiError.message === 'Validation error' && apiError.details) {
+          console.error('Validation error details:', apiError.details);
         }
       }
       throw error;
@@ -1457,7 +1465,7 @@ export const storeApi = {
       store.workspaces = [...store.workspaces, newWorkspace];
       return workspace.id;
     } catch (error) {
-      console.error("Failed to create workspace:", error);
+      console.error('Failed to create workspace:', error);
       throw error;
     }
   },
@@ -1482,7 +1490,7 @@ export const storeApi = {
 
       return workspace;
     } catch (error) {
-      console.error("Failed to update workspace:", error);
+      console.error('Failed to update workspace:', error);
       throw error;
     }
   },
@@ -1512,7 +1520,7 @@ export const storeApi = {
         activeBoardId: newActiveBoardId,
       });
     } catch (error) {
-      console.error("Failed to delete workspace:", error);
+      console.error('Failed to delete workspace:', error);
       throw error;
     }
   },
@@ -1570,7 +1578,7 @@ export const storeApi = {
 
       return brand.id;
     } catch (error) {
-      console.error("Failed to create brand:", error);
+      console.error('Failed to create brand:', error);
       throw error;
     }
   },
@@ -1594,7 +1602,7 @@ export const storeApi = {
 
       return brand;
     } catch (error) {
-      console.error("Failed to update brand:", error);
+      console.error('Failed to update brand:', error);
       throw error;
     }
   },
@@ -1625,7 +1633,7 @@ export const storeApi = {
         activeBrandId: newActiveBrandId,
       });
     } catch (error) {
-      console.error("Failed to delete brand:", error);
+      console.error('Failed to delete brand:', error);
       throw error;
     }
   },
@@ -1730,7 +1738,7 @@ export const storeApi = {
 
       return board.id;
     } catch (error) {
-      console.error("Failed to create board:", error);
+      console.error('Failed to create board:', error);
       throw error;
     }
   },
@@ -1778,14 +1786,14 @@ export const storeApi = {
         ? boardsToNav(activeWorkspace.boards, activeWorkspace.id)
         : [];
 
-        useWorkspaceStore.setState({
+      useWorkspaceStore.setState({
         workspaces: updatedWorkspaces,
         boardNav: newBoardNav,
       });
 
       return board;
     } catch (error) {
-      console.error("Failed to update board:", error);
+      console.error('Failed to update board:', error);
       throw error;
     }
   },
@@ -1825,7 +1833,7 @@ export const storeApi = {
         boardNav: newBoardNav,
       });
     } catch (error) {
-      console.error("Failed to delete board:", error);
+      console.error('Failed to delete board:', error);
       throw error;
     }
   },
@@ -1838,7 +1846,7 @@ export const storeApi = {
     userEmail: string
   ) => {
     try {
-      console.log("createPostAndUpdateStore", workspaceId, board_id, postData);
+      console.log('createPostAndUpdateStore', workspaceId, board_id, postData);
       const post = await postApi.createPost({
         workspace_id: workspaceId,
         board_id: board_id,
@@ -1893,7 +1901,7 @@ export const storeApi = {
 
       return post.id;
     } catch (error) {
-      console.error("Failed to create post:", error);
+      console.error('Failed to create post:', error);
       throw error;
     }
   },
@@ -1910,7 +1918,7 @@ export const storeApi = {
       }
 
       const post = await postApi.updatePost(id, postUpdates);
-      console.log("post", post);
+      console.log('post', post);
       const store = useWorkspaceStore.getState();
 
       // Update store
@@ -1944,7 +1952,7 @@ export const storeApi = {
 
       return post;
     } catch (error) {
-      console.error("Failed to update post:", error);
+      console.error('Failed to update post:', error);
       throw error;
     }
   },
@@ -1977,7 +1985,7 @@ export const storeApi = {
       useWorkspaceStore.setState({ workspaces: store.workspaces });
       return updated;
     } catch (error) {
-      console.error("Failed to auto-schedule post:", error);
+      console.error('Failed to auto-schedule post:', error);
       throw error;
     }
   },
@@ -1998,10 +2006,10 @@ export const storeApi = {
         requestBody.last_updated_by = userEmail;
       }
 
-      const response = await fetch("/api/post/update-blocks", {
-        method: "POST",
+      const response = await fetch('/api/post/update-blocks', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
       });
@@ -2024,11 +2032,11 @@ export const storeApi = {
           posts: b.posts.map((p) =>
             p.id === postId
               ? {
-                ...p,
-                blocks: result.post.blocks,
-                updatedAt: new Date(result.post.updated_at),
-                last_updated_by: userEmail,
-              }
+                  ...p,
+                  blocks: result.post.blocks,
+                  updatedAt: new Date(result.post.updated_at),
+                  last_updated_by: userEmail,
+                }
               : p
           ),
         })),
@@ -2039,7 +2047,7 @@ export const storeApi = {
 
       return result.post;
     } catch (error) {
-      console.error("Failed to update post blocks:", error);
+      console.error('Failed to update post blocks:', error);
       throw error;
     }
   },
@@ -2060,7 +2068,7 @@ export const storeApi = {
       // Trigger store update for listeners
       useWorkspaceStore.setState({ workspaces: store.workspaces });
     } catch (error) {
-      console.error("Failed to delete post:", error);
+      console.error('Failed to delete post:', error);
       throw error;
     }
   },
@@ -2125,7 +2133,7 @@ export const storeApi = {
 
       return result.posts.map((p) => p.id);
     } catch (error) {
-      console.error("Failed to bulk create posts:", error);
+      console.error('Failed to bulk create posts:', error);
       throw error;
     }
   },
@@ -2149,7 +2157,7 @@ export const storeApi = {
 
       return result.deleted_posts;
     } catch (error) {
-      console.error("Failed to bulk delete posts:", error);
+      console.error('Failed to bulk delete posts:', error);
       throw error;
     }
   },
@@ -2179,13 +2187,13 @@ export const inviteApi = {
     actorId?: string;
     organizationId?: string;
     role?: string;
-    memberRole?: "client" | "team";
+    memberRole?: 'client' | 'team';
     first_name?: string;
   }) => {
     return apiRequest<{ message: string; details?: string; warning?: boolean }>(
-      "/invite",
+      '/invite',
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(payload),
       }
     );
@@ -2198,9 +2206,9 @@ export const inviteApi = {
     first_name?: string;
   }) => {
     return apiRequest<{ message: string; details?: string; warning?: boolean }>(
-      "/invite/client",
+      '/invite/client',
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(payload),
       }
     );
@@ -2213,9 +2221,9 @@ export const inviteApi = {
     first_name?: string;
   }) => {
     return apiRequest<{ message: string; details?: string; warning?: boolean }>(
-      "/invite/team",
+      '/invite/team',
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(payload),
       }
     );
@@ -2238,8 +2246,8 @@ export const commentApi = {
     authorEmail?: string;
     authorImageUrl?: string;
   }) => {
-    return apiRequest<any>("/post/comment", {
-      method: "POST",
+    return apiRequest<any>('/post/comment', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },
@@ -2252,7 +2260,7 @@ export const commentApi = {
     return apiRequest<any>(
       `/post/comment?post_id=${postId}&comment_id=${commentId}`,
       {
-        method: "PUT",
+        method: 'PUT',
         body: JSON.stringify(data),
       }
     );
@@ -2262,7 +2270,7 @@ export const commentApi = {
     return apiRequest<{ message: string }>(
       `/post/comment?post_id=${postId}&comment_id=${commentId}`,
       {
-        method: "DELETE",
+        method: 'DELETE',
       }
     );
   },
@@ -2284,8 +2292,8 @@ export const commentApi = {
     authorEmail?: string;
     authorImageUrl?: string;
   }) => {
-    return apiRequest<any>("/post/block/comment", {
-      method: "POST",
+    return apiRequest<any>('/post/block/comment', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },
@@ -2299,7 +2307,7 @@ export const commentApi = {
     return apiRequest<any>(
       `/post/block/comment?post_id=${postId}&block_id=${blockId}&comment_id=${commentId}`,
       {
-        method: "PUT",
+        method: 'PUT',
         body: JSON.stringify(data),
       }
     );
@@ -2313,7 +2321,7 @@ export const commentApi = {
     return apiRequest<{ message: string }>(
       `/post/block/comment?post_id=${postId}&block_id=${blockId}&comment_id=${commentId}`,
       {
-        method: "DELETE",
+        method: 'DELETE',
       }
     );
   },
@@ -2341,8 +2349,8 @@ export const commentApi = {
     authorImageUrl?: string;
     rect?: { x: number; y: number; w: number; h: number };
   }) => {
-    return apiRequest<any>("/post/block/version/comment", {
-      method: "POST",
+    return apiRequest<any>('/post/block/version/comment', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },
@@ -2357,7 +2365,7 @@ export const commentApi = {
     return apiRequest<any>(
       `/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}&comment_id=${commentId}`,
       {
-        method: "PUT",
+        method: 'PUT',
         body: JSON.stringify(data),
       }
     );
@@ -2372,7 +2380,7 @@ export const commentApi = {
     return apiRequest<{ message: string }>(
       `/post/block/version/comment?post_id=${postId}&block_id=${blockId}&version_id=${versionId}&comment_id=${commentId}`,
       {
-        method: "DELETE",
+        method: 'DELETE',
       }
     );
   },
@@ -2392,9 +2400,9 @@ export const socialAccountApi = {
     accountId?: string;
   }) => {
     return apiRequest<{ success: boolean; message: string }>(
-      "/social-account/disconnect",
+      '/social-account/disconnect',
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(data),
       }
     );
@@ -2405,15 +2413,15 @@ export const socialAccountApi = {
 export const socialSetApi = {
   // Create social set
   createSocialSet: async (workspace_id: string, name: string) => {
-    return apiRequest<any>("/social-set", {
-      method: "POST",
+    return apiRequest<any>('/social-set', {
+      method: 'POST',
       body: JSON.stringify({ workspace_id, name }),
     });
   },
   // Update social set name
   updateSocialSetName: async (id: string, name: string) => {
-    return apiRequest<any>("/social-set", {
-      method: "PATCH",
+    return apiRequest<any>('/social-set', {
+      method: 'PATCH',
       body: JSON.stringify({ id, name }),
     });
   },
@@ -2423,8 +2431,8 @@ export const socialSetApi = {
 export const socialPageApi = {
   // Move page to a different social set (or unassigned by passing null)
   moveToSet: async (page_id: string, social_set_id: string | null) => {
-    return apiRequest<any>("/social-page", {
-      method: "PATCH",
+    return apiRequest<any>('/social-page', {
+      method: 'PATCH',
       body: JSON.stringify({ page_id, social_set_id }),
     });
   },
@@ -2447,22 +2455,22 @@ export const activityApi = {
     post_id?: string;
     actor_id: string;
     type:
-    | "revision_request"
-    | "revised"
-    | "approved"
-    | "scheduled"
-    | "published"
-    | "failed_publishing"
-    | "comment"
-    | "workspace_invited_sent"
-    | "board_invited_sent"
-    | "workspace_invited_accepted"
-    | "workspace_invited_declined"
-    | "workspace_access_requested";
+      | 'revision_request'
+      | 'revised'
+      | 'approved'
+      | 'scheduled'
+      | 'published'
+      | 'failed_publishing'
+      | 'comment'
+      | 'workspace_invited_sent'
+      | 'board_invited_sent'
+      | 'workspace_invited_accepted'
+      | 'workspace_invited_declined'
+      | 'workspace_access_requested';
     metadata?: any;
   }) => {
-    return apiRequest<any>("/post/activity", {
-      method: "POST",
+    return apiRequest<any>('/post/activity', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },
@@ -2477,9 +2485,9 @@ export const notificationApi = {
   },
   removeAllUnreadNotifications: async (userEmail: string) => {
     return apiRequest<{ success: boolean; cleared: string }>(
-      "/user/notifications",
+      '/user/notifications',
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           user_email: userEmail,
         }),
@@ -2491,9 +2499,9 @@ export const notificationApi = {
     notificationId: string
   ) => {
     return apiRequest<{ success: boolean; unread_notification: string[] }>(
-      "/user/notifications",
+      '/user/notifications',
       {
-        method: "PATCH",
+        method: 'PATCH',
         body: JSON.stringify({
           user_email: userEmail,
           notification_id: notificationId,
@@ -2507,57 +2515,65 @@ export const notificationApi = {
 export const notificationServiceApi = {
   // Get users with unread messages for notifications
   getUsersWithUnreadMessages: async () => {
-    return apiRequest<Array<{
-      id: string;
-      email: string;
-      first_name: string;
-      unread_msg: string[];
-    }>>("/notification-service?endpoint=users-with-unread-messages");
+    return apiRequest<
+      Array<{
+        id: string;
+        email: string;
+        first_name: string;
+        unread_msg: string[];
+      }>
+    >('/notification-service?endpoint=users-with-unread-messages');
   },
 
   // Get message details for notification processing
   getMessagesForNotifications: async (messageIds: string[]) => {
-    return apiRequest<Array<{
-      id: string;
-      content: string;
-      author_email: string;
-      created_at: string;
-      channel_id: string;
-      workspace_id: string;
-      sent_notification: boolean;
-    }>>("/notification-service", {
-      method: "POST",
+    return apiRequest<
+      Array<{
+        id: string;
+        content: string;
+        author_email: string;
+        created_at: string;
+        channel_id: string;
+        workspace_id: string;
+        sent_notification: boolean;
+      }>
+    >('/notification-service', {
+      method: 'POST',
       body: JSON.stringify({ message_ids: messageIds }),
     });
   },
 
   // Get channel information
   getChannelsInfo: async (channelIds: string[]) => {
-    return apiRequest<Array<{
-      id: string;
-      name: string;
-    }>>("/notification-service", {
-      method: "POST",
+    return apiRequest<
+      Array<{
+        id: string;
+        name: string;
+      }>
+    >('/notification-service', {
+      method: 'POST',
       body: JSON.stringify({ channel_ids: channelIds }),
     });
   },
 
   // Get authors information
   getAuthorsInfo: async (authorEmails: string[]) => {
-    return apiRequest<Array<{
-      email: string;
-      first_name: string;
-      image_url: string;
-    }>>("/notification-service", {
-      method: "POST",
+    return apiRequest<
+      Array<{
+        email: string;
+        first_name: string;
+        image_url: string;
+      }>
+    >('/notification-service', {
+      method: 'POST',
       body: JSON.stringify({ author_emails: authorEmails }),
     });
   },
 
   // Mark messages as notification sent
   markNotificationsAsSent: async (messageIds: string[]) => {
-    return apiRequest<{ success: boolean }>("/notification-service", {
-      method: "PATCH",
+    return apiRequest<{ success: boolean }>('/notification-service', {
+      method: 'PATCH',
       body: JSON.stringify({ message_ids: messageIds }),
     });
   },
@@ -2566,9 +2582,9 @@ export const notificationServiceApi = {
 export const checkoutApi = {
   verifyCoupon: async (code: string) => {
     return apiRequest<{ coupon: Coupon }>(
-      "/checkout/coupons/verify?code=" + encodeURIComponent(code),
+      '/checkout/coupons/verify?code=' + encodeURIComponent(code),
       {
-        method: "GET",
+        method: 'GET',
       }
     );
   },
@@ -2578,7 +2594,7 @@ export const checkoutApi = {
 export const invitationsApi = {
   // Get pending workspace invitations for current user
   getInvitations: async () => {
-    return apiRequest<any[]>("/invitations");
+    return apiRequest<any[]>('/invitations');
   },
   // Accept an invitation
   acceptInvitation: async (
@@ -2587,7 +2603,7 @@ export const invitationsApi = {
     workspaceId: string
   ) => {
     return apiRequest<any>(`/invitations/accept`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({
         organizationId: organizationId,
         invitationId: invitationId,
@@ -2602,7 +2618,7 @@ export const invitationsApi = {
     workspaceId: string
   ) => {
     return apiRequest<any>(`/invitations/decline`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({
         organizationId: organizationId,
         invitationId: invitationId,
@@ -2613,7 +2629,7 @@ export const invitationsApi = {
   // Request access logging
   requestAccess: async (workspaceId: string, organizationId?: string) => {
     return apiRequest<any>(`/invitations/request-access`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({ workspaceId, organizationId }),
     });
   },
