@@ -423,121 +423,125 @@ export default function FormsTable({ forms }: FormsTableProps) {
         </div>
       </div>
       <div
-        className={`bg-background border-elementStroke max-h-full overflow-auto border-t-1 ${
-          tabledData.length === 0 ? '' : 'pb-16'
-        }`}
+        className={`bg-background border-elementStroke flex max-h-[calc(100vh-120px)] flex-col border-t-1`}
       >
-        <table
-          data-grouped="true"
-          className="bg-background w-full table-fixed caption-bottom text-sm"
-          style={{ borderCollapse: 'collapse' }}
-        >
-          <RenderHeader table={table} stickyStyles={stickyStyles} />
-          <tbody>
-            {table.getRowModel().rows.map((row, rowIndex) => (
-              <tr
-                key={row.id}
-                onClick={() => handleEditClick(row.original)}
-                className="group border-b border-gray-200 hover:cursor-pointer hover:bg-[#FBFBFB]"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={cn(
-                      'border-r border-gray-200 bg-white px-2 py-1.5 text-sm group-hover:bg-[#FBFBFB]'
-                    )}
-                    style={{
-                      width: cell.column.getSize(),
-                      ...stickyStyles(cell.column.id),
-                    }}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {tabledData.length === 0 && <EmptyFormsComponent />}
-
-      {/* Pagination Controls */}
-      {tabledData.length > 0 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-2">
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <span className="text-xs font-semibold">
-              Showing{' '}
-              {table.getState().pagination.pageIndex *
-                table.getState().pagination.pageSize +
-                1}{' '}
-              to{' '}
-              {Math.min(
-                (table.getState().pagination.pageIndex + 1) *
-                  table.getState().pagination.pageSize,
-                table.getFilteredRowModel().rows.length
-              )}{' '}
-              of {table.getFilteredRowModel().rows.length} results
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-              className="rounded-sm px-2 py-1"
-            >
-              First
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="rounded-sm px-2 py-1"
-            >
-              Previous
-            </Button>
-
-            <span className="text-xs font-medium text-black">
-              Page {table.getState().pagination.pageIndex + 1} of{' '}
-              {table.getPageCount()}
-            </span>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="rounded-sm px-2 py-1"
-            >
-              Next
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-              className="rounded-sm px-2 py-1"
-            >
-              Last
-            </Button>
-
-            <select
-              value={table.getState().pagination.pageSize}
-              onChange={(e) => table.setPageSize(Number(e.target.value))}
-              className="border-buttonStroke ml-2 rounded-sm border px-2 py-1 text-sm font-normal text-black"
-            >
-              {[10, 20, 30, 50].map((pageSize) => (
-                <option key={pageSize} value={pageSize}>
-                  Show {pageSize}
-                </option>
+        <div className="flex-1 overflow-auto">
+          <table
+            data-grouped="true"
+            className="bg-background w-full table-fixed caption-bottom text-sm"
+            style={{ borderCollapse: 'collapse' }}
+          >
+            <RenderHeader table={table} stickyStyles={stickyStyles} />
+            <tbody>
+              {table.getRowModel().rows.map((row, rowIndex) => (
+                <tr
+                  key={row.id}
+                  onClick={() => handleEditClick(row.original)}
+                  className="group border-b border-gray-200 hover:cursor-pointer hover:bg-[#FBFBFB]"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={cn(
+                        'border-r border-gray-200 bg-white px-2 py-1.5 text-sm group-hover:bg-[#FBFBFB]'
+                      )}
+                      style={{
+                        width: cell.column.getSize(),
+                        ...stickyStyles(cell.column.id),
+                      }}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </select>
-          </div>
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Pagination Controls */}
+        {tabledData.length > 0 && (
+          <div className="flex flex-shrink-0 items-center justify-between border-t border-gray-200 bg-white px-4 py-3">
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <span className="text-xs font-semibold">
+                Showing{' '}
+                {table.getState().pagination.pageIndex *
+                  table.getState().pagination.pageSize +
+                  1}{' '}
+                to{' '}
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) *
+                    table.getState().pagination.pageSize,
+                  table.getFilteredRowModel().rows.length
+                )}{' '}
+                of {table.getFilteredRowModel().rows.length} results
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+                className="rounded-sm px-2 py-1"
+              >
+                First
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="rounded-sm px-2 py-1"
+              >
+                Previous
+              </Button>
+
+              <span className="text-xs font-medium text-black">
+                Page {table.getState().pagination.pageIndex + 1} of{' '}
+                {table.getPageCount()}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="rounded-sm px-2 py-1"
+              >
+                Next
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+                className="rounded-sm px-2 py-1"
+              >
+                Last
+              </Button>
+
+              <select
+                value={table.getState().pagination.pageSize}
+                onChange={(e) => table.setPageSize(Number(e.target.value))}
+                className="border-buttonStroke ml-2 rounded-sm border px-2 py-1 text-sm font-normal text-black"
+              >
+                {[10, 20, 30, 50].map((pageSize) => (
+                  <option key={pageSize} value={pageSize}>
+                    Show {pageSize}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {tabledData.length === 0 && <EmptyFormsComponent />}
 
       <FormDeleteModal
         open={deleteModalOpen}
