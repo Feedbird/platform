@@ -1,6 +1,5 @@
 "use client";
 import { TableForm } from "@/components/forms/content/forms-table";
-import { Form } from "@/lib/supabase/interfaces";
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
 /**

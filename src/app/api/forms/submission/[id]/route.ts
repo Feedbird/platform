@@ -1,6 +1,6 @@
 import { ApiHandlerError } from "@/app/api/shared";
-import { supabase } from "@/lib/supabase/client";
 import { NextRequest, NextResponse } from "next/server";
+import { SubmissionHandler } from "./handler";
 
 export async function GET(
   req: NextRequest,
@@ -17,20 +17,9 @@ export async function GET(
       );
     }
 
-    const { data, error } = await supabase
-      .from("form_submissions")
-      .select(`*`)
-      .eq("id", submissionId)
-      .single();
+    const submission = await SubmissionHandler.getSubmission(submissionId);
 
-    if (error) {
-      throw new ApiHandlerError(
-        `Failed to fetch submission: ${(error as Error).message}`,
-        500
-      );
-    }
-
-    return NextResponse.json({ data });
+    return NextResponse.json({ data: submission }, { status: 200 });
   } catch (error) {
     const uiMessage =
       "We are unable to retrieve this form now. Please try again later.";

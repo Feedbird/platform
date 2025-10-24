@@ -4,9 +4,15 @@ type Props = {
   index: number;
   title: string;
   value: string | string[];
+  editable?: boolean;
 };
 
-export default function ReviewCard({ index, title, value }: Props) {
+export default function ReviewCard({
+  index,
+  title,
+  value,
+  editable = true,
+}: Props) {
   return (
     <div className="p-4 border-1 border-elementStroke flex flex-row justify-between items-center rounded-[6px]">
       <div className="flex flex-row gap-5 w-[60%] items-center">
@@ -19,9 +25,11 @@ export default function ReviewCard({ index, title, value }: Props) {
             {Array.isArray(value) ? value.join(", ") : value}
           </p>
         </div>
-        <span className="text-[#4670F9] text-sm font-normal hover:cursor-pointer hover:underline">
-          Edit
-        </span>
+        {editable && (
+          <span className="text-[#4670F9] text-sm font-normal hover:cursor-pointer hover:underline">
+            Edit
+          </span>
+        )}
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ export default function EmptyFormsComponent() {
         throw new Error("User or active workspace not found");
       }
       const newForm = await createInitialForm(user.email, activeWorkspaceId);
-      router.push(`/forms/${newForm.id}`);
+      router.push(`/${activeWorkspaceId}/admin/forms/${newForm.id}`);
     } catch (e) {
       toast.error("Error creating Form. Please try again later");
     }
