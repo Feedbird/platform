@@ -1,30 +1,31 @@
-"use client";
+'use client';
 import FormsFiltersPopover, {
   ColumnMeta,
   ConditionGroup,
-} from "./FormsFiltersPopover";
+} from './FormsFiltersPopover';
 import {
   useReactTable,
   Table as ReactTableType,
   flexRender,
   getCoreRowModel,
-} from "@tanstack/react-table";
-import { ColumnDef } from "@tanstack/table-core";
-import { ChevronDownIcon, ChevronUpIcon, ListPlus } from "lucide-react";
-import React from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Form, Service } from "@/lib/supabase/interfaces";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import EmptyFormsComponent from "../EmptyForms";
-import { humanizeDate } from "@/lib/utils/transformers";
-import { useForms } from "@/contexts/FormsContext";
-import FormDeleteModal from "./FormDeleteModal";
-import FormSettingsModal from "./FormSettingsModal";
-import FormStatusBadge from "./configs/FormStatusBadge";
-import FormTableContextMenu from "./FormTableContextMenu";
+  getPaginationRowModel,
+} from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/table-core';
+import { ChevronDownIcon, ChevronUpIcon, ListPlus } from 'lucide-react';
+import React from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Form, Service } from '@/lib/supabase/interfaces';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import EmptyFormsComponent from '../EmptyForms';
+import { humanizeDate } from '@/lib/utils/transformers';
+import { useForms } from '@/contexts/FormsContext';
+import FormDeleteModal from './FormDeleteModal';
+import FormSettingsModal from './FormSettingsModal';
+import FormStatusBadge from './configs/FormStatusBadge';
+import FormTableContextMenu from './FormTableContextMenu';
 
 export interface TableForm extends Form {
   submissions_count?: number;
@@ -47,22 +48,22 @@ export default function FormsTable({ forms }: FormsTableProps) {
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
   const [filterTree, setFilterTree] = React.useState<ConditionGroup>({
-    id: "root",
-    andOr: "AND",
+    id: 'root',
+    andOr: 'AND',
     children: [],
   });
   const [columnOrder, setColumnOrder] = React.useState<string[]>([
-    "placeholder",
-    "rowIndex",
-    "name",
-    "type",
-    "submissions",
-    "status",
-    "lastUpdated",
-    "actions",
+    'placeholder',
+    'rowIndex',
+    'name',
+    'type',
+    'submissions',
+    'status',
+    'lastUpdated',
+    'actions',
   ]);
   const [columnNames, setColumnNames] = React.useState<Record<string, string>>({
-    name: "Name",
+    name: 'Name',
   });
   const [localActiveForm, setLocalActiveForm] =
     React.useState<TableForm | null>(null);
@@ -83,7 +84,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
   const baseColumns: ColumnDef<TableForm>[] = React.useMemo(() => {
     return [
       {
-        id: "placeholder",
+        id: 'placeholder',
         header: () => <div className="w-8" />,
         size: 10,
         minSize: 10,
@@ -93,7 +94,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         cell: () => null,
       },
       {
-        id: "rowIndex",
+        id: 'rowIndex',
         header: () => <Checkbox checked={false} />,
         size: 30,
         maxSize: 32,
@@ -104,17 +105,17 @@ export default function FormsTable({ forms }: FormsTableProps) {
 
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
-            <span className="text-xs text-[#5C5E63] font-extralight">
+            <span className="text-xs font-extralight text-[#5C5E63]">
               {row.index + 1}
             </span>
           </div>
         ),
       },
       {
-        id: "name",
-        accessorKey: "formName",
+        id: 'name',
+        accessorKey: 'formName',
         header: () => (
-          <div className="flex items-center text-black text-sm font-medium">
+          <div className="flex items-center text-sm font-medium text-black">
             Name
           </div>
         ),
@@ -123,18 +124,18 @@ export default function FormsTable({ forms }: FormsTableProps) {
         cell: ({ row }) => (
           <div className="group flex items-center py-1">
             {/* <span className="text-lg">{row.original.icon}</span> */}
-            <div className="flex flex-col flex-1 gap-0.5">
+            <div className="flex flex-1 flex-col gap-0.5">
               <span className="text-sm font-medium text-[#4670F9]">
                 {row.original.title}
               </span>
-              <span className="text-xs text-[#838488] font-normal">
+              <span className="text-xs font-normal text-[#838488]">
                 {(row.original as any).fields_count || 0} Questions
               </span>
             </div>
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
               <Button
                 onClick={() => handleEditClick(row.original)}
-                className="px-3 py-1.5 bg-[#4670F9] text-white text-sm font-medium hover:bg-blue-700 rounded-[5px] transition-colors hover:cursor-pointer"
+                className="rounded-[5px] bg-[#4670F9] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:cursor-pointer hover:bg-blue-700"
               >
                 Edit
               </Button>
@@ -143,7 +144,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                   e.stopPropagation();
                   router.push(`forms/${row.original.id}/preview`);
                 }}
-                className="px-3 py-1.5 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-[5px] hover:bg-gray-50 transition-colors hover:cursor-pointer"
+                className="rounded-[5px] border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:cursor-pointer hover:bg-gray-50"
               >
                 Preview
               </Button>
@@ -152,21 +153,21 @@ export default function FormsTable({ forms }: FormsTableProps) {
         ),
       },
       {
-        id: "type",
-        accessorKey: "services",
+        id: 'type',
+        accessorKey: 'services',
         header: () => (
-          <div className="flex items-center text-black text-sm font-medium">
+          <div className="flex items-center text-sm font-medium text-black">
             Services
           </div>
         ),
         minSize: 120,
         size: 150,
         cell: ({ row }) => (
-          <div className="text-sm flex flex-row flex-wrap font-medium text-black gap-1">
+          <div className="flex flex-row flex-wrap gap-1 text-sm font-medium text-black">
             {row.original.services.map((s) => (
               <div
                 key={s.id}
-                className="border-1 rounded-[5px] border-[#D3D3D3] px-1.5"
+                className="rounded-[5px] border-1 border-[#D3D3D3] px-1.5"
               >
                 {s.name}
               </div>
@@ -175,10 +176,10 @@ export default function FormsTable({ forms }: FormsTableProps) {
         ),
       },
       {
-        id: "submissions",
-        accessorKey: "submissionsCount",
+        id: 'submissions',
+        accessorKey: 'submissionsCount',
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-sm font-medium text-black">
             Submissions
           </div>
         ),
@@ -191,10 +192,10 @@ export default function FormsTable({ forms }: FormsTableProps) {
         ),
       },
       {
-        id: "status",
-        accessorKey: "status",
+        id: 'status',
+        accessorKey: 'status',
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-sm font-medium text-black">
             Status
           </div>
         ),
@@ -207,10 +208,10 @@ export default function FormsTable({ forms }: FormsTableProps) {
         ),
       },
       {
-        id: "lastUpdated",
-        accessorKey: "lastEditedAt",
+        id: 'lastUpdated',
+        accessorKey: 'lastEditedAt',
         header: () => (
-          <div className="flex items-center gap-[6px] text-black text-sm font-medium">
+          <div className="flex items-center gap-[6px] text-sm font-medium text-black">
             Last updated
           </div>
         ),
@@ -222,7 +223,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         ),
       },
       {
-        id: "actions",
+        id: 'actions',
         header: () => <div className="w-8" />,
         size: 25,
         minSize: 25,
@@ -245,9 +246,9 @@ export default function FormsTable({ forms }: FormsTableProps) {
 
   const filterableColumns = React.useMemo(() => {
     const ALLOWED_FILTER_COLUMNS = new Set([
-      "name",
-      "submissions",
-      "lastEdited",
+      'name',
+      'submissions',
+      'lastEdited',
     ]);
 
     const iconMap: Record<string, React.JSX.Element> = {
@@ -271,9 +272,15 @@ export default function FormsTable({ forms }: FormsTableProps) {
     },
     onColumnOrderChange: setColumnOrder,
     enableColumnResizing: true,
-    columnResizeMode: "onChange",
+    columnResizeMode: 'onChange',
     debugTable: true,
     getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10, // Default page size
+      },
+    },
   });
 
   function stickyStyles(
@@ -281,15 +288,15 @@ export default function FormsTable({ forms }: FormsTableProps) {
     zIndex = 10
   ): React.CSSProperties | undefined {
     const styles: React.CSSProperties = {
-      position: "sticky",
+      position: 'sticky',
       zIndex,
     };
 
     // Smooth shadow transition
-    if (colId === "name") {
+    if (colId === 'name') {
       // Base transition; actual box-shadow handled by CSS when
       // the scroll container has `.scrolling-horiz` class.
-      styles.transition = "box-shadow 0.2s ease-in-out";
+      styles.transition = 'box-shadow 0.2s ease-in-out';
     }
 
     return styles;
@@ -307,19 +314,19 @@ export default function FormsTable({ forms }: FormsTableProps) {
         {table.getHeaderGroups().map((hg) => (
           <TableRow
             key={hg.id}
-            className="bg-[#FBFBFB] border-b border-gray-200"
+            className="border-b border-gray-200 bg-[#FBFBFB]"
           >
             {hg.headers.map((h, index) =>
               h.isPlaceholder ? null : (
                 <TableHead
                   key={h.id}
                   className={cn(
-                    "relative text-left border-b border-r border-gray-200 px-2 py-2 h-8"
+                    'relative h-8 border-r border-b border-gray-200 px-2 py-2 text-left'
                   )}
                   style={{ width: h.getSize(), ...stickyStyles(h.id, 10) }}
                 >
                   {(() => {
-                    const canDrag = h.id !== "rowIndex" && h.id !== "drag";
+                    const canDrag = h.id !== 'rowIndex' && h.id !== 'drag';
                     const sortStatus = h.column.getIsSorted();
                     const headerContent = flexRender(
                       h.column.columnDef.header,
@@ -329,18 +336,18 @@ export default function FormsTable({ forms }: FormsTableProps) {
                     return (
                       <>
                         <div
-                          className="flex cursor-pointer select-none items-center justify-between gap-2 h-full"
+                          className="flex h-full cursor-pointer items-center justify-between gap-2 select-none"
                           onClick={(e) => {
                             if (h.column.getCanSort() && e.detail === 1) {
                               const handler =
                                 h.column.getToggleSortingHandler();
-                              if (typeof handler === "function") handler(e);
+                              if (typeof handler === 'function') handler(e);
                             }
                           }}
                           draggable={canDrag}
                           onDragStart={(e) => {
                             if (!canDrag) return;
-                            e.dataTransfer.setData("text/plain", h.id);
+                            e.dataTransfer.setData('text/plain', h.id);
                           }}
                           onDragOver={(e) => {
                             if (!canDrag) return;
@@ -348,7 +355,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                           }}
                           onDrop={(e) => {
                             if (!canDrag) return;
-                            const fromId = e.dataTransfer.getData("text/plain");
+                            const fromId = e.dataTransfer.getData('text/plain');
                             if (!fromId) return;
                             setColumnOrder((prev) => {
                               const newOrder = [...prev];
@@ -364,16 +371,16 @@ export default function FormsTable({ forms }: FormsTableProps) {
                             });
                           }}
                         >
-                          <div className="flex items-center gap-1 text-black w-full">
+                          <div className="flex w-full items-center gap-1 text-black">
                             {headerContent}
                           </div>
-                          {sortStatus === "asc" && (
+                          {sortStatus === 'asc' && (
                             <ChevronUpIcon
                               size={16}
                               className="text-blue-600"
                             />
                           )}
-                          {sortStatus === "desc" && (
+                          {sortStatus === 'desc' && (
                             <ChevronDownIcon
                               size={16}
                               className="text-blue-600"
@@ -387,7 +394,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                             onDoubleClick={() => h.column.resetSize()}
                             onMouseDown={h.getResizeHandler()}
                             onTouchStart={h.getResizeHandler()}
-                            className="absolute top-0 h-full w-2 cursor-col-resize -right-1 z-10"
+                            className="absolute top-0 -right-1 z-10 h-full w-2 cursor-col-resize"
                           />
                         )}
                       </>
@@ -403,7 +410,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
   }
   return (
     <>
-      <div className="flex items-center justify-between gap-2 p-2 bg-white">
+      <div className="flex items-center justify-between gap-2 bg-white p-2">
         <div className="flex items-center gap-2">
           <FormsFiltersPopover
             open={filterOpen}
@@ -416,17 +423,14 @@ export default function FormsTable({ forms }: FormsTableProps) {
         </div>
       </div>
       <div
-        className={`bg-background border-t-1 border-elementStroke overflow-auto max-h-full ${
-          tabledData.length === 0 ? "" : "pb-16"
+        className={`bg-background border-elementStroke max-h-full overflow-auto border-t-1 ${
+          tabledData.length === 0 ? '' : 'pb-16'
         }`}
       >
         <table
           data-grouped="true"
-          className="
-            w-full caption-bottom text-sm
-            table-fixed bg-background
-          "
-          style={{ borderCollapse: "collapse" }}
+          className="bg-background w-full table-fixed caption-bottom text-sm"
+          style={{ borderCollapse: 'collapse' }}
         >
           <RenderHeader table={table} stickyStyles={stickyStyles} />
           <tbody>
@@ -434,13 +438,13 @@ export default function FormsTable({ forms }: FormsTableProps) {
               <tr
                 key={row.id}
                 onClick={() => handleEditClick(row.original)}
-                className="group hover:bg-[#FBFBFB] border-b border-gray-200 hover:cursor-pointer"
+                className="group border-b border-gray-200 hover:cursor-pointer hover:bg-[#FBFBFB]"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
                     className={cn(
-                      "py-1.5 px-2 text-sm border-r border-gray-200 bg-white group-hover:bg-[#FBFBFB]"
+                      'border-r border-gray-200 bg-white px-2 py-1.5 text-sm group-hover:bg-[#FBFBFB]'
                     )}
                     style={{
                       width: cell.column.getSize(),
@@ -456,11 +460,90 @@ export default function FormsTable({ forms }: FormsTableProps) {
         </table>
       </div>
       {tabledData.length === 0 && <EmptyFormsComponent />}
+
+      {/* Pagination Controls */}
+      {tabledData.length > 0 && (
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-2">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <span className="text-xs font-semibold">
+              Showing{' '}
+              {table.getState().pagination.pageIndex *
+                table.getState().pagination.pageSize +
+                1}{' '}
+              to{' '}
+              {Math.min(
+                (table.getState().pagination.pageIndex + 1) *
+                  table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )}{' '}
+              of {table.getFilteredRowModel().rows.length} results
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              className="rounded-sm px-2 py-1"
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="rounded-sm px-2 py-1"
+            >
+              Previous
+            </Button>
+
+            <span className="text-xs font-medium text-black">
+              Page {table.getState().pagination.pageIndex + 1} of{' '}
+              {table.getPageCount()}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="rounded-sm px-2 py-1"
+            >
+              Next
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              className="rounded-sm px-2 py-1"
+            >
+              Last
+            </Button>
+
+            <select
+              value={table.getState().pagination.pageSize}
+              onChange={(e) => table.setPageSize(Number(e.target.value))}
+              className="border-buttonStroke ml-2 rounded-sm border px-2 py-1 text-sm font-normal text-black"
+            >
+              {[10, 20, 30, 50].map((pageSize) => (
+                <option key={pageSize} value={pageSize}>
+                  Show {pageSize}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       <FormDeleteModal
         open={deleteModalOpen}
         onClose={setDeleteModalOpen}
         setForms={setTableData}
-        formId={localActiveForm?.id || ""}
+        formId={localActiveForm?.id || ''}
       />
       {localActiveForm && (
         <FormSettingsModal
