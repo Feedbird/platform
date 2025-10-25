@@ -27,7 +27,7 @@ BEGIN
     ) THEN
         ALTER TABLE social_accounts 
         ADD CONSTRAINT unique_brand_platform_account 
-        UNIQUE (brand_id, platform, account_id);
+        UNIQUE (platform, account_id);
     END IF;
 END $$;
 
@@ -45,7 +45,6 @@ BEGIN
 END $$;
 
 -- Add performance indexes
-CREATE INDEX IF NOT EXISTS idx_social_accounts_brand_platform ON social_accounts(brand_id, platform);
 CREATE INDEX IF NOT EXISTS idx_social_accounts_status ON social_accounts(status);
 CREATE INDEX IF NOT EXISTS idx_social_accounts_token_expiry ON social_accounts(access_token_expires_at);
 CREATE INDEX IF NOT EXISTS idx_social_accounts_refresh_expiry ON social_accounts(refresh_token_expires_at);
