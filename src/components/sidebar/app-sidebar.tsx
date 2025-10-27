@@ -17,14 +17,10 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
@@ -57,11 +53,10 @@ import {
   ChevronRight,
   ChevronDown,
   MoreHorizontal,
-  // icons for the board-menu:
   Archive as ArchiveIcon,
-  // icons for user profile:
   ArrowLeft,
 } from "lucide-react";
+import { AnalyticsIcon, ApprovalsIcon, DashboardIcon, InboxOnIcon, InboxIcon } from "../ui/icons";
 
 /* --------------------------------------------------------------------- */
 /*  NAV CONFIGS (static for now – you can pull these from the store)     */
@@ -71,63 +66,38 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
   {
     id: "dashboard",
     label: "Dashboard",
-    image: "/images/sidebar/dashboard.svg",
-    selectedImage: "/images/sidebar/dashboard-active.svg",
+    image: <DashboardIcon size={18} color="#1C1D1F" />,
+    selectedImage: <DashboardIcon size={18} color="#1C1D1F" />,
     href: workspaceId ? `/${workspaceId}/admin` : "/admin",
   },
   {
     id: "messages",
     label: "Inbox",
-    image: "/images/sidebar/messages.svg",
-    selectedImage: "/images/sidebar/messages-active.svg",
+    image: <InboxIcon size={18} color="#1C1D1F" />,
+    selectedImage: <InboxIcon size={18} color="#1C1D1F" />,
     href: workspaceId ? `/${workspaceId}/messages` : "/messages",
   },
-  // {
-  //   id: "notifications",
-  //   label: "Notifications",
-  //   image: "/images/sidebar/notifications-on.svg",
-  //   selectedImage: "/images/sidebar/notifications-on-active.svg",
-  //   href: "/notifications",
-  // },
   {
     id: "approvals",
     label: "Approvals",
-    image: "/images/sidebar/approvals.svg",
-    selectedImage: "/images/sidebar/approvals-active.svg",
+    image: <ApprovalsIcon size={18} color="#1C1D1F" />,
+    selectedImage: <ApprovalsIcon size={18} color="#1C1D1F" />,
     href: workspaceId ? `/${workspaceId}/approvals` : "/approvals",
   },
   {
     id: "admin",
     label: "Admin",
-    image: "/images/sidebar/dashboard.svg",
+    image: <DashboardIcon size={18} color="#1C1D1F" />,
+    selectedImage: <DashboardIcon size={18} color="#1C1D1F" />,
     href: workspaceId ? `/${workspaceId}/admin` : "/admin",
   },
-  // {
-  //   id: "forms",
-  //   label: "Forms",
-  //   image: "/images/sidebar/forms.svg",
-  //   selectedImage: "/images/sidebar/forms-active.svg",
-  //   href: "/forms",
-  // },
-  // {
-  //   id: "brands",
-  //   label: "Brands",
-  //   image: "/images/sidebar/brands.svg",
-  //   href: "/brands",
-  // },
   {
     id: "analytics",
     label: "Analytics",
-    image: "/images/sidebar/analytics.svg",
-    selectedImage: "/images/sidebar/analytics-active.svg",
+    image: <AnalyticsIcon size={18} color="#1C1D1F" />,
+    selectedImage: <AnalyticsIcon size={18} color="#1C1D1F" />,
     href: workspaceId ? `/${workspaceId}/analytics` : "/analytics",
   },
-  // {
-  //   id: "settings",
-  //   label: "Settings",
-  //   image: "/images/sidebar/settings.svg",
-  //   href: "/settings",
-  // },
 ];
 
 /* --------------------------------------------------------------------- */
@@ -322,14 +292,14 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           /*  ICON SELECTION                                            */
           /*  Use the original image and apply color styling instead    */
           /* ----------------------------------------------------------- */
-          let imageSrc = nav.image;
+          let ImageComponent   = nav.image;
 
           // Special handling for messages icon based on unread status
           if (nav.id === "messages") {
             if (totalUnreadCount > 0) {
-              imageSrc = "/images/sidebar/messages-on.svg";
+              ImageComponent = <InboxOnIcon size={18} color="#1C1D1F" />;
             } else {
-              imageSrc = "/images/sidebar/messages.svg";
+              ImageComponent = <InboxIcon size={18} color="#1C1D1F" />;
             }
           }
 
@@ -349,10 +319,10 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                 {nav.href ? (
                   <LoadingLink
                     href={nav.href}
-                    className="flex items-center gap-[6px] w-full min-w-0"
+                    className="flex items-center gap-[6px] w-full min-w-0 [&>svg]:size-4.5"
                     loadingText={`Loading ${nav.label}…`}
                   >
-                    {imageSrc &&
+                    {ImageComponent &&
                       (isBoard ? (
                         <div
                           className={cn(
@@ -364,20 +334,10 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                               : undefined
                           }
                         >
-                          <img
-                            src={imageSrc}
-                            alt={nav.label}
-                            className="w-3 h-3"
-                            loading="lazy"
-                          />
+                          {ImageComponent}
                         </div>
                       ) : (
-                        <img
-                          src={imageSrc}
-                          alt={nav.label}
-                          className="w-4.5 h-4.5"
-                          loading="lazy"
-                        />
+                        ImageComponent
                       ))}
                     <span
                       className={cn("text-sm font-normal truncate text-black")}
@@ -422,7 +382,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     onClick={nav.onClick}
                     className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none min-w-0"
                   >
-                    {imageSrc && (
+                    {ImageComponent && (
                       <div
                         className={cn(
                           "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0"
@@ -433,12 +393,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                             : undefined
                         }
                       >
-                        <img
-                          src={imageSrc}
-                          alt={nav.label}
-                          className="w-3 h-3"
-                          loading="lazy"
-                        />
+                        {ImageComponent}
                       </div>
                     )}
                     <span
@@ -693,9 +648,9 @@ export function AppSidebar() {
     }
   };
 
-  const handleUpdateBoardColorAndIcon = (icon: string, color: string) => {
+  const handleUpdateBoardColorAndIcon = (icon: React.ReactNode, color: string) => {
     if (colorIconTarget) {
-      updateBoard(colorIconTarget.id, { image: icon, color: color });
+      updateBoard(colorIconTarget.id, { image: icon as string, color: color });
 
       setColorIconTarget(null); // Clear the target after updating
     }

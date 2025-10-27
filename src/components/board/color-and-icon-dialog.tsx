@@ -13,9 +13,9 @@ import {
   interface ColorAndIconDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    icon?: string;
+    icon?: React.ReactNode;
     color?: string;
-    onSave: (icon: string, color: string) => void;
+    onSave: (icon: React.ReactNode, color: string) => void;
   }
   
   export function ColorAndIconDialog({ isOpen, onClose, icon, color, onSave }: ColorAndIconDialogProps) {
@@ -30,7 +30,7 @@ import {
     }, [isOpen, icon, color]);
   
     const handleSave = () => {
-      onSave(currentIcon || '', currentColor || '');
+      onSave(currentIcon || <></>, currentColor || '');
       onClose();
     };
   

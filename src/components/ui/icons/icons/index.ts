@@ -1,5 +1,5 @@
 // Auto-generated index file for icons
-export { ApprovalsIcon } from './approvals';
+//export { ApprovalsIcon } from './approvals';
 //export { CheckIcon } from './check';
 export { CursorCopyIcon } from './cursor-copy';
 //export { GoogleIcon } from './google';

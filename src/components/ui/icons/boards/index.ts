@@ -1,6 +1,6 @@
 // Auto-generated index file for boards
 export { AnalyticsBlackIcon } from './analytics-black';
-export { AnalyticsIcon } from './analytics';
+//export { AnalyticsIcon } from './analytics';
 export { ArchiveIcon } from './archive';
 export { ArrowLeftIcon } from './arrow-left';
 //export { ArrowRightIcon } from './arrow-right';

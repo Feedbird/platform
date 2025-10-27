@@ -1,8 +1,8 @@
 // Auto-generated index file for sidebar
 export { AnalyticsActiveIcon } from './analytics-active';
-//export { AnalyticsIcon } from './analytics';
+export { AnalyticsIcon } from './analytics';
 export { ApprovalsActiveIcon } from './approvals-active';
-//export { ApprovalsIcon } from './approvals';
+export { ApprovalsIcon } from './approvals';
 export { AutomationsIcon } from './automations';
 export { BrandsIcon } from './brands';
 export { ClientsIcon } from './clients';
@@ -12,10 +12,10 @@ export { FormsActiveIcon } from './forms-active';
 export { FormsIcon } from './forms';
 export { HomeIcon } from './home';
 export { LogoutIcon } from './logout';
-export { MessagesActiveIcon } from './messages-active';
-export { MessagesOnActiveIcon } from './messages-on-active';
-//export { MessagesOnIcon } from './messages-on';
-//export { MessagesIcon } from './messages';
+export { InboxActiveIcon } from './inbox-active';
+export { InboxOnActiveIcon } from './inbox-on-active';
+export { InboxOnIcon } from './inbox-on';
+export { InboxIcon } from './inbox';
 //export { NotificationsActiveIcon } from './notifications-active';
 //export { NotificationsOnActiveIcon } from './notifications-on-active';
 //export { NotificationsOnIcon } from './notifications-on';

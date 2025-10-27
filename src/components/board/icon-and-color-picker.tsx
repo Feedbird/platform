@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 import { defaultIcons, defaultColors } from '@/lib/store/store-utils';
 
 interface IconAndColorPickerProps {
-  selectedIcon: string | undefined;
-  onSelectIcon: (icon: string) => void;
+  selectedIcon: React.ReactNode | undefined;
+  onSelectIcon: (icon: React.ReactNode) => void;
   selectedColor: string | undefined;
   onSelectColor: (color: string) => void;
 }
