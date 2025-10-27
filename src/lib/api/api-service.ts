@@ -1,5 +1,5 @@
 import { TableForm } from '@/components/forms/content/forms-table';
-import { CanvasFormField } from '@/components/forms/FormCanvas';
+import { CanvasFormField } from '@/components/forms/form-canvas';
 import { useMessageStore, useUserStore, useWorkspaceStore } from '@/lib/store';
 import {
   Coupon,
@@ -15,11 +15,23 @@ import {
   Form,
   Service,
   FormSubmission,
-} from '@/lib/supabase/interfaces';
-
-export interface ApiResponse<T> {
-  data: T;
-}
+} from '@/lib/store/types';
+import {
+  ApiResponse,
+  ApiError,
+  InviteResponse,
+  WorkspaceMember,
+  GetWorkspaceMembersResponse,
+  ChannelMessageWithAuthor,
+  ActivityType,
+  ActivityMetadata,
+  Comment,
+  PostCommentData,
+  BlockCommentData,
+  VersionCommentData,
+  UpdateUserPayload,
+  CreateUserPayload,
+} from './api-types';
 
 // Normalize activities from API/DB into store Activity shape
 function normalizeActivities(items: any[] | undefined) {
@@ -40,18 +52,6 @@ function normalizeActivities(items: any[] | undefined) {
 
 // API Base URL
 const API_BASE = '/api';
-
-// Generic API error handler
-class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public details?: any
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
 
 // Generic API request function
 async function apiRequest<T>(
@@ -108,13 +108,7 @@ export const userApi = {
   },
 
   // Create new user
-  createUser: async (userData: {
-    email: string;
-    first_name?: string;
-    last_name?: string;
-    image_url?: string;
-    default_board_rules?: any;
-  }): Promise<User> => {
+  createUser: async (userData: CreateUserPayload): Promise<User> => {
     return apiRequest<User>('/user', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -124,16 +118,7 @@ export const userApi = {
   // Update user
   updateUser: async (
     params: { id?: string; email?: string },
-    updates: {
-      email?: string;
-      first_name?: string;
-      last_name?: string;
-      image_url?: string;
-      unread_msg?: string[];
-      unread_notification?: string[];
-      notification_settings?: any[];
-      default_board_rules?: any;
-    }
+    updates: UpdateUserPayload
   ): Promise<User> => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append('id', params.id);
@@ -190,12 +175,12 @@ export const userApi = {
   addUnreadMessage: async (
     email: string,
     messageId: string
-  ): Promise<{ unread_msg: string[] }> => {
-    const response = await apiRequest<{ unread_msg: string[] }>(
+  ): Promise<{ unreadMsg: string[] }> => {
+    const response = await apiRequest<{ unreadMsg: string[] }>(
       '/user/unread-messages',
       {
         method: 'POST',
-        body: JSON.stringify({ email, message_id: messageId, action: 'add' }),
+        body: JSON.stringify({ email, messageId: messageId, action: 'add' }),
       }
     );
 
@@ -204,7 +189,7 @@ export const userApi = {
       user: prev.user
         ? {
             ...prev.user,
-            unread_msg: response.unread_msg,
+            unreadMsg: response.unreadMsg,
           }
         : null,
     }));
@@ -215,14 +200,14 @@ export const userApi = {
   removeUnreadMessage: async (
     email: string,
     messageId: string
-  ): Promise<{ unread_msg: string[] }> => {
-    const response = await apiRequest<{ unread_msg: string[] }>(
+  ): Promise<{ unreadMsg: string[] }> => {
+    const response = await apiRequest<{ unreadMsg: string[] }>(
       '/user/unread-messages',
       {
         method: 'POST',
         body: JSON.stringify({
           email,
-          message_id: messageId,
+          messageId: messageId,
           action: 'remove',
         }),
       }
@@ -233,7 +218,7 @@ export const userApi = {
       user: prev.user
         ? {
             ...prev.user,
-            unread_msg: response.unread_msg,
+            unreadMsg: response.unreadMsg,
           }
         : null,
     }));
@@ -245,23 +230,23 @@ export const userApi = {
 export const workspaceHelperApi = {
   // Get members + creator profiles for a workspace
   getWorkspaceMembers: async (
-    workspace_id: string
+    workspaceId: string
   ): Promise<{
     users: {
       email: string;
-      first_name?: string;
-      image_url?: string;
+      firstName?: string;
+      imageUrl?: string;
       role?: 'admin' | 'client' | 'team';
       accept?: boolean;
     }[];
   }> => {
     const searchParams = new URLSearchParams();
-    searchParams.append('workspace_id', workspace_id);
+    searchParams.append('workspace_id', workspaceId);
     return apiRequest<{
       users: {
         email: string;
-        first_name?: string;
-        image_url?: string;
+        firstName?: string;
+        imageUrl?: string;
         role?: 'admin' | 'client' | 'team';
         accept?: boolean;
       }[];
@@ -269,13 +254,13 @@ export const workspaceHelperApi = {
   },
   // Update a member's role within a workspace
   updateWorkspaceMemberRole: async (
-    workspace_id: string,
+    workspaceId: string,
     email: string,
     role: 'client' | 'team'
   ): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/workspace/members`, {
       method: 'PATCH',
-      body: JSON.stringify({ workspace_id, email, role }),
+        body: JSON.stringify({ workspaceId, email, role }),
     });
   },
 };
@@ -287,11 +272,11 @@ export const formsApi = {
       method: 'POST',
       body: JSON.stringify({
         type: 'intake',
-        workspace_id: workspaceId,
+        workspaceId: workspaceId,
         title: 'Untitled form',
         createdBy: creatorEmail,
-        location_tags: [],
-        account_tags: [],
+        locationTags: [],
+        accountTags: [],
       }),
     });
   },
@@ -427,11 +412,11 @@ export const workspaceApi = {
       name: string;
       logo?: string;
       email: string;
-      default_board_rules?: Record<string, any>;
+      defaultBoardRules?: Record<string, any>;
       timezone?: string;
-      week_start?: 'monday' | 'sunday';
-      time_format?: '24h' | '12h';
-      allowed_posting_time?: Record<string, any>;
+      weekStart?: 'monday' | 'sunday';
+      timeFormat?: '24h' | '12h';
+      allowedPostingTime?: Record<string, any>;
     },
     authToken?: string
   ): Promise<Workspace> => {
@@ -450,10 +435,10 @@ export const workspaceApi = {
       name?: string;
       logo?: string;
       timezone?: string;
-      week_start?: 'monday' | 'sunday';
-      time_format?: '24h' | '12h';
-      allowed_posting_time?: Record<string, any>;
-      default_board_rules?: Record<string, any>;
+      weekStart?: 'monday' | 'sunday';
+      timeFormat?: '24h' | '12h';
+      allowedPostingTime?: Record<string, any>;
+      defaultBoardRules?: Record<string, any>;
     }
   ): Promise<Workspace> => {
     return apiRequest<Workspace>(`/workspace?id=${id}`, {
@@ -475,24 +460,24 @@ export const brandApi = {
   // Get brand by ID or by workspace (now returns single brand)
   getBrand: async (params: {
     id?: string;
-    workspace_id?: string;
-    include_social?: boolean;
+    workspaceId?: string;
+    includeSocial?: boolean;
   }): Promise<Brand | null> => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append('id', params.id);
-    if (params.workspace_id)
-      searchParams.append('workspace_id', params.workspace_id);
-    if (params.include_social) searchParams.append('include_social', 'true');
+    if (params.workspaceId)
+      searchParams.append('workspace_id', params.workspaceId);
+    if (params.includeSocial) searchParams.append('include_social', 'true');
 
     return apiRequest<Brand | null>(`/brand?${searchParams.toString()}`);
   },
 
   // Create new brand
   createBrand: async (brandData: {
-    workspace_id: string;
+    workspaceId: string;
     name: string;
     logo?: string;
-    style_guide?: any;
+    styleGuide?: any;
     link?: string;
     voice?: string;
     prefs?: string;
@@ -509,7 +494,7 @@ export const brandApi = {
     updates: {
       name?: string;
       logo?: string;
-      style_guide?: any;
+      styleGuide?: any;
       link?: string;
       voice?: string;
       prefs?: string;
@@ -534,19 +519,19 @@ export const boardApi = {
   // Get board by ID or list by workspace
   getBoard: async (params: {
     id?: string;
-    workspace_id?: string;
+    workspaceId?: string;
   }): Promise<Board | Board[]> => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append('id', params.id);
-    if (params.workspace_id)
-      searchParams.append('workspace_id', params.workspace_id);
+    if (params.workspaceId)
+      searchParams.append('workspace_id', params.workspaceId);
 
     return apiRequest<Board | Board[]>(`/board?${searchParams.toString()}`);
   },
 
   // Create new board
   createBoard: async (boardData: {
-    workspace_id: string;
+    workspaceId: string;
     name: string;
     image?: string;
     description?: string;
@@ -554,7 +539,7 @@ export const boardApi = {
     rules?: any;
     columns?: Array<{
       name: string;
-      is_default: boolean;
+      isDefault: boolean;
       order: number;
       type?: string;
       options?: any;
@@ -572,14 +557,14 @@ export const boardApi = {
     updates: {
       name?: string;
       image?: string;
-      selected_image?: string;
+      selectedImage?: string;
       description?: string;
       color?: string;
       rules?: any;
-      group_data?: any;
+      groupData?: any;
       columns?: Array<{
         name: string;
-        is_default: boolean;
+        isDefault: boolean;
         order: number;
         type?: string;
         options?: any;
@@ -605,12 +590,12 @@ export const channelApi = {
   // Get channel by ID or list by workspace
   getChannel: async (params: {
     id?: string;
-    workspace_id?: string;
+    workspaceId?: string;
   }): Promise<Channel | Channel[]> => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append('id', params.id);
-    if (params.workspace_id)
-      searchParams.append('workspace_id', params.workspace_id);
+    if (params.workspaceId)
+      searchParams.append('workspace_id', params.workspaceId);
     return apiRequest<Channel | Channel[]>(
       `/channel?${searchParams.toString()}`
     );
@@ -618,11 +603,11 @@ export const channelApi = {
 
   // Create new channel
   createChannel: async (channelData: {
-    workspace_id: string;
-    created_by: string;
+    workspaceId: string;
+    createdBy: string;
     name: string;
     description?: string;
-    members?: any;
+    members?: string[];
     icon?: string;
     color?: string;
   }): Promise<Channel> => {
@@ -662,31 +647,31 @@ export const channelMessageApi = {
   // Get message by ID or list by channel/workspace
   getChannelMessage: async (params: {
     id?: string;
-    channel_id?: string;
-    workspace_id?: string;
+    channelId?: string;
+    workspaceId?: string;
   }): Promise<
-    | (ChannelMessage & { author_name?: string; author_image_url?: string })
+    | (ChannelMessage & { authorName?: string; authorImageUrl?: string })
     | Array<
-        ChannelMessage & { author_name?: string; author_image_url?: string }
+        ChannelMessage & { authorName?: string; authorImageUrl?: string }
       >
   > => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append('id', params.id);
-    if (params.channel_id) searchParams.append('channel_id', params.channel_id);
-    if (params.workspace_id)
-      searchParams.append('workspace_id', params.workspace_id);
+    if (params.channelId) searchParams.append('channel_id', params.channelId);
+    if (params.workspaceId)
+      searchParams.append('workspace_id', params.workspaceId);
     return apiRequest(`/channel-message?${searchParams.toString()}`);
   },
 
   // Create new channel message
   createChannelMessage: async (messageData: {
-    workspace_id: string;
-    channel_id: string;
+    workspaceId: string;
+    channelId: string;
     content: string;
-    parent_id?: string | null;
+    parentId?: string | null;
     addon?: any;
     readby?: any;
-    author_email: string;
+    authorEmail: string;
     emoticons?: any;
   }): Promise<ChannelMessage> => {
     return apiRequest<ChannelMessage>('/channel-message', {
@@ -724,38 +709,38 @@ export const postApi = {
   // Get post by ID or list by workspace/board
   getPost: async (params: {
     id?: string;
-    workspace_id?: string;
-    board_id?: string;
+    workspaceId?: string;
+    boardId?: string;
   }): Promise<Post | Post[]> => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append('id', params.id);
-    if (params.workspace_id)
-      searchParams.append('workspace_id', params.workspace_id);
-    if (params.board_id) searchParams.append('board_id', params.board_id);
+    if (params.workspaceId)
+      searchParams.append('workspace_id', params.workspaceId);
+    if (params.boardId) searchParams.append('board_id', params.boardId);
 
     return apiRequest<Post | Post[]>(`/post?${searchParams.toString()}`);
   },
 
   // Create new post
   createPost: async (postData: {
-    workspace_id: string;
-    board_id: string;
+    workspaceId: string;
+    boardId: string;
     caption: any;
     status: string;
     format: string;
-    publish_date?: string;
+    publishDate?: string;
     platforms?: string[];
     pages?: string[];
-    billing_month?: string;
+    billingMonth?: string;
     month?: number;
     settings?: any;
     hashtags?: any;
     blocks?: any[];
     comments?: any[];
     activities?: any[];
-    user_columns?: Array<{ id: string; value: string }>;
-    created_by: string;
-    last_updated_by: string;
+    userColumns?: Array<{ id: string; value: string }>;
+    createdBy: string;
+    lastUpdatedBy: string;
   }): Promise<Post> => {
     console.log('postData', postData);
     return apiRequest<Post>('/post', {
@@ -771,18 +756,18 @@ export const postApi = {
       caption?: any;
       status?: string;
       format?: string;
-      publish_date?: string;
+      publishDate?: string;
       platforms?: string[];
       pages?: string[];
-      billing_month?: string;
+      billingMonth?: string;
       month?: number;
       settings?: any;
       hashtags?: any;
       blocks?: any[];
       comments?: any[];
       activities?: any[];
-      user_columns?: Array<{ id: string; value: string }>;
-      last_updated_by?: string;
+      userColumns?: Array<{ id: string; value: string }>;
+      lastUpdatedBy?: string;
     }
   ): Promise<Post> => {
     return apiRequest<Post>(`/post?id=${id}`, {
@@ -801,24 +786,24 @@ export const postApi = {
   // Bulk create posts
   bulkCreatePosts: async (
     posts: {
-      workspace_id: string;
-      board_id: string;
+      workspaceId: string;
+      boardId: string;
       caption: any;
       status: string;
       format: string;
-      publish_date?: string;
+      publishDate?: string;
       platforms?: string[];
       pages?: string[];
-      billing_month?: string;
+      billingMonth?: string;
       month?: number;
       settings?: any;
       hashtags?: any;
       blocks?: any[];
       comments?: any[];
       activities?: any[];
-      user_columns?: Array<{ id: string; value: string }>;
-      created_by: string;
-      last_updated_by: string;
+      userColumns?: Array<{ id: string; value: string }>;
+      createdBy: string;
+      lastUpdatedBy: string;
     }[]
   ): Promise<{ message: string; posts: Post[] }> => {
     return apiRequest<{ message: string; posts: Post[] }>('/post/bulk', {
@@ -830,12 +815,12 @@ export const postApi = {
   // Bulk delete posts
   bulkDeletePosts: async (
     postIds: string[]
-  ): Promise<{ message: string; deleted_posts: Post[] }> => {
-    return apiRequest<{ message: string; deleted_posts: Post[] }>(
+  ): Promise<{ message: string; deletedPosts: Post[] }> => {
+    return apiRequest<{ message: string; deletedPosts: Post[] }>(
       '/post/bulk',
       {
         method: 'DELETE',
-        body: JSON.stringify({ post_ids: postIds }),
+        body: JSON.stringify({ postIds: postIds }),
       }
     );
   },
@@ -844,7 +829,7 @@ export const postApi = {
   autoSchedule: async (postId: string, status: string): Promise<Post> => {
     return apiRequest<Post>('/post/auto-schedule', {
       method: 'POST',
-      body: JSON.stringify({ post_id: postId, status: status }),
+      body: JSON.stringify({ postId: postId, status: status }),
     });
   },
 };
@@ -887,12 +872,12 @@ export const storeApi = {
           id: b.id,
           name: b.name,
           image: b.image,
-          selectedImage: b.selected_image,
+          selectedImage: b.selectedImage,
           description: b.description,
           color: b.color,
           rules: b.rules,
           columns: (b as any).columns,
-          createdAt: b.created_at ? new Date(b.created_at) : new Date(),
+          createdAt: b.createdAt ? new Date(b.createdAt) : new Date(),
           groupData: (b as any).group_data || [],
         }));
 
@@ -900,12 +885,12 @@ export const storeApi = {
           id: ws.id,
           name: ws.name,
           logo: ws.logo,
-          clerk_organization_id: (ws as any).clerk_organization_id,
-          default_board_rules: (ws as any).default_board_rules,
+          clerkOrganizationId: (ws as any).clerk_organization_id,
+          defaultBoardRules: (ws as any).default_board_rules,
           timezone: (ws as any).timezone,
-          week_start: (ws as any).week_start,
-          time_format: (ws as any).time_format,
-          allowed_posting_time: (ws as any).allowed_posting_time,
+          weekStart: (ws as any).week_start,
+          timeFormat: (ws as any).time_format,
+          allowedPostingTime: (ws as any).allowed_posting_time,
           role: ws.role, // Include the role from API
           boards,
           brand: undefined, // Will be populated below
@@ -975,8 +960,8 @@ export const storeApi = {
           let brand = null;
           try {
             const brandResp = await brandApi.getBrand({
-              workspace_id: ws.id,
-              include_social: false, // Social data is now at workspace level
+              workspaceId: ws.id,
+              includeSocial: false, // Social data is now at workspace level
             });
             brand = brandResp || null;
           } catch (error) {
@@ -988,7 +973,7 @@ export const storeApi = {
           let channels: any[] = [];
           try {
             const channelsResp = await channelApi.getChannel({
-              workspace_id: ws.id,
+              workspaceId: ws.id,
             });
             const channelsDb = Array.isArray(channelsResp)
               ? channelsResp
@@ -1018,7 +1003,7 @@ export const storeApi = {
           // Load posts for each board
           const boardsWithPosts = await Promise.all(
             ws.boards.map(async (board) => {
-              const postsResp = await postApi.getPost({ board_id: board.id });
+              const postsResp = await postApi.getPost({ boardId: board.id });
               const posts = Array.isArray(postsResp)
                 ? (postsResp as Post[])
                 : [postsResp as Post];
@@ -1039,25 +1024,25 @@ export const storeApi = {
               );
               const transformedPosts = postsWithActivities.map((p) => ({
                 id: p.id,
-                workspaceId: p.workspace_id ?? ws.id,
-                board_id: p.board_id,
+                workspaceId: p.workspaceId ?? ws.id,
+                boardId: p.boardId,
                 caption: p.caption,
                 status: p.status as any,
                 format: p.format,
-                publish_date: p.publish_date ? new Date(p.publish_date) : null,
-                updatedAt: p.updated_at ? new Date(p.updated_at) : null,
+                publishDate: p.publishDate ? new Date(p.publishDate) : null,
+                updatedAt: p.updatedAt ? new Date(p.updatedAt) : null,
                 platforms: (p.platforms || []) as any,
                 pages: p.pages || [],
-                billingMonth: p.billing_month,
+                billingMonth: p.billingMonth,
                 month: p.month ?? 1,
-                user_columns: (p as any).user_columns || [],
+                userColumns: (p as any).userColumns || [],
                 settings: p.settings,
                 hashtags: p.hashtags,
                 blocks: p.blocks || [],
                 comments: p.comments || [],
                 activities: p.activities,
-                created_by: p.created_by,
-                last_updated_by: p.last_updated_by,
+                createdBy: p.createdBy,
+                lastUpdatedBy: p.lastUpdatedBy,
               }));
 
               return {
@@ -1138,14 +1123,14 @@ export const storeApi = {
     createdBy: string,
     name: string,
     description?: string,
-    members?: any,
+    members?: string[],
     icon?: string,
     color?: string
   ) => {
     try {
       const channel = await channelApi.createChannel({
-        workspace_id: workspaceId,
-        created_by: createdBy,
+        workspaceId: workspaceId,
+        createdBy: createdBy,
         name,
         description,
         members,
@@ -1156,18 +1141,18 @@ export const storeApi = {
       const workspaceStore = useWorkspaceStore.getState();
       const storeChannel = {
         id: channel.id,
-        workspaceId: channel.workspace_id,
-        createdBy: channel.created_by,
+        workspaceId: channel.workspaceId,
+        createdBy: channel.createdBy,
         name: channel.name,
         description: channel.description,
         members: channel.members,
         icon: channel.icon,
         color: (channel as any).color,
-        createdAt: channel.created_at
-          ? new Date(channel.created_at)
+        createdAt: channel.createdAt
+          ? new Date(channel.createdAt)
           : new Date(),
-        updatedAt: channel.updated_at
-          ? new Date(channel.updated_at)
+        updatedAt: channel.updatedAt
+          ? new Date(channel.updatedAt)
           : new Date(),
       };
       const updatedWorkspaces = workspaceStore.workspaces.map((w) => {
@@ -1225,7 +1210,7 @@ export const storeApi = {
   fetchChannelMessagesAndUpdateStore: async (channelId: string) => {
     try {
       const resp = (await channelMessageApi.getChannelMessage({
-        channel_id: channelId,
+        channelId: channelId,
       })) as Array<any>;
       const items = Array.isArray(resp) ? resp : resp ? [resp] : [];
       const transformed = items.map((m: any) => ({
@@ -1259,7 +1244,7 @@ export const storeApi = {
           const messageIds = items.map((m) => m.id);
 
           // Update unread messages in store
-          const currentUnread = store.user?.unread_msg || [];
+          const currentUnread = store.user?.unreadMsg || [];
           console.log('currentUnread: ', store.user);
           const newUnread = currentUnread.filter(
             (id) => !messageIds.includes(id)
@@ -1269,7 +1254,7 @@ export const storeApi = {
             useUserStore.setState({
               user: {
                 ...store.user!,
-                unread_msg: newUnread,
+                unreadMsg: newUnread,
               },
             });
           }
@@ -1298,7 +1283,7 @@ export const storeApi = {
       if (!activeWorkspaceId) throw new Error('No active workspace');
 
       const resp = (await channelMessageApi.getChannelMessage({
-        workspace_id: activeWorkspaceId,
+        workspaceId: activeWorkspaceId,
       })) as Array<any>;
       const items = Array.isArray(resp) ? resp : resp ? [resp] : [];
       const transformed = items.map((m: any) => ({
@@ -1333,7 +1318,7 @@ export const storeApi = {
           const messageIds = items.map((m) => m.id);
 
           // Update unread messages in store
-          const currentUnread = userStore.user?.unread_msg || [];
+          const currentUnread = userStore.user?.unreadMsg || [];
           const newUnread = currentUnread.filter(
             (id) => !messageIds.includes(id)
           );
@@ -1343,7 +1328,7 @@ export const storeApi = {
             useUserStore.setState({
               user: {
                 ...userStore.user!,
-                unread_msg: newUnread,
+                unreadMsg: newUnread,
               },
             });
           }
@@ -1375,11 +1360,11 @@ export const storeApi = {
   ) => {
     try {
       const created = await channelMessageApi.createChannelMessage({
-        workspace_id: workspaceId,
-        channel_id: channelId,
+        workspaceId: workspaceId,
+        channelId: channelId,
         content,
-        parent_id: parentId,
-        author_email: authorEmail,
+        parentId: parentId,
+        authorEmail: authorEmail,
         addon,
       });
 
@@ -1394,10 +1379,10 @@ export const storeApi = {
         authorEmail: authorEmail,
         authorImageUrl: senderImageUrl as string | undefined,
         text: created.content,
-        createdAt: created.created_at
-          ? new Date(created.created_at)
+        createdAt: created.createdAt
+          ? new Date(created.createdAt)
           : new Date(),
-        parentId: created.parent_id || null,
+        parentId: created.parentId || null,
         addon: (created as any).addon,
         readby: (created as any).readby,
         emoticons: (created as any).emoticons,
@@ -1435,14 +1420,14 @@ export const storeApi = {
     name: string,
     email: string,
     logo?: string,
-    default_board_rules?: Record<string, any>
+    defaultBoardRules?: Record<string, any>
   ) => {
     try {
       const workspace = await workspaceApi.createWorkspace({
         name,
         logo,
         email,
-        default_board_rules,
+        defaultBoardRules,
       });
       const store = useWorkspaceStore.getState();
 
@@ -1537,10 +1522,10 @@ export const storeApi = {
   ) => {
     try {
       const brand = await brandApi.createBrand({
-        workspace_id: workspaceId,
+        workspaceId: workspaceId,
         name,
         logo,
-        style_guide: styleGuide,
+        styleGuide: styleGuide,
         link,
         voice,
         prefs,
@@ -1557,7 +1542,7 @@ export const storeApi = {
               id: brand.id,
               name: brand.name,
               logo: brand.logo,
-              styleGuide: brand.style_guide,
+              styleGuide: brand.styleGuide,
               link: brand.link,
               voice: brand.voice,
               prefs: brand.prefs,
@@ -1649,7 +1634,7 @@ export const storeApi = {
   ) => {
     try {
       const board = await boardApi.createBoard({
-        workspace_id: workspaceId,
+        workspaceId: workspaceId,
         name,
         description,
         image,
@@ -1658,7 +1643,7 @@ export const storeApi = {
       });
 
       // Fetch the posts that were automatically created for this board
-      const posts = await postApi.getPost({ board_id: board.id });
+      const posts = await postApi.getPost({ boardId: board.id });
       const boardPosts = Array.isArray(posts) ? posts : [posts];
       const boardPostsWithActivities = await Promise.all(
         boardPosts.map(async (post) => {
@@ -1691,24 +1676,24 @@ export const storeApi = {
                 color: board.color,
                 rules: board.rules,
                 columns: (board as any).columns,
-                groupData: board.group_data || [],
+                groupData: board.groupData || [],
                 createdAt: new Date(),
                 posts: boardPostsWithActivities.map((post) => ({
                   id: post.id,
-                  workspaceId: post.workspace_id,
-                  board_id: post.board_id,
+                  workspaceId: post.workspaceId,
+                  boardId: post.boardId,
                   caption: post.caption,
                   status: post.status as any,
                   format: post.format,
-                  publish_date: post.publish_date
-                    ? new Date(post.publish_date)
+                  publishDate: post.publishDate
+                    ? new Date(post.publishDate)
                     : null,
-                  updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+                  updatedAt: post.updatedAt ? new Date(post.updatedAt) : null,
                   platforms: (post.platforms || []) as any,
                   pages: post.pages || [],
-                  billingMonth: post.billing_month,
+                  billingMonth: post.billingMonth,
                   month: post.month || 1,
-                  user_columns: (post as any).user_columns || [],
+                  userColumns: (post as any).userColumns || [],
                   settings: post.settings,
                   hashtags: post.hashtags,
                   blocks: post.blocks || [],
@@ -1841,18 +1826,18 @@ export const storeApi = {
   // Post operations with store integration
   createPostAndUpdateStore: async (
     workspaceId: string,
-    board_id: string,
+    boardId: string,
     postData: any,
     userEmail: string
   ) => {
     try {
-      console.log('createPostAndUpdateStore', workspaceId, board_id, postData);
+      console.log('createPostAndUpdateStore', workspaceId, boardId, postData);
       const post = await postApi.createPost({
-        workspace_id: workspaceId,
-        board_id: board_id,
+        workspaceId: workspaceId,
+        boardId: boardId,
         ...postData,
-        created_by: userEmail,
-        last_updated_by: userEmail,
+        createdBy: userEmail,
+        lastUpdatedBy: userEmail,
       });
 
       const store = useWorkspaceStore.getState();
@@ -1861,34 +1846,34 @@ export const storeApi = {
       store.workspaces = store.workspaces.map((w) => ({
         ...w,
         boards: w.boards.map((b) => {
-          if (b.id === board_id) {
+          if (b.id === boardId) {
             return {
               ...b,
               posts: [
                 ...b.posts,
                 {
                   id: post.id,
-                  workspaceId: post.workspace_id,
-                  board_id: post.board_id,
+                  workspaceId: post.workspaceId,
+                  boardId: post.boardId,
                   caption: post.caption,
                   status: post.status as any,
                   format: post.format,
-                  publish_date: post.publish_date
-                    ? new Date(post.publish_date)
+                  publishDate: post.publishDate
+                    ? new Date(post.publishDate)
                     : null,
-                  updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+                  updatedAt: post.updatedAt ? new Date(post.updatedAt) : null,
                   platforms: (post.platforms || []) as any,
                   pages: post.pages || [],
-                  billingMonth: post.billing_month,
+                  billingMonth: post.billingMonth,
                   month: post.month || 1,
-                  user_columns: (post as any).user_columns || [],
+                  userColumns: (post as any).userColumns || [],
                   settings: post.settings,
                   hashtags: post.hashtags,
                   blocks: post.blocks || [],
                   comments: post.comments || [],
                   activities: post.activities || [],
-                  created_by: post.created_by,
-                  last_updated_by: post.last_updated_by,
+                  createdBy: post.createdBy,
+                  lastUpdatedBy: post.lastUpdatedBy,
                 },
               ],
             };
@@ -1930,12 +1915,12 @@ export const storeApi = {
             if (p.id !== id) return p;
 
             // Special handling for user_columns to ensure proper merging
-            if (updates.user_columns) {
+            if (updates.userColumns) {
               return {
                 ...p,
                 ...updates,
-                user_columns: updates.user_columns,
-                last_updated_by: postUpdates.last_updated_by,
+                userColumns: updates.userColumns,
+                lastUpdatedBy: postUpdates.lastUpdatedBy,
               };
             }
 
@@ -2076,7 +2061,7 @@ export const storeApi = {
   // Bulk create posts and update store
   bulkCreatePostsAndUpdateStore: async (
     workspaceId: string,
-    board_id: string,
+    boardId: string,
     postsData: any[],
     userEmail: string
   ) => {
@@ -2084,8 +2069,8 @@ export const storeApi = {
       // Add user fields to each post
       const postsWithUserFields = postsData.map((post) => ({
         ...post,
-        created_by: userEmail,
-        last_updated_by: userEmail,
+        createdBy: userEmail,
+        lastUpdatedBy: userEmail,
       }));
 
       const result = await postApi.bulkCreatePosts(postsWithUserFields);
@@ -2094,32 +2079,32 @@ export const storeApi = {
       // Transform posts to match store format
       const transformedPosts = result.posts.map((post) => ({
         id: post.id,
-        workspaceId: post.workspace_id,
-        board_id: post.board_id,
+        workspaceId: post.workspaceId,
+        boardId: post.boardId,
         caption: post.caption,
         status: post.status as any,
         format: post.format,
-        publish_date: post.publish_date ? new Date(post.publish_date) : null,
-        updatedAt: post.updated_at ? new Date(post.updated_at) : null,
+        publishDate: post.publishDate ? new Date(post.publishDate) : null,
+        updatedAt: post.updatedAt ? new Date(post.updatedAt) : null,
         platforms: (post.platforms || []) as any,
         pages: post.pages || [],
-        billingMonth: post.billing_month,
+        billingMonth: post.billingMonth,
         month: post.month || 1,
-        user_columns: (post as any).user_columns || [],
+        userColumns: (post as any).userColumns || [],
         settings: post.settings,
         hashtags: post.hashtags,
         blocks: post.blocks || [],
         comments: post.comments || [],
         activities: post.activities || [],
-        created_by: post.created_by,
-        last_updated_by: post.last_updated_by,
+        createdBy: post.createdBy,
+        lastUpdatedBy: post.lastUpdatedBy,
       }));
 
       // Update store
       store.workspaces = store.workspaces.map((w) => ({
         ...w,
         boards: w.boards.map((b) => {
-          if (b.id === board_id) {
+          if (b.id === boardId) {
             return {
               ...b,
               posts: [...b.posts, ...transformedPosts],
@@ -2155,7 +2140,7 @@ export const storeApi = {
       // Trigger store update for listeners
       useWorkspaceStore.setState({ workspaces: store.workspaces });
 
-      return result.deleted_posts;
+      return result.deletedPosts;
     } catch (error) {
       console.error('Failed to bulk delete posts:', error);
       throw error;
@@ -2188,9 +2173,9 @@ export const inviteApi = {
     organizationId?: string;
     role?: string;
     memberRole?: 'client' | 'team';
-    first_name?: string;
-  }) => {
-    return apiRequest<{ message: string; details?: string; warning?: boolean }>(
+    firstName?: string;
+  }): Promise<InviteResponse> => {
+    return apiRequest<InviteResponse>(
       '/invite',
       {
         method: 'POST',
@@ -2203,9 +2188,9 @@ export const inviteApi = {
     workspaceId: string;
     actorId?: string;
     organizationId?: string;
-    first_name?: string;
-  }) => {
-    return apiRequest<{ message: string; details?: string; warning?: boolean }>(
+    firstName?: string;
+  }): Promise<InviteResponse> => {
+    return apiRequest<InviteResponse>(
       '/invite/client',
       {
         method: 'POST',
@@ -2218,9 +2203,9 @@ export const inviteApi = {
     workspaceId: string;
     actorId?: string;
     organizationId?: string;
-    first_name?: string;
-  }) => {
-    return apiRequest<{ message: string; details?: string; warning?: boolean }>(
+    firstName?: string;
+  }): Promise<InviteResponse> => {
+    return apiRequest<InviteResponse>(
       '/invite/team',
       {
         method: 'POST',
@@ -2238,10 +2223,10 @@ export const commentApi = {
   },
 
   addPostComment: async (data: {
-    post_id: string;
+    postId: string;
     text: string;
-    parent_id?: string;
-    revision_requested?: boolean;
+    parentId?: string;
+    revisionRequested?: boolean;
     author: string;
     authorEmail?: string;
     authorImageUrl?: string;
@@ -2283,11 +2268,11 @@ export const commentApi = {
   },
 
   addBlockComment: async (data: {
-    post_id: string;
-    block_id: string;
+    postId: string;
+    blockId: string;
     text: string;
-    parent_id?: string;
-    revision_requested?: boolean;
+    parentId?: string;
+    revisionRequested?: boolean;
     author: string;
     authorEmail?: string;
     authorImageUrl?: string;
@@ -2338,12 +2323,12 @@ export const commentApi = {
   },
 
   addVersionComment: async (data: {
-    post_id: string;
-    block_id: string;
-    version_id: string;
+    postId: string;
+    blockId: string;
+    versionId: string;
     text: string;
-    parent_id?: string;
-    revision_requested?: boolean;
+    parentId?: string;
+    revisionRequested?: boolean;
     author: string;
     authorEmail?: string;
     authorImageUrl?: string;
@@ -2438,7 +2423,8 @@ export const socialPageApi = {
   },
 };
 
-export { ApiError };
+// Re-export ApiError for backward compatibility
+export { ApiError } from './api-types';
 
 // Activity API functions
 export const activityApi = {
@@ -2451,9 +2437,9 @@ export const activityApi = {
     );
   },
   addActivity: async (data: {
-    workspace_id: string;
-    post_id?: string;
-    actor_id: string;
+    workspaceId: string;
+    postId?: string;
+    actorId: string;
     type:
       | 'revision_request'
       | 'revised'
@@ -2489,7 +2475,7 @@ export const notificationApi = {
       {
         method: 'POST',
         body: JSON.stringify({
-          user_email: userEmail,
+          userEmail: userEmail,
         }),
       }
     );
@@ -2504,7 +2490,7 @@ export const notificationApi = {
         method: 'PATCH',
         body: JSON.stringify({
           user_email: userEmail,
-          notification_id: notificationId,
+          notificationId: notificationId,
         }),
       }
     );
@@ -2531,10 +2517,10 @@ export const notificationServiceApi = {
       Array<{
         id: string;
         content: string;
-        author_email: string;
+        authorEmail: string;
         created_at: string;
-        channel_id: string;
-        workspace_id: string;
+        channelId: string;
+        workspaceId: string;
         sent_notification: boolean;
       }>
     >('/notification-service', {

@@ -25,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { DateTimeSelector } from "@/components/content/post-table/DateTimeSelector";
+import { DateTimeSelector } from "@/components/content/post-table/date-time-selector";
 import {
   HoverCard,
   HoverCardTrigger,

@@ -10,7 +10,7 @@ import type {
   PostSettings
 } from "@/lib/social/platforms/platform-types";
 import type { RowHeightType } from "@/lib/utils";
-import type { ConditionGroup } from "@/components/content/post-table/FilterPopover";
+import type { ConditionGroup } from "@/components/content/post-table/filter-popover";
 
 // Shared types for all stores
 export interface BoardRules {
@@ -145,8 +145,8 @@ export interface Activity {
   actorId: string; // User ID of the person who performed the action
   actor?: {
     id: string;
-    first_name?: string;
-    last_name?: string;
+    firstName?: string;
+    lastName?: string;
     email?: string;
   };
   metadata?: {
@@ -163,18 +163,18 @@ export interface Activity {
 export interface Post {
   id: string;
   workspaceId: string;
-  board_id: string; // <- NEW: permanently associates post with a board
+  boardId: string; // <- NEW: permanently associates post with a board
   caption: CaptionData;
   status: Status;
   format: string;
-  publish_date: Date | null;
+  publishDate: Date | null;
   updatedAt: Date | null;
   platforms: Platform[];  // Array of platforms this post is for
   pages: string[];  // Array of social page IDs
   billingMonth?: string;
   month: number;  // Month number (1-50)
   /** Array of user defined column values saved as id/value pairs */
-  user_columns?: Array<{ id: string; value: string }>;
+  userColumns?: Array<{ id: string; value: string }>;
   /** Per-post settings such as location tag, tagged accounts, custom thumbnail, and platform-specific options */
   settings?: PostSettings;
 
@@ -182,9 +182,9 @@ export interface Post {
   hashtags?: CaptionData;
 
   /** User who created the post (email) */
-  created_by?: string;
+  createdBy?: string;
   /** User who last updated the post (email) */
-  last_updated_by?: string;
+  lastUpdatedBy?: string;
 
   blocks: Block[];
   comments: BaseComment[];
@@ -204,26 +204,32 @@ export interface Brand {
   prefs?: string;
 }
 
+export interface SocialSet {
+  id: string;
+  name: string;
+  workspaceId: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface Workspace {
   id: string;
   name: string;
   logo?: string;
-  clerk_organization_id?: string;
+  clerkOrganizationId?: string;
   createdby?: string; // ID of the user who created this workspace
-  /**
-   * User role within this workspace. "admin" for creator, "member" for invitee.
-   */
   role?: 'admin' | 'member';
   channels?: MessageChannel[];
   boards: Board[];
-  brand?: Brand; // Single brand per workspace (one-to-one relationship)
+  brand?: Brand;
   socialAccounts?: SocialAccount[];
   socialPages?: SocialPage[];
-  default_board_rules?: Record<string, any>;
+  defaultBoardRules?: BoardRules;
   timezone?: string;
-  week_start?: 'monday' | 'sunday';
-  time_format?: '24h' | '12h';
-  allowed_posting_time?: Record<string, any>;
+  weekStart?: 'monday' | 'sunday';
+  timeFormat?: '24h' | '12h';
+  allowedPostingTime?: AllowedPostingTime;
+  socialSets?: SocialSet[];
 }
 
 export interface Board {
@@ -235,7 +241,7 @@ export interface Board {
   color?: string;
   rules?: BoardRules;
   groupData?: BoardGroupData[]; // Array of group data for months 1-50
-  columns?: Array<{ name: string; id?: string; is_default: boolean; order: number; type?: ColumnType; options?: any }>;
+  columns?: Array<{ name: string; id?: string; isDefault: boolean; order: number; type?: ColumnType; options?: unknown }>;
   createdAt: Date;
   posts: Post[]; // Posts now belong to boards, not brands
   /** Board-specific filtering conditions */
@@ -257,7 +263,7 @@ export interface MessageChannel {
   createdBy: string;
   name: string;
   description?: string;
-  members?: any;
+  members?: ChannelMember[];
   icon?: string;
   color?: string;
   createdAt: Date;
@@ -290,9 +296,359 @@ export interface User {
   firstName?: string;
   lastName?: string;
   imageUrl?: string;
-  unread_msg?: string[];
-  unread_notification?: string[];
-  notification_settings?: NotificationSettings;
+  unreadMsg?: string[];
+  unreadNotification: string[];
+  notificationSettings?: NotificationSettings;
+  defaultBoardRules?: BoardRules;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Database interfaces (originally from supabase/interfaces.ts, now merged here)
+export interface ChannelMember {
+  email: string;
+  firstName?: string;
+  imageUrl?: string;
+}
+
+export interface ChannelMessageAddon {
+  [key: string]: unknown;
+}
+
+export interface ChannelMessageReadBy {
+  email: string;
+  timestamp?: Date;
+}
+
+export interface ChannelMessageEmoticon {
+  emoji: string;
+  users: string[];
+}
+
+export interface PostSettingsFull {
+  locationTags: string[];
+  taggedAccounts: string[];
+  thumbnail: boolean;
+  tiktok?: {
+    privacyLevel: string;
+    disableDuet: boolean;
+    disableStitch: boolean;
+    disableComment: boolean;
+    videoCoverTimestampMs?: number;
+    commercialContentToggle: boolean;
+    brandContentToggle: boolean;
+    brandOrganicToggle: boolean;
+    autoAddMusic: boolean;
+    isAigc: boolean;
+    maxVideoDurationSec?: number;
+    canPostMore?: boolean;
+  };
+  google?: {
+    postType: string;
+    callToAction?: {
+      actionType: string;
+      url: string;
+    };
+    event?: Record<string, unknown>;
+    offer?: Record<string, unknown>;
+  };
+  pinterest?: {
+    boardId: string;
+    boardName: string;
+    title?: string;
+  };
+  youtube?: {
+    privacyStatus: string;
+    madeForKids: boolean;
+    description?: string;
+  };
+}
+
+export interface PostBlockVersionFile {
+  kind: "image" | "video";
+  url: string;
+  thumbnailUrl?: string;
+}
+
+export interface PostBlockVersionComment {
+  id: string;
+  parentId?: string;
+  author: string;
+  text: string;
+  createdAt: string;
+  revisionRequested?: boolean;
+  [key: string]: unknown;
+}
+
+export interface PostBlockVersion {
+  id: string;
+  createdAt: string;
+  by: string;
+  caption: string;
+  file: PostBlockVersionFile;
+  comments: PostBlockVersionComment[];
+}
+
+export interface PostBlockCommentFull {
+  id: string;
+  parentId?: string;
+  author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
+  text: string;
+  createdAt: string;
+  revisionRequested?: boolean;
+  [key: string]: unknown;
+}
+
+export interface PostBlockFull {
+  id: string;
+  kind: "image" | "video";
+  currentVersionId: string;
+  versions: PostBlockVersion[];
+  comments: PostBlockCommentFull[];
+}
+
+export interface PostCommentFull {
+  id: string;
+  parentId?: string;
+  createdAt: string;
+  author: string;
+  authorEmail?: string;
+  authorImageUrl?: string;
+  text: string;
+  revisionRequested?: boolean;
+}
+
+export interface PostActivityMetadata {
+  versionNumber?: number;
+  comment?: string;
+  publishTime?: string | Date;
+  revisionComment?: string;
+  commentId?: string;
+  [key: string]: unknown;
+}
+
+export interface PostActivityActor {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
+
+export interface PostActivityFull {
+  id: string;
+  workspaceId: string;
+  postId?: string;
+  type: string;
+  actorId: string;
+  actor?: PostActivityActor;
+  metadata?: PostActivityMetadata;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StyleGuide {
+  fonts?: string[];
+  colors?: string[];
+}
+
+export interface AllowedPostingTime {
+  [day: string]: {
+    start?: string;
+    end?: string;
+  };
+}
+
+export interface FormFieldConfig {
+  placeholder?: { value: string };
+  title?: { value: string };
+  description?: { value: string };
+  isRequired?: { value: boolean };
+  allowMultipleSelection?: { value: boolean };
+  defaultOption?: { value: string; order: number };
+  optionItems?: { optionValues: Array<{ value: string; order: number }> };
+  dropdownItems?: { dropdownValues: Array<{ value: string; order: number }> };
+  helpText?: { value: string };
+  spreadsheetColumns?: { columns: Array<{ value: string; order: number }> };
+  allowedRows?: { value: number };
+  acceptedFileTypes?: { value: string };
+  [key: string]: unknown;
+}
+
+export interface Channel {
+  id: string;
+  workspaceId: string;
+  createdBy: string;
+  name: string;
+  description?: string;
+  members?: ChannelMember[];
+  icon?: string;
+  color?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ChannelMessage {
+  id: string;
+  workspaceId: string;
+  channelId: string;
+  content: string;
+  parentId?: string | null;
+  addon?: ChannelMessageAddon;
+  readby?: ChannelMessageReadBy[];
+  authorEmail: string;
+  emoticons?: ChannelMessageEmoticon[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Member {
+  id: string;
+  email: string;
+  workspaceId: string;
+  boardId?: string | null;
+  isWorkspace: boolean;
+  role: "client" | "team";
+  accept: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Form {
+  id: string;
+  type: "intake" | "template";
+  title: string;
+  status: "draft" | "published";
+  workspaceId: string;
+  shareUri?: string | null;
+  hasBeenSubmitted: boolean;
+  thumbnailUrl?: string | null;
+  coverUrl?: string | null;
+  description?: string | null;
+  publishedAt?: Date | null;
+  locationTags?: string[] | null;
+  accountTags?: string[] | null;
+  createdAt: Date;
+  updatedAt: Date;
+  hasBranding: boolean;
+  coverOffset: number | null;
+  services?: Service[];
+}
+
+// Database Service interface
+export interface Service {
+  id: string;
+  workspaceId: string;
+  formId: string | null;
+  name: string;
+  brief: string | null;
+  description: string | null;
+  folderId: string;
+  socialChannels: boolean;
+  internalIcon: string;
+  channels?: ServiceChannel[];
+  servicePlans?: ServicePlan[];
+}
+
+export interface ServicePlan {
+  id: string;
+  createdAt: Date;
+  period: string;
+  price: number;
+  serviceId: string;
+  quantity: number;
+  qtyIndicator: string;
+  currency: string;
+  updatedAt: Date;
+}
+
+export interface ServiceChannel {
+  id: string;
+  serviceId: string;
+  createdAt: Date;
+  socialChannel: string;
+  pricing: number;
+  updatedAt: Date;
+}
+
+export interface ServiceFolder {
+  id: string;
+  createdAt: Date;
+  name: string;
+  description: string | null;
+  workspaceId: string;
+  order: number;
+  services?: Service[];
+}
+
+export interface FormField {
+  id: string;
+  formId: string;
+  position: number;
+  type: string;
+  config: FormFieldConfig;
+  title: string;
+  description: string;
+  required: boolean;
+}
+
+export interface Coupon {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  discount: number;
+  code: string;
+  expiresAt: Date | null;
+  usageCount: number;
+  usageLimit: number | null;
+}
+
+export interface CheckoutForm {
+  id: string;
+  createdAt: Date;
+  workspaceId: string;
+  title: string;
+  description: string | null;
+  generalDiscount: number | null;
+  paymentConfiguration: string | null;
+  updatedAt: Date;
+  folders?: CheckoutFormFolder[];
+}
+
+export interface CheckoutFormFolder {
+  id: string;
+  createdAt: Date;
+  serviceFolderId: string;
+  isActivated: boolean;
+  checkoutFormId: string;
+  showTooltip: boolean;
+  description: string | null;
+  folder?: ServiceFolder;
+  services?: CheckoutFormService[];
+}
+
+export interface CheckoutFormService {
+  id: string;
+  createdAt: Date;
+  serviceId: string;
+  isActive: boolean;
+  titleOverride: string | null;
+  descriptionOverride: string | null;
+  iconOverride: string | null;
+  discount: number | null;
+  service?: Service;
+  checkoutFolder?: CheckoutFormFolder;
+}
+
+export interface FormSubmission {
+  id: string;
+  workspaceId: string;
+  formId: string;
+  formVersion: number;
+  submittedBy: string;
+  answers: Record<string, { type: string; value: string | string[] }>;
+  schemaSnapshot: Record<string, string>;
   createdAt: Date;
 }
 

@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useWorkspaceStore, useUserStore, useSocialStore } from "@/lib/store";
+import { useWorkspaceStore, useUserStore, useSocialStore, SocialSet, Workspace } from "@/lib/store";
 import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
 import { SocialPage } from "@/lib/social/platforms/platform-types";
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
@@ -78,9 +78,9 @@ export default function SettingsSocialsPage() {
 
 	// No explicit loading; rely on activeWorkspace.socialAccounts/socialPages
 
-	const pages: any[] = (activeWorkspace?.socialPages || []) as any[];
+	const pages: SocialPage[] = activeWorkspace?.socialPages || [];
 	const allPages = pages; // keep a stable reference for handlers scoped inside set maps
-	const socialSets: any[] = (activeWorkspace as any)?.socialSets || [];
+	const socialSets: SocialSet[] = activeWorkspace?.socialSets || [];
 
 	// Drag and drop state
 	const [draggingPageId, setDraggingPageId] = React.useState<string | null>(null);
@@ -152,14 +152,14 @@ export default function SettingsSocialsPage() {
 
 	const setsWithPages = React.useMemo(() => {
 		const lower = search.trim().toLowerCase();
-		const bySetId: Record<string, any[]> = {};
+		const bySetId: Record<string, SocialPage[]> = {};
 		for (const p of pages) {
-			const sid = (p as any).socialSetId || "__unassigned__";
+			const sid = (p as SocialPage).socialSetId || "__unassigned__";
 			if (!bySetId[sid]) bySetId[sid] = [];
 			bySetId[sid].push(p);
 		}
 
-		const results: { id: string; name: string; pages: any[]; orderIndex: number }[] = [];
+		const results: { id: string; name: string; pages: SocialPage[]; orderIndex: number }[] = [];
 		let orderCounter = 0;
 		for (const set of socialSets) {
 			const sid = set.id;
@@ -168,9 +168,8 @@ export default function SettingsSocialsPage() {
 				? setPages.filter((p) => p.name.toLowerCase().includes(lower) || (set.name || '').toLowerCase().includes(lower))
 				: setPages;
 			// Sort by orderIndex if available, otherwise maintain current order
-			const sorted = filtered.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-			if (sorted.length || !lower) {
-				results.push({ id: sid, name: set.name, pages: sorted, orderIndex: orderCounter });
+			if (filtered.length || !lower) {
+				results.push({ id: sid, name: set.name, pages: filtered, orderIndex: orderCounter });
 				orderCounter += 1;
 			}
 		}
@@ -178,9 +177,8 @@ export default function SettingsSocialsPage() {
 		if (bySetId["__unassigned__"]) {
 			const unPages = bySetId["__unassigned__"];
 			const filtered = lower ? unPages.filter((p) => p.name.toLowerCase().includes(lower)) : unPages;
-			const sorted = filtered.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-			if (sorted.length || !lower) {
-				results.push({ id: "__unassigned__", name: "Other Socials", pages: sorted, orderIndex: orderCounter });
+			if (filtered.length || !lower) {
+				results.push({ id: "__unassigned__", name: "Other Socials", pages: filtered, orderIndex: orderCounter });
 			}
 		}
 		return results;
@@ -199,7 +197,7 @@ export default function SettingsSocialsPage() {
 	async function commitRenameSet() {
 		if (!editingSetId) return;
 		const nextName = (draftSetName || "").trim();
-		const original = (socialSets as any[]).find((s: any) => s.id === editingSetId);
+		const original = (socialSets as SocialSet[]).find((s: SocialSet) => s.id === editingSetId);
 		const originalName = original?.name || "";
 		if (!nextName || nextName === originalName) {
 			setEditingSetId(null);
@@ -209,11 +207,11 @@ export default function SettingsSocialsPage() {
 		try {
 			setSavingRenameSetId(editingSetId);
 			// optimistic update
-			useWorkspaceStore.setState((prev: any) => {
+			useWorkspaceStore.setState((prev: WorkspaceStore) => {
 				const wsList = prev.workspaces || [];
-				const updated = wsList.map((w: any) => {
+				const updated = wsList.map((w: Workspace) => {
 					if (w.id !== (activeWorkspace?.id || workspaceId)) return w;
-					const nextSets = (w.socialSets || []).map((s: any) => s.id === editingSetId ? { ...s, name: nextName } : s);
+					const nextSets = (w.socialSets || []).map((s: SocialSet) => s.id === editingSetId ? { ...s, name: nextName } : s);
 					return { ...w, socialSets: nextSets };
 				});
 				return { workspaces: updated };
@@ -224,11 +222,11 @@ export default function SettingsSocialsPage() {
 			setDraftSetName("");
 		} catch (e) {
 			// revert on failure
-			useWorkspaceStore.setState((prev: any) => {
+			useWorkspaceStore.setState((prev: WorkspaceStore) => {
 				const wsList = prev.workspaces || [];
-				const updated = wsList.map((w: any) => {
+				const updated = wsList.map((w: Workspace) => {
 					if (w.id !== (activeWorkspace?.id || workspaceId)) return w;
-					const nextSets = (w.socialSets || []).map((s: any) => s.id === editingSetId ? { ...s, name: originalName } : s);
+					const nextSets = (w.socialSets || []).map((s: SocialSet) => s.id === editingSetId ? { ...s, name: originalName } : s);
 					return { ...w, socialSets: nextSets };
 				});
 				return { workspaces: updated };
@@ -279,19 +277,18 @@ export default function SettingsSocialsPage() {
 		}
 
 		// Apply state update optimistically
-		useWorkspaceStore.setState((prev: any) => {
-			const workspaces = (prev.workspaces || []).map((w: any) => {
+		useWorkspaceStore.setState((prev: WorkspaceStore) => {
+			const workspaces = (prev.workspaces || []).map((w: Workspace) => {
 				if (w.id !== workspaceId) return w;
-				const nextPages = (w.socialPages || []).map((p: any) => {
+				const nextPages = (w.socialPages || []).map((p: SocialPage) => {
 					const newIndex = newOrderIndexById[p.id];
 					if (p.id === draggedPageId) {
 						return {
 							...p,
 							socialSetId: targetSetId,
-							orderIndex: newIndex ?? p.orderIndex,
 						};
 					}
-					return newIndex !== undefined ? { ...p, orderIndex: newIndex } : p;
+					return p;
 				});
 				return { ...w, socialPages: nextPages };
 			});
@@ -456,7 +453,7 @@ export default function SettingsSocialsPage() {
 											{dragOverSetId === id && dragOverIndex === 0 && (
 												<div className="h-0.5 bg-main mx-2 rounded-full transition-all duration-200" />
 											)}
-											{pages.map((page: any, pageIndex: number) => (
+											{pages.map((page: SocialPage, pageIndex: number) => (
 												<React.Fragment key={page.id}>
 													<div className="mb-2 flex items-center gap-2">
 														<span
@@ -664,9 +661,9 @@ export default function SettingsSocialsPage() {
 									setIsCreatingSet(true);
 									const created = await socialSetApi.createSocialSet(workspaceId, createName.trim());
 									// Update store
-									useWorkspaceStore.setState((prev: any) => {
+									useWorkspaceStore.setState((prev: WorkspaceStore) => {
 										const wsList = prev.workspaces || [];
-										const next = wsList.map((w: any) => {
+										const next = wsList.map((w: Workspace) => {
 											if (w.id !== workspaceId) return w;
 											const nextSets = Array.isArray(w.socialSets) ? [...w.socialSets] : [];
 											nextSets.push({

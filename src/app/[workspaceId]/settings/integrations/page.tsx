@@ -30,7 +30,7 @@ export default function SettingsIntegrationsPage() {
     loadSlackStatus()
 
     function handleOAuthMessage(e: MessageEvent) {
-      const msg: any = e?.data
+      const msg: { success?: boolean; workspaceId?: string } | null = e?.data
       if (msg && msg.success && msg.workspaceId === workspaceId) {
         loadSlackStatus()
       }

@@ -20,7 +20,7 @@ export interface MessageStore {
   currentChannelId?: string;
 
   // Channel methods
-  addChannel: (name: string, description?: string, icon?: string, members?: any, color?: string) => Promise<string>;
+  addChannel: (name: string, description?: string, icon?: string, members?: string[], color?: string) => Promise<string>;
   updateChannel: (id: string, data: Partial<MessageChannel>) => Promise<void>;
   removeChannel: (id: string) => Promise<void>;
   setCurrentChannelId: (channelId: string | undefined) => void;
@@ -45,7 +45,7 @@ export const useMessageStore = createPersistedStore<MessageStore>(
     currentChannelId: undefined,
 
     // Channel methods
-    addChannel: async (name: string, description?: string, icon?: string, members?: any, color?: string) => {
+    addChannel: async (name: string, description?: string, icon?: string, members?: string[], color?: string) => {
       try {
         // Access workspace and user stores
         const { useWorkspaceStore } = require('./workspace-store');
@@ -159,13 +159,13 @@ export const useMessageStore = createPersistedStore<MessageStore>(
         if (!user) return s;
         
         // Check if message is already in unread list
-        const currentUnread = user.unread_msg || []
+        const currentUnread = user.unreadMsg || []
         if (currentUnread.includes(messageId)) return s;
         
         // Update user store with new unread message
         userStore.updateUserNotificationSettings({
           ...user.notificationSettings,
-          unread_msg: [...currentUnread, messageId]
+          unreadMsg: [...currentUnread, messageId]
         });
         
         return s;
@@ -181,13 +181,13 @@ export const useMessageStore = createPersistedStore<MessageStore>(
         
         if (!user) return s;
         
-        const currentUnread = user.unread_msg || []
+        const currentUnread = user.unreadMsg || []
         const newUnread = currentUnread.filter((id: string) => id !== messageId)
         
         // Update user store with filtered unread messages
         userStore.updateUserNotificationSettings({
           ...user.notificationSettings,
-          unread_msg: newUnread
+          unreadMsg: newUnread
         });
         
         return s;
@@ -200,7 +200,7 @@ export const useMessageStore = createPersistedStore<MessageStore>(
       const userStore = useUserStore.getState();
       const user = userStore.user;
       
-      const hasUnread = (user?.unread_msg?.length || 0) > 0;
+      const hasUnread = (user?.unreadMsg?.length || 0) > 0;
       return hasUnread;
     },
 
@@ -216,11 +216,11 @@ export const useMessageStore = createPersistedStore<MessageStore>(
         if (!currentUserEmail) return
 
         const result = await (storeApi as any).markChannelAsRead(currentUserEmail, channelId)
-        if (result?.unread_msg) {
+        if (result?.unreadMsg) {
           // Update user store with new unread messages
           userStore.updateUserNotificationSettings({
             ...user.notificationSettings,
-            unread_msg: result.unread_msg
+            unreadMsg: result.unreadMsg
           });
         }
       } catch (error) {

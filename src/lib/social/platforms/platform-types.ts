@@ -179,6 +179,7 @@ export interface SocialPage {
   followerCount?: number;
   lastSyncAt?   : Date;
   metadata?: Record<string, any>;
+  socialSetId?: string | null;
 }
 
 // Post History

@@ -1,4 +1,4 @@
-import { ServiceChannel } from "@/lib/supabase/interfaces";
+import { ServiceChannel } from "@/lib/store/types";
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { createPortal } from "react-dom";

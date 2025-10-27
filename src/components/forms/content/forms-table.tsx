@@ -2,7 +2,7 @@
 import FormsFiltersPopover, {
   ColumnMeta,
   ConditionGroup,
-} from './FormsFiltersPopover';
+} from './forms-filters-popover';
 import {
   useReactTable,
   Table as ReactTableType,
@@ -16,20 +16,20 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Form, Service } from '@/lib/supabase/interfaces';
+import { Form, Service } from '@/lib/store/types';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import EmptyFormsComponent from '../EmptyForms';
+import EmptyFormsComponent from '../empty-forms';
 import { humanizeDate } from '@/lib/utils/transformers';
-import { useForms } from '@/contexts/FormsContext';
-import FormDeleteModal from './FormDeleteModal';
-import FormSettingsModal from './FormSettingsModal';
-import FormStatusBadge from './configs/FormStatusBadge';
-import FormTableContextMenu from './FormTableContextMenu';
+import { useForms } from '@/contexts/forms-context';
+import FormDeleteModal from './form-delete-modal';
+import FormSettingsModal from './form-settings-modal';
+import FormStatusBadge from './configs/form-status-badge';
+import FormTableContextMenu from './form-table-context-menu';
 
 export interface TableForm extends Form {
-  submissions_count?: number;
-  fields_count?: number;
+  submissionsCount?: number;
+  fieldsCount?: number;
   services: Service[];
 }
 
@@ -129,7 +129,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                 {row.original.title}
               </span>
               <span className="text-xs font-normal text-[#838488]">
-                {(row.original as any).fields_count || 0} Questions
+                {(row.original as any).fieldsCount || 0} Questions
               </span>
             </div>
             <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
@@ -187,7 +187,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 110,
         cell: ({ row }) => (
           <span className="text-xs font-medium text-black">
-            {row.original.submissions_count || 0}
+            {row.original.submissionsCount || 0}
           </span>
         ),
       },
@@ -218,7 +218,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
         size: 100,
         cell: ({ row }) => (
           <span className="text-sm text-gray-500">
-            {humanizeDate(row.original.updated_at)}
+            {humanizeDate(row.original.updatedAt)}
           </span>
         ),
       },

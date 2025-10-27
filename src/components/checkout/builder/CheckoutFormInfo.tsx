@@ -2,7 +2,7 @@
 import { Input } from "@/components/ui/input";
 import React from "react";
 import { CheckoutFormInformation } from "@/app/[workspaceId]/admin/services/checkout/_inner";
-import AdvancedTextArea from "@/components/ui/AdvancedTextArea";
+import AdvancedTextArea from "@/components/ui/advanced-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 import { Settings2 } from "lucide-react";

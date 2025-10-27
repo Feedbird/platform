@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth, useSignIn, useSignUp, useClerk } from '@clerk/nextjs'
+import { SignInResource } from '@clerk/types'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -384,7 +385,7 @@ export default function AcceptInvitePage() {
       if (!wasSignedOutForTicket || isSignedIn) return
 
       try {
-        const resIn: any = await signIn.create({ strategy: 'ticket', ticket })
+        const resIn: SignInResource = await signIn.create({ strategy: 'ticket', ticket })
         if (resIn?.status === 'complete' && resIn?.createdSessionId) {
           await setActiveSignIn({ session: resIn.createdSessionId })
         }

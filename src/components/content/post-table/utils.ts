@@ -57,7 +57,7 @@ export function getFinalGroupRows(
  * Gets user column value from a post
  */
 export function getUserColumnValue(post: Post, columnId: string): string {
-  const arr = post.user_columns || [];
+  const arr = post.userColumns || [];
   const hit = arr.find((x) => x.id === columnId);
   return hit?.value ?? "";
 }
@@ -70,7 +70,7 @@ export function buildUpdatedUserColumnsArr(
   columnId: string,
   value: string
 ): Array<{ id: string; value: string }> {
-  const arr = [...(post.user_columns || [])];
+  const arr = [...(post.userColumns || [])];
   const idx = arr.findIndex((x) => x.id === columnId);
 
   if (idx >= 0) arr[idx] = { id: columnId, value };
@@ -93,8 +93,8 @@ export const defaultIdToName: Record<string, string> = {
   revision: "Revision",
   approve: "Approve",
   settings: "Settings",
-  publish_date: "Post time",
-  updated_at: "Updated",
+  publishDate: "Post time",
+  updatedAt: "Updated",
 };
 
 /**

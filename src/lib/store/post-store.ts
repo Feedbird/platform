@@ -25,8 +25,8 @@ export interface PostStore {
   getPost: (id: string) => Post | undefined;
   getActivePosts: () => Post[];
   getAllPosts: () => Post[];
-  addPost: (board_id?: string) => Promise<Post | null>;
-  bulkAddPosts: (board_id: string, posts: Omit<Post, 'id' | 'workspaceId' | 'board_id' | 'updatedAt'>[]) => Promise<Post[]>;
+  addPost: (boardId?: string) => Promise<Post | null>;
+  bulkAddPosts: (boardId: string, posts: Omit<Post, 'id' | 'workspaceId' | 'boardId' | 'updatedAt'>[]) => Promise<Post[]>;
   duplicatePost: (orig: Post) => Promise<Post | null>;
   updatePost: (pid: string, data: Partial<Post>) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
@@ -124,7 +124,7 @@ export const usePostStore = createPersistedStore<PostStore>(
       return get().getPost(postId) ?? null;
     },
 
-    bulkAddPosts: async (board_id, posts) => {
+    bulkAddPosts: async (boardId, posts) => {
       const { useWorkspaceStore } = require('./workspace-store');
       const workspaceStore = useWorkspaceStore.getState();
       const ws = workspaceStore.getActiveWorkspace();
@@ -139,8 +139,8 @@ export const usePostStore = createPersistedStore<PostStore>(
       // Transform posts to API format
       const postsData = posts.map(post => {
         const postData: any = {
-          workspace_id: ws.id,
-          board_id: board_id,
+          workspaceId: ws.id,
+          boardId: boardId,
           caption: post.caption,
           status: post.status,
           format: post.format,
@@ -153,8 +153,8 @@ export const usePostStore = createPersistedStore<PostStore>(
         };
 
         // Only include optional fields if they have values
-        if (post.publish_date) {
-          postData.publish_date = post.publish_date.toISOString();
+        if (post.publishDate) {
+          postData.publishDate = post.publishDate.toISOString();
         }
         if (post.billingMonth) {
           postData.billing_month = post.billingMonth;
@@ -169,7 +169,7 @@ export const usePostStore = createPersistedStore<PostStore>(
         return postData;
       });
 
-      const postIds = await storeApi.bulkCreatePostsAndUpdateStore(ws.id, board_id, postsData, userEmail);
+      const postIds = await storeApi.bulkCreatePostsAndUpdateStore(ws.id, boardId, postsData, userEmail);
 
       // Get the created posts from store
       const createdPosts = postIds.map(id => get().getPost(id)).filter(Boolean) as Post[];
@@ -182,7 +182,7 @@ export const usePostStore = createPersistedStore<PostStore>(
       const workspace = workspaceStore.getActiveWorkspace();
       if (!workspace) return null;
 
-      const board = workspace.boards.find((b: Board) => b.id === orig.board_id);
+      const board = workspace.boards.find((b: Board) => b.id === orig.boardId);
       if (!board) return null;
 
       const userEmail = (get() as any).user?.email;
@@ -206,8 +206,8 @@ export const usePostStore = createPersistedStore<PostStore>(
         };
 
         // Only include publish_date if it exists
-        if (orig.publish_date) {
-          postData.publish_date = orig.publish_date.toISOString();
+        if (orig.publishDate) {
+          postData.publishDate = orig.publishDate.toISOString();
         }
 
         // Only include optional fields if they have values
@@ -221,7 +221,7 @@ export const usePostStore = createPersistedStore<PostStore>(
           postData.hashtags = orig.hashtags;
         }
 
-        const postId = await storeApi.createPostAndUpdateStore(workspace.id, orig.board_id, postData, userEmail);
+        const postId = await storeApi.createPostAndUpdateStore(workspace.id, orig.boardId, postData, userEmail);
 
         // Get the created post from updated store
         const duplicatedPost = get().getPost(postId);
@@ -240,7 +240,7 @@ export const usePostStore = createPersistedStore<PostStore>(
       const { useWorkspaceStore } = require('./workspace-store');
       const workspaceStore = useWorkspaceStore.getState();
       const ws = workspaceStore.getActiveWorkspace();
-      const board = ws?.boards.find((b: Board) => b.id === prev?.board_id);
+      const board = ws?.boards.find((b: Board) => b.id === prev?.boardId);
       const shouldAuto = board?.rules?.autoSchedule === true;
       const userEmail = (get() as any).user?.email;
 
@@ -393,12 +393,12 @@ export const usePostStore = createPersistedStore<PostStore>(
           ...ex,
           id: "share-" + uuidv4(),
           workspaceId: targetWorkspace.id,
-          board_id: targetBoard.id,
+          boardId: targetBoard.id,
           updatedAt: new Date(),
         };
         
         // Apply business rule to shared post
-        const correctStatus = determineCorrectStatus(cloned.status, cloned.publish_date);
+        const correctStatus = determineCorrectStatus(cloned.status, cloned.publishDate);
         cloned.status = correctStatus;
         
         newArr.push(cloned);
@@ -630,7 +630,7 @@ export const usePostStore = createPersistedStore<PostStore>(
         ...ws,
         boards: ws.boards.map((board: Board) => {
           const updatedPosts = board.posts.map((p: Post) => {
-            const correctStatus = determineCorrectStatus(p.status, p.publish_date);
+            const correctStatus = determineCorrectStatus(p.status, p.publishDate);
             if (correctStatus !== p.status) {
               updatedCount++;
               hasChanges = true;
@@ -771,10 +771,10 @@ export const usePostStore = createPersistedStore<PostStore>(
     // Comment methods
     addPostComment: async (postId, text, parentId, revisionRequested) => {
       const comment = await commentApi.addPostComment({
-        post_id: postId,
+        postId: postId,
         text,
-        parent_id: parentId,
-        revision_requested: revisionRequested,
+        parentId: parentId,
+        revisionRequested: revisionRequested,
         author: getCurrentUserDisplayNameFromStore(),
         authorEmail: (get() as any).user?.email,
         authorImageUrl: (get() as any).user?.imageUrl,
@@ -816,7 +816,7 @@ export const usePostStore = createPersistedStore<PostStore>(
             if (p.id !== postId) return p;
             const c: BaseComment = {
               id: comment.id,
-              parentId: comment.parent_id,
+              parentId: comment.parentId,
               createdAt: new Date(comment.created_at),
               author: comment.author,
               authorEmail: (get() as any).user?.email,
@@ -835,11 +835,11 @@ export const usePostStore = createPersistedStore<PostStore>(
 
     addBlockComment: async (postId, blockId, text, parentId, revisionRequested) => {
       const comment = await commentApi.addBlockComment({
-        post_id: postId,
-        block_id: blockId,
+        postId: postId,
+        blockId: blockId,
         text,
-        parent_id: parentId,
-        revision_requested: revisionRequested,
+        parentId: parentId,
+        revisionRequested: revisionRequested,
         author: getCurrentUserDisplayNameFromStore(),
         authorEmail: (get() as any).user?.email,
         authorImageUrl: (get() as any).user?.imageUrl,
@@ -885,7 +885,7 @@ export const usePostStore = createPersistedStore<PostStore>(
                 if (b.id !== blockId) return b;
                 const c: BaseComment = {
                   id: comment.id,
-                  parentId: comment.parent_id,
+                  parentId: comment.parentId,
                   createdAt: new Date(comment.created_at),
                   author: comment.author,
                   authorEmail: (get() as any).user?.email,
@@ -914,12 +914,12 @@ export const usePostStore = createPersistedStore<PostStore>(
       revisionRequested?: boolean
     ) => {
       const comment = await commentApi.addVersionComment({
-        post_id: postId,
-        block_id: blockId,
-        version_id: verId,
+        postId: postId,
+        blockId: blockId,
+        versionId: verId,
         text,
-        parent_id: parentId,
-        revision_requested: revisionRequested,
+        parentId: parentId,
+        revisionRequested: revisionRequested,
         author: getCurrentUserDisplayNameFromStore(),
         authorEmail: (get() as any).user?.email,
         authorImageUrl: (get() as any).user?.imageUrl,
@@ -970,7 +970,7 @@ export const usePostStore = createPersistedStore<PostStore>(
                     if (v.id !== verId) return v;
                     const c: VersionComment = {
                       id: comment.id,
-                      parentId: comment.parent_id,
+                      parentId: comment.parentId,
                       createdAt: new Date(comment.created_at),
                       author: comment.author,
                       authorEmail: (get() as any).user?.email,
@@ -1003,9 +1003,9 @@ export const usePostStore = createPersistedStore<PostStore>(
       try {
         // First, persist to database
         const saved = await activityApi.addActivity({
-          workspace_id: workspace.id,
-          post_id: act.postId,
-          actor_id: act.actorId,
+          workspaceId: workspace.id,
+          postId: act.postId,
+          actorId: act.actorId,
           type: act.type,
           metadata: act.metadata,
         });

@@ -44,8 +44,8 @@ export async function GET(req: NextRequest) {
     // Transform the forms to flatten the count arrays
     const transformedForms = forms.map((form: any) => ({
       ...form,
-      submissions_count: form.submissions_count?.[0]?.count || 0,
-      fields_count: form.fields_count?.[0]?.count || 0,
+      submissionsCount: form.submissions_count?.[0]?.count || 0,
+      fieldsCount: form.fields_count?.[0]?.count || 0,
       services: form.services || [], // Keep services as array since one form can have multiple services
     }));
 

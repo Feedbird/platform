@@ -1,6 +1,6 @@
 import { createPersistedStore } from './store-utils';
 import { formsApi, servicesApi } from '@/lib/api/api-service';
-import type { Form, Service } from '@/lib/supabase/interfaces';
+import type { Form, Service } from '@/lib/store/types';
 
 export interface FormsStore {
   // State

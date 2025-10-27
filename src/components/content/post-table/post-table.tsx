@@ -44,12 +44,12 @@ import {
   ConditionGroup,
   ColumnMeta,
   Condition,
-} from "./FilterPopover";
-import { GroupMenu } from "./GroupMenu";
-import { SortMenu } from "./SortMenu";
-import { RowHeightMenu } from "./RowHeightMenu";
-import { MemoBlocksPreview } from "./MemoBlocksPreview";
-import { CellFocusProvider } from "./FocusProvider";
+} from "./filter-popover";
+import { GroupMenu } from "./group-menu";
+import { SortMenu } from "./sort-menu";
+import { RowHeightMenu } from "./row-height-menu";
+import { MemoBlocksPreview } from "./memo-blocks-preview";
+import { CellFocusProvider } from "./focus-provider";
 import {
   ContentFormat,
   Post,
@@ -65,20 +65,20 @@ import {
   ChannelIcons,
   FormatBadge,
 } from "@/components/content/shared/content-post-ui";
-import { CaptionEditor } from "./CaptionEditor";
-import { AddColumnDialog } from "./AddColumnDialog";
-import { PostContextMenu } from "./PostContextMenu";
-import UserTextEditor from "./UserTextEditor";
-import { GroupFeedbackSidebar } from "./GroupFeedbackSidebar";
-import { createBaseColumns } from "./columns/baseColumns";
-import { createUserColumns } from "./columns/userColumns";
+import { CaptionEditor } from "./caption-editor";
+import { AddColumnDialog } from "./add-column-dialog";
+import { PostContextMenu } from "./post-context-menu";
+import UserTextEditor from "./user-text-editor";
+import { GroupFeedbackSidebar } from "./group-feedback-sidebar";
+import { createBaseColumns } from "./columns/base-columns";
+import { createUserColumns } from "./columns/user-columns";
 import { statusFilterFn, formatFilterFn, monthFilterFn, previewFilterFn, publishDateFilterFn, approveFilterFn, createPlatformsFilterFn } from "./filters";
 import { statusSortingFn, formatSortingFn, createPlatformsSortingFn } from "./sort";
-import { RenderGroupedTable } from "./RenderGroupedTable";
-import { RenderGroupedTableHeader } from "./RenderGroupedTableHeader";
-import { RenderUngroupedTable } from "./RenderUngroupedTable";
-import { InlineEditFieldPanel } from "./InlineEditFieldPanel";
-import { BulkActionToolbar } from "./BulkActionToolbar";
+import { RenderGroupedTable } from "./render-grouped-table";
+import { RenderGroupedTableHeader } from "./render-grouped-table-header";
+import { RenderUngroupedTable } from "./render-ungrouped-table";
+import { InlineEditFieldPanel } from "./inline-edit-field-panel";
+import { BulkActionToolbar } from "./bulk-action-toolbar";
 import {
   getFinalGroupRows,
   getUserColumnValue,
@@ -90,14 +90,14 @@ import {
   stickyStyles,
   mapEditFieldTypeToColumnType,
 } from "./utils";
-import { useFillDrag } from "./fillUtils";
-import { useHeaderMenuAction } from "./headerMenuUtils";
-import { usePostTableState } from "./usePostTableState";
-import { useDragHandlers } from "./useDragHandlers";
-import { usePostTableHandlers } from "./usePostTableHandlers";
-import { usePostTableEffects } from "./usePostTableEffects";
-import { usePostTableMemoizedValues } from "./usePostTableMemoizedValues";
-import { usePostTableCallbacks } from "./usePostTableCallbacks";
+import { useFillDrag } from "./fill-utils";
+import { useHeaderMenuAction } from "./header-menu-utils";
+import { usePostTableState } from "./use-post-table-state";
+import { useDragHandlers } from "./use-drag-handlers";
+import { usePostTableHandlers } from "./use-post-table-handlers";
+import { usePostTableEffects } from "./use-post-table-effects";
+import { usePostTableMemoizedValues } from "./use-post-table-memoized-values";
+import { usePostTableCallbacks } from "./use-post-table-callbacks";
 
 /** ---------- The PostTable ---------- **/
 export function PostTable({

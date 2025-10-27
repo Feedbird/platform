@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Post, Status, ContentFormat, usePostStore, useWorkspaceStore, useUserStore } from "@/lib/store";
 import { Platform } from "@/lib/social/platforms/platform-types";
 import { StatusChip, ChannelIcons, FormatBadge } from "@/components/content/shared/content-post-ui";
-import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
+import { getSuggestedSlots } from "@/lib/scheduling/get-suggested-slots";
 import { format } from "date-fns";
 import {
   ChevronDown as ChevronDownIcon,
@@ -24,9 +24,9 @@ import {
 import { cn } from "@/lib/utils";
 
 // Re-use your table code popups
-import { StatusSelectPopup } from "../post-table/StatusSelectPopup";
-import { ChannelsMultiSelectPopup } from "../post-table/ChannelsMultiSelectPopup";
-import { FormatSelectPopup } from "../post-table/FormatSelectPopup";
+import { StatusSelectPopup } from "../post-table/status-select-popup";
+import { ChannelsMultiSelectPopup } from "../post-table/channels-multi-select-popup";
+import { FormatSelectPopup } from "../post-table/format-select-popup";
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import { useUser } from "@clerk/nextjs";
 

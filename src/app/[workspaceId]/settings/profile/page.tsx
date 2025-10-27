@@ -13,6 +13,8 @@ import { useUser, useReverification } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { UserStore } from "@/lib/store/user-store";
 import { WorkspaceStore } from "@/lib/store/workspace-store";
+import { ApiError, UpdateUserPayload } from "@/lib/api/api-types";
+import { EmailAddressResource, UserResource } from "@clerk/types";
 
 export default function SettingsProfilePage() {
   const user = useUserStore((s: UserStore) => s.user);
@@ -63,7 +65,7 @@ export default function SettingsProfilePage() {
     } else {
       // User signed up with a social provider and has no password; create one without current password
       // @ts-ignore - createPassword is available at runtime; types may vary by Clerk version
-      await (clerkUser as any).createPassword?.({ password: newPassword })
+      await (clerkUser as UserResource).createPassword?.({ password: newPassword })
         || (await clerkUser.updatePassword({ newPassword }));
     }
     return true;
@@ -110,14 +112,14 @@ export default function SettingsProfilePage() {
     if (!user?.email) return;
     try {
       setSaving(true);
-      const updates: any = {};
-      if (firstName !== (user.firstName || "")) updates.first_name = firstName;
-      if (lastName !== (user.lastName || "")) updates.last_name = lastName;
+      const updates: UpdateUserPayload = {};
+      if (firstName !== (user.firstName || "")) updates.firstName = firstName;
+      if (lastName !== (user.lastName || "")) updates.lastName = lastName;
       
       const currentImage = user.imageUrl || undefined;
       if (avatarUrl !== currentImage) {
         // Only set image_url if avatarUrl has a value, otherwise set to null
-        updates.image_url = avatarUrl || null;
+        updates.imageUrl = avatarUrl || undefined;
       }
       
       if (Object.keys(updates).length > 0) {
@@ -126,9 +128,9 @@ export default function SettingsProfilePage() {
           user: s.user
             ? {
                 ...s.user,
-                firstName: updates.first_name !== undefined ? firstName : s.user.firstName,
-                lastName: updates.last_name !== undefined ? lastName : s.user.lastName,
-                imageUrl: updates.image_url !== undefined ? (avatarUrl ?? undefined) : s.user.imageUrl,
+                firstName: updates.firstName !== undefined ? firstName : s.user.firstName,
+                lastName: updates.lastName !== undefined ? lastName : s.user.lastName,
+                imageUrl: updates.imageUrl !== undefined ? (avatarUrl ?? undefined) : s.user.imageUrl,
               }
             : s.user,
         }));
@@ -151,7 +153,7 @@ export default function SettingsProfilePage() {
       // First pass: create + prepare verification, then show code field and exit
       if (!emailVerificationId) {
         // Check if the email already exists in the user's email addresses
-        const existingEmailAddress = clerkUser.emailAddresses?.find((e: any) => e.emailAddress === newEmail);
+        const existingEmailAddress = clerkUser.emailAddresses?.find((e: EmailAddressResource) => e.emailAddress === newEmail);
         
         let emailAddress;
         if (existingEmailAddress) {
@@ -171,7 +173,7 @@ export default function SettingsProfilePage() {
             const ok = await setPrimaryEmail({ emailId: emailAddress.id });
             if (ok) {
               try {
-                const old = clerkUser.emailAddresses?.find((e: any) => e.emailAddress === user.email);
+                const old = clerkUser.emailAddresses?.find((e) => e.emailAddress === user.email);
                 if (old) await old.destroy();
               } catch {}
               await userApi.updateUser({ email: user.email }, { email: newEmail });
@@ -183,7 +185,7 @@ export default function SettingsProfilePage() {
             }
           } else {
             // Email is not verified, prepare verification
-            await (emailAddress as any).prepareVerification?.({ strategy: 'email_code' });
+            await (emailAddress as EmailAddressResource).prepareVerification?.({ strategy: 'email_code' });
             setEmailVerificationCode("");
             setEmailVerificationId(emailAddress.id);
             setEmailVerificationNotice("We sent a verification code to your new email. Enter it below to continue.");
@@ -194,7 +196,7 @@ export default function SettingsProfilePage() {
           const ok = await setPrimaryEmail({ emailId: emailAddress.id });
           if (ok) {
             try {
-              const old = clerkUser.emailAddresses?.find((e: any) => e.emailAddress === user.email);
+              const old = clerkUser.emailAddresses?.find((e) => e.emailAddress === user.email);
               if (old) await old.destroy();
             } catch {}
             await userApi.updateUser({ email: user.email }, { email: newEmail });
@@ -214,7 +216,7 @@ export default function SettingsProfilePage() {
         return;
       }
 
-      const toVerify = clerkUser.emailAddresses?.find((e: any) => e.id === emailVerificationId);
+      const toVerify = clerkUser.emailAddresses?.find((e) => e.id === emailVerificationId);
       if (!toVerify) {
         setEmailVerificationNotice("Verification session expired. Please try again.");
         setEmailVerificationId(null);
@@ -222,7 +224,7 @@ export default function SettingsProfilePage() {
       }
 
       try {
-        await (toVerify as any).attemptVerification?.({ code: emailVerificationCode });
+        await toVerify.attemptVerification?.({ code: emailVerificationCode });
         setEmailVerificationComplete(true);
         setEmailVerificationNotice("");
       } catch (err: any) {
@@ -231,7 +233,7 @@ export default function SettingsProfilePage() {
       }
 
       // Find the old email BEFORE setting the new one as primary
-      const oldEmailAddress = clerkUser.emailAddresses?.find((e: any) => e.emailAddress === user.email);
+      const oldEmailAddress = clerkUser.emailAddresses?.find((e: EmailAddressResource) => e.emailAddress === user.email);
 
       const ok = await setPrimaryEmail({ emailId: toVerify.id });
       if (!ok) return;

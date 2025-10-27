@@ -1,4 +1,4 @@
-import SubmissionsInner from "@/components/forms/submissions/SubmissionsInner";
+import SubmissionsInner from "@/components/forms/submissions/submissions-inner";
 
 export default async function Submissions({
   params,

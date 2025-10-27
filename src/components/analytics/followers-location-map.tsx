@@ -5,6 +5,21 @@ import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
 import { scaleLinear } from 'd3-scale'
 import { Info } from 'lucide-react'
 
+interface GeographyFeature {
+  rsmKey: string
+  properties: {
+    name: string
+  }
+}
+
+interface GeographyMouseEvent {
+  currentTarget: HTMLElement & {
+    style: {
+      fill: string
+    }
+  }
+}
+
 // Sample follower data by country name (matching world atlas)
 const followersData = [
   { country: 'United States of America', followers: 12500 },
@@ -107,8 +122,8 @@ export function FollowersLocationMap() {
           style={{ width: '100%', height: 'auto' }}
         >
           <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
-            {({ geographies }: { geographies: any[] }) =>
-              geographies.map((geo: any) => {
+            {({ geographies }: { geographies: GeographyFeature[] }) =>
+              geographies.map((geo: GeographyFeature) => {
                 const countryName = geo.properties.name
                 const countryData = followersData.find(d => d.country === countryName)
                 const followers = countryData?.followers || 0
@@ -138,10 +153,10 @@ export function FollowersLocationMap() {
                         outline: 'none',
                       },
                     }}
-                    onMouseEnter={(event: any) => {
+                    onMouseEnter={(event: GeographyMouseEvent) => {
                       event.currentTarget.style.fill = '#2d5aa0'
                     }}
-                    onMouseLeave={(event: any) => {
+                    onMouseLeave={(event: GeographyMouseEvent) => {
                       event.currentTarget.style.fill = fillColor
                     }}
                   />

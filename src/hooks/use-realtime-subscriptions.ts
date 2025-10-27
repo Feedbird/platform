@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useMessageStore, useUserStore } from '@/lib/store'
-import { ChannelMessage as DbChannelMessage } from '@/lib/supabase/interfaces'
+import { ChannelMessage as DbChannelMessage } from '@/lib/store/types'
 
 type UseRealtimeSubscriptionsProps = {
 	channelId: string

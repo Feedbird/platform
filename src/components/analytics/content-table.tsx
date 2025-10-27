@@ -36,7 +36,7 @@ export function ContentTable({ data }: ContentTableProps) {
 
           // Get first block for thumbnail
           const firstBlock = Array.isArray(p.blocks) && p.blocks.length > 0 ? p.blocks[0] : null
-          const currentVer = firstBlock ? firstBlock.versions?.find((v: any) => v.id === firstBlock.currentVersionId) : null
+          const currentVer = firstBlock ? firstBlock.versions?.find((v) => v.id === firstBlock.currentVersionId) : null
           const isVideo = currentVer?.file?.kind === 'video'
 
           // Extract text from caption

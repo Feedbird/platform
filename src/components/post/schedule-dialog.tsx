@@ -10,7 +10,7 @@ import { Button }             from '@/components/ui/button'
 import { RadioGroup,
         RadioGroupItem }     from '@/components/ui/radio-group'
 import { ScrollArea }         from '@/components/ui/scroll-area'
-import { Slot }               from '@/lib/scheduling/getSuggestedSlots'
+import { Slot }               from '@/lib/scheduling/get-suggested-slots'
 import { format }             from 'date-fns'
 
 export default function ScheduleDialog ({

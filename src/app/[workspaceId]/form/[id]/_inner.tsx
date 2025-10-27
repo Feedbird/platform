@@ -1,11 +1,11 @@
 "use client";
-import { Form, FormField } from "@/lib/supabase/interfaces";
+import { Form, FormField } from "@/lib/store/types";
 import { formFieldSorter } from "@/lib/utils/transformers";
 import React from "react";
 import Loading from "./loading";
 import { Divider } from "@mui/material";
-import ControlledPageVisualizer from "./components/ControlledPageVisualizer";
-import ControlledSubmissionSummary from "./components/ControlledSubmissionSummary";
+import ControlledPageVisualizer from "./components/controlled-page-visualizer";
+import ControlledSubmissionSummary from "./components/controlled-submission-summary";
 
 type Props = {
   formData: Form & { formFields: FormField[] };
@@ -30,7 +30,7 @@ const formValueInitializer = (field: FormField) => {
       const columns = field.config.spreadsheetColumns?.columns
         .map((col: { order: number; value: string }) => col.value)
         .join("|");
-      value = [columns];
+      value = [columns || ""];
       break;
     default:
       value = "";
@@ -100,9 +100,9 @@ export default function SubmitFormVisualizer({ formData }: Props) {
                     <p className="min-w-[170px]">{service.name}</p>
                     <Divider orientation="vertical" />
                     <p>
-                      Quantity: {service.service_plans?.[0]?.quantity ?? 0}{" "}
-                      {service.service_plans?.[0]?.qty_indicator ?? "Not set"} -
-                      ${service.service_plans?.[0]?.price ?? 0}/mo
+                      Quantity: {service.servicePlans?.[0]?.quantity ?? 0}{" "}
+                      {service.servicePlans?.[0]?.qtyIndicator ?? "Not set"} -
+                      ${service.servicePlans?.[0]?.price ?? 0}/mo
                     </p>
                   </div>
                 ))}

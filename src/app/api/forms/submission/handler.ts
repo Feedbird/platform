@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import { ApiHandlerError } from "../../shared";
-import { FormSubmission } from "@/lib/supabase/interfaces";
+import { FormSubmission } from "@/lib/store/types";
 
 export type CreateSubmissionPayload = {
   workspaceId: string;

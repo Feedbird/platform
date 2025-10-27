@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { usePostStore, useWorkspaceStore, useUserStore, Post, Block, BoardGroupData, GroupComment } from "@/lib/store";
-import { getSuggestedSlots } from "@/lib/scheduling/getSuggestedSlots";
+import { getSuggestedSlots } from "@/lib/scheduling/get-suggested-slots";
 import { Platform } from "@/lib/social/platforms/platform-types";
 
 /* sub-components (cloned or adapted) */
@@ -36,7 +36,7 @@ import { AnalyticsPanel } from "./analytics-panel";
 
 /* simpler inline "clones" for status, channels, format, date */
 import { InlineStatusEditor, InlineDateEditor, ApproveCell } from "./inlines";
-import { PublishDateCell, UpdateDateCell } from "@/components/content/post-table/DateCell";
+import { PublishDateCell, UpdateDateCell } from "@/components/content/post-table/date-cell";
 import { Lock, Unlock, AlertCircle } from "lucide-react";
 import {
   Select,
@@ -45,7 +45,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { ChannelsMultiSelectPopup } from "@/components/content/post-table/ChannelsMultiSelectPopup";
+import { ChannelsMultiSelectPopup } from "@/components/content/post-table/channels-multi-select-popup";
 import {
   Popover,
   PopoverTrigger,
@@ -61,7 +61,7 @@ import {
   Plus
 } from "lucide-react";
 import { ChannelIcons } from "@/components/content/shared/content-post-ui";
-import { FormatSelectPopup } from "@/components/content/post-table/FormatSelectPopup";
+import { FormatSelectPopup } from "@/components/content/post-table/format-select-popup";
 import { FormatBadge } from "@/components/content/shared/content-post-ui";
 import {
   Tooltip,

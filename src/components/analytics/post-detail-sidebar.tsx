@@ -55,7 +55,7 @@ export function PostDetailSidebar({ post, isOpen, onClose }: PostDetailSidebarPr
   // Get first block for preview
   const firstBlock = Array.isArray(post.blocks) && post.blocks.length > 0 ? post.blocks[0] : null
   const hasBlocks = Array.isArray(post.blocks) && post.blocks.length > 0
-  const currentVer = firstBlock ? firstBlock.versions?.find((v: any) => v.id === firstBlock.currentVersionId) : null
+  const currentVer = firstBlock ? firstBlock.versions?.find((v) => v.id === firstBlock.currentVersionId) : null
   const isVideo = currentVer?.file?.kind === 'video'
 
   return (

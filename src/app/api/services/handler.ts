@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
-import { Service } from "@/lib/supabase/interfaces";
+import { Service } from "@/lib/store/types";
 import { ApiHandlerError } from "../shared";
 
 export class ServicesHandler {

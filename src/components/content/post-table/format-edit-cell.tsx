@@ -1,0 +1,119 @@
+"use client";
+import * as React from "react";
+import { ChevronDownIcon, File } from "lucide-react";
+
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { FormatBadge } from "@/components/content/shared/content-post-ui";
+import { FormatSelectPopup } from "./format-select-popup";
+import { cn } from "@/lib/utils";
+
+interface FormatEditCellProps {
+  value: string;
+  onChange: (v: string) => void;
+  rowIndex: number;
+  onFillStart?: (v: string, startIdx: number) => void;
+
+  /* injected by <FocusCell> */
+  isFocused?: boolean;
+  isEditing?: boolean;
+  enterEdit?: () => void;
+  exitEdit?: () => void;
+}
+
+export function FormatEditCell({
+  value,
+  onChange,
+  rowIndex,
+  onFillStart,
+  isFocused,
+  isEditing,
+  enterEdit,
+  exitEdit,
+}: FormatEditCellProps) {
+  /** Popover visibility is driven entirely by `isEditing` */
+  const open = !!isEditing;
+  const hasValue = Boolean(value);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        /* user toggled pop-over: keep <FocusCell> in sync */
+        if (o) enterEdit?.();   // opened
+        else exitEdit?.();    // closed
+      }}
+    >
+      {/* -------------- main cell ------------------ */}
+      <PopoverTrigger asChild>
+        <div
+          className={cn(
+            "group/cell cursor-pointer inline-flex items-center w-full h-full overflow-hidden px-[8px] py-[6px]",
+            "hover:opacity-90"
+          )}
+        /* first click gives focus (handled by <FocusCell>);
+           second click toggles `isEditing` (also handled there) */
+        >
+          <div className="flex items-center flex-nowrap min-w-0">
+            {hasValue ? (
+              <FormatBadge kind={value} widthFull={false} />
+            ) : (
+              <div className={cn(
+                open ? "flex" : "hidden group-hover/cell:flex",
+                "flex-row items-center gap-1 rounded-[4px] bg-white border border-elementStroke",
+              )} style={{
+                padding: "3px 6px 3px 4px",
+              }}>
+                <div className="flex flex-row items-center justify-center w-3.5 h-3.5 rounded-[2px] bg-[#FFEEE0]">
+                  <File className={cn(
+                    "w-2.5 h-2.5 text-[#FD9038]",
+                  )} />
+                </div>
+                <span className="text-xs text-black font-medium">Select format</span>
+              </div>
+            )}
+          </div>
+
+          {/* Fill handle */}
+          {isFocused && !isEditing && (
+            <div
+              className="absolute w-[8px] h-[8px] bg-[#FFF] cursor-crosshair"
+              style={{
+                right: "-3px",
+                bottom: "-3px",
+                border: "1px solid #125AFF",
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onFillStart?.(value, rowIndex);
+              }}
+            />
+          )}
+
+          {/* show chevron only while focused & not editing and has value */}
+          {isFocused && hasValue && (
+            <ChevronDownIcon
+              className="ml-1 h-4 w-4 text-muted-foreground flex-shrink-0"
+            />
+          )}
+        </div>
+      </PopoverTrigger>
+
+      {/* -------------- dropdown ------------------- */}
+      <PopoverContent
+        className="p-0 w-auto"
+        /* prevent inside-clicks from bubbling and closing focus early */
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <FormatSelectPopup
+          value={value}
+          onChange={(newVal) => {
+            onChange(newVal);  // propagate to parent/table
+            exitEdit?.();      // close + leave edit mode
+          }}
+          onClose={() => exitEdit?.()}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}

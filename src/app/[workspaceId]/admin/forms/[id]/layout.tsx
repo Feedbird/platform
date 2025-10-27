@@ -1,5 +1,5 @@
 "use client";
-import { FormEditorProvider } from "@/contexts/FormEditorContext";
+import { FormEditorProvider } from "@/contexts/form-editor-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 

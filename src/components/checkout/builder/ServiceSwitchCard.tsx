@@ -1,4 +1,4 @@
-import { Service } from "@/lib/supabase/interfaces";
+import { Service } from "@/lib/store/types";
 import Image from "next/image";
 import React from "react";
 

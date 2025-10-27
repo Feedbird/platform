@@ -13,10 +13,6 @@ import Image from 'next/image'
 import {
     ChevronDown,
     ChevronLeft,
-    Plus,
-    MessageSquare,
-    Filter,
-    Search,
     X,
     Smile,
 } from 'lucide-react'
@@ -35,6 +31,7 @@ import { useMessageStore, useWorkspaceStore } from '@/lib/store'
 import { WorkspaceStore } from '@/lib/store/workspace-store'
 import { MessageStore } from '@/lib/store/message-store'
 import { Workspace } from '@/lib/store/types'
+import { MessageChannel } from '@/lib/store/types'
 
 type Tab = 'messages' | 'notifications'
 
@@ -47,7 +44,7 @@ type Channel = {
     color?: string
 }
 
-const EMPTY_CHANNELS: any[] = []
+const EMPTY_CHANNELS: MessageChannel[] = []
 
 export default function MessagesPage() {
     const router = useRouter()
@@ -151,7 +148,7 @@ export default function MessagesPage() {
         return (ws as Workspace)?.channels ?? EMPTY_CHANNELS
     }) as any[]
     const channels: Channel[] = useMemo(() => {
-        return (rawChannels || []).map((c: any) => ({
+        return (rawChannels || []).map((c: MessageChannel) => ({
             id: c.id,
             name: c.name,
             description: c.description || '',
@@ -193,7 +190,7 @@ export default function MessagesPage() {
             }))
         }
         // Specific channel: filter users by channel.members
-        const raw = rawChannels.find((c: any) => c.id === selectedChannelId)
+        const raw = rawChannels.find((c: MessageChannel) => c.id === selectedChannelId)
         const channelMembers: string[] = Array.isArray(raw?.members) ? raw.members as string[] : []
         if (!channelMembers.length) return []
         const byEmail = new Map((workspaceUsers || []).map(u => [u.email, u]))

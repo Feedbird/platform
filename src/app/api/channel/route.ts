@@ -4,11 +4,11 @@ import { z } from 'zod'
 
 // Validation schemas
 const CreateChannelSchema = z.object({
-  workspace_id: z.string().uuid('Invalid workspace ID'),
-  created_by: z.string().email('Valid creator email is required'),
+  workspaceId: z.string().uuid('Invalid workspace ID'),
+  createdBy: z.string().email('Valid creator email is required'),
   name: z.string().min(1, 'Channel name is required'),
   description: z.string().optional(),
-  members: z.any().optional(),
+  members: z.array(z.string()).optional(),
   icon: z.string().optional(),
   color: z.string().optional(),
 })
@@ -16,7 +16,7 @@ const CreateChannelSchema = z.object({
 const UpdateChannelSchema = z.object({
   name: z.string().min(1, 'Channel name is required').optional(),
   description: z.string().optional(),
-  members: z.any().optional(),
+  members: z.array(z.string()).optional(),
   icon: z.string().optional(),
   color: z.string().optional(),
 })
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const { data: workspace } = await supabase
       .from('workspaces')
       .select('id')
-      .eq('id', validatedData.workspace_id)
+      .eq('id', validatedData.workspaceId)
       .single()
 
     if (!workspace) {

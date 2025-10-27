@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useUploadStore, UploadStatus } from "@/lib/store/upload-store";
 import { usePostStore, useWorkspaceStore } from "../store";
 import { toast } from "sonner";
-import { Attachment } from "@/components/content/post-table/AttachmentCell";
+import { Attachment } from "@/components/content/post-table/attachment-cell";
 
 export type AttachmentUploadItem = {
   id: string;

@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Image          from 'next/image';
 import { Trash2, Eye, Heart } from 'lucide-react';
 import { useWorkspaceStore, useSocialStore, usePostStore } from '@/lib/store';
-import type { PostHistory } from '@/lib/social/platforms/platform-types';
+import type { PostHistory, SocialPage } from '@/lib/social/platforms/platform-types';
 import { Button } from '@/components/ui/button';
 import { useAsyncLoading } from '@/hooks/use-async-loading';
 import { usePostHistoryLoading } from '@/hooks/use-post-history-loading';
@@ -38,7 +38,7 @@ export default function SocialPagePosts() {
 
   // Memoize the page to avoid unnecessary re-renders
   const page = useMemo(() => {
-    return workspace?.socialPages?.find((p: any) => p.id === pageId);
+    return workspace?.socialPages?.find((p: SocialPage) => p.id === pageId);
   }, [workspace?.socialPages, pageId]);
 
   // Memoize the history to avoid unnecessary re-renders

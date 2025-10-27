@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { checkoutApi } from "@/lib/api/api-service";
 import { CheckIcon, XIcon } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { Coupon } from "@/lib/supabase/interfaces";
+import { Coupon } from "@/lib/store/types";
 
 type Props = {};
 

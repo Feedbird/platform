@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn, getFullnameinitial } from "@/lib/utils";
 import { UserStore } from "@/lib/store/user-store";
 import { WorkspaceStore } from "@/lib/store/workspace-store";
+import { InviteResponse, ApiErrorResponse } from "@/lib/api/api-types";
 
 export default function SettingsMembersPage() {
   const user = useUserStore((s: UserStore) => s.user);
@@ -65,23 +66,23 @@ export default function SettingsMembersPage() {
         actorId: user?.id,
         first_name: user?.firstName,
       };
-      const response = roleSelect === "Team"
+      const response: InviteResponse = roleSelect === "Team"
         ? await inviteApi.inviteTeam(payload)
         : await inviteApi.inviteClient(payload);
 
-      if ((response as any).warning) {
+      if (response.warning) {
         toast.warning(response.message, {
-          description: (response as any).details,
+          description: response.details,
           duration: 5000,
         });
       } else if (response.message === "Invitation already exists") {
         toast.info(response.message, {
-          description: (response as any).details,
+          description: response.details,
           duration: 5000,
         });
       } else {
         toast.success(response.message, {
-          description: (response as any).details,
+          description: response.details,
           duration: 3000,
         });
       }
@@ -93,9 +94,10 @@ export default function SettingsMembersPage() {
           setMembers(res.users || []);
         }
       } catch {}
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error(err?.message || "Failed to send invite");
+      const error = err as ApiErrorResponse;
+      toast.error(error?.message || "Failed to send invite");
     } finally {
       setSubmitting(false);
     }
@@ -211,8 +213,9 @@ export default function SettingsMembersPage() {
                                     await workspaceHelperApi.updateWorkspaceMemberRole(activeWorkspaceId, m.email, roleOpt);
                                     setMembers((prev) => prev.map((u) => (u.email === m.email ? { ...u, role: roleOpt } : u)));
                                     toast.success("Role updated");
-                                  } catch (e: any) {
-                                    toast.error(e?.message || "Failed to update role");
+                                  } catch (e) {
+                                    const error = e as ApiErrorResponse;
+                                    toast.error(error?.message || "Failed to update role");
                                   } finally {
                                     setUpdatingEmail(null);
                                   }

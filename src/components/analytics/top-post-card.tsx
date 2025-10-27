@@ -4,12 +4,39 @@ import { useMemo } from 'react'
 import { Eye, Zap, ThumbsUp, MessageSquare, Share2, MousePointerClick, ImageIcon, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FormatBadge } from '@/components/content/shared/content-post-ui'
+import type { FileKind } from '@/lib/store/types'
+
+export interface TopPostVersion {
+  id: string
+  createdAt: string
+  by: string
+  caption: string
+  file: {
+    kind: FileKind
+    url: string
+    thumbnailUrl?: string
+  }
+  media?: {
+    kind: FileKind
+    name: string
+    src: string
+  }[]
+  comments: Array<Record<string, unknown>>
+}
+
+export interface TopPostBlock {
+  id: string
+  kind: FileKind
+  currentVersionId: string
+  versions: TopPostVersion[]
+  comments: Array<Record<string, unknown>>
+}
 
 export interface TopPost {
   id: string
   workspace_id: string
   board_id: string
-  caption: any // JSONB in database
+  caption: string | { text?: string } | Array<{ text?: string }>
   status: string
   format: string
   publish_date?: string
@@ -17,15 +44,15 @@ export interface TopPost {
   pages: string[]
   billing_month?: string
   month: number
-  settings?: any // JSONB
-  hashtags?: any // JSONB
-  blocks: any[] // JSONB
-  comments: any[] // JSONB
-  activities: any[] // JSONB
-  user_columns: any[] // JSONB
+  settings?: Record<string, unknown> | string[]
+  hashtags?: string[] | Record<string, unknown>
+  blocks: TopPostBlock[]
+  comments: Array<Record<string, unknown>>
+  activities: Array<Record<string, unknown>>
+  user_columns: Array<Record<string, unknown>>
   created_at: string
   updated_at: string
-  platform_post_ids?: any // JSONB from migration
+  platform_post_ids?: Record<string, string>
   // Analytics fields (not in posts table but needed for UI)
   analytics_impressions?: number
   analytics_engagement?: number
@@ -73,7 +100,7 @@ export function TopPostCard({ post, highlightMode, onClick }: TopPostCardProps) 
   const hasBlocks = Array.isArray(post.blocks) && post.blocks.length > 0
 
   // Get current version from first block (following calendar-view pattern)
-  const currentVer = firstBlock ? firstBlock.versions?.find((v: any) => v.id === firstBlock.currentVersionId) : null
+  const currentVer = firstBlock ? firstBlock.versions?.find((v) => v.id === firstBlock.currentVersionId) : null
   const isVideo = currentVer?.file?.kind === 'video'
 
   return (

@@ -4,7 +4,7 @@ import CheckoutBuilderSideBar from "@/components/checkout/builder/CheckoutBuilde
 import CheckoutFormInfo from "@/components/checkout/builder/CheckoutFormInfo";
 import { servicesApi } from "@/lib/api/api-service";
 import { useWorkspaceStore } from "@/lib/store";
-import { Service } from "@/lib/supabase/interfaces";
+import { Service } from "@/lib/store/types";
 import { Divider } from "@mui/material";
 import React from "react";
 import { toast } from "sonner";

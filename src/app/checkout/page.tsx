@@ -9,7 +9,7 @@ import ServiceSection from "@/components/checkout/ServiceSection";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useWorkspaceStore, useUserStore } from "@/lib/store";
-import { ServiceFolder, Workspace } from "@/lib/supabase/interfaces";
+import { ServiceFolder, Workspace } from "@/lib/store/types";
 import { UserButton } from "@clerk/nextjs";
 import { Divider } from "@mui/material";
 import Image from "next/image";

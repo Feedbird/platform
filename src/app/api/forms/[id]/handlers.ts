@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
-import { Form, FormField } from "@/lib/supabase/interfaces";
+import { Form, FormField } from "@/lib/store/types";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { ApiHandlerError } from "../../shared";
 import { ServicesHandler } from "../../services/handler";
@@ -181,11 +181,11 @@ export class FormHandler {
           throw new ApiHandlerError("Failed to duplicate form fields", 500);
         }
 
-        newForm.fields_count = insertedFields.length;
+        newForm.fieldsCount = insertedFields.length;
       }
 
-      newForm.submissions_count = 0;
-      newForm.fields_count = newForm.fields_count ?? 0;
+      newForm.submissionsCount = 0;
+      newForm.fieldsCount = newForm.fieldsCount ?? 0;
       newForm.services = [];
 
       return newForm;

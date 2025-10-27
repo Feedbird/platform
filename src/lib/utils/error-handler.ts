@@ -88,7 +88,6 @@ export function formatValidationErrors(errors: string[]): string {
   
   return `Multiple issues found:\n${errors.map(err => `• ${err}`).join('\n')}`;
 }
-
 // Helper function to handle API response errors
 export function handleApiResponse(response: Response): void {
   if (!response.ok) {

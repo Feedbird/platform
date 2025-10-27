@@ -1,37 +1,39 @@
 "use client";
-import FormEditorSideBar from "@/components/forms/FormEditorSideBar";
-import FormCanvas, { CanvasFormField } from "@/components/forms/FormCanvas";
+import FormEditorSideBar from "@/components/forms/form-editor-sidebar";
+import FormCanvas, { CanvasFormField } from "@/components/forms/form-canvas";
 import {
   DndContext,
   DragEndEvent,
   DragOverEvent,
   DragOverlay,
+  DragStartEvent,
   pointerWithin,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import React from "react";
-import { useForms } from "@/contexts/FormsContext";
-import ServiceSelector from "@/components/forms/content/ServiceSelector";
-import { Form } from "@/lib/supabase/interfaces";
+import { useForms } from "@/contexts/forms-context";
+import ServiceSelector from "@/components/forms/content/service-selector";
+import { Form } from "@/lib/store/types";
 import {
   FormFieldsArray,
   FormFieldType,
   UIFormFieldDefaults,
 } from "@/lib/forms/fields";
-import { BaseContent } from "@/components/forms/content/DraggableFieldType";
+import { BaseContent } from "@/components/forms/content/draggable-field-type";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { formsApi } from "@/lib/api/api-service";
 import Loading from "./loading";
-import FormTypeConfig from "@/components/forms/content/FormTypeConfig";
-import { useFormEditor } from "@/contexts/FormEditorContext";
+import FormTypeConfig from "@/components/forms/content/form-type-config";
+import { useFormEditor } from "@/contexts/form-editor-context";
 import { formFieldSorter, nestedObjectEqual } from "@/lib/utils/transformers";
 import { useFormStore } from "@/lib/store";
+import { FieldTypeEntitlements } from "@/lib/forms/field.config";
 
 type SelectedField = {
   id: string;
   type: string;
-  config: any;
+  config: FieldTypeEntitlements;
 };
 
 export default function FormInnerVisualizer() {
@@ -58,7 +60,7 @@ export default function FormInnerVisualizer() {
   const [selectedField, setSelectedField] =
     React.useState<SelectedField | null>(null); // For field settings/editing
 
-  const updateFieldConfig = (fieldId: string, newConfig: any) => {
+  const updateFieldConfig = (fieldId: string, newConfig: FieldTypeEntitlements) => {
     setFormFields((prevFields) =>
       prevFields.map((field) =>
         field.id === fieldId ? { ...field, config: newConfig } : field
@@ -78,8 +80,8 @@ export default function FormInnerVisualizer() {
       const tableForm = {
         ...data,
         services: data.services || [],
-        submissions_count: 0,
-        fields_count: 0,
+        submissionsCount: 0,
+        fieldsCount: 0,
       };
       setOriginalForm(tableForm);
       setActiveForm(tableForm);
@@ -190,7 +192,7 @@ export default function FormInnerVisualizer() {
     });
   };
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
 
@@ -250,7 +252,7 @@ export default function FormInnerVisualizer() {
             overId={overId}
             selectedFieldId={selectedField?.id || null}
             onFieldSelect={(
-              val: { id: string; type: string; config: any } | null
+              val: { id: string; type: string; config: FieldTypeEntitlements } | null
             ) => {
               setSelectedField(val);
             }}
@@ -266,7 +268,7 @@ export default function FormInnerVisualizer() {
           updateFieldConfig={updateFieldConfig}
           setVisible={setSelectedField}
           isVisible={selectedField !== null}
-          config={selectedField?.config}
+          config={selectedField?.config || {}}
         />
       </div>
 

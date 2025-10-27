@@ -5,7 +5,7 @@ import { ComplexObjectType } from "@/lib/forms/field.config";
 import { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import React from "react";
-import DraggableItems, { DraggableItemType } from "./DraggableItems";
+import DraggableItems, { DraggableItemType } from "./draggable-items";
 
 export function TitleInput({
   fieldConfig,

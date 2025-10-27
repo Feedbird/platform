@@ -2,7 +2,7 @@
  * Place any data transformers here, for humanizing / normalizing data
  */
 
-import { CanvasFormField } from "@/components/forms/FormCanvas";
+import { CanvasFormField } from "@/components/forms/form-canvas";
 
 export function humanizeDate(date: Date | string): string {
   const standardizedDate = typeof date === "string" ? new Date(date) : date;

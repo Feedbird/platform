@@ -1,14 +1,14 @@
 "use client";
-import { CanvasFormField } from "@/components/forms/FormCanvas";
-import { useFormEditor } from "@/contexts/FormEditorContext";
-import { useForms } from "@/contexts/FormsContext";
+import { CanvasFormField } from "@/components/forms/form-canvas";
+import { useFormEditor } from "@/contexts/form-editor-context";
+import { useForms } from "@/contexts/forms-context";
 import { formsApi } from "@/lib/api/api-service";
 import { Divider } from "@mui/material";
 import { useParams } from "next/navigation";
 import React from "react";
 import Loading from "./loading";
 import { formFieldSorter } from "@/lib/utils/transformers";
-import FormPageVisualizer from "@/components/forms/content/FormPageVisualizer";
+import FormPageVisualizer from "@/components/forms/content/form-page-visualizer";
 
 export default function Page() {
   const { activeForm, setIsPreview, setActiveForm, setIsEditing } = useForms();
@@ -30,8 +30,8 @@ export default function Page() {
       const tableForm = {
         ...data,
         services: data.services || [],
-        submissions_count: 0,
-        fields_count: 0,
+        submissionsCount: 0,
+        fieldsCount: 0,
       };
       setActiveForm(tableForm);
       setIsEditing(true);

@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { useWorkspaceStore, usePostStatusTimeUpdater, useUserStore, useMessageStore } from '@/lib/store'
-import { ChannelMessage as DbChannelMessage } from '@/lib/supabase/interfaces'
+import { ChannelMessage as DbChannelMessage } from '@/lib/store/types'
 import { createClient } from '@supabase/supabase-js'
 
 import { userApi } from '@/lib/api/api-service'

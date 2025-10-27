@@ -22,6 +22,7 @@ import type { Metric } from '@/components/analytics/metric-card'
 import { DynamicTitle } from '@/components/layout/dynamic-title'
 import { FollowersLocationMap } from '@/components/analytics/followers-location-map'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
+import type { Payload as LegendPayload } from 'recharts/types/component/DefaultLegendContent'
 import { UserPlusIcon } from '@/components/ui/icons'
 
 export default function AnalyticsPage() {
@@ -1184,10 +1185,10 @@ export default function AnalyticsPage() {
                         />
                         <Bar dataKey="women" fill="#4096FF" radius={[8, 8, 0, 0]} />
                         <Bar dataKey="men" fill="#91CAFF" radius={[8, 8, 0, 0]} />
-                                                  <Legend
-                          content={({ payload }: any) => (
+                          <Legend
+                            content={({ payload }: { payload?: LegendPayload[] }) => (
                             <div className="flex items-center justify-center gap-6">
-                              {payload?.map((entry: any, index: number) => (
+                              {payload?.map((entry, index: number) => (
                                 <div key={index} className="flex items-center gap-2">
                                   <div
                                     className="w-[6px] h-[6px] rounded-full"

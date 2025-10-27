@@ -3,7 +3,7 @@ import FormsTable, { TableForm } from "@/components/forms/content/forms-table";
 import { useWorkspaceStore, useFormStore } from "@/lib/store";
 import { useEffect } from "react";
 import Loading from "./[id]/loading";
-import { useForms } from "@/contexts/FormsContext";
+import { useForms } from "@/contexts/forms-context";
 import { toast } from "sonner";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 

@@ -13,11 +13,34 @@ import {
   Legend,
   Cell,
 } from 'recharts'
+import type { Payload as LegendPayload } from 'recharts/types/component/DefaultLegendContent'
 import { Metric } from './metric-card'
 
 interface MetricChartProps {
   metric: Metric
   data: { day: string; value: number }[]
+}
+
+interface TickProps {
+  x?: number
+  y?: number
+  payload: {
+    value: string | number
+  }
+  index: number
+}
+
+const renderTick = (props: TickProps, data: { day: string; value: number }[]) => {
+  const { x, y, payload, index } = props
+  // Show all ticks for 7D period (7 data points), otherwise sample every 4th
+  const shouldShowTick = data.length === 7 ? true : (index % 4 === 0)
+  if (!shouldShowTick) return <text />
+  if (x === undefined || y === undefined) return <text />
+  return (
+    <text x={x} y={y + 10} fontSize={12} fill="#666" textAnchor="middle">
+      {payload.value}
+    </text>
+  )
 }
 
 // Generate stacked data for impressions, engagements, views
@@ -69,17 +92,7 @@ export function MetricChart({ metric, data }: MetricChartProps) {
           fontSize={12}
           axisLine={false}
           tickLine={false}
-          tick={(props: any) => {
-            const { x, y, payload, index } = props
-            // Show all ticks for 7D period (7 data points), otherwise sample every 4th
-            const shouldShowTick = data.length === 7 ? true : (index % 4 === 0)
-            if (!shouldShowTick) return <text />
-            return (
-              <text x={x} y={y + 10} fontSize={12} fill="#666" textAnchor="middle">
-                {payload.value}
-              </text>
-            )
-          }}
+          tick={(props: TickProps) => renderTick(props, data)}
         />
         <YAxis
           stroke="#666"
@@ -127,17 +140,7 @@ export function MetricChart({ metric, data }: MetricChartProps) {
           fontSize={12}
           axisLine={false}
           tickLine={false}
-          tick={(props: any) => {
-            const { x, y, payload, index } = props
-            // Show all ticks for 7D period (7 data points), otherwise sample every 4th
-            const shouldShowTick = data.length === 7 ? true : (index % 4 === 0)
-            if (!shouldShowTick) return <text />
-            return (
-              <text x={x} y={y + 10} fontSize={12} fill="#666" textAnchor="middle">
-                {payload.value}
-              </text>
-            )
-          }}
+          tick={(props: TickProps) => renderTick(props, data)}
         />
         <YAxis
           stroke="#666"
@@ -176,17 +179,7 @@ export function MetricChart({ metric, data }: MetricChartProps) {
           fontSize={12}
           axisLine={false}
           tickLine={false}
-          tick={(props: any) => {
-            const { x, y, payload, index } = props
-            // Show all ticks for 7D period (7 data points), otherwise sample every 4th
-            const shouldShowTick = data.length === 7 ? true : (index % 4 === 0)
-            if (!shouldShowTick) return <text />
-            return (
-              <text x={x} y={y + 10} fontSize={12} fill="#666" textAnchor="middle">
-                {payload.value}
-              </text>
-            )
-          }}
+          tick={(props: TickProps) => renderTick(props, data)}
         />
         <YAxis
           stroke="#666"
@@ -205,9 +198,9 @@ export function MetricChart({ metric, data }: MetricChartProps) {
           }}
         />
         <Legend
-          content={({ payload }: any) => (
+          content={({ payload }: { payload?: LegendPayload[] }) => (
             <div className="flex items-center justify-center gap-6">
-              {payload?.map((entry: any, index: number) => (
+              {payload?.map((entry, index: number) => (
                 <div key={index} className="flex items-center gap-2">
                   <div
                     className="w-[6px] h-[6px] rounded-full"
