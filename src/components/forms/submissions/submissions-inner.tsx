@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formsApi } from "@/lib/api/api-service";
-import { Loading } from "@/components/shared/loading";
+import { Loading } from "@/components/shared/loadings";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
