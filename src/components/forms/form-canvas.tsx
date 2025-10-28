@@ -20,12 +20,13 @@ import {
   FormFieldType,
   UIFormFieldDefaults,
 } from "@/lib/forms/fields";
+import { FieldTypeEntitlements } from "@/lib/forms/field.config";
 
 export interface CanvasFormField {
   id: string;
   type: string;
   position: number;
-  config?: any;
+  config?: FieldTypeEntitlements;
 }
 
 interface FormCanvasProps {
@@ -36,7 +37,7 @@ interface FormCanvasProps {
   overId?: string | null;
   selectedFieldId?: string | null;
   onFieldSelect?: (
-    val: { id: string; type: string; config: any } | null
+    val: { id: string; type: string; config: FieldTypeEntitlements } | null
   ) => void;
 }
 
@@ -465,7 +466,7 @@ function SimpleFormField({
   field: CanvasFormField;
   selectedFieldId?: string | null;
   onFieldSelect?: (
-    val: { id: string; type: string; config: any } | null
+    val: { id: string; type: string; config: FieldTypeEntitlements } | null
   ) => void;
   onDelete: (id: string) => void;
 }) {
@@ -489,7 +490,7 @@ function SimpleFormField({
     if (onFieldSelect) {
       const newValue = isSelected
         ? null
-        : { id: field.id, type: field.type, config: field.config };
+        : { id: field.id, type: field.type, config: field.config as FieldTypeEntitlements };
       onFieldSelect(newValue);
     }
   };

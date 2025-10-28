@@ -14,6 +14,7 @@ import {
   DragOverlay,
   DragStartEvent,
   DragMoveEvent,
+  Data,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -198,7 +199,7 @@ function SortableGridItem({ post, onOpen, overlayPost, showOverlayAtOrigin, isHi
              style={{ filter: "invert(1) brightness(2)" }}
            />
            <span className="text-xs text-white font-medium">
-             {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
            </span>
          </div>
        </div>
@@ -269,7 +270,7 @@ function SortableGridItem({ post, onOpen, overlayPost, showOverlayAtOrigin, isHi
                    style={{ filter: "invert(1) brightness(2)" }}
                  />
                  <span className="text-xs">
-                   {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+                   {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
                  </span>
                </div>
 
@@ -438,7 +439,7 @@ function StaticGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: string
                     style={{ filter: "invert(1) brightness(2)" }}
                   />
                   <span className="text-xs">
-                    {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+                    {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
                   </span>
                 </div>
 
@@ -491,7 +492,7 @@ function StaticGridItem({ post, onOpen }: { post: Post; onOpen?: (postId: string
               style={{ filter: "invert(1) brightness(2)" }}
             />
             <span className="text-xs text-white font-medium">
-              {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+              {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
             </span>
           </div>
         </div>
@@ -562,7 +563,7 @@ function DragOverlayItem({ post }: { post: Post }) {
              style={{ filter: "invert(1) brightness(2)" }}
            />
            <span className="text-xs text-white font-medium">
-             {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+             {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
            </span>
          </div>
        </div>
@@ -575,8 +576,8 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
   const sortByPublishDate = React.useCallback((a: Post, b: Post) => {
-    const aTime = a.publish_date ? new Date(a.publish_date).getTime() : Number.POSITIVE_INFINITY;
-    const bTime = b.publish_date ? new Date(b.publish_date).getTime() : Number.POSITIVE_INFINITY;
+    const aTime = a.publishDate ? new Date(a.publishDate).getTime() : Number.POSITIVE_INFINITY;
+    const bTime = b.publishDate ? new Date(b.publishDate).getTime() : Number.POSITIVE_INFINITY;
     if (aTime !== bTime) return aTime - bTime;
     return a.id.localeCompare(b.id);
   }, []);
@@ -630,8 +631,8 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
       if (oldIndex !== -1 && newIndex !== -1) {
         const a = itemsSnapshot[oldIndex];
         const b = itemsSnapshot[newIndex];
-        const aDate = a.publish_date;
-        const bDate = b.publish_date;
+        const aDate = a.publishDate;
+        const bDate = b.publishDate;
 
         // Immediately swap positions AND publish times locally for responsiveness
         setItems((prev) => {
@@ -643,8 +644,8 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
           next[idxA] = next[idxB];
           next[idxB] = tmp;
           // After swapping positions, assign swapped publish times to the corresponding posts
-          next[idxB] = { ...next[idxB], publish_date: bDate } as any; // A now at idxB gets B's time
-          next[idxA] = { ...next[idxA], publish_date: aDate } as any; // B now at idxA gets A's time
+          next[idxB] = { ...next[idxB], publishDate: bDate } as Post; // A now at idxB gets B's time
+          next[idxA] = { ...next[idxA], publishDate: aDate } as Post; // B now at idxA gets A's time
           return next;
         });
 
@@ -656,8 +657,8 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
             boards: w.boards.map(bd => ({
               ...bd,
               posts: bd.posts.map(p => {
-                if (p.id === a.id) return { ...p, publish_date: bDate } as any;
-                if (p.id === b.id) return { ...p, publish_date: aDate } as any;
+                if (p.id === a.id) return { ...p, publishDate: bDate } as Post;
+                if (p.id === b.id) return { ...p, publishDate: aDate } as Post;
                 return p;
               })
             }))
@@ -666,16 +667,16 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
         }
 
         // Persist swapped times to backend, then update store and local state times
-        const toIsoOrNull = (d: any) => {
-          if (!d) return null;
+        const toIsoOrNull = (d: Date | null) => {
+          if (!d) return undefined;
           const date = d instanceof Date ? d : new Date(d);
-          return isNaN(date.getTime()) ? null : date.toISOString();
+          return isNaN(date.getTime()) ? undefined : date.toISOString();
         };
         (async () => {
           try {
             await Promise.all([
-              postApi.updatePost(a.id, { publish_date: toIsoOrNull(bDate) as any }),
-              postApi.updatePost(b.id, { publish_date: toIsoOrNull(aDate) as any }),
+              postApi.updatePost(a.id, { publishDate: toIsoOrNull(bDate) as string | undefined }),
+              postApi.updatePost(b.id, { publishDate: toIsoOrNull(aDate) as string | undefined }),
             ]);
           } catch (err) {
             console.error('Failed to swap publish dates:', err);
@@ -688,8 +689,8 @@ export default function GridView({ posts, onOpen }: GridViewProps) {
               boards: w.boards.map(bd => ({
                 ...bd,
                 posts: bd.posts.map(p => {
-                  if (p.id === a.id) return { ...p, publish_date: aDate } as any;
-                  if (p.id === b.id) return { ...p, publish_date: bDate } as any;
+                  if (p.id === a.id) return { ...p, publishDate: aDate } as Post;
+                  if (p.id === b.id) return { ...p, publishDate: bDate } as Post;
                   return p;
                 })
               }))

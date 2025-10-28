@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Post } from "@/lib/store";
-import { Row } from "@tanstack/react-table";
+import { Table } from "@tanstack/react-table";
 import { useWorkspaceStore } from "@/lib/store/workspace-store";
+import { Column } from "@tanstack/react-table";
 import { buildColumnsPayloadForOrder, normalizeOrder } from "./utils";
 
 /**
@@ -94,7 +95,7 @@ export interface UseDragHandlersProps {
   grouping: string[];
   scrollContainerRef: React.MutableRefObject<HTMLDivElement | null>;
   headerRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
-  table: any; // TanStack table instance
+  table: Table<Post>; // TanStack table instance
 }
 
 /**
@@ -183,7 +184,7 @@ export function useDragHandlers({
       } catch {}
       setIsRowDragging(true);
       setRowDragIndex(fromIndex);
-      setRowDragPos({ x: (e as any).clientX ?? 0, y: (e as any).clientY ?? 0 });
+      setRowDragPos({ x: e.clientX ?? 0, y: e.clientY ?? 0 });
       const angle = Math.random() * 6 - 3; // -3deg to +3deg
       setRowDragAngle(Math.abs(angle) < 1 ? (angle < 0 ? -2 : 2) : angle);
       setRowDragScale(1.04);
@@ -267,7 +268,7 @@ export function useDragHandlers({
     let insertAfterLocal = false;
     const visible = table
       .getAllLeafColumns()
-      .map((c: any) => c.id)
+      .map((c: Column<Post>) => c.id)
       .filter((id: string) => id !== "drag" && id !== "rowIndex");
     
     for (let i = 0; i < visible.length; i++) {
@@ -356,7 +357,7 @@ export function useDragHandlers({
           let bestDist = Infinity;
           const visible = table
             .getAllLeafColumns()
-            .map((c: any) => c.id)
+            .map((c: Column<Post>) => c.id)
             .filter((id: string) => id !== "drag" && id !== "rowIndex");
           for (const colId of visible) {
             const el = headerRefs.current[colId];
@@ -421,7 +422,7 @@ export function useDragHandlers({
 
   function startColumnMouseDrag(e: React.MouseEvent, colId: string) {
     e.preventDefault();
-    beginColumnDrag(colId, (e as any).clientX);
+    beginColumnDrag(colId, e.clientX);
   }
 
   function endColumnDrag() {
@@ -443,7 +444,7 @@ export function useDragHandlers({
         try {
             document.removeEventListener(
               "mousemove",
-              dragMouseMoveHandlerRef.current as any,
+              dragMouseMoveHandlerRef.current,
               true
             );
           } catch {}
@@ -453,7 +454,7 @@ export function useDragHandlers({
         try {
             document.removeEventListener(
               "mouseup",
-              dragMouseUpHandlerRef.current as any,
+              dragMouseUpHandlerRef.current,
               true
             );
           } catch {}
@@ -466,21 +467,21 @@ export function useDragHandlers({
         if (container && nativeDragBindingsRef.current.containerOver)
           container.removeEventListener(
             "dragover",
-            nativeDragBindingsRef.current.containerOver as any,
+            nativeDragBindingsRef.current.containerOver,
             true
           );
         if (container && nativeDragBindingsRef.current.containerDrop)
           container.removeEventListener(
             "drop",
-            nativeDragBindingsRef.current.containerDrop as any,
+            nativeDragBindingsRef.current.containerDrop,
             true
           );
         for (const b of nativeDragBindingsRef.current.perHeader) {
-          b.el.removeEventListener("dragover", b.over as any, true);
-          b.el.removeEventListener("drop", b.drop as any, true);
+          b.el.removeEventListener("dragover", b.over, true);
+          b.el.removeEventListener("drop", b.drop, true);
         }
       } catch {}
-      nativeDragBindingsRef.current = { attached: false, perHeader: [] } as any;
+      nativeDragBindingsRef.current = { attached: false, perHeader: [] };
     }
     // Clean up global dragend handler
     if (dragEndHandlerRef.current) {
@@ -515,7 +516,7 @@ export function useDragHandlers({
       let bestDist = Infinity;
       const visible = table
         .getAllLeafColumns()
-        .map((c: any) => c.id)
+        .map((c: Column<Post>) => c.id)
         .filter((id: string) => id !== "drag" && id !== "rowIndex");
       for (const colId of visible) {
         const el = headerRefs.current[colId];
@@ -546,7 +547,7 @@ export function useDragHandlers({
     // Apply the reorder
     const visible = table
       .getAllLeafColumns()
-      .map((c: any) => c.id)
+      .map((c: Column<Post>) => c.id)
       .filter((id: string) => id !== "drag" && id !== "rowIndex");
     const fromIdx = visible.indexOf(fromId);
     const toIdx = visible.indexOf(toId);
@@ -562,7 +563,7 @@ export function useDragHandlers({
     try {
         if (activeBoardId) {
             const payload = buildColumnsPayloadForOrder(normalizeOrder(newOrder));
-            updateBoard(activeBoardId, { columns: payload as any });
+            updateBoard(activeBoardId, { columns: payload });
           }
     } catch {}
     endColumnDrag();
@@ -639,7 +640,7 @@ export function useDragHandlers({
       const x =
         typeof ev.clientX === "number" && ev.clientX
           ? ev.clientX
-          : (ev as any).pageX;
+          : ev.pageX;
       if (typeof x === "number") updateOverlayForMouseX(x);
     };
     // Capture to ensure we receive events even if inner elements stop propagation
@@ -652,22 +653,22 @@ export function useDragHandlers({
       try {
         window.removeEventListener("dragover", onAnyDrag, {
           capture: true,
-        } as any);
+        });
       } catch {}
       try {
         window.removeEventListener("drag", onAnyDrag, {
           capture: true,
-        } as any);
+        });
       } catch {}
       try {
         document.removeEventListener("dragover", onAnyDrag, {
           capture: true,
-        } as any);
+        });
       } catch {}
       try {
         document.removeEventListener("dragenter", onAnyDrag, {
           capture: true,
-        } as any);
+        });
       } catch {}
     };
   }, [draggingColumnId]);

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import { NextRequest, NextResponse } from "next/server";
+import { jsonCamel } from "@/lib/utils/http";
 
 export async function GET(req: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
       services: form.services || [], // Keep services as array since one form can have multiple services
     }));
 
-    return NextResponse.json({ data: transformedForms });
+    return jsonCamel({ data: transformedForms });
   } catch (error) {
     console.error("Error in GET /api/forms:", error);
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
 import { Platform } from '@/lib/social/platforms/platform-types'
+import { readJsonSnake, jsonCamel } from '@/lib/utils/http'
 
 // Validation schemas for bulk operations
 const CreatePostSchema = z.object({
@@ -35,7 +36,7 @@ const BulkDeleteSchema = z.object({
 // POST - Create multiple posts
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = BulkCreateSchema.parse(body)
 
     // Verify workspace exists
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ 
+    return jsonCamel({ 
       message: `Successfully created ${data.length} posts`,
       posts: data 
     }, { status: 201 })
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
 // DELETE - Delete multiple posts
 export async function DELETE(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = BulkDeleteSchema.parse(body)
 
     // Delete all posts
@@ -131,7 +132,7 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ 
+    return jsonCamel({ 
       message: `Successfully deleted ${data.length} posts`,
       deleted_posts: data 
     })

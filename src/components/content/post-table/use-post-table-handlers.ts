@@ -1,26 +1,28 @@
 import * as React from "react";
-import { Row } from "@tanstack/react-table";
+import { Row, Table, SortingState, GroupingState, Column, RowSelectionState } from "@tanstack/react-table";
 import { parse } from "date-fns";
-import { Post, Status, ContentFormat, BoardRules, BoardGroupData, useWorkspaceStore, usePostStore, useUserStore } from "@/lib/store";
+import { Post, Status, ContentFormat, BoardRules, BoardGroupData, UserColumnOption, UserColumn, GroupComment, ColumnType, useWorkspaceStore, usePostStore, useUserStore, Board } from "@/lib/store";
 import { getCurrentUserDisplayName } from "@/lib/utils/user-utils";
 import { getUserColumnValue, buildUpdatedUserColumnsArr, getFinalGroupRows } from "./utils";
+import { RowHeightType } from "@/lib/utils";
+import { Platform } from "@/lib/social/platforms/platform-types";
 
 export interface PostTableHandlersParams {
   // State
   tableData: Post[];
   trashedPosts: Post[];
   duplicatedPosts: Post[];
-  selectedGroupData: { month: number; comments: any[] } | null;
-  userColumns: any[];
+  selectedGroupData: { month: number; comments: GroupComment[] } | null;
+  userColumns: UserColumn[];
   columnOrder: string[];
   editFieldOpen: boolean;
   editFieldTypeOpen: boolean;
   pendingInsertRef: { targetId: string; side: "left" | "right" } | null;
-  grouping: string[];
-  sorting: any[];
-  rowHeight: any;
+  grouping: GroupingState;
+  sorting: SortingState;
+  rowHeight: RowHeightType;
   captionLocked: boolean;
-  selectedPlatform: any;
+  selectedPlatform: Platform | null;
   editingPost: Post | null;
   editingUserText: { postId: string; colId: string } | null;
   
@@ -33,18 +35,18 @@ export interface PostTableHandlersParams {
   setShowDuplicateUndoMessage: React.Dispatch<React.SetStateAction<boolean>>;
   setLastDuplicatedCount: React.Dispatch<React.SetStateAction<number>>;
   setGroupFeedbackSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setSelectedGroupData: React.Dispatch<React.SetStateAction<{ month: number; comments: any[] } | null>>;
-  setUserColumns: React.Dispatch<React.SetStateAction<any[]>>;
+  setSelectedGroupData: React.Dispatch<React.SetStateAction<{ month: number; comments: GroupComment[] } | null>>;
+  setUserColumns: React.Dispatch<React.SetStateAction<UserColumn[]>>;
   setEditFieldOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setEditFieldColumnId: React.Dispatch<React.SetStateAction<string | null>>;
   setEditFieldType: React.Dispatch<React.SetStateAction<string>>;
-  setEditFieldOptions: React.Dispatch<React.SetStateAction<any[]>>;
+  setEditFieldOptions: React.Dispatch<React.SetStateAction<Array<UserColumnOption>>>;
   setEditFieldPanelPos: React.Dispatch<React.SetStateAction<{ top: number; left: number; align: "left" | "right" } | null>>;
   setPendingInsertRef: React.Dispatch<React.SetStateAction<{ targetId: string; side: "left" | "right" } | null>>;
   setNewFieldLabel: React.Dispatch<React.SetStateAction<string>>;
   setCaptionOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setEditingPost: React.Dispatch<React.SetStateAction<Post | null>>;
-  setSelectedPlatform: React.Dispatch<React.SetStateAction<any>>;
+  setSelectedPlatform: React.Dispatch<React.SetStateAction<Platform | null>>;
   setCaptionLocked: React.Dispatch<React.SetStateAction<boolean>>;
   setUserTextOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setEditingUserText: React.Dispatch<React.SetStateAction<{ postId: string; colId: string } | null>>;
@@ -58,12 +60,12 @@ export interface PostTableHandlersParams {
   lastScrollLeftRef: React.MutableRefObject<number>;
   editFieldPanelRef: React.MutableRefObject<HTMLDivElement | null>;
   scrollContainerRef: React.MutableRefObject<HTMLDivElement | null>;
-  tableRef: React.MutableRefObject<any>;
+  tableRef: React.MutableRefObject<Table<Post> | null>;
   anchorRowIdRef: React.MutableRefObject<string | null>;
   
   // External functions
-  updatePost: (postId: string, data: any) => void;
-  updateBoard: (boardId: string, data: any) => void;
+  updatePost: (pid: string, data: Partial<Post>) => Promise<void>;
+  updateBoard: (id: string, data: Partial<Board>) => Promise<void>
   addGroupComment: (boardId: string, month: number, text: string, author: string) => void;
   addGroupMessage: (boardId: string, month: number, commentId: string, text: string, author: string, parentMessageId?: string) => void;
   resolveGroupComment: (boardId: string, month: number, commentId: string, author: string) => void;
@@ -77,7 +79,7 @@ export interface PostTableHandlersParams {
   // Board/workspace data
   activeBoardId: string | null;
   boardRules: BoardRules | undefined;
-  table: any;
+  table: Table<Post>;
   rowComparator?: (a: Row<Post>, b: Row<Post>) => number;
 }
 
@@ -190,8 +192,8 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
       const email = useUserStore.getState().user?.email;
       if (email) {
         (groupData?.comments || [])
-          .filter((c: any) => !c.resolved && !(c.readBy || []).includes(email))
-          .forEach((c: any) => markGroupCommentRead(activeBoardId, month, c.id));
+          .filter((c: GroupComment) => !c.resolved && !(c.readBy || []).includes(email))
+          .forEach((c: GroupComment) => markGroupCommentRead(activeBoardId, month, c.id));
       }
     }
     setGroupFeedbackSidebarOpen(true);
@@ -289,8 +291,8 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
     // Set insertion to the far right
     const visible = table
       .getAllLeafColumns()
-      .map((c: any) => c.id)
-      .filter((id: any) => id !== "drag" && id !== "rowIndex");
+      .map((c: Column<Post, unknown>) => c.id)
+      .filter((id: string) => id !== "drag" && id !== "rowIndex");
     const lastId = visible[visible.length - 1];
     if (lastId) setPendingInsertRef({ targetId: lastId, side: "right" });
     setEditFieldColumnId(null);
@@ -335,7 +337,7 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
     }
   }, [tableData]);
 
-  const handleAddRowForGroup = React.useCallback(async (groupValues: Record<string, any>) => {
+  const handleAddRowForGroup = React.useCallback(async (groupValues: Record<string, unknown>) => {
     const newPost = await usePostStore.getState().addPost();
     if (!newPost) return;
 
@@ -478,10 +480,10 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
   // Column management handlers
   const handleAddColumn = React.useCallback((
     label: string,
-    type: any,
-    options?: Array<{ id: string; value: string; color: string }> | string[]
+    type: ColumnType,
+    options?: Array<UserColumnOption>
   ) => {
-    const nextUserColumns: any[] = [
+    const nextUserColumns: UserColumn[] = [
       ...userColumns,
       {
         id: require("nanoid").nanoid(),
@@ -489,7 +491,7 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
         type,
         options:
           type === "singleSelect" || type === "multiSelect"
-            ? (options as Array<{ id: string; value: string; color: string }>)
+            ? (options as Array<UserColumnOption>)
             : undefined,
       },
     ];
@@ -499,7 +501,7 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
       setColumnOrder((orderPrev) => {
         const order = orderPrev.length
           ? orderPrev
-          : table.getAllLeafColumns().map((c: any) => c.id);
+          : table.getAllLeafColumns().map((c: Column<Post, unknown>) => c.id);
         const idx = order.indexOf(targetId);
         if (idx === -1) return orderPrev;
         const insertIndex = side === "left" ? idx : idx + 1;
@@ -525,7 +527,7 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
       setColumnOrder((orderPrev) => {
         const order = orderPrev.length
           ? orderPrev
-          : table.getAllLeafColumns().map((c: any) => c.id);
+          : table.getAllLeafColumns().map((c: Column<Post, unknown>) => c.id);
         const newOrder = [...order];
         const newColumnId = nextUserColumns[nextUserColumns.length - 1].id;
         newOrder.push(newColumnId);
@@ -657,13 +659,13 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
         const end = Math.max(anchorIndex, currentIndex);
 
         // Build selection map in one pass for better perf
-        const newSelection: Record<string, boolean> = {};
+        const newSelection: RowSelectionState = {};
         for (let i = start; i <= end; i++) {
           const rid = allRows[i]?.id;
           if (rid) newSelection[rid] = true;
         }
 
-        table.setRowSelection(newSelection as any);
+        table.setRowSelection(newSelection);
       } else if (e.metaKey || e.ctrlKey) {
         // Cmd/Ctrl — toggle the clicked row while preserving others
         table.setRowSelection((prev: Record<string, boolean>) => {
@@ -699,7 +701,7 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
       const postsToUpdate = tableData.filter((post) => {
         if (!post.userColumns) return false;
 
-        const userColumn = post.userColumns.find((uc: any) => uc.id === columnId);
+        const userColumn = post.userColumns.find((uc: { id: string; value: string }) => uc.id === columnId);
         return userColumn && userColumn.value === removedOptionId;
       });
 
@@ -708,22 +710,22 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
       // Update each post to remove the option value
       const updatePromises = postsToUpdate.map(async (post) => {
         const updatedUserColumns =
-          post.userColumns?.map((uc: any) =>
+          post.userColumns?.map((uc: { id: string; value: string }) =>
             uc.id === columnId ? { ...uc, value: "" } : uc
           ) || [];
 
         // Update local state immediately for better UX
         setTableData((prev) =>
           prev.map((p) =>
-            p.id === post.id ? { ...p, user_columns: updatedUserColumns } : p
+            p.id === post.id ? { ...p, userColumns: updatedUserColumns } : p
           )
         );
 
         // Update in database
         try {
           await updatePost(post.id, {
-            user_columns: updatedUserColumns,
-          } as any);
+            userColumns: updatedUserColumns,
+          } as Partial<Post>);
         } catch (error) {
           console.error(
             `Failed to update post ${post.id} after option removal:`,

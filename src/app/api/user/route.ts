@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // Validation schemas
 const CreateUserSchema = z.object({
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data)
+    return jsonCamel(data)
   } catch (error) {
     console.error('Error in GET /api/user:', error)
     return NextResponse.json(
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
 // POST - Create new user
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = CreateUserSchema.parse(body)
 
     // Check if user already exists
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data, { status: 201 })
+    return jsonCamel(data, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -159,7 +160,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = UpdateUserSchema.parse(body)
 
     let query = supabase.from('users').select()
@@ -202,7 +203,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data)
+    return jsonCamel(data)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

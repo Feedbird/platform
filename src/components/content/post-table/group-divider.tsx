@@ -7,7 +7,8 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useUserStore } from "@/lib/store";
 import { StatusChip } from "@/components/content/shared/content-post-ui";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getPassedRevisionRound } from "./utils";
+import { FinalGroup, getPassedRevisionRound } from "./utils";
+import { Row, Table } from "@tanstack/react-table";
 
 interface GroupDividerProps {
   children: React.ReactNode;
@@ -20,12 +21,11 @@ interface GroupDividerProps {
   month: number;
   isExpanded: boolean;
   groupKey: string;
-  table: any; // Table instance from react-table
-  isSticky: (columnId: string) => boolean;
+  table: Table<Post>; // Table instance from react-table
   stickyStyles: (colId: string, zIndex?: number) => React.CSSProperties | undefined;
   grouping: string[];
-  getFinalGroupRows: (rows: any[], expanded: any, rowComparator?: any) => any[];
-  rowComparator?: (a: any, b: any) => number;
+  getFinalGroupRows: (rows: Row<Post>[], expanded: Record<string, boolean>, rowComparator?: (a: Row<Post>, b: Row<Post>) => number) => FinalGroup[];
+  rowComparator?: (a: Row<Post>, b: Row<Post>) => number;
 }
 
 export function GroupDivider({
@@ -40,15 +40,12 @@ export function GroupDivider({
   isExpanded,
   groupKey,
   table,
-  isSticky,
   stickyStyles,
   grouping,
   getFinalGroupRows,
   rowComparator,
 }: GroupDividerProps) {
   const visibleLeafColumns = table.getVisibleLeafColumns();
-  const stickyCols = visibleLeafColumns.filter((c: any) => isSticky(c.id));
-  const nonStickyCols = visibleLeafColumns.filter((c: any) => !isSticky(c.id));
   const { state } = useSidebar();
 
   // Calculate available width based on sidebar state
@@ -159,7 +156,7 @@ export function GroupDivider({
               {},
               rowComparator
             );
-            const allLeafRows = groups.flatMap((group: any) => group.leafRows);
+            const allLeafRows = groups.flatMap((group: FinalGroup) => group.leafRows);
 
             // Get the source row from drag data
             const fromIndex = parseInt(
@@ -171,13 +168,13 @@ export function GroupDivider({
 
               if (sourceRow) {
                 // Find source group
-                const sourceGroup = groups.find((group: any) =>
-                  group.leafRows.some((r: any) => r.id === sourceRow.id)
+                const sourceGroup = groups.find((group: FinalGroup) =>
+                  group.leafRows.some((r: Row<Post>) => r.id === sourceRow.id)
                 );
 
                 // Check if source group is different from current group
                 const currentGroup = groups.find(
-                  (g: any) => g.groupValues.month === month
+                  (g: FinalGroup) => g.groupValues.month === month
                 );
                 if (
                   sourceGroup &&

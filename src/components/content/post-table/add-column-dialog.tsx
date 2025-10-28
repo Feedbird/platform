@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ColumnType } from "@/lib/store";
+import { ColumnType, UserColumnOption } from "@/lib/store";
 import {
   EditIcon,
   FilePlus,
@@ -43,7 +43,7 @@ export function AddColumnDialog({
   onAddColumn: (
     label: string,
     type: ColumnType,
-    options?: Array<{ id: string; value: string; color: string }> | string[]
+    options?: Array<UserColumnOption>
   ) => void;
 }) {
   const [fieldLabel, setFieldLabel] = React.useState("");

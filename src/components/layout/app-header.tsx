@@ -43,7 +43,6 @@ function HeaderInner() {
     // For other routes, check if pathname starts with the href
     pathname.startsWith(b.href)
   ))
-  const activeBoardIconComponent = activeBoard?.image ? activeBoard.image : null
   const brand         = useWorkspaceStore(s => s.getActiveBrand())
   const activeWorkspace = useWorkspaceStore(s => s.getActiveWorkspace())
   
@@ -110,7 +109,15 @@ function HeaderInner() {
               )}
               style={activeBoard?.color ? { backgroundColor: activeBoard.color } : undefined}
             >
-              {activeBoardIconComponent}
+              <img
+                src={activeBoard?.image as string}
+                alt={activeBoard?.label}
+                className={cn(
+                  "w-4 h-4",
+                  activeBoard?.color && "filter brightness-0 invert"
+                )}
+                loading="lazy"
+              />
             </div>
           )}
           <span className="font-semibold text-lg tracking-[-0.6px] truncate max-w-[200px]">

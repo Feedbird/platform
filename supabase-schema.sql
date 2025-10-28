@@ -49,17 +49,17 @@ CREATE TABLE IF NOT EXISTS boards (
   rules JSONB,
   group_data JSONB,
   columns JSONB DEFAULT '[
-    {"id":"status","name":"Status","is_default":true,"order":0},
-    {"id":"preview","name":"Preview","is_default":true,"order":1},
-    {"id":"caption","name":"Caption","is_default":true,"order":2},
-    {"id":"platforms","name":"Socials","is_default":true,"order":3},
-    {"id":"format","name":"Format","is_default":true,"order":4},
-    {"id":"month","name":"Month","is_default":true,"order":5},
-    {"id":"revision","name":"Revision","is_default":true,"order":6},
-    {"id":"approve","name":"Approve","is_default":true,"order":7},
-    {"id":"settings","name":"Settings","is_default":true,"order":8},
-    {"id":"publish_date","name":"Post time","is_default":true,"order":9},
-    {"id":"updated_at","name":"Updated","is_default":true,"order":10}
+    {"id":"status","name":"Status","isDefault":true,"order":0},
+    {"id":"preview","name":"Preview","isDefault":true,"order":1},
+    {"id":"caption","name":"Caption","isDefault":true,"order":2},
+    {"id":"platforms","name":"Socials","isDefault":true,"order":3},
+    {"id":"format","name":"Format","isDefault":true,"order":4},
+    {"id":"month","name":"Month","isDefault":true,"order":5},
+    {"id":"revision","name":"Revision","isDefault":true,"order":6},
+    {"id":"approve","name":"Approve","isDefault":true,"order":7},
+    {"id":"settings","name":"Settings","isDefault":true,"order":8},
+    {"id":"publish_date","name":"Post time","isDefault":true,"order":9},
+    {"id":"updated_at","name":"Updated","isDefault":true,"order":10}
   ]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

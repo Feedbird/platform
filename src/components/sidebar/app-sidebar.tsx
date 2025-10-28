@@ -57,6 +57,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { AnalyticsIcon, ApprovalsIcon, DashboardIcon, InboxOnIcon, InboxIcon } from "../ui/icons";
+import { BoardInner } from "@/app/[workspaceId]/content/[board_id]/_inner";
 
 /* --------------------------------------------------------------------- */
 /*  NAV CONFIGS (static for now – you can pull these from the store)     */
@@ -109,18 +110,6 @@ function useBoardCount(board_id: string): number | null {
     const posts = s.getAllPosts();
     return posts.filter((p) => p.boardId === board_id).length;
   });
-
-  const [isClient, setIsClient] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    // On the server, return null to prevent rendering.
-    return null;
-  }
-
   return count;
 }
 
@@ -1018,7 +1007,7 @@ export function AppSidebar() {
       <ColorAndIconDialog
         isOpen={!!colorIconTarget}
         onClose={() => setColorIconTarget(null)}
-        icon={colorIconTarget?.image}
+        icon={colorIconTarget?.image as string}
         color={colorIconTarget?.color}
         onSave={handleUpdateBoardColorAndIcon}
       />

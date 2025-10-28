@@ -23,7 +23,7 @@ import {
   PlusIcon,
 } from "lucide-react";
 import { cn, RowHeightType } from "@/lib/utils";
-import { Post } from "@/lib/store";
+import { Post, UserColumn } from "@/lib/store";
 import { MemoizedRow } from "./memoized-row";
 
 export interface RenderUngroupedTableProps {
@@ -66,7 +66,7 @@ export interface RenderUngroupedTableProps {
   isScrollable: boolean;
   handleAddRowUngrouped: () => void;
   // Column management
-  userColumns: any[];
+  userColumns: UserColumn[];
   columnNames: Record<string, string>;
   setRenameColumnId: React.Dispatch<React.SetStateAction<string | null>>;
   setRenameValue: React.Dispatch<React.SetStateAction<string>>;
@@ -199,7 +199,7 @@ export function RenderUngroupedTable({
                       onMouseDown={(e) => {
                         if (!canDrag) return;
                         if (e.button !== 0) return; // left click only
-                        if ((e as any).detail >= 2) return; // ignore double-clicks
+                        if (e.detail >= 2) return; // ignore double-clicks
                         const target = e.target as HTMLElement;
                         if (target.closest("[data-col-menu-trigger]")) return; // avoid drag when clicking chevron
                         if (target.closest("[data-col-interactive]")) return; // avoid drag when clicking interactive controls
@@ -405,7 +405,7 @@ export function RenderUngroupedTable({
               })}
               {/* ▶ plus column on the right (ungrouped) */}
               <TableHead
-                ref={plusHeaderRef as any}
+                ref={plusHeaderRef}
                 className="border-b border-elementStroke"
                 style={{ width: 100, padding: 0 }}
               >

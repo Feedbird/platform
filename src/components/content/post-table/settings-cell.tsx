@@ -69,7 +69,8 @@ const LABELS: Record<keyof SettingFlags, string> = {
   pinterest  : "Pinterest Settings",
 };
 
-const ICONS: Record<keyof SettingFlags, React.ReactNode> = {
+type IconElement = React.ReactElement<{ className?: string }>;
+const ICONS: Record<keyof SettingFlags, IconElement> = {
   location   : <Image src={`/images/settings/map.svg`} alt="Location" width={16} height={16} />,
   tagAccounts: <Image src={`/images/settings/at-sign.svg`} alt="Tag Accounts" width={16} height={16} />,
   thumbnail  : <Image src={`/images/settings/image.svg`} alt="Thumbnail" width={16} height={16} />,
@@ -265,7 +266,7 @@ export function SettingsEditCell({
                     .map((k) => (
                     <Tooltip key={k}>
                       <TooltipTrigger asChild>
-                        <span>{React.cloneElement(ICONS[k] as any, {
+                        <span>{React.cloneElement(ICONS[k], {
                           className: iconClass(activeFlags[k as FlagKey]),
                         })}</span>
                       </TooltipTrigger>
@@ -295,7 +296,7 @@ export function SettingsEditCell({
               .map((k) => (
               <label key={k} className="flex items-center justify-between py-[8px] gap-2 cursor-pointer">
                 <div className="flex items-center gap-2">
-                  {React.cloneElement(ICONS[k as keyof SettingFlags] as any, { className: iconClass(activeFlags[k as FlagKey]) })}
+                  {React.cloneElement(ICONS[k as keyof SettingFlags], { className: iconClass(activeFlags[k as FlagKey]) })}
                   <span className="text-sm font-medium leading-[16px]">{LABELS[k as keyof SettingFlags]}</span>
                 </div>
                 <Checkbox 
@@ -342,7 +343,7 @@ export function SettingsEditCell({
             )
             .map((k) => (
             <li key={k} className="flex items-center gap-2">
-              {React.cloneElement(ICONS[k as keyof SettingFlags] as any, { className: iconClass(activeFlags[k as FlagKey]) })}
+              {React.cloneElement(ICONS[k as keyof SettingFlags], { className: iconClass(activeFlags[k as FlagKey]) })}
               <span>{LABELS[k as keyof SettingFlags]}</span>
               <span className={cn("ml-auto font-semibold", activeFlags[k as FlagKey] ? "text-green-600" : "text-red-500")}>{activeFlags[k as FlagKey] ? "ON" : "OFF"}</span>
             </li>

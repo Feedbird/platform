@@ -23,6 +23,8 @@ import {
   Row,
   Table as ReactTableType,
   Column,
+  FilterFn,
+  SortingFn,
 } from "@tanstack/react-table";
 import {
   ChevronUpIcon,
@@ -59,6 +61,7 @@ import {
   useWorkspaceStore,
   usePostStore,
   useSocialStore,
+  Board,
 } from "@/lib/store";
 import {
   StatusChip,
@@ -70,8 +73,6 @@ import { AddColumnDialog } from "./add-column-dialog";
 import { PostContextMenu } from "./post-context-menu";
 import UserTextEditor from "./user-text-editor";
 import { GroupFeedbackSidebar } from "./group-feedback-sidebar";
-import { createBaseColumns } from "./columns/base-columns";
-import { createUserColumns } from "./columns/user-columns";
 import { statusFilterFn, formatFilterFn, monthFilterFn, previewFilterFn, publishDateFilterFn, approveFilterFn, createPlatformsFilterFn } from "./filters";
 import { statusSortingFn, formatSortingFn, createPlatformsSortingFn } from "./sort";
 import { RenderGroupedTable } from "./render-grouped-table";
@@ -262,7 +263,7 @@ export function PostTable({
     rowHeight,
     onOpen,
     setIsScrollable,
-    setFilterTree: (conditions: any) => {
+    setFilterTree: (conditions: ConditionGroup) => {
       if (activeBoardId) {
         setBoardFilterConditions(activeBoardId, conditions);
       }
@@ -281,6 +282,13 @@ export function PostTable({
     return ab?.filterConditions ?? emptyFilterRef.current;
   });
 
+  // Provide typed no-op defaults where the hook expects functions
+  const noopFilter: FilterFn<Post> = () => true;
+  const noopSort: SortingFn<Post> = () => 0;
+  const noopDragStart = (_e: React.DragEvent, _fromIndex: number) => {};
+  const noopCheckbox = (_e: React.MouseEvent, _row: Row<Post>) => {};
+  const noopEditPost = (_post: Post) => {};
+
   // Post table memoized values hook
   const memoizedValues = usePostTableMemoizedValues({
     workspaces,
@@ -292,10 +300,10 @@ export function PostTable({
     columnNames,
     rowHeight,
     selectedPlatform,
-    availablePlatforms: [], // Will be set by the hook
+    availablePlatforms: [],
     captionLocked,
-    platformsFilterFn: null, // Will be set by the hook
-    platformsSortingFn: null, // Will be set by the hook
+    platformsFilterFn: noopFilter,
+    platformsSortingFn: noopSort,
     statusFilterFn,
     statusSortingFn,
     formatFilterFn,
@@ -304,11 +312,11 @@ export function PostTable({
     previewFilterFn,
     publishDateFilterFn,
     approveFilterFn,
-    boardRules: undefined, // Will be set by the hook
+    boardRules: undefined,
     sorting,
     filterTree,
-    ws,
-    selectedRows: [], // Will be updated after table is created
+    ws: ws || null,
+    selectedRows: [],
     setTableData,
     setCaptionLocked,
     updateBoard,
@@ -316,17 +324,17 @@ export function PostTable({
     setUserColumns,
     onOpen,
     getPageCounts,
-    handleFillStartCaption: null, // Will be set later
-    handleFillStartPages: null, // Will be set later
-    handleFillStartFormat: null, // Will be set later
-    handleFillStartMonth: null, // Will be set later
+    handleFillStartCaption: (_v, _i) => {},
+    handleFillStartPages: (_v, _i) => {},
+    handleFillStartFormat: (_v, _i) => {},
+    handleFillStartMonth: (_v, _i) => {},
     previewCellFn: callbacks.previewCellFn,
-    handleRowDragStart: null, // Will be set later
-    handleCheckboxClick: null, // Will be set later
-    handleEditPost: null, // Will be set later
+    handleRowDragStart: noopDragStart,
+    handleCheckboxClick: noopCheckbox,
+    handleEditPost: noopEditPost,
     anchorRowIdRef,
     tableRef,
-    table: null as unknown as ReturnType<typeof useReactTable<Post>>, // Will be set later
+    table: null,
   });
 
   const { activeWorkspace, currentBoard, boardRules } = memoizedValues;
@@ -348,119 +356,6 @@ export function PostTable({
   React.useEffect(() => {
     setTableData(posts);
   }, [posts]); // Run when posts change to keep table data in sync
-
-  // Update selectedGroupData when store data changes
-  React.useEffect(() => {
-    if (selectedGroupData && activeBoardId) {
-      const updatedBoard = activeWorkspace?.boards.find(
-        (b: any) => b.id === activeBoardId
-      );
-      const updatedGroupData = updatedBoard?.groupData?.find(
-        (gd: any) => gd.month === selectedGroupData.month
-      );
-
-      if (updatedGroupData) {
-        const currentStoreData = JSON.stringify(updatedGroupData.comments);
-
-        // Only update if store data has actually changed
-        if (currentStoreData !== prevStoreDataRef.current) {
-          prevStoreDataRef.current = currentStoreData;
-
-          setSelectedGroupData({
-            month: selectedGroupData.month,
-            comments: updatedGroupData.comments,
-          });
-        }
-      }
-    }
-  }, [activeWorkspace, activeBoardId]); // React to workspace and board changes
-
-  // Initialize from board.columns when switching boards
-  React.useEffect(() => {
-    if (!currentBoard?.columns) return;
-    const sorted = [...currentBoard.columns].sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0)
-    );
-    const newUserCols: UserColumn[] = [];
-    const newOrder: string[] = [];
-    for (const col of sorted) {
-      if (col.is_default) {
-        const id = nameToDefaultId[col.name];
-        if (id) newOrder.push(id);
-      } else {
-        const anyCol: any = col as any;
-        // Use existing ID from database if available, otherwise generate new one
-        const columnId = anyCol.id || nanoid();
-        newUserCols.push({
-          id: columnId,
-          label: col.name,
-          type: anyCol.type || "singleLine",
-          options: anyCol.options,
-        });
-        newOrder.push(columnId);
-      }
-    }
-    if (newUserCols.length) setUserColumns(newUserCols);
-    if (newOrder.length) setColumnOrder(() => normalizeOrder(newOrder));
-  }, [currentBoard?.columns, nameToDefaultId, normalizeOrder]);
-
-
-  // Post table effects hook
-  usePostTableEffects({
-    mounted,
-    posts,
-    tableData,
-    selectedPreviewCell,
-    selectedGroupData,
-    prevStoreDataRef,
-    userInitiatedChangeRef,
-    lastBoardIdRef,
-    groupRevisionRef,
-    columnSizingInfo,
-    rowHeight,
-    boardRules,
-    grouping,
-    sorting,
-    editFieldOpen,
-    editFieldTypeOpen,
-    editFieldPanelRef,
-    filterTree,
-    tableDataLength: tableData.length,
-    checkIfScrollable: callbacks.checkIfScrollableCallback,
-    captionLocked,
-    undoTimeoutRef,
-    duplicateUndoTimeoutRef,
-    setMounted,
-    setTableData,
-    setSelectedPreviewCell,
-    setUserColumns,
-    setColumnOrder,
-    setColumnSizing,
-    setSorting,
-    setGrouping,
-    setRowHeight,
-    setSelectedGroupData,
-    setEditFieldOpen,
-    setSelectedPlatform,
-    setFlatGroupExpanded,
-    updateBoard,
-    markGroupCommentRead,
-    activeBoardId,
-    currentBoard,
-    activeWorkspace,
-    table: null, // Will be set later
-  });
-
-
-
-
-
-
-
-
-
-
-
 
   // Set filter conditions in store for current board
   const setFilterTree = callbacks.setFilterTreeCallback;
@@ -534,21 +429,20 @@ export function PostTable({
 
   // Placeholder for handleRowDragStart - will be replaced after drag handlers are created
   const handleRowDragStart = React.useCallback((e: React.DragEvent, fromIndex: number) => {
-    // This will be replaced by the actual drag handler
+    // Placeholder, replaced after drag handlers are created
   }, []);
 
   // Placeholder handlers for baseColumns - will be replaced after handlers hook is created
   const handleCheckboxClick = React.useCallback((e: React.MouseEvent, row: Row<Post>) => {
-    // This will be replaced by the actual handler
+    // Placeholder, replaced after handlers hook is created
   }, []);
 
   const handleEditPost = React.useCallback((post: Post) => {
-    // This will be replaced by the actual handler
+    // Placeholder, replaced after handlers hook is created
   }, []);
 
   // Get column definitions from memoized values
   const { baseColumns, userColumnDefs, columns, filterableColumns } = memoizedValues;
-
   // Create table
   const tableConfig = React.useMemo(
     () => ({
@@ -705,9 +599,55 @@ export function PostTable({
   const table = useReactTable<Post>(tableConfig);
   tableRef.current = table;
 
+  // Post table effects hook (after table is created)
+  usePostTableEffects({
+    mounted,
+    posts,
+    tableData,
+    selectedPreviewCell,
+    selectedGroupData,
+    prevStoreDataRef,
+    userInitiatedChangeRef,
+    lastBoardIdRef,
+    groupRevisionRef,
+    columnSizingInfo,
+    rowHeight,
+    boardRules,
+    grouping,
+    sorting,
+    editFieldOpen,
+    editFieldTypeOpen,
+    editFieldPanelRef,
+    filterTree,
+    tableDataLength: tableData.length,
+    checkIfScrollable: callbacks.checkIfScrollableCallback,
+    captionLocked,
+    undoTimeoutRef,
+    duplicateUndoTimeoutRef,
+    setMounted,
+    setTableData,
+    setSelectedPreviewCell,
+    setUserColumns,
+    setColumnOrder,
+    setColumnSizing,
+    setSorting,
+    setGrouping,
+    setRowHeight,
+    setSelectedGroupData,
+    setEditFieldOpen,
+    setSelectedPlatform,
+    setFlatGroupExpanded,
+    updateBoard: (id: string, data: Partial<Board>) => Promise<void>,
+    markGroupCommentRead,
+    activeBoardId,
+    currentBoard,
+    activeWorkspace,
+    table,
+  });
+
   // Create rowComparator after table is created
   const rowComparator = React.useMemo<
-    ((a: any, b: any) => number) | undefined
+    ((a: Row<Post>, b: Row<Post>) => number) | undefined
   >(() => {
     if (!sorting.length || !table) return undefined;
 
@@ -748,7 +688,7 @@ export function PostTable({
       return 0;
     };
 
-    return (a: any, b: any) => {
+    return (a: Row<Post>, b: Row<Post>) => {
       for (const s of sorters) {
         let res = 0;
         if (typeof s.fn === "function") {
@@ -1353,7 +1293,7 @@ export function PostTable({
               <div className="min-w-full inline-block relative">
                 {grouping.length > 0 ? (
                   <div className="p-0 m-0">
-                    <RenderGroupedTable
+                  <RenderGroupedTable
                       table={table}
                       grouping={grouping}
                       userColumns={userColumns}
@@ -1364,8 +1304,8 @@ export function PostTable({
                       stickyStyles={stickyStyles}
                       flatGroupExpanded={flatGroupExpanded}
                       setFlatGroupExpanded={setFlatGroupExpanded}
-                      currentBoard={currentBoard}
-                      boardRules={boardRules as BoardRules}
+                    currentBoard={currentBoard || null}
+                    boardRules={boardRules}
                       handleOpenGroupFeedback={handlers.handleOpenGroupFeedback}
                       renderGroupValue={renderGroupValue}
                       getRowHeightPixels={getRowHeightPixels}

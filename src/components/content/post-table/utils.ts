@@ -1,5 +1,5 @@
 import { Row } from "@tanstack/react-table";
-import { Post, UserColumn, ColumnType } from "@/lib/store";
+import { Post, UserColumn, ColumnType, BoardColumn } from "@/lib/store";
 
 /**
  * Type definition for final group structure
@@ -21,7 +21,7 @@ export function getFinalGroupRows(
 ): FinalGroup[] {
   const finalGroups: FinalGroup[] = [];
 
-  rows.forEach((row) => {
+  rows?.forEach((row) => {
     if (row.getIsGrouped()) {
       const colId = row.groupingColumnId as string;
       const value = row.groupingValue;
@@ -128,33 +128,20 @@ export function normalizeOrder(order: string[]): string[] {
 export function buildColumnsPayloadForOrder(
   orderIds: string[],
   columnsList: UserColumn[] = []
-): Array<{
-  name: string;
-  id?: string;
-  is_default: boolean;
-  order: number;
-  type?: ColumnType;
-  options?: any;
-}> {
+): Array<BoardColumn> {
   const filtered = orderIds.filter(
     (id) => id !== "drag" && id !== "rowIndex"
   );
-  const payload: Array<{
-    name: string;
-    id?: string;
-    is_default: boolean;
-    order: number;
-    type?: ColumnType;
-    options?: any;
-  }> = [];
+  const payload: Array<BoardColumn> = [];
   let ord = 0;
   for (const id of filtered) {
     if (defaultIdToName[id]) {
       // Default columns: we can optionally set a type for well-known ones
       // For now, omit type for defaults to preserve existing behavior
       payload.push({
+        id: id,
         name: defaultIdToName[id],
-        is_default: true,
+        isDefault: true,
         order: ord++,
       });
       continue;
@@ -174,7 +161,7 @@ export function buildColumnsPayloadForOrder(
       payload.push({
         name: u.label,
         id: u.id,
-        is_default: false,
+        isDefault: false,
         order: ord++,
         type: u.type,
         options: optionsPayload.length > 0 ? optionsPayload : undefined,

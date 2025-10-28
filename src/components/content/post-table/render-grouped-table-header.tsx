@@ -142,7 +142,7 @@ export function RenderGroupedTableHeader({
                         onMouseDown={(e) => {
                           if (!canDrag) return;
                           if (e.button !== 0) return; // left click only
-                          if ((e as any).detail >= 2) return; // ignore double-clicks
+                          if (e.detail >= 2) return; // ignore double-clicks
                           const target = e.target as HTMLElement;
                           if (target.closest("[data-col-menu-trigger]"))
                             return; // don't start drag when clicking menu trigger
@@ -348,7 +348,7 @@ export function RenderGroupedTableHeader({
 
           {/* ▶ plus column on the right */}
           <TableHead
-            ref={plusHeaderRef as any}
+            ref={plusHeaderRef}
             className="border-b border-[#E6E4E2]"
             style={{ width: 100, padding: 0 }}
           >

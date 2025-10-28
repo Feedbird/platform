@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApiHandlerError } from "../../shared";
 import { FormFieldsHandler } from "./handler";
+import { readJsonSnake, jsonCamel } from "@/lib/utils/http";
 
 export async function POST(req: NextRequest) {
   try {
-    const { formId, formFields } = await req.json();
+    const { formId, formFields } = await readJsonSnake(req);
 
     if (!formId || !formFields) {
       return NextResponse.json(
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     await FormFieldsHandler.updateFormFields(formId, formFields);
 
-    return NextResponse.json({ message: "Form fields updated" });
+    return jsonCamel({ message: "Form fields updated" });
   } catch (error) {
     const uiMessage =
       "We are unable to save this form updates now. Please try again.";
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
       );
     }
     const formFields = await FormFieldsHandler.fetchFormFields(formId);
-    return NextResponse.json({ formFields });
+    return jsonCamel({ formFields });
   } catch (error) {
     const uiMessage =
       "We are unable to load this form fields now. Please try again.";

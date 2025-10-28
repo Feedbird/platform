@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
 import { SlackService } from '@/lib/services/slack-service'
+import { readJsonSnake, jsonCamel } from '@/lib/utils/http'
 
 const CreateActivitySchema = z.object({
   workspace_id: z.string().uuid('Invalid workspace ID'),
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
       .eq('post_id', post_id)
 
     const { data: activities, error } = await query.order('created_at', { ascending: true })
-    return NextResponse.json(activities ?? [])
+    return jsonCamel(activities ?? [])
   } catch (error) {
     console.error('Error in GET /api/post/activity:', error)
     return NextResponse.json(
@@ -143,7 +144,7 @@ export async function GET(req: NextRequest) {
 // POST - Create a new activity for a workspace
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validated = CreateActivitySchema.parse(body)
     
     // Verify workspace exists
@@ -234,7 +235,7 @@ export async function POST(req: NextRequest) {
       }
     })()
 
-    return NextResponse.json(data, { status: 201 })
+    return jsonCamel(data, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

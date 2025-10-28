@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Post, BoardGroupData, BoardRules } from "@/lib/store";
+import { Post, BoardGroupData, BoardRules, UserColumn, Board } from "@/lib/store";
 import { GroupDivider } from "./group-divider";
 import { MemoizedRow } from "./memoized-row";
 import { Button } from "@/components/ui/button";
@@ -9,35 +9,36 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TableCell, TableRow, TableBody } from "@/components/ui/table";
 import { FocusCell } from "./focus-provider";
-import { Cell, Column, flexRender, Row } from "@tanstack/react-table";
+import { Cell, Column, flexRender, Row, Table } from "@tanstack/react-table";
 import { RenderGroupedTableHeaderProps } from "./render-grouped-table-header";
+import { FinalGroup, getFinalGroupRows as utilGetFinalGroupRows } from "./utils";
 
 interface RenderGroupedTableProps {
-  table: any; // Table instance from react-table
+  table: Table<Post>; // Table instance from react-table
   grouping: string[];
-  userColumns: any[];
+  userColumns: UserColumn[];
   columnOrder: string[];
-  getFinalGroupRows: (rows: any[], expanded: any, rowComparator?: any) => any[];
-  rowComparator?: (a: any, b: any) => number;
+  getFinalGroupRows: (rows: Row<Post>[], expanded: Record<string, boolean>, rowComparator?: (a: Row<Post>, b: Row<Post>) => number) => FinalGroup[];
+  rowComparator?: (a: Row<Post>, b: Row<Post>) => number;
   isSticky: (columnId: string) => boolean;
   stickyStyles: (colId: string, zIndex?: number) => React.CSSProperties | undefined;
   flatGroupExpanded: Record<string, boolean>;
   setFlatGroupExpanded: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  currentBoard: any;
-  boardRules: BoardRules;
+  currentBoard: Board | null;
+  boardRules: BoardRules | undefined;
   handleOpenGroupFeedback: (groupData: BoardGroupData, month: number) => void;
-  renderGroupValue: (columnId: string, value: any) => React.ReactNode;
+  renderGroupValue: (columnId: string, value: string | number | null) => React.ReactNode;
   getRowHeightPixels: (rowHeight: "Small" | "Medium" | "Large" | "X-Large" | "XX-Large") => number;
   rowHeight: string;
-  handleRowClick: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: any) => void;
-  handleContextMenu: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: any) => void;
+  handleRowClick: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => void;
+  handleContextMenu: (e: React.MouseEvent<HTMLTableRowElement, MouseEvent>, row: Row<Post>) => void;
   handleRowDragStart: (e: React.DragEvent, index: number) => void;
   handleRowDrop: (e: React.DragEvent) => void;
   setDragOverIndex: React.Dispatch<React.SetStateAction<number | null>>;
   draggingColumnId: string | null;
   fillDragRange: [number, number] | null;
   fillDragColumn: string | null;
-  handleAddRowForGroup: (groupValues: any) => void;
+  handleAddRowForGroup: (groupValues: Record<string, string | number | null>) => void;
   PlusIcon: React.ComponentType<{ size?: number }>;
   ChevronUpIcon: React.ComponentType;
   ChevronDownIcon: React.ComponentType;
@@ -235,7 +236,6 @@ export function RenderGroupedTable({
                     isExpanded={isExpanded}
                     groupKey={key}
                     table={table}
-                    isSticky={isSticky}
                     stickyStyles={stickyStyles as (colId: string, zIndex?: number) => React.CSSProperties | undefined}
                     grouping={grouping}
                     getFinalGroupRows={getFinalGroupRows}

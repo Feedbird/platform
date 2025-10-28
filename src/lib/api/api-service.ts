@@ -1901,7 +1901,7 @@ export const storeApi = {
       if (userEmail) {
         postUpdates.last_updated_by = userEmail;
       }
-
+      console.log("postUpdates:", postUpdates);
       const post = await postApi.updatePost(id, postUpdates);
       console.log('post', post);
       const store = useWorkspaceStore.getState();

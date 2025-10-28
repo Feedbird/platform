@@ -66,7 +66,6 @@ export function createUserColumns(params: {
     createdBy: "/images/columns/created-by.svg",
     lastUpdatedBy: "/images/columns/updated-time.svg",
   } as const;
-
   const cols: ColumnDef<Post>[] = userColumns.map((col) => {
     const headerIconSrc = iconSrcByType[col.type] ?? "/images/columns/single-line-text.svg";
     return {

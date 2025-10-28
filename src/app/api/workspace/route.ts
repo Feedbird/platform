@@ -4,6 +4,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase/client'
 import { SECURE_SOCIAL_ACCOUNT_WITH_PAGES } from '@/lib/utils/secure-queries'
 import { z } from 'zod'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // Validation schemas
 const CreateWorkspaceSchema = z.object({
@@ -88,7 +89,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json({ ...ws, social_accounts: accounts || [], social_sets: sets || [] })
+      return jsonCamel({ ...ws, social_accounts: accounts || [], social_sets: sets || [] })
     } else if (email) {
       /* ------------------------------------------------------------
        *  Workspaces & boards the user has access to (creator + invites)
@@ -233,7 +234,7 @@ export async function GET(req: NextRequest) {
         ...(invitedWorkspaces || []).map(ws => buildWs(ws, 'member')),
       ]
 
-      return NextResponse.json(responsePayload)
+      return jsonCamel(responsePayload)
 
     } else if (createdBy) {
       // Get workspaces created by specific user
@@ -251,7 +252,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(data)
+      return jsonCamel(data)
     } else {
       // Get all workspaces (fallback for backward compatibility)
       const { data, error } = await supabase
@@ -281,7 +282,7 @@ export async function GET(req: NextRequest) {
 // POST - Create new workspace
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = CreateWorkspaceSchema.parse(body)
 
     // 0) Require authenticated user and create a Clerk organization for this workspace
@@ -343,7 +344,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data, { status: 201 })
+    return jsonCamel(data, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -373,7 +374,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = UpdateWorkspaceSchema.parse(body)
 
     const { data, error } = await supabase
@@ -398,7 +399,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data)
+    return jsonCamel(data)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

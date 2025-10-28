@@ -1,6 +1,10 @@
 import * as React from "react";
-import { Post, BoardRules, useWorkspaceStore, useUserStore } from "@/lib/store";
-import { nameToDefaultId, normalizeOrder } from "./utils";
+import { Post, BoardRules, useWorkspaceStore, BoardColumn, useUserStore, GroupComment, ConditionGroup, UserColumn, Platform, Board, Workspace, BoardGroupData } from "@/lib/store";
+import { FinalGroup, nameToDefaultId, normalizeOrder } from "./utils";
+import { Column, ColumnSizingInfoState, Table } from "@tanstack/react-table";
+import { RowHeightType } from "@/lib/utils";
+import { SortingState } from "@tanstack/react-table";
+
 
 export interface PostTableEffectsParams {
   // State
@@ -8,20 +12,20 @@ export interface PostTableEffectsParams {
   posts: Post[];
   tableData: Post[];
   selectedPreviewCell: string | null;
-  selectedGroupData: { month: number; comments: any[] } | null;
+  selectedGroupData: { month: number; comments: GroupComment[] } | null;
   prevStoreDataRef: React.MutableRefObject<string>;
   userInitiatedChangeRef: React.MutableRefObject<boolean>;
   lastBoardIdRef: React.MutableRefObject<string | null>;
   groupRevisionRef: React.MutableRefObject<Map<string, number>>;
-  columnSizingInfo: any;
-  rowHeight: any;
+  columnSizingInfo: ColumnSizingInfoState;
+  rowHeight: RowHeightType;
   boardRules: BoardRules | undefined;
   grouping: string[];
-  sorting: any[];
+  sorting: SortingState;
   editFieldOpen: boolean;
   editFieldTypeOpen: boolean;
   editFieldPanelRef: React.MutableRefObject<HTMLDivElement | null>;
-  filterTree: any;
+  filterTree: ConditionGroup;
   tableDataLength: number;
   checkIfScrollable: () => void;
   captionLocked: boolean;
@@ -32,26 +36,26 @@ export interface PostTableEffectsParams {
   setMounted: React.Dispatch<React.SetStateAction<boolean>>;
   setTableData: React.Dispatch<React.SetStateAction<Post[]>>;
   setSelectedPreviewCell: React.Dispatch<React.SetStateAction<string | null>>;
-  setUserColumns: React.Dispatch<React.SetStateAction<any[]>>;
+  setUserColumns: React.Dispatch<React.SetStateAction<UserColumn[]>>;
   setColumnOrder: React.Dispatch<React.SetStateAction<string[]>>;
   setColumnSizing: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-  setSorting: React.Dispatch<React.SetStateAction<any[]>>;
+  setSorting: React.Dispatch<React.SetStateAction<SortingState>>;
   setGrouping: React.Dispatch<React.SetStateAction<string[]>>;
-  setRowHeight: React.Dispatch<React.SetStateAction<any>>;
-  setSelectedGroupData: React.Dispatch<React.SetStateAction<{ month: number; comments: any[] } | null>>;
+  setRowHeight: React.Dispatch<React.SetStateAction<RowHeightType>>;
+  setSelectedGroupData: React.Dispatch<React.SetStateAction<{ month: number; comments: GroupComment[] } | null>>;
   setEditFieldOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setSelectedPlatform: React.Dispatch<React.SetStateAction<any>>;
+  setSelectedPlatform: React.Dispatch<React.SetStateAction<Platform | null>>;
   setFlatGroupExpanded: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   
   // External functions
-  updateBoard: (boardId: string, data: any) => void;
+  updateBoard: (boardId: string, data: Partial<Board>) => void;
   markGroupCommentRead: (boardId: string, month: number, commentId: string) => void;
   
   // Board/workspace data
   activeBoardId: string | null;
-  currentBoard: any;
-  activeWorkspace: any;
-  table: any;
+  currentBoard: Board | null;
+  activeWorkspace: Workspace | null;
+  table: Table<Post> | null;
 }
 
 export function usePostTableEffects(params: PostTableEffectsParams) {
@@ -131,10 +135,10 @@ export function usePostTableEffects(params: PostTableEffectsParams) {
   React.useEffect(() => {
     if (selectedGroupData && activeBoardId) {
       const updatedBoard = activeWorkspace?.boards.find(
-        (b: any) => b.id === activeBoardId
+        (b: Board) => b.id === activeBoardId
       );
       const updatedGroupData = updatedBoard?.groupData?.find(
-        (gd: any) => gd.month === selectedGroupData.month
+        (gd: BoardGroupData) => gd.month === selectedGroupData.month
       );
 
       if (updatedGroupData) {
@@ -157,16 +161,16 @@ export function usePostTableEffects(params: PostTableEffectsParams) {
   React.useEffect(() => {
     if (!currentBoard?.columns) return;
     const sorted = [...currentBoard.columns].sort(
-      (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
     );
-    const newUserCols: any[] = [];
+    const newUserCols: UserColumn[] = [];
     const newOrder: string[] = [];
     for (const col of sorted) {
-      if (col.is_default) {
+      if (col.isDefault) {
         const id = nameToDefaultId[col.name];
         if (id) newOrder.push(id);
       } else {
-        const anyCol: any = col as any;
+        const anyCol: any = col;
         // Use existing ID from database if available, otherwise generate new one
         const columnId = anyCol.id || require("nanoid").nanoid();
         newUserCols.push({
@@ -318,9 +322,9 @@ export function usePostTableEffects(params: PostTableEffectsParams) {
   // For grouping expansions
   React.useEffect(() => {
     if (grouping.length) {
-      const groups = require("./utils").getFinalGroupRows(table.getGroupedRowModel().rows);
+      const groups = require("./utils").getFinalGroupRows(table?.getGroupedRowModel().rows);
       const newExpandedState: Record<string, boolean> = {};
-      groups.forEach((group: any) => {
+      groups.forEach((group: FinalGroup) => {
         const key = JSON.stringify(group.groupValues);
         newExpandedState[key] = true;
       });

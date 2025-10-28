@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // Validation schemas
 const CreateChannelMessageSchema = z.object({
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
         author_image_url: user?.image_url || null,
       }
 
-      return NextResponse.json(enriched)
+      return jsonCamel(enriched)
     }
 
     if (channel_id || workspace_id) {
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
         author_image_url: profiles[m.author_email]?.image_url || null,
       }))
 
-      return NextResponse.json(enriched)
+      return jsonCamel(enriched)
     }
 
     return NextResponse.json(
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
 // POST - Create new channel message
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validated = CreateChannelMessageSchema.parse(body)
 
     // Verify workspace and channel exist
@@ -171,7 +172,7 @@ export async function POST(req: NextRequest) {
       // Don't fail the message creation if unread update fails
     }
 
-    return NextResponse.json(data, { status: 201 })
+    return jsonCamel(data, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -191,7 +192,7 @@ export async function PUT(req: NextRequest) {
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'Message ID is required' }, { status: 400 })
 
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validated = UpdateChannelMessageSchema.parse(body)
 
     const { data, error } = await supabase
@@ -208,7 +209,7 @@ export async function PUT(req: NextRequest) {
 
     if (!data) return NextResponse.json({ error: 'Message not found' }, { status: 404 })
 
-    return NextResponse.json(data)
+    return jsonCamel(data)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

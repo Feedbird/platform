@@ -8,7 +8,7 @@ import listPlugin from "@fullcalendar/list";
 import interactionPlugin, {
   EventDragStartArg,
 } from "@fullcalendar/interaction";
-import { DurationInput } from "@fullcalendar/core";
+import { DurationInput, EventApi, DateSelectArg, EventClickArg, DatesSetArg, EventDropArg } from "@fullcalendar/core";
 import { format } from "date-fns";
 
 import { toast } from "sonner";
@@ -450,10 +450,33 @@ interface EventProps {
   block?: import("@/lib/store").Block;
 }
 
+/** Event context wrapper for accessing event properties in eventContent */
+interface EventContentArg {
+  event: EventApi;
+  isPast: boolean;
+  isFuture: boolean;
+  isToday: boolean;
+  view: unknown;
+  text: string;
+}
+
+/** Render more link context */
+interface MoreLinkArg {
+  num: number;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+}
+
+/** Day cell render context */
+interface DayCellContentArg {
+  date: Date;
+  isPast: boolean;
+  isToday: boolean;
+}
+
 /** Convert Post[] -> FC events */
 function postsToEvents(posts: Post[]) {
   return posts.map((p) => {
-    const start = p.publish_date || undefined;
+    const start = p.publishDate || undefined;
     const end = start ? new Date(start.getTime() + 1000) : undefined; // +1 s to avoid FC's default 2-hour span
 
     return {
@@ -537,15 +560,15 @@ export default function CalendarView({
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectorEvent, setSelectorEvent] = useState<{
     id: string;
-    publish_date?: Date | null;
+    publishDate?: Date | null;
     platforms: Platform[];
   } | null>(null);
 
-  const openDateSelectorForEvent = (arg: any) => {
+  const openDateSelectorForEvent = (arg: EventContentArg) => {
     const eprops = arg.event.extendedProps as EventProps;
     setSelectorEvent({
       id: arg.event.id,
-      publish_date: (arg.event.start as Date) ?? null,
+      publishDate: (arg.event.start as Date) ?? null,
       platforms: eprops.platforms ?? [],
     });
     setSelectorOpen(true);
@@ -604,7 +627,7 @@ export default function CalendarView({
   const events = useMemo(() => postsToEvents(posts), [posts]);
 
   /** On date range change => parse e.g. "May 2025" => bold "May." */
-  function handleDatesSet(arg: any) {
+  function handleDatesSet(arg: DatesSetArg) {
     // Previously updated titleHTML for bold month-year, now unused
 
     // Compute period range label (e.g., "1 Jun - 30 Jun")
@@ -617,7 +640,7 @@ export default function CalendarView({
     const endFmt = format(endDate, "d MMM");
     setPeriodLabel(`${startFmt} - ${endFmt}`);
   }
-  function handleDatesSetAndReset(arg: any) {
+  function handleDatesSetAndReset(arg: DatesSetArg) {
     handleDatesSet(arg);
   }
 
@@ -654,7 +677,7 @@ export default function CalendarView({
    * 1. Prevent dropping into the past (revert UI & show error).
    * 2. Persist the new date to the global Feedbird store so it is saved.
    */
-  function handleEventDrop(arg: any) {
+  function handleEventDrop(arg: EventDropArg) {
     const newDate = arg.event.start;
     if (!newDate) return;
 
@@ -672,7 +695,7 @@ export default function CalendarView({
     // Persist the change to the Zustand store so it's saved (and persisted by the middleware)
     const updatePost = usePostStore.getState().updatePost;
     updatePost(arg.event.id, {
-      publish_date: newDate,
+      publishDate: newDate,
       status: "Scheduled",
     });
 
@@ -680,7 +703,7 @@ export default function CalendarView({
   }
 
   // On event click => open local "post record" modal or call onOpen
-  function handleEventClick(arg: any) {
+  function handleEventClick(arg: EventContentArg) {
     const eprops = arg.event.extendedProps as EventProps;
     if (onOpen) {
       onOpen(arg.event.id);
@@ -716,7 +739,7 @@ export default function CalendarView({
    * We customize the "more" link in dayGrid to say "2+ more" etc.
    * By default, clicking it shows a popover with the hidden events.
    */
-  function renderMoreLink(arg: any) {
+  function renderMoreLink(arg: MoreLinkArg) {
     return (
       <button onClick={arg.onClick} className="text-sm text-blue-600 underline cursor-pointer">
         {arg.num}+ more
@@ -760,9 +783,10 @@ export default function CalendarView({
    * - large caption area
    * - action buttons
    */
-  function renderEventContent(arg: any) {
+  function renderEventContent(arg: EventContentArg) {
     const eprops = arg.event.extendedProps as EventProps;
     const timeLabel = arg.event.start ? format(arg.event.start, "p") : "";
+    const StatusIcon = statusConfig[eprops.status].icon;
 
     /* Helper to render up to 5 platform icons, with "+N" overflow */
     const renderPlatforms = (size: "lg" | "sm") => {
@@ -891,115 +915,6 @@ export default function CalendarView({
               </div>
             </div>
           </HoverCardTrigger>
-          {/* <HoverCardContent
-            side="right"
-            align="center"
-            sideOffset={8}
-            className="relative p-3 bg-white rounded-md shadow-lg flex gap-2 w-100 justify-between
-              after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:w-3 after:h-3 after:bg-white after:rotate-45
-              data-[side=right]:after:-left-1.5 data-[side=right]:after:shadow-md
-              data-[side=left]:after:-right-1.5"
-          >
-            <div className="flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-medium text-gray-500">Schedule</div>
-                <div className="flex items-center gap-1 bg-sky-100 rounded px-2 py-0.5 h-5 mt-2">
-                  <div className="w-3.5 h-3.5 bg-blue-600 rounded-[3px] flex items-center justify-center">
-                    <img
-                      src="/images/columns/post-time.svg"
-                      alt="calendar"
-                      className="w-2.5 h-2.5"
-                      style={{ filter: "brightness(0) invert(1)" }}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold text-gray-900 leading-none">{scheduleDisplay}</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs font-medium text-gray-500">Socials</div>
-                <div className="flex items-center gap-0.5 mt-2">{renderPlatforms("sm")}</div>
-              </div>
-
-              {eprops.format && (
-              <div>
-                <div className="text-xs font-medium text-gray-500">Format</div>
-                <div className="inline-flex items-center gap-1 bg-gray-200 rounded-full pl-0.5 pr-2 py-0.5 h-5 mt-2">
-                  <img src={`/images/format/${eprops.format}.svg`} alt={eprops.format} className="w-5 h-5" />
-                  <span className="text-xs font-semibold text-gray-900 leading-none capitalize">{eprops.format}</span>
-                </div>
-              </div>
-              )}
-
-              <div>
-                <div className="text-xs font-medium text-gray-500">Month</div>
-                  <div className="flex items-center gap-1 rounded-full py-0.5 h-5 mt-2">
-                    <div
-                    style={{
-                      display: "inline-flex",
-                      padding: "2px 8px 2px 8px",
-                      alignItems: "center",
-                      borderRadius: "100px",
-                      border: "1px solid rgba(28, 29, 31, 0.05)",
-                      background: getMonthColor(monthDisplay),
-                    }}
-                    className="text-xs font-semibold text-black flex items-center gap-1"
-                  >
-                    <span
-                      className="w-[6px] h-[6px] rounded-full"
-                      style={{ background: getBulletColor(monthDisplay) }}
-                    />
-                    <span>Month {monthDisplay}</span>
-                  </div>
-                  </div>
-              </div>
-            </div>
-
-            <div className="relative w-56 h-56 rounded overflow-hidden shadow">
-              {(() => {
-                if (!eprops.block) {
-                  return (
-                    <img
-                      src={eprops.thumb}
-                      alt="preview"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  );
-                }
-
-                const currentVer = eprops.block.versions.find((v) => v.id === eprops.block!.currentVersionId);
-                if (!currentVer) return null;
-
-                const isVideo = currentVer.file.kind === "video";
-                if (isVideo) {
-                  return (
-                    <>
-                      <video
-                        src={`${currentVer.file.url}?v=${currentVer.id}`}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        muted
-                        loop
-                        playsInline
-                      />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden drop-shadow-md">
-                          <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[8px] border-t-transparent border-b-transparent border-l-white" />
-                        </div>
-                      </div>
-                    </>
-                  );
-                }
-
-                return (
-                  <img
-                    src={currentVer.file.url}
-                    alt="preview"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                );
-              })()}
-            </div>
-          </HoverCardContent> */}
           <HoverCardContent className="p-0 shadow-lg w-[200px]" side="right" sideOffset={8} align="start">
             <ActionList onSelectAnotherDate={() => openDateSelectorForEvent(arg)} />
           </HoverCardContent>
@@ -1031,11 +946,7 @@ export default function CalendarView({
                 color: statusConfig[eprops.status].textColor,
               }}
             >
-              <img
-                src={statusConfig[eprops.status].icon}
-                alt={eprops.status}
-                className="w-[14px] h-[14px]"
-              />
+              <StatusIcon size={14} />
               <span className="text-xs font-semibold leading-none whitespace-nowrap">
                 {eprops.status}
               </span>
@@ -1138,7 +1049,7 @@ export default function CalendarView({
    * Overriding the day cell => place day number top-right, remove default text,
    * apply "past/today" classes for styling.
    */
-  function dayCellContent(arg: any) {
+  function dayCellContent(arg: DayCellContentArg & { dayNumberText: string }) {
     arg.dayNumberText = "";
 
     const dow = format(arg.date, "EEE"); // e.g., Mon, Tue
@@ -1165,7 +1076,7 @@ export default function CalendarView({
           <DialogTitle className="sr-only">Select custom date and time</DialogTitle>
           {selectorEvent && (
             <DateTimeSelector
-              post={{ id: selectorEvent.id, publish_date: selectorEvent.publish_date as any, platforms: selectorEvent.platforms as any } as Post}
+              post={{ id: selectorEvent.id, publishDate: selectorEvent.publishDate, platforms: selectorEvent.platforms } as Post}
               allPosts={posts}
               onClose={() => setSelectorOpen(false)}
               onSchedule={(d) => {
@@ -1174,13 +1085,13 @@ export default function CalendarView({
                 event?.setStart?.(d);
                 event?.setEnd?.(new Date(d.getTime() + 1000));
                 usePostStore.getState().updatePost(selectorEvent.id, {
-                  publish_date: d,
+                  publishDate: d,
                   status: "Scheduled",
                 });
                 setSelectorOpen(false);
               }}
               onPublishNow={() => {
-                const publishNow = usePostStore.getState().publishPostToAllPages as any;
+                const publishNow = usePostStore.getState().publishPostToAllPages;
                 if (typeof publishNow === 'function') publishNow(selectorEvent.id);
                 setSelectorOpen(false);
               }}

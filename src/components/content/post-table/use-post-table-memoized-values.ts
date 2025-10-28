@@ -1,68 +1,69 @@
 import * as React from "react";
-import { Post, Platform, BoardRules, Board } from "@/lib/store";
+import { Post, Platform, BoardRules, Board, UserColumn, Workspace, ConditionGroup } from "@/lib/store";
 import { createPlatformsFilterFn } from "./filters";
-import { ColumnDef, useReactTable } from "@tanstack/react-table";
+import { ColumnDef, useReactTable, Table, Row, SortingState, FilterFn, SortingFn } from "@tanstack/react-table";
 import { createPlatformsSortingFn } from "./sort";
 import { createBaseColumns } from "./columns/base-columns";
 import { createUserColumns } from "./columns/user-columns";
-import { getUserColumnValue, buildUpdatedUserColumnsArr, normalizeOrder, buildColumnsPayloadForOrder, getFinalGroupRows } from "./utils";
+import { getUserColumnValue, buildUpdatedUserColumnsArr, normalizeOrder, buildColumnsPayloadForOrder } from "./utils";
+import { RowHeightType } from "@/lib/utils";
 
 export interface PostTableMemoizedValuesParams {
   // State
-  workspaces: any[];
+  workspaces: Workspace[];
   activeWorkspaceId: string | null;
   activeBoardId: string | null;
   tableData: Post[];
-  userColumns: any[];
+  userColumns: UserColumn[];
   columnOrder: string[];
   columnNames: Record<string, string>;
-  rowHeight: any;
-  selectedPlatform: any;
+  rowHeight: RowHeightType;
+  selectedPlatform: Platform | null;
   availablePlatforms: Platform[];
   captionLocked: boolean;
-  platformsFilterFn: any;
-  platformsSortingFn: any;
-  statusFilterFn: any;
-  statusSortingFn: any;
-  formatFilterFn: any;
-  formatSortingFn: any;
-  monthFilterFn: any;
-  previewFilterFn: any;
-  publishDateFilterFn: any;
-  approveFilterFn: any;
+  platformsFilterFn: FilterFn<Post>;
+  platformsSortingFn: SortingFn<Post>;
+  statusFilterFn: FilterFn<Post>;
+  statusSortingFn: SortingFn<Post>;
+  formatFilterFn: FilterFn<Post>;
+  formatSortingFn: SortingFn<Post>;
+  monthFilterFn: FilterFn<Post>;
+  previewFilterFn: FilterFn<Post>;
+  publishDateFilterFn: FilterFn<Post>;
+  approveFilterFn: FilterFn<Post>;
   boardRules: BoardRules | undefined;
-  sorting: any[];
-  filterTree: any;
-  ws: any;
-  selectedRows: any[];
+  sorting: SortingState;
+  filterTree: ConditionGroup | null;
+  ws: Workspace | null;
+  selectedRows: Array<Row<Post>>;
   
   // Setters
   setTableData: React.Dispatch<React.SetStateAction<Post[]>>;
   setCaptionLocked: React.Dispatch<React.SetStateAction<boolean>>;
   updateBoard: (id: string, data: Partial<Board>) => Promise<void>;
-  updatePost: (postId: string, data: any) => void;
-  setUserColumns: React.Dispatch<React.SetStateAction<any[]>>;
+  updatePost: (postId: string, data: Partial<Post>) => void;
+  setUserColumns: React.Dispatch<React.SetStateAction<UserColumn[]>>;
   
   // External functions
   onOpen?: (id: string) => void;
-  getPageCounts: any;
-  handleFillStartCaption: any;
-  handleFillStartPages: any;
-  handleFillStartFormat: any;
-  handleFillStartMonth: any;
-  previewCellFn: any;
+  getPageCounts: () => Record<Platform, number>;
+  handleFillStartCaption: (value: Post["caption"], startIdx: number) => void;
+  handleFillStartPages: (value: string[], startIdx: number) => void;
+  handleFillStartFormat: (value: string, startIdx: number) => void;
+  handleFillStartMonth: (value: number, startIdx: number) => void;
+  previewCellFn: ({ row, isFocused }: { row: Row<Post>; isFocused?: boolean }) => React.ReactNode;
   
   // Handlers
-  handleRowDragStart: any;
-  handleCheckboxClick: any;
-  handleEditPost: any;
+  handleRowDragStart: (e: React.DragEvent, fromIndex: number) => void;
+  handleCheckboxClick: (e: React.MouseEvent, row: Row<Post>) => void;
+  handleEditPost: (post: Post) => void;
   
   // Refs
   anchorRowIdRef: React.MutableRefObject<string | null>;
-  tableRef: React.MutableRefObject<any>;
+  tableRef: React.MutableRefObject<Table<Post> | null>;
   
   // Table
-  table: ReturnType<typeof useReactTable<Post>>;
+  table: ReturnType<typeof useReactTable<Post>> | null;
 }
 
 export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams) {
@@ -126,11 +127,12 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
 
   // Compute activeWorkspace from the actual data that changes
   const activeWorkspace = React.useMemo(() => {
-    return workspaces.find((w) => w.id === activeWorkspaceId);
+    const ws = workspaces.find((w) => w.id === activeWorkspaceId);
+    return ws ?? null;
   }, [workspaces, activeWorkspaceId]);
 
   const currentBoard = React.useMemo(
-    () => activeWorkspace?.boards.find((b: any) => b.id === activeBoardId),
+    () => (activeWorkspace?.boards.find((b) => b.id === activeBoardId) ?? null),
     [activeWorkspace, activeBoardId]
   );
 
@@ -139,14 +141,13 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
     if (!filterTree) return false;
     
     let active = false;
-    const check = (node: any) => {
+    const check = (node: { type?: string; selectedValues?: unknown[]; children?: any[] } | null | undefined) => {
       if (!node) return;
       
-      if ((node as any).type === "condition") {
-        const c = node as any;
-        if (c.selectedValues && c.selectedValues.length > 0) active = true;
-      } else if ((node as any).children) {
-        (node as any).children.forEach(check);
+      if (node.type === "condition") {
+        if (node.selectedValues && node.selectedValues.length > 0) active = true;
+      } else if (node.children) {
+        node.children.forEach(check);
       }
     };
     check(filterTree);
@@ -154,8 +155,8 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
   }, [filterTree]);
 
   const pageIdToPlatformMap = React.useMemo(() => {
-    const pages: any[] = (ws?.socialPages || []) ?? [];
-    return new Map(pages.map((p: any) => [p.id, p.platform] as const));
+    const pages: Array<{ id: string; platform: Platform }> = (ws?.socialPages || []) ?? [];
+    return new Map(pages.map((p) => [p.id, p.platform] as const));
   }, [ws?.socialPages]);
 
   // Now we define the functions INSIDE the component, so they have access to the map
@@ -170,7 +171,7 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
   );
 
   const availablePlatformsMemo = React.useMemo(() => {
-    const pages: any[] = (ws?.socialPages || []) ?? [];
+    const pages: Array<{ id: string; platform: Platform }> = (ws?.socialPages || []) ?? [];
 
     // Gather all page IDs from the table's posts
     const allPageIds = new Set<string>();
@@ -219,7 +220,7 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
       sorting,
       onOpen,
       onRowDragStart: handleRowDragStart,
-      onRowIndexCheckedChange: (rowId: string, row: any, val: boolean) => {
+      onRowIndexCheckedChange: (rowId: string, row: Row<Post>, val: boolean) => {
         row.toggleSelected(!!val);
         anchorRowIdRef.current = row.id;
       },
@@ -243,17 +244,17 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
           rowHeight: prevRules?.rowHeight ?? rowHeight,
         };
         // optimistic update in store
-        require("@/lib/store").useWorkspaceStore.setState((s: any) => ({
-          workspaces: (s.workspaces || []).map((w: any) => ({
+        require("@/lib/store").useWorkspaceStore.setState((s: { workspaces: Array<{ id: string; boards: Board[] }> }) => ({
+          workspaces: (s.workspaces || []).map((w) => ({
             ...w,
-            boards: (w.boards || []).map((b: any) => (b.id === activeBoardId ? { ...b, rules: mergedRules } : b)),
+            boards: (w.boards || []).map((b: Board) => (b.id === activeBoardId ? { ...b, rules: mergedRules } : b)),
           })),
         }));
         updateBoard(activeBoardId, { rules: mergedRules }).catch(() => {
-          require("@/lib/store").useWorkspaceStore.setState((s: any) => ({
-            workspaces: (s.workspaces || []).map((w: any) => ({
+          require("@/lib/store").useWorkspaceStore.setState((s: { workspaces: Array<{ id: string; boards: Board[] }> }) => ({
+            workspaces: (s.workspaces || []).map((w) => ({
               ...w,
-              boards: (w.boards || []).map((b: any) => (b.id === activeBoardId ? { ...b, rules: prevRules } : b)),
+              boards: (w.boards || []).map((b: Board) => (b.id === activeBoardId ? { ...b, rules: prevRules } : b)),
             })),
           }));
         });
@@ -264,6 +265,7 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
       handleFillStartFormat,
       handleFillStartMonth,
       previewCellFn,
+      // Accept a minimal shape; component only reads id and platform
       socialPages: (ws?.socialPages || []) as any,
       allPosts: tableData,
     });
@@ -316,7 +318,7 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
       updatePost,
       setUserColumns,
       activeBoardId,
-      getCurrentOrder: () => (tableRef.current ? tableRef.current.getAllLeafColumns().map((c: any) => c.id) : []),
+      getCurrentOrder: () => (tableRef.current ? tableRef.current.getAllLeafColumns().map((c) => c.id) : []),
       normalizeOrder,
       buildColumnsPayloadForOrder,
       updateBoard,
@@ -368,7 +370,7 @@ export function usePostTableMemoizedValues(params: PostTableMemoizedValuesParams
   }, [columns, columnNames]);
 
   const selectedPosts = React.useMemo(
-    () => selectedRows.map((r: any) => r.original),
+    () => selectedRows.map((r) => r.original),
     [selectedRows]
   );
 

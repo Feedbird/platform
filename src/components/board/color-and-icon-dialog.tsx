@@ -11,11 +11,11 @@ import {
   import * as React from "react";
   
   interface ColorAndIconDialogProps {
-    isOpen: boolean;
+    isOpen: boolean;  
     onClose: () => void;
-    icon?: React.ReactNode;
+    icon?: string;
     color?: string;
-    onSave: (icon: React.ReactNode, color: string) => void;
+    onSave: (icon: string, color: string) => void;
   }
   
   export function ColorAndIconDialog({ isOpen, onClose, icon, color, onSave }: ColorAndIconDialogProps) {
@@ -30,7 +30,7 @@ import {
     }, [isOpen, icon, color]);
   
     const handleSave = () => {
-      onSave(currentIcon || <></>, currentColor || '');
+      onSave(currentIcon || '', currentColor || '');
       onClose();
     };
   

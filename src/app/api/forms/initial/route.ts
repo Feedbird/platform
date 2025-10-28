@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase/client";
+import { readJsonSnake, jsonCamel } from "@/lib/utils/http";
 
 const CreateFormSchema = z.object({
   type: z.enum(["intake", "template"]),
@@ -19,7 +20,7 @@ const CreateFormSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await readJsonSnake(req);
     const validatedData = CreateFormSchema.parse(body);
 
     const { data, error } = await supabase
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(data, { status: 201 });
+    return jsonCamel(data, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

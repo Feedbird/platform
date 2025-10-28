@@ -129,7 +129,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
                 {row.original.title}
               </span>
               <span className="text-xs font-normal text-[#838488]">
-                {(row.original as any).fieldsCount || 0} Questions
+                {row.original.fieldsCount || 0} Questions
               </span>
             </div>
             <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">

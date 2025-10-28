@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // Validation schemas
 const CreateBoardSchema = z.object({
@@ -15,7 +16,7 @@ const CreateBoardSchema = z.object({
       z.object({
         id: z.string().optional(), // Optional for backward compatibility, required for user columns
         name: z.string(),
-        is_default: z.boolean(),
+        isDefault: z.boolean(),
         order: z.number().int().nonnegative(),
         type: z.string().optional(),
         // Accept arbitrary options payload; UI sends { value, color }[]
@@ -37,7 +38,7 @@ const UpdateBoardSchema = z.object({
       z.object({
         id: z.string().optional(), // Optional for backward compatibility, required for user columns
         name: z.string(),
-        is_default: z.boolean(),
+        isDefault: z.boolean(),
         order: z.number().int().nonnegative(),
         type: z.string().optional(),
         // Accept arbitrary options payload; UI sends { value, number }[]
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(data)
+      return jsonCamel(data)
     } else if (workspace_id) {
       // Get boards by workspace
       const { data, error } = await supabase
@@ -94,7 +95,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(data)
+      return jsonCamel(data)
     } else {
       return NextResponse.json(
         { error: 'Either id or workspace_id parameter is required' },
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
 // POST - Create new board
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = CreateBoardSchema.parse(body)
     // Verify workspace exists
     const { data: workspace } = await supabase
@@ -200,7 +201,7 @@ export async function POST(req: NextRequest) {
       console.log(`Created ${posts?.length || 0} default posts for board ${data.id}`)
     }
 
-    return NextResponse.json(data, { status: 201 })
+    return jsonCamel(data, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -230,7 +231,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = UpdateBoardSchema.parse(body)
 
     const { data, error } = await supabase
@@ -255,7 +256,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data)
+    return jsonCamel(data)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

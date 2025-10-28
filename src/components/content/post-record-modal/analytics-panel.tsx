@@ -73,7 +73,7 @@ export function AnalyticsPanel({ post }: AnalyticsPanelProps) {
                     </div>
                     <div className="pt-2">
                         <span className="text-sm text-muted-foreground">
-                            {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+                            {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
                         </span>
                     </div>
                 </div>

@@ -1,17 +1,18 @@
 import * as React from "react";
-import { Post } from "@/lib/store";
+import { ConditionGroup, Post } from "@/lib/store";
 import { Row } from "@tanstack/react-table";
+import { RowHeightType } from "@/lib/utils";
 
 export interface PostTableCallbacksParams {
   // State
   scrollContainerRef: React.MutableRefObject<HTMLDivElement | null>;
   tableData: Post[];
-  rowHeight: any;
+  rowHeight: RowHeightType;
   onOpen?: (id: string) => void;
   
   // Setters
   setIsScrollable: React.Dispatch<React.SetStateAction<boolean>>;
-  setFilterTree: (conditions: any) => void;
+  setFilterTree: (conditions: ConditionGroup) => void;
   
   // External functions
   checkIfScrollable: () => void;
@@ -43,7 +44,7 @@ export function usePostTableCallbacks(params: PostTableCallbacksParams) {
   }, [scrollContainerRef, setIsScrollable]);
 
   // Set filter conditions in store for current board
-  const setFilterTreeCallback = React.useCallback((conditions: any) => {
+  const setFilterTreeCallback = React.useCallback((conditions: ConditionGroup) => {
     setFilterTree(conditions);
   }, [setFilterTree]);
 
@@ -80,7 +81,7 @@ export function usePostTableCallbacks(params: PostTableCallbacksParams) {
             }
           },
         },
-        React.createElement(require("./MemoBlocksPreview").MemoBlocksPreview, {
+        React.createElement(require("./memo-blocks-preview").MemoBlocksPreview, {
           blocks: post.blocks,
           postId: post.id,
           onFilesSelected: handleFilesSelected,

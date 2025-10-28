@@ -5,7 +5,7 @@ import { Post } from "@/lib/store";
  * Type definition for fill drag operation data
  */
 export interface FillDragData {
-  value: any;
+  value: string | string[] | Post["caption"] | number;
   startIndex: number;
   columnId: string;
 }
@@ -60,7 +60,7 @@ export class FillUtils {
     fillDragRef: React.MutableRefObject<FillDragData | null>,
     tableData: Post[],
     setTableData: React.Dispatch<React.SetStateAction<Post[]>>,
-    updatePost: (postId: string, data: any) => void,
+    updatePost: (postId: string, data: Partial<Post>) => void,
     setFillDragRange: React.Dispatch<React.SetStateAction<[number, number] | null>>,
     setFillDragColumn: React.Dispatch<React.SetStateAction<string | null>>,
     finishFillDrag: (e: MouseEvent) => void,
@@ -229,7 +229,7 @@ export class FillUtils {
 export function useFillDrag(
   tableData: Post[],
   setTableData: React.Dispatch<React.SetStateAction<Post[]>>,
-  updatePost: (postId: string, data: any) => void
+  updatePost: (postId: string, data: Partial<Post>) => void
 ) {
   const [fillDragRange, setFillDragRange] = React.useState<[number, number] | null>(null);
   const [fillDragColumn, setFillDragColumn] = React.useState<string | null>(null);

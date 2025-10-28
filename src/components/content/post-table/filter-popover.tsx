@@ -34,15 +34,8 @@ import {
 
 import {
   Filter as FilterIcon,
-  X,
-  FolderOpen,
   Edit as EditIcon,
-  ListPlus,
-  Film,
-  ListFilter,
   ChevronDown,
-  ChevronUp,
-  Check,
   GripVertical,
   Plus,
   CircleHelp,
@@ -70,6 +63,7 @@ import {
   useSensors,
   UniqueIdentifier,
   type CollisionDetection,
+  DraggableAttributes,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -77,6 +71,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 /* ------------------------------------------------------------------ */
 /* 1.  Types, constants                                               */
@@ -549,12 +544,12 @@ const CommonMultiSelect: React.FC<CommonMultiSelectProps> = ({ field, selectedVa
             const { node, isPlaceholder } = getDisplayContent();
             if (isPlaceholder) {
               return (
-                <span className="truncate text-left text-grey">{node as any}</span>
+                <span className="truncate text-left text-grey">{node as React.ReactNode}</span>
               );
             }
             // For single selection, node is a component; for multi, it's text
             return (
-              <div className="truncate text-left flex items-center gap-1">{node}</div>
+              <div className="truncate text-left flex items-center gap-1">{node as React.ReactNode}</div>
             );
           })()}
           <div className="flex items-center gap-1">
@@ -611,27 +606,6 @@ const CommonMultiSelect: React.FC<CommonMultiSelectProps> = ({ field, selectedVa
       </PopoverContent>
     </Popover>
   );
-};
-
-const formatDisplayNames: Record<ContentFormat, string> = {
-  image: "Static Image",
-  carousel: "Carousel",
-  story: "Story",
-  video: "Video",
-  email: "Email",
-};
-
-const statusDisplayNames: Record<Status | 'any', string> = {
-  any: "Any Status",
-  Draft: "Draft",
-  "Pending Approval": "Pending Approval",
-  "Needs Revisions": "Needs Revisions",
-  Revised: "Revised",
-  Approved: "Approved",
-  Scheduled: "Scheduled",
-  Publishing: "Publishing",
-  Published: "Published",
-  "Failed Publishing": "Failed Publishing",
 };
 
 /* ------------------------------------------------------------------ */
@@ -929,7 +903,7 @@ export function FilterPopover({
                 const node = document.getElementById(valueInputId) as HTMLInputElement | null;
                 if (!node) return;
                 try {
-                  node.focus({ preventScroll: true } as any);
+                  node.focus({ preventScroll: true });
                   if (start != null && end != null) node.setSelectionRange(start, end);
                 } catch { /* noop */ }
               }, 0);
@@ -1015,7 +989,7 @@ export function FilterPopover({
                   const node = document.getElementById(`date-num-${condition.id}`) as HTMLInputElement | null;
                   if (!node) return;
                   try {
-                    node.focus({ preventScroll: true } as any);
+                    node.focus({ preventScroll: true });
                     if (start != null && end != null) node.setSelectionRange(start, end);
                   } catch { /* noop */ }
                 }, 0);
@@ -1100,8 +1074,8 @@ export function FilterPopover({
   // ---------- Sortable wrappers ----------
   const DragHandleCtx = React.createContext<{
     setActivatorNodeRef: (el: HTMLElement | null) => void;
-    listeners: any;
-    attributes: any;
+    listeners: SyntheticListenerMap | undefined;
+    attributes: DraggableAttributes;
   } | null>(null);
 
   const SortableRow: React.FC<{
@@ -1118,7 +1092,7 @@ export function FilterPopover({
     };
     return (
       <DragHandleCtx.Provider value={{ setActivatorNodeRef, listeners, attributes }}>
-        <div ref={(el) => { setNodeRef(el as any); const key = id as UniqueIdentifier; if (el) rowElMapRef.current.set(key, el); else rowElMapRef.current.delete(key); }} style={style}>
+        <div ref={(el) => { setNodeRef(el); const key = id as UniqueIdentifier; if (el) rowElMapRef.current.set(key, el); else rowElMapRef.current.delete(key); }} style={style}>
           {children}
         </div>
       </DragHandleCtx.Provider>
@@ -1138,15 +1112,15 @@ export function FilterPopover({
     // Measure distance by vertical delta to each container's center
     const collisions = droppableContainers.map((container) => {
       const rect = container.rect.current;
-      if (!rect) return { id: container.id, data: { value: Number.POSITIVE_INFINITY } } as any;
+      if (!rect) return { id: container.id, data: { value: Number.POSITIVE_INFINITY } };
       const centerY = rect.top + rect.height / 2;
       const dy = Math.abs(y - centerY);
-      return { id: container.id, data: { value: dy } } as any;
+      return { id: container.id, data: { value: dy } };
     });
 
     // Sort ascending by vertical distance
-    collisions.sort((a: any, b: any) => (a.data.value as number) - (b.data.value as number));
-    return collisions as any;
+    collisions.sort((a, b) => (a.data.value as number) - (b.data.value as number));
+    return collisions;
   };
 
   // Track activator elements per row and overlay transform adjustment to align grab icon under cursor
@@ -1155,12 +1129,6 @@ export function FilterPopover({
   const overlaySizeBiasRef = React.useRef<{ x: number; y: number } | null>(null);
   const overlayElRef = React.useRef<HTMLDivElement | null>(null);
   const rowElMapRef = React.useRef(new Map<UniqueIdentifier, HTMLElement>());
-
-  const adjustOverlayTransform = (args: { transform: { x: number; y: number; scaleX: number; scaleY: number } }) => {
-    const adj = overlayAdjustRef.current;
-    if (!adj) return args.transform as any;
-    return { ...args.transform, x: args.transform.x - adj.x, y: args.transform.y - adj.y } as any;
-  };
 
   // ---------- Row renderers ----------
   const ConditionRow: React.FC<{ condition: Condition; index: number; isOverlay?: boolean }> = ({ condition, index, isOverlay }) => {
@@ -1330,7 +1298,7 @@ export function FilterPopover({
           <div className="flex items-center gap-2 mb-3">
             {(() => {
               const children = group.children || [];
-              const joinVal: "and" | "or" = (children[1]?.join as any) || "and";
+              const joinVal: "and" | "or" = (children[1]?.join) || "and";
               const hasAny = children.length > 0;
               const desc = !hasAny
                 ? "Drag conditions here to add them to this group"
@@ -1350,7 +1318,7 @@ export function FilterPopover({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="p-1 w-44">
                   <DropdownMenuItem
-                    onClick={() => addChildToGroup(group.id, mkCond((group.children.length === 0 ? undefined : (group.children[1]?.join || "and")) as any))}
+                    onClick={() => addChildToGroup(group.id, mkCond((group.children.length === 0 ? undefined : (group.children[1]?.join || "and")) as JoinOp))}
                   >
                     Add condition
                   </DropdownMenuItem>
@@ -1360,7 +1328,7 @@ export function FilterPopover({
                       <DropdownMenuItem
                         data-disabled={disableAddGroup ? true : undefined}
                         disabled={disableAddGroup}
-                        onClick={() => addChildToGroup(group.id, mkGroup((group.children.length === 0 ? undefined : (group.children[1]?.join || "and")) as any))}
+                        onClick={() => addChildToGroup(group.id, mkGroup((group.children.length === 0 ? undefined : (group.children[1]?.join || "and")) as JoinOp))}
                       >
                         Add condition group
                       </DropdownMenuItem>

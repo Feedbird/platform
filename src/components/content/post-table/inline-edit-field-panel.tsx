@@ -12,7 +12,7 @@ import {
 import { PlusIcon, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Table as ReactTableType } from "@tanstack/react-table";
-import { UserColumn, ColumnType } from "@/lib/store";
+import { UserColumn, ColumnType, UserColumnOption } from "@/lib/store";
 import { buildColumnsPayloadForOrder } from "./utils";
 
 export interface InlineEditFieldPanelProps {
@@ -25,7 +25,7 @@ export interface InlineEditFieldPanelProps {
   editFieldColumnId: string | null;
   editFieldType: string;
   editFieldTypeOpen: boolean;
-  editFieldOptions: Array<{ id: string; value: string; color: string }>;
+  editFieldOptions: Array<UserColumnOption>;
   newFieldLabel: string;
   
   // Column data
@@ -36,7 +36,7 @@ export interface InlineEditFieldPanelProps {
   setEditFieldOpen: (open: boolean) => void;
   setEditFieldTypeOpen: (open: boolean) => void;
   setEditFieldType: (type: string) => void;
-  setEditFieldOptions: (options: Array<{ id: string; value: string; color: string }>) => void;
+  setEditFieldOptions: (options: Array<UserColumnOption>) => void;
   setNewFieldLabel: (label: string) => void;
   setUserColumns: React.Dispatch<React.SetStateAction<UserColumn[]>>;
   setColumnNames: React.Dispatch<React.SetStateAction<Record<string, string>>>;

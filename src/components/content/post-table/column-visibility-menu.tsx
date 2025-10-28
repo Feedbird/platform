@@ -9,15 +9,15 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table } from "@tanstack/react-table";
 import { ColumnID, columnMeta } from "./column-metadata";
 import { cn } from "@/lib/utils";
+import { Post } from "@/lib/store";
 
 interface ColumnVisibilityMenuProps {
-  table: Table<any>;
+  table: Table<Post>;
   hiddenCount: number;
   colVisOpen: boolean;
   setColVisOpen: React.Dispatch<React.SetStateAction<boolean>>;

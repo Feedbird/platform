@@ -83,11 +83,17 @@ export type ColumnType =
   | "createdBy"
   | "lastUpdatedBy";
 
+export interface UserColumnOption {
+  id: string;
+  value: string;
+  color: string;
+}
+
 export interface UserColumn {
   id: string;
   label: string;
   type: ColumnType;
-  options?: Array<{ id: string; value: string; color: string }> | string[];
+  options?: Array<UserColumnOption>;
 }
 
 export interface BaseComment {
@@ -148,6 +154,7 @@ export interface Activity {
     firstName?: string;
     lastName?: string;
     email?: string;
+    imageUrl?: string;
   };
   metadata?: {
     versionNumber?: number;
@@ -155,6 +162,9 @@ export interface Activity {
     publishTime?: Date;
     revisionComment?: string;
     commentId?: string;
+    invitedEmail?: string;
+    boardId?: string;
+    workspaceId?: string;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -241,13 +251,21 @@ export interface Board {
   color?: string;
   rules?: BoardRules;
   groupData?: BoardGroupData[]; // Array of group data for months 1-50
-  columns?: Array<{ name: string; id?: string; isDefault: boolean; order: number; type?: ColumnType; options?: unknown }>;
+  columns?: Array<BoardColumn>;
   createdAt: Date;
   posts: Post[]; // Posts now belong to boards, not brands
   /** Board-specific filtering conditions */
   filterConditions?: ConditionGroup;
 }
 
+export interface BoardColumn {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  order: number;
+  type?: ColumnType;
+  options?: UserColumnOption[];
+}
 export interface BoardTemplate {
   id: string;
   name: string;

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { UserColumn, ColumnType, Post } from "@/lib/store";
+import { UserColumn, ColumnType, Post, Board, UserColumnOption } from "@/lib/store";
 import { Table as ReactTableType } from "@tanstack/react-table";
 import { mapColumnTypeToEditFieldType, normalizeOrder, buildColumnsPayloadForOrder } from "./utils";
 
@@ -12,7 +12,7 @@ export interface HeaderMenuActionParams {
   // State setters
   setEditFieldColumnId: React.Dispatch<React.SetStateAction<string | null>>;
   setEditFieldType: React.Dispatch<React.SetStateAction<string>>;
-  setEditFieldOptions: React.Dispatch<React.SetStateAction<Array<{ id: string; value: string; color: string }>>>;
+  setEditFieldOptions: React.Dispatch<React.SetStateAction<Array<UserColumnOption>>>;
   setEditFieldPanelPos: React.Dispatch<React.SetStateAction<{ top: number; left: number; align: "left" | "right" } | null>>;
   setHeaderMenuOpenFor: React.Dispatch<React.SetStateAction<string | null>>;
   setEditFieldOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -31,7 +31,7 @@ export interface HeaderMenuActionParams {
   // Functions
   table: ReactTableType<Post>;
   updatePost: (pid: string, data: Partial<Post>) => Promise<void>;
-  updateBoard: (boardId: string, data: any) => void;
+  updateBoard: (boardId: string, data: Partial<Board>) => void;
   isDefaultColumn: (columnId: string) => boolean;
   openEditPanelAtElement: (el: HTMLElement | null) => void;
 }
@@ -105,10 +105,10 @@ export function handleHeaderMenuAction(params: HeaderMenuActionParams): void {
                 "#F97316",
               ];
               setEditFieldOptions(
-                (existingColumn.options as string[]).map(
+                (existingColumn.options).map(
                   (value, index) => ({
                     id: `opt_${index + 1}`,
-                    value,
+                    value: value.value,
                     color: defaultColors[index % defaultColors.length],
                   })
                 )
@@ -121,16 +121,12 @@ export function handleHeaderMenuAction(params: HeaderMenuActionParams): void {
             ) {
               // Already in new format with IDs
               setEditFieldOptions(
-                existingColumn.options as Array<{
-                  id: string;
-                  value: string;
-                  color: string;
-                }>
+                existingColumn.options as Array<UserColumnOption>
               );
             } else {
               // Convert old {value, color} format to new format with IDs
               setEditFieldOptions(
-                (existingColumn.options as any[]).map((opt, index) => ({
+                (existingColumn.options as Array<UserColumnOption>).map((opt, index) => ({
                   id: `opt_${index + 1}`,
                   value: opt.value,
                   color: opt.color,
@@ -219,7 +215,7 @@ export function handleHeaderMenuAction(params: HeaderMenuActionParams): void {
                 normalizeOrder(newOrder),
                 nextUserColumns
               );
-              updateBoard(activeBoardId, { columns: payload as any });
+              updateBoard(activeBoardId, { columns: payload });
             }
           } catch {}
           return normalizeOrder(newOrder);
@@ -282,15 +278,15 @@ export function handleHeaderMenuAction(params: HeaderMenuActionParams): void {
       if (deletedColumn) {
         // Find all posts that have values for this column and remove them
         const postsToUpdate = tableData.filter((post) => {
-          if (!post.user_columns) return false;
-          return post.user_columns.some((uc) => uc.id === deletedColumn.id);
+          if (!post.userColumns) return false;
+          return post.userColumns.some((uc) => uc.id === deletedColumn.id);
         });
 
         if (postsToUpdate.length > 0) {
           // Update each post to remove the column value
           postsToUpdate.forEach((post) => {
             const updatedUserColumns =
-              post.user_columns?.filter(
+              post.userColumns?.filter(
                 (uc) => uc.id !== deletedColumn.id
               ) || [];
 
@@ -298,15 +294,15 @@ export function handleHeaderMenuAction(params: HeaderMenuActionParams): void {
             setTableData((prev) =>
               prev.map((p) =>
                 p.id === post.id
-                  ? { ...p, user_columns: updatedUserColumns }
+                  ? { ...p, userColumns: updatedUserColumns }
                   : p
               )
             );
 
             // Update in database
             updatePost(post.id, {
-              user_columns: updatedUserColumns,
-            } as any).catch((error) => {
+              userColumns: updatedUserColumns,
+            }).catch((error) => {
               console.error(
                 `Failed to update post ${post.id} after column deletion:`,
                 error
@@ -333,7 +329,7 @@ export function handleHeaderMenuAction(params: HeaderMenuActionParams): void {
             order,
             nextUserColumns
           );
-          updateBoard(activeBoardId, { columns: payload as any });
+          updateBoard(activeBoardId, { columns: payload });
         }
       } catch {}
       break;
@@ -354,12 +350,12 @@ export function useHeaderMenuAction(
   scrollContainerRef: React.RefObject<HTMLDivElement | null>,
   table: ReactTableType<Post>,
   updatePost: (pid: string, data: Partial<Post>) => Promise<void>,
-  updateBoard: (boardId: string, data: any) => void,
+  updateBoard: (boardId: string, data: Partial<Board>) => void,
   isDefaultColumn: (columnId: string) => boolean,
   openEditPanelAtElement: (el: HTMLElement | null) => void,
   setEditFieldColumnId: React.Dispatch<React.SetStateAction<string | null>>,
   setEditFieldType: React.Dispatch<React.SetStateAction<string>>,
-  setEditFieldOptions: React.Dispatch<React.SetStateAction<Array<{ id: string; value: string; color: string }>>>,
+  setEditFieldOptions: React.Dispatch<React.SetStateAction<Array<UserColumnOption>>>,
   setEditFieldPanelPos: React.Dispatch<React.SetStateAction<{ top: number; left: number; align: "left" | "right" } | null>>,
   setHeaderMenuOpenFor: React.Dispatch<React.SetStateAction<string | null>>,
   setEditFieldOpen: React.Dispatch<React.SetStateAction<boolean>>,

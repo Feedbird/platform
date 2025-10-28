@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Hash, ChevronDown, X } from 'lucide-react'
-import { useWorkspaceStore } from '@/lib/store'
+import { useWorkspaceStore, Workspace, MessageChannel } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 interface ChannelSelectorProps {
@@ -17,13 +17,13 @@ export default function ChannelSelector({ onChannelSelect, selectedChannelId, on
   const dropdownRef = useRef<HTMLDivElement>(null)
   
   const activeWorkspaceId = useWorkspaceStore(s => s.activeWorkspaceId)
-  const EMPTY_CHANNELS: any[] = []
+  const EMPTY_CHANNELS: MessageChannel[] = []
   const rawChannels = useWorkspaceStore((s) => {
     const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
-    return (ws as any)?.channels ?? EMPTY_CHANNELS
-  }) as any[]
+    return (ws as Workspace)?.channels ?? EMPTY_CHANNELS
+  }) as MessageChannel[]
   
-  const channels = rawChannels.filter((channel: any) => channel.id !== 'all')
+  const channels = rawChannels.filter((channel: MessageChannel) => channel.id !== 'all')
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -41,7 +41,7 @@ export default function ChannelSelector({ onChannelSelect, selectedChannelId, on
     setIsOpen(false)
   }
 
-  const selectedChannel = channels.find((c: any) => c.id === selectedChannelId)
+  const selectedChannel = channels.find((c: MessageChannel) => c.id === selectedChannelId)
 
   return (
          <div ref={dropdownRef} className="h-[24px] flex items-center">
@@ -59,7 +59,7 @@ export default function ChannelSelector({ onChannelSelect, selectedChannelId, on
          <div className="absolute bottom-full left-0 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
           <div className="p-2">
             <div className="text-xs font-medium text-gray-500 mb-2 px-2">Select a channel to send message to:</div>
-            {channels.map((channel: any) => (
+            {channels.map((channel: MessageChannel) => (
               <button
                 key={channel.id}
                 onClick={() => handleChannelSelect(channel.id)}

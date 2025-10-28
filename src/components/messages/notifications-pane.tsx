@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, memo } from 'react'
-import { Post, useSocialStore, useUserStore, useWorkspaceStore, usePostStore } from '@/lib/store'
+import { Post, useSocialStore, useUserStore, useWorkspaceStore, usePostStore, Activity } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -67,7 +67,7 @@ interface Notification {
 
 export default function NotificationsPane() {
 	const [activeTab, setActiveTab] = useState<NotificationType>('all')
-	const [activities, setActivities] = useState<any[]>([])
+	const [activities, setActivities] = useState<Activity[]>([])
 	const [isLoading, setIsLoading] = useState(false)
 	const [isRefreshing, setIsRefreshing] = useState(false)
 	const [openPost, setOpenPost] = useState<Post | null>(null)
@@ -102,7 +102,7 @@ export default function NotificationsPane() {
 	const activeWorkspace = useWorkspaceStore((s) => s.getActiveWorkspace())
 	const workspaces = useWorkspaceStore((s) => s.workspaces)
 	const updateUserNotificationSettings = useUserStore((s) => s.updateUserNotificationSettings)
-	const unread_notification = useUserStore((s) => s.user?.unread_notification || [])
+	const unread_notification = useUserStore((s) => s.user?.unreadNotification || [])
 	// Fetch activities for the workspace
 	useEffect(() => {
 		const fetchActivities = async () => {
@@ -161,8 +161,8 @@ export default function NotificationsPane() {
 			)
 
 			// Update the store with the new notification settings
-			if (updatedUser?.notification_settings) {
-				updateUserNotificationSettings(updatedUser.notification_settings)
+			if (updatedUser?.notificationSettings) {
+				updateUserNotificationSettings(updatedUser.notificationSettings)
 			}
 
 		} catch (error) {
@@ -182,23 +182,24 @@ export default function NotificationsPane() {
 
 		// Check if this activity is in the user's unread_notification array
 		const isUnread = unread_notification.includes(activity.id) && !localReadNotifications.has(activity.id)
-
+		const allPosts = usePostStore.getState().getAllPosts();
+		const post = allPosts.find(p => p.id === activity.postId);
 		return {
 			id: `activity-${activity.id}`,
 			type: activity.type,
-			timestamp: new Date(activity.created_at),
+			timestamp: new Date(activity.createdAt),
 			read: !isUnread, // Set read to opposite of 
-			workspaceId: activity.workspace_id,
+			workspaceId: activity.workspaceId,
 			metadata: {
-				postId: activity.post_id,
-				post: activity.post,
-				userId: activity.actor_id,
+				postId: activity.postId,
+				post: post,
+				userId: activity.actorId,
 				authorEmail: activity.actor?.email,
-				authorName: activity.actor?.first_name ?
-					`${activity.actor.first_name} ${activity.actor.last_name || ''}`.trim() :
+				authorName: activity.actor?.firstName ?
+					`${activity.actor.firstName} ${activity.actor.lastName || ''}`.trim() :
 					activity.actor?.email?.split('@')[0] || 'Unknown User',
-				authorImageUrl: activity.actor?.image_url,
-				postTitle: activity.post?.caption?.text || 'Post',
+				authorImageUrl: activity.actor?.imageUrl,
+				postTitle: post?.caption?.default || 'Post',
 				// Invitation-specific metadata
 				invitedEmail: activity.metadata?.invitedEmail,
 				workspaceId: activity.metadata?.workspaceId,
@@ -313,14 +314,14 @@ export default function NotificationsPane() {
 			useUserStore.setState((state) => {
 				if (!state.user) return state
 
-				const currentUnread = state.user.unread_notification || []
+				const currentUnread = state.user.unreadNotification || []
 				const newUnread = currentUnread.filter(notificationId => notificationId !== activityId)
 
 				return {
 					...state,
 					user: {
 						...state.user,
-						unread_notification: newUnread
+						unreadNotification: newUnread
 					}
 				}
 			})
@@ -342,13 +343,13 @@ export default function NotificationsPane() {
 					useUserStore.setState((state) => {
 						if (!state.user) return state
 
-						const currentUnread = state.user.unread_notification || []
+						const currentUnread = state.user.unreadNotification || []
 						if (!currentUnread.includes(activityId)) {
 							return {
 								...state,
 								user: {
 									...state.user,
-									unread_notification: [...currentUnread, activityId]
+									unreadNotification: [...currentUnread, activityId]
 								}
 							}
 						}
@@ -575,7 +576,7 @@ export default function NotificationsPane() {
 	}
 
 	// Get notification icon
-	const getNotificationIcon = (type: string, metadata?: any) => {
+	const getNotificationIcon = (type: string, metadata?: Notification['metadata']) => {
 		// If we have author information, show avatar
 		if (metadata?.authorName || metadata?.authorEmail || metadata?.authorImageUrl) {
 			return (

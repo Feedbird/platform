@@ -7,18 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Plus, X } from "lucide-react";
-
-type OptionItem = { id: string; value: string; color: string };
+import { UserColumnOption } from "@/lib/store";
 
 interface MultiSelectCellProps {
   value: string[]; // Array of option IDs
-  options: Array<OptionItem> | undefined;
+  options: Array<UserColumnOption> | undefined;
   isFocused?: boolean;
   isEditing?: boolean;
   enterEdit?: () => void;
   exitEdit?: () => void;
   onChange: (newValue: string[]) => void; // This will receive an array of option IDs
-  onAddOption: (opt: OptionItem) => void;
+  onAddOption: (opt: UserColumnOption) => void;
 }
 
 export function MultiSelectCell({
@@ -34,11 +33,10 @@ export function MultiSelectCell({
   const open = !!isEditing;
   const [query, setQuery] = React.useState("");
 
-  const normalizedOptions: OptionItem[] = React.useMemo(() => {
+  const normalizedOptions: UserColumnOption[] = React.useMemo(() => {
     if (!options) return [];
-    // already OptionItem[]
-    return options.map((o: any) =>
-      typeof o === "string" ? { id: o, value: o, color: "" } : (o as OptionItem)
+    return options.map((o: UserColumnOption) =>
+      typeof o === "string" ? { id: o, value: o, color: "" } : (o as UserColumnOption)
     );
   }, [options]);
 
@@ -219,7 +217,7 @@ export function MultiSelectCell({
               variant="outline"
               className="w-full"
               onClick={() => {
-                const newOption: OptionItem = {
+                const newOption: UserColumnOption = {
                   id: query.trim(),
                   value: query.trim(),
                   color: previewColor,

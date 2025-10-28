@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { keysToSnake, keysToCamel } from '@/lib/utils/case'
 
 // Validation schemas
 const CreatePostSchema = z.object({
@@ -53,7 +54,7 @@ const UpdatePostSchema = z.object({
       })
     )
     .optional(),
-  last_updated_by: z.string().email('Invalid email format for last_updated_by'),
+  last_updated_by: z.string().email('Invalid email format for last_updated_by').optional(),
 })
 
 // GET - Get post by ID or list posts by workspace/board
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(data)
+      return NextResponse.json(keysToCamel(data))
     } else if (workspace_id) {
       // Get posts by workspace
       const { data, error } = await supabase
@@ -104,7 +105,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(data)
+      return NextResponse.json(keysToCamel(data))
     } else if (board_id) {
       // Get posts by board
       const { data, error } = await supabase
@@ -121,7 +122,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(data)
+      return NextResponse.json(keysToCamel(data))
     } else {
       return NextResponse.json(
         { error: 'Either id, workspace_id, or board_id parameter is required' },
@@ -141,7 +142,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const validatedData = CreatePostSchema.parse(body)
+    const bodySnake = keysToSnake(body)
+    const validatedData = CreatePostSchema.parse(bodySnake)
     // Verify workspace exists
     const { data: workspace } = await supabase
       .from('workspaces')
@@ -184,7 +186,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data, { status: 201 })
+    return NextResponse.json(keysToCamel(data), { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -215,7 +217,9 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json()
-    const validatedData = UpdatePostSchema.parse(body)
+    const bodySnake = keysToSnake(body)
+
+    const validatedData = UpdatePostSchema.parse(bodySnake)
     const { data, error } = await supabase
       .from('posts')
       .update(validatedData)
@@ -237,7 +241,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(keysToCamel(data))
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

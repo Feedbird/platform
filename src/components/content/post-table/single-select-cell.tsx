@@ -6,18 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
-
-type OptionItem = { id: string; value: string; color: string };
+import { UserColumnOption } from "@/lib/store";
 
 interface SingleSelectCellProps {
   value: string; // This will now store the option ID
-  options: Array<OptionItem> | undefined;
+  options: Array<UserColumnOption> | undefined;
   isFocused?: boolean;
   isEditing?: boolean;
   enterEdit?: () => void;
   exitEdit?: () => void;
   onChange: (newValue: string) => void; // This will now receive the option ID
-  onAddOption: (opt: OptionItem) => void;
+  onAddOption: (opt: UserColumnOption) => void;
 }
 
 export function SingleSelectCell({
@@ -33,11 +32,10 @@ export function SingleSelectCell({
   const open = !!isEditing;
   const [query, setQuery] = React.useState("");
 
-  const normalizedOptions: OptionItem[] = React.useMemo(() => {
+  const normalizedOptions: UserColumnOption[] = React.useMemo(() => {
     if (!options) return [];
-    // already OptionItem[]
-    return options.map((o: any) =>
-      typeof o === "string" ? { id: o, value: o, color: "" } : (o as OptionItem)
+    return options.map((o: UserColumnOption) =>
+      typeof o === "string" ? { id: o, value: o, color: "" } : (o as UserColumnOption)
     );
   }, [options]);
 
@@ -175,7 +173,7 @@ export function SingleSelectCell({
                 onClick={() => {
                   const val = query.trim();
                   if (!val) return;
-                  const newOpt: OptionItem = { id: `opt_${Date.now()}`, value: val, color: previewColor };
+                  const newOpt: UserColumnOption = { id: `opt_${Date.now()}`, value: val, color: previewColor };
                   onAddOption(newOpt);
                   // auto-select newly created by ID
                   handlePick(newOpt.id);

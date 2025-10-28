@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApiHandlerError } from "../../shared";
 import { SubmissionsHandler } from "./handler";
+import { readJsonSnake, jsonCamel } from "@/lib/utils/http";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await readJsonSnake(request);
 
     const submission = await SubmissionsHandler.submitForm(body);
 
-    return NextResponse.json({ data: submission }, { status: 201 });
+    return jsonCamel({ data: submission }, { status: 201 });
   } catch (error) {
     const uiMessage =
       "We are unable to submit this form now. Please try again later.";
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
     const submissions = await SubmissionsHandler.getSubmissions(formId);
 
-    return NextResponse.json({ data: submissions }, { status: 200 });
+    return jsonCamel({ data: submissions }, { status: 200 });
   } catch (e) {
     const uiMessage =
       "We are unable to fetch form submissions now. Please try again later.";

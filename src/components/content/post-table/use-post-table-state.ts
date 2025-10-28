@@ -1,5 +1,5 @@
 import * as React from "react";
-import { GroupComment, Post, UserColumn } from "@/lib/store";
+import { GroupComment, Post, UserColumn, UserColumnOption } from "@/lib/store";
 import { 
   SortingState, 
   ColumnFiltersState, 
@@ -12,6 +12,7 @@ import {
 import { RowHeightType } from "@/lib/utils";
 import { ConditionGroup } from "./filter-popover";
 import { Platform } from "@/lib/social/platforms/platform-types";
+import { Table } from "@tanstack/react-table";
 
 /**
  * Interface for all post table state
@@ -82,7 +83,7 @@ export interface PostTableState {
   editFieldPanelPos: { top: number; left: number; align: "left" | "right" } | null;
   editFieldTypeOpen: boolean;
   newFieldLabel: string;
-  editFieldOptions: Array<{ id: string; value: string; color: string }>;
+  editFieldOptions: Array<UserColumnOption>;
   
   // Caption editor state
   captionOpen: boolean;
@@ -152,7 +153,7 @@ export interface PostTableStateSetters {
   setEditFieldPanelPos: React.Dispatch<React.SetStateAction<{ top: number; left: number; align: "left" | "right" } | null>>;
   setEditFieldTypeOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setNewFieldLabel: React.Dispatch<React.SetStateAction<string>>;
-  setEditFieldOptions: React.Dispatch<React.SetStateAction<Array<{ id: string; value: string; color: string }>>>;
+  setEditFieldOptions: React.Dispatch<React.SetStateAction<Array<UserColumnOption>>>;
   setCaptionOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setEditingPost: React.Dispatch<React.SetStateAction<Post | null>>;
   setSelectedPlatform: React.Dispatch<React.SetStateAction<Platform | null>>;
@@ -184,7 +185,7 @@ export interface PostTableRefs {
   emptyFilterRef: React.MutableRefObject<ConditionGroup>;
   editFieldPanelRef: React.MutableRefObject<HTMLDivElement | null>;
   plusHeaderRef: React.MutableRefObject<HTMLTableCellElement | null>;
-  tableRef: React.MutableRefObject<any>;
+  tableRef: React.MutableRefObject<Table<Post> | null>;
   headerRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
   anchorRowIdRef: React.MutableRefObject<string | null>;
 }
@@ -287,7 +288,7 @@ export function usePostTableState(initialPosts: Post[]) {
   const [editFieldTypeOpen, setEditFieldTypeOpen] = React.useState(false);
   const [newFieldLabel, setNewFieldLabel] = React.useState<string>("");
   const [editFieldOptions, setEditFieldOptions] = React.useState<
-    Array<{ id: string; value: string; color: string }>
+    Array<UserColumnOption>
   >([
     { id: "opt_1", value: "Option A", color: "#3B82F6" },
     { id: "opt_2", value: "Option B", color: "#10B981" },
@@ -331,7 +332,7 @@ export function usePostTableState(initialPosts: Post[]) {
   const emptyFilterRef = React.useRef<ConditionGroup>({ id: "root", type: "group", children: [] });
   const editFieldPanelRef = React.useRef<HTMLDivElement | null>(null);
   const plusHeaderRef = React.useRef<HTMLTableCellElement | null>(null);
-  const tableRef = React.useRef<any>(null);
+  const tableRef = React.useRef<Table<Post> | null>(null);
   const headerRefs = React.useRef<Record<string, HTMLElement | null>>({});
   const anchorRowIdRef = React.useRef<string | null>(null);
 

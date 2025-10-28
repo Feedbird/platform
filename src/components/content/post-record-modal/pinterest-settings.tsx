@@ -8,6 +8,7 @@ import { AlertCircle, Info, RefreshCw, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePinterestBoards } from '@/hooks/use-pinterest-boards';
 import type { PinterestSettings } from '@/lib/social/platforms/platform-types';
+import type { PinterestBoard } from '@/hooks/use-pinterest-boards';
 
 interface PinterestSettingsPanelProps {
   pageId: string | null;
@@ -119,7 +120,7 @@ export function PinterestSettingsPanel({
   const handleBoardChange = (boardId: string) => {
     console.log('PinterestSettingsPanel - Board change triggered:', boardId);
     console.log('PinterestSettingsPanel - Current settings before change:', settings);
-    const selectedBoard = boards.find((board: any) => board.id === boardId);
+    const selectedBoard = boards.find((board: PinterestBoard) => board.id === boardId);
     console.log('PinterestSettingsPanel - Selected board:', selectedBoard);
     if (selectedBoard) {
       const newSettings = {
@@ -158,7 +159,7 @@ export function PinterestSettingsPanel({
             <SelectValue placeholder="Select a board..." />
           </SelectTrigger>
           <SelectContent>
-            {boards.map((board: any) => (
+            {boards.map((board: PinterestBoard) => (
               <SelectItem key={board.id} value={board.id}>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-red-500"></div>
@@ -225,7 +226,7 @@ export function PinterestSettingsPanel({
               <div className="flex items-center gap-2">
                 <p className="text-xs text-green-700">{settings.boardName}</p>
                 {(() => {
-                  const selectedBoard = boards.find((board: any) => board.id === settings.boardId);
+                  const selectedBoard = boards.find((board: PinterestBoard) => board.id === settings.boardId);
                   return selectedBoard?.privacy === 'SECRET' ? (
                     <TooltipProvider>
                       <Tooltip>
@@ -258,7 +259,7 @@ export function PinterestSettingsPanel({
               <span className="font-medium">Board:</span> 
               <span>{settings.boardName}</span>
               {(() => {
-                const selectedBoard = boards.find((board: any) => board.id === settings.boardId);
+                const selectedBoard = boards.find((board: PinterestBoard) => board.id === settings.boardId);
                 return selectedBoard?.privacy === 'SECRET' ? (
                   <div className="flex items-center gap-1">
                     <Lock className="h-3 w-3 text-gray-500" />

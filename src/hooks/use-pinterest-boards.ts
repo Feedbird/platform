@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWorkspaceStore } from '@/lib/store';
 
-interface PinterestBoard {
+export interface PinterestBoard {
   id: string;
   name: string;
   description?: string;

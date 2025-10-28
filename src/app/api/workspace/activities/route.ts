@@ -39,7 +39,49 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(activities ?? [])
+    // Map DB rows to the Activity interface shape
+    const mapped = (activities ?? []).map((a: any) => {
+      const meta = a?.metadata ?? undefined
+      return {
+        id: a.id,
+        workspaceId: a.workspace_id,
+        postId: a.post_id ?? undefined,
+        type: a.type,
+        actorId: a.actor_id,
+        actor: a.actor
+          ? {
+              id: a.actor.id,
+              firstName: a.actor.first_name ?? undefined,
+              lastName: a.actor.last_name ?? undefined,
+              email: a.actor.email ?? undefined,
+              imageUrl: a.actor.image_url ?? undefined,
+            }
+          : undefined,
+        metadata: meta
+          ? {
+              versionNumber:
+                meta.versionNumber ?? meta.version_number ?? undefined,
+              comment: meta.comment ?? undefined,
+              publishTime:
+                meta.publishTime
+                  ? new Date(meta.publishTime)
+                  : meta.publish_time
+                  ? new Date(meta.publish_time)
+                  : undefined,
+              revisionComment:
+                meta.revisionComment ?? meta.revision_comment ?? undefined,
+              commentId: meta.commentId ?? meta.comment_id ?? undefined,
+              invitedEmail: meta.invitedEmail ?? meta.invited_email ?? undefined,
+              boardId: meta.boardId ?? meta.board_id ?? undefined,
+              workspaceId: meta.workspaceId ?? meta.workspace_id ?? undefined,
+            }
+          : undefined,
+        createdAt: a.created_at ? new Date(a.created_at) : new Date(),
+        updatedAt: a.updated_at ? new Date(a.updated_at) : new Date(),
+      }
+    })
+
+    return NextResponse.json(mapped)
   } catch (error) {
     console.error('Error in GET /api/workspace/activities:', error)
     return NextResponse.json(

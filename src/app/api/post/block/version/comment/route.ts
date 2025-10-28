@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { readJsonSnake, jsonCamel } from '@/lib/utils/http'
 
 // Validation schemas
 const CreateVersionCommentSchema = z.object({
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(version.comments || [])
+    return jsonCamel(version.comments || [])
   } catch (error) {
     console.error('Error in GET /api/post/block/version/comment:', error)
     return NextResponse.json(
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
 // POST - Add a new comment to a version
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = CreateVersionCommentSchema.parse(body)
 
     // Get the post with current data
@@ -189,7 +190,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(newComment, { status: 201 })
+    return jsonCamel(newComment, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -222,7 +223,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = UpdateVersionCommentSchema.parse(body)
 
     // Get the post
@@ -302,7 +303,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(comments[commentIndex])
+    return jsonCamel(comments[commentIndex])
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

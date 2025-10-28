@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { X as XIcon } from "lucide-react";
 import { Post } from "@/lib/store";
+import { Table } from "@tanstack/react-table";
 
 export interface BulkActionToolbarProps {
   // Selected posts
@@ -15,14 +16,14 @@ export interface BulkActionToolbarProps {
   lastDuplicatedCount: number;
   
   // Handlers
-  updatePost: (postId: string, data: any) => void;
+  updatePost: (postId: string, data: Partial<Post>) => void;
   handleDuplicatePosts: (posts: Post[]) => void;
   handleDeletePosts: (posts: Post[]) => void;
   handleUndoTrash: () => void;
   handleUndoDuplicate: () => void;
   
   // Table reference
-  table: any; // Table instance from react-table
+  table: Table<Post>; // Table instance from react-table
 }
 
 export function BulkActionToolbar({
