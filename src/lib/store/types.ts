@@ -62,7 +62,7 @@ export interface BoardGroupData {
 export interface NavLink {
   id: string;
   label: string;
-  image?: React.ReactNode;    // e.g. "/images/public/approvals.svg"
+  image?: React.ReactNode | string;    // e.g. "/images/public/approvals.svg"
   selectedImage?: React.ReactNode;
   href?: string;
   rules?: BoardRules;

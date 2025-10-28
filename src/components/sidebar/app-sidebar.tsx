@@ -107,7 +107,7 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
 function useBoardCount(board_id: string): number | null {
   const count = usePostStore((s) => {
     const posts = s.getAllPosts();
-    return posts.filter((p) => p.board_id === board_id).length;
+    return posts.filter((p) => p.boardId === board_id).length;
   });
 
   const [isClient, setIsClient] = React.useState(false);
@@ -243,10 +243,10 @@ export const RenderNavItems = React.memo(function RenderNavItems({
   const { state, hoverReveal } = useSidebar();
   const [isClient, setIsClient] = React.useState(false);
   const unreadMsgCount = useUserStore((s) =>
-    s.user?.unread_msg ? s.user.unread_msg.length : 0
+    s.user?.unreadMsg ? s.user.unreadMsg.length : 0
   );
   const unreadNotificationCount = useUserStore((s) =>
-    s.user?.unread_notification ? s.user.unread_notification.length : 0
+    s.user?.unreadNotification ? s.user.unreadNotification.length : 0
   );
   const totalUnreadCount = unreadMsgCount + unreadNotificationCount;
 
@@ -322,7 +322,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                     className="flex items-center gap-[6px] w-full min-w-0 [&>svg]:size-4.5"
                     loadingText={`Loading ${nav.label}…`}
                   >
-                    {ImageComponent &&
+                    {nav.image &&
                       (isBoard ? (
                         <div
                           className={cn(
@@ -334,7 +334,12 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                               : undefined
                           }
                         >
-                          {ImageComponent}
+                          <img
+                            src={nav.image as string}
+                            alt={nav.label}
+                            className="w-3 h-3"
+                            loading="lazy"
+                          />
                         </div>
                       ) : (
                         ImageComponent
