@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../ui/accordion";
-import ServiceCard, { ServiceCardPlan } from "./ServiceCard";
+import ServiceCard, { ServiceCardPlan } from "./service-card";
 import { Divider } from "@mui/material";
 
 type Props = {

@@ -7,7 +7,7 @@ type UseRealtimeSubscriptionsProps = {
 	activeWorkspaceId: string | null
 	supabase: any
 	supabaseInitialized: boolean
-	profilesRef: React.MutableRefObject<Record<string, { first_name?: string; image_url?: string }>>
+	profilesRef: React.MutableRefObject<Record<string, { firstName?: string; imageUrl?: string }>>
 }
 
 export function useRealtimeSubscriptions({
@@ -42,22 +42,22 @@ export function useRealtimeSubscriptions({
 					(payload: any) => {
 						const m = payload.new as DbChannelMessage
 						// Ignore our own messages to avoid echo
-						if (m.author_email && user?.email && m.author_email === user.email) return
+						if (m.authorEmail && user?.email && m.authorEmail === user.email) return
 						// Avoid duplicates if already in store
 						const current = (useMessageStore.getState() as any).channelMessagesByChannelId?.[channelId] || []
 						if (current.some((x: any) => x.id === m.id)) return
 
-						const profile = profilesRef.current?.[m.author_email]
-						const authorName = profile?.first_name || m.author_email
-						const authorImg = profile?.image_url || undefined
+						const profile = profilesRef.current?.[m.authorEmail]
+						const authorName = profile?.firstName || m.authorEmail
+						const authorImg = profile?.imageUrl || undefined
 						const message = {
 							id: m.id,
 							author: authorName,
-							authorEmail: m.author_email,
+							authorEmail: m.authorEmail,
 							authorImageUrl: authorImg,
 							text: m.content,
-							createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-							parentId: (m as any).parent_id || null,
+							createdAt: m.createdAt ? new Date(m.createdAt) : new Date(),
+							parentId: (m as any).parentId || null,
 							addon: (m as any).addon,
 							readby: (m as any).readby,
 							emoticons: (m as any).emoticons,
@@ -158,25 +158,25 @@ export function useRealtimeSubscriptions({
 				(payload: any) => {
 					const m = payload.new as DbChannelMessage
 					// Ignore our own messages to avoid echo
-					if (m.author_email && user?.email && m.author_email === user.email) return
+					if (m.authorEmail && user?.email && m.authorEmail === user.email) return
 					// Avoid duplicates in 'all'
 					const currentAll = (useMessageStore.getState() as any).channelMessagesByChannelId?.['all'] || []
 					if (currentAll.some((x: any) => x.id === m.id)) return
-					const profile = profilesRef.current?.[m.author_email]
-					const authorName = profile?.first_name || m.author_email
-					const authorImg = profile?.image_url || undefined
+					const profile = profilesRef.current?.[m.authorEmail]
+					const authorName = profile?.firstName || m.authorEmail
+					const authorImg = profile?.imageUrl || undefined
 					const message = {
 						id: m.id,
 						author: authorName,
-						authorEmail: m.author_email,
+						authorEmail: m.authorEmail,
 						authorImageUrl: authorImg,
 						text: m.content,
-						createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-						parentId: (m as any).parent_id || null,
+						createdAt: m.createdAt ? new Date(m.createdAt) : new Date(),
+						parentId: (m as any).parentId || null,
 						addon: (m as any).addon,
 						readby: (m as any).readby,
 						emoticons: (m as any).emoticons,
-						channelId: (m as any).channel_id,
+						channelId: (m as any).channelId,
 					}
 					useMessageStore.setState((prev: any) => ({
 						channelMessagesByChannelId: {
@@ -202,7 +202,7 @@ export function useRealtimeSubscriptions({
 						)
 
 						// Also update in the specific channel if it exists
-						const channelId = (m as any).channel_id
+						const channelId = (m as any).channelId
 						const channelMessages = byId[channelId] || []
 						const updatedChannelMessages = channelMessages.map((msg: any) =>
 							msg.id === m.id ? { ...msg, emoticons: (m as any).emoticons } : msg

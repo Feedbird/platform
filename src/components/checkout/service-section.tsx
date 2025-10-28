@@ -2,9 +2,9 @@ import { servicesApi } from "@/lib/api/api-service";
 import { ServiceFolder } from "@/lib/store/types";
 import React from "react";
 import { toast } from "sonner";
-import FolderAccordion from "./FolderAccordion";
-import PaymentForm from "./PaymentForm";
-import { ServiceCardPlan } from "./ServiceCard";
+import FolderAccordion from "./folder-accordion";
+import PaymentForm from "./payment-form";
+import { ServiceCardPlan } from "./service-card";
 
 type Props = {
   workspaceId: string | null;

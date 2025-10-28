@@ -43,20 +43,24 @@ export default function FormPageVisualizer({ pages }: Props) {
               </div>
             )}
             <div className="flex flex-col p-8">
-              <div className="flex flex-col gap-1 pb-10">
-                <span className="text-[24px] font-semibold text-[#1C1D1F]">
-                  {pageIndex === 0
-                    ? activeForm?.title
-                    : pages[pageIndex - 1][pages[pageIndex - 1].length - 1]
-                        ?.config.title.value || `Page ${pageIndex + 1}`}
-                </span>
-                <p className="font-normal text-[#5C5E63] text-sm">
-                  {pageIndex === 0
-                    ? activeForm?.description
-                    : pages[pageIndex - 1][pages[pageIndex - 1].length - 1]
-                        ?.config.description.value || ""}
-                </p>
-              </div>
+              {(() => {
+                const prevPage = pageIndex > 0 ? pages[pageIndex - 1] : undefined;
+                const prevPageLastField = prevPage?.[prevPage.length - 1];
+                return (
+                  <div className="flex flex-col gap-1 pb-10">
+                    <span className="text-[24px] font-semibold text-[#1C1D1F]">
+                      {pageIndex === 0
+                        ? activeForm?.title
+                        : prevPageLastField?.config?.title?.value || `Page ${pageIndex + 1}`}
+                    </span>
+                    <p className="font-normal text-[#5C5E63] text-sm">
+                      {pageIndex === 0
+                        ? activeForm?.description
+                        : prevPageLastField?.config?.description?.value || ""}
+                    </p>
+                  </div>
+                );
+              })()}
               <div className="space-y-8">
                 {page.map((field, index) => (
                   <FieldRenderWrapper

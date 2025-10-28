@@ -13,8 +13,8 @@ export default function ActivityFeed({ activities }: { activities: Activity[] })
   const getActorDisplayName = (actorId: string, actor?: any) => {
     // If we have actor data from the database, use it
     if (actor) {
-      if (actor.first_name) {
-        return actor.first_name;
+      if (actor.firstName) {
+        return actor.firstName;
       }
       if (actor.email) {
         // Fallback to email if no first name

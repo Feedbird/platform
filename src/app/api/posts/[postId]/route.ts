@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
+import { PostUpdateData } from '@/lib/api/social-api-service';
 
 // GET - Get post details
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
@@ -44,7 +45,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Post ID is required' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: PostUpdateData = {};
     
     if (body.status !== undefined) updateData.status = body.status;
     if (body.published_at !== undefined) updateData.published_at = body.published_at;

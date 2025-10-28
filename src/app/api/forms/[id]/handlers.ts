@@ -120,7 +120,7 @@ export class FormHandler {
       }
 
       if (updates.status && updates.status === "published") {
-        updates.published_at = new Date().toISOString();
+        updates.publishedAt = new Date();
       }
 
       const { data, error } = await supabase
@@ -220,7 +220,7 @@ export class FormHandler {
 
     data.title = `${data.title} (copy)`;
     data.status = "draft";
-    data.published_at = null;
+    data.publishedAt = null;
 
     return data;
   }

@@ -47,7 +47,7 @@ export function ContentTable({ data }: ContentTableProps) {
               : p.caption?.text || 'No caption'
 
           // Format publish date
-          const publishDate = p.publish_date ? format(new Date(p.publish_date), 'MMM d, yyyy') : 'Not published'
+          const publishDate = p.publishDate ? format(new Date(p.publishDate), 'MMM d, yyyy') : 'Not published'
 
           return (
             <div className="flex gap-3 items-center max-w-[296px]">
@@ -116,7 +116,7 @@ export function ContentTable({ data }: ContentTableProps) {
           const p = row.original
           // For videos, show impressions as plays, otherwise show dash
           const isVideo = p.format === 'video'
-          const playsValue = isVideo ? p.analytics_impressions || 0 : 0
+          const playsValue = isVideo ? p.analyticsImpressions || 0 : 0
           return (
             <div className="text-sm text-darkGrey text-right">
               {playsValue > 0 ? shortNumber(playsValue) : '--'}

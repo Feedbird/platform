@@ -98,12 +98,12 @@ export function useApiOperations() {
   // Post operations
   const createPost = useCallback(async (
     workspaceId: string,
-    board_id: string,
+    boardId: string,
     postData: any
   ) => {
     const userEmail = useUserStore.getState().user?.email
     if (!userEmail) throw new Error('No user email available')
-    return withLoading('createPost', () => storeApi.createPostAndUpdateStore(workspaceId, board_id, postData, userEmail))
+    return withLoading('createPost', () => storeApi.createPostAndUpdateStore(workspaceId, boardId, postData, userEmail))
   }, [useUserStore.getState().user?.email, withLoading])
 
   const updatePost = useCallback(async (id: string, updates: any) => {
@@ -117,9 +117,9 @@ export function useApiOperations() {
   // User operations
   const createUser = useCallback(async (userData: {
     email: string
-    first_name?: string
-    last_name?: string
-    image_url?: string
+    firstName?: string
+    lastName?: string
+    imageUrl?: string
   }) => {
     console.log('createUser', userData);
     return withLoading('createUser', () => userApi.createUser(userData))
@@ -128,9 +128,9 @@ export function useApiOperations() {
   const updateUser = useCallback(async (
     params: { id?: string; email?: string },
     updates: {
-      first_name?: string
-      last_name?: string
-      image_url?: string
+      firstName?: string
+      lastName?: string
+      imageUrl?: string
     }
   ) => {
     return withLoading('updateUser', () => userApi.updateUser(params, updates))

@@ -27,7 +27,7 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
 
   const [email, setEmail] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const [members, setMembers] = React.useState<{ email: string; first_name?: string; image_url?: string; role?: 'admin' | 'client' | 'team'; accept?: boolean }[]>([]);
+  const [members, setMembers] = React.useState<{ email: string; firstName?: string; imageUrl?: string; role?: 'admin' | 'client' | 'team'; accept?: boolean }[]>([]);
   const [loadingMembers, setLoadingMembers] = React.useState(false);
   const [updatingEmail, setUpdatingEmail] = React.useState<string | null>(null);
   const [role, setRole] = React.useState<"Client" | "Team">("Client");
@@ -76,7 +76,7 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
         email: email.trim(),
         workspaceId: activeWorkspaceId,
         actorId: user?.id, // Pass current user ID for activity logging
-        first_name: user?.firstName,
+        firstName: user?.firstName,
       };
       const response = role === 'Team'
         ? await inviteApi.inviteTeam(payload)
@@ -160,11 +160,11 @@ export function InviteMembersModal({ open, onClose }: InviteMembersModalProps) {
               <div key={m.email} className="flex items-center justify-between py-1.5">
                 <div className="flex items-center gap-2.5">
                   <Avatar className="size-7">
-                    <AvatarImage src={m.image_url || undefined} alt={m.first_name || m.email} />
-                    <AvatarFallback className="text-xs font-medium text-black">{getFullnameinitial(m?.first_name || undefined, undefined, m?.email || undefined)}</AvatarFallback>
+                    <AvatarImage src={m.imageUrl || undefined} alt={m.firstName || m.email} />
+                    <AvatarFallback className="text-xs font-medium text-black">{getFullnameinitial(m?.firstName || undefined, undefined, m?.email || undefined)}</AvatarFallback>
                   </Avatar>
                   <div className="flex">
-                    <span className="text-xs font-normal text-darkGrey leading-none">{m.first_name || m.email}{m.accept === false ? ' (Pending)' : ''}</span>
+                    <span className="text-xs font-normal text-darkGrey leading-none">{m.firstName || m.email}{m.accept === false ? ' (Pending)' : ''}</span>
                   </div>
                 </div>
                 <div className="flex items-center w-20 justify-between px-2">

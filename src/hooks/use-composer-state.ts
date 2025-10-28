@@ -29,7 +29,7 @@ export function useComposerState(
 
 	// Mock user and profilesByEmail for now - these should be passed as props
 	const user = { email: 'test@example.com', firstName: 'Test' }
-	const profilesByEmail: Record<string, { first_name?: string; image_url?: string }> = {}
+	const profilesByEmail: Record<string, { firstName?: string; imageUrl?: string }> = {}
 
 	// Close dropdowns when clicking outside
 	useEffect(() => {
@@ -65,7 +65,7 @@ export function useComposerState(
 	const typingDisplay = useMemo(() => {
 		const others = Object.keys(typingUsers).filter(e => e !== user?.email)
 		if (others.length === 0) return ''
-		const names = others.map(e => profilesByEmail[e]?.first_name)
+		const names = others.map(e => profilesByEmail[e]?.firstName)
 		return `${names.join(', ')} typing...`
 	}, [typingUsers, profilesByEmail, user?.email])
 

@@ -6,7 +6,7 @@ import {
   CheckoutFolderBuilder,
   CheckoutServiceBuilder,
 } from "@/app/[workspaceId]/admin/services/checkout/_inner";
-import ServiceFolderEditor from "./ServiceFolderEditor";
+import ServiceFolderEditor from "./service-folder-editor";
 
 type CheckoutBuilderSideBarProps = {
   isLoading: boolean;

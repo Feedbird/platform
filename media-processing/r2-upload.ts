@@ -209,19 +209,19 @@ export async function getSignedUploadUrlLegacy({
   fileName,
   fileType,
   wid,
-  board_id,
+  boardId,
   pid,
   cid,
 }: {
   fileName: string;
   fileType: string;
   wid: string;
-  board_id?: string | null;
+  boardId?: string | null;
   pid?: string | null;
   cid?: string | null;
 }) {
   const resources = [];
-  if (board_id) resources.push({ type: "board", id: board_id });
+  if (boardId) resources.push({ type: "board", id: boardId });
   if (pid) resources.push({ type: "post", id: pid });
   if (cid) resources.push({ type: "column", id: cid });
 

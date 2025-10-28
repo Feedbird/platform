@@ -1515,7 +1515,7 @@ export function PostTable({
                 prev.map((p) => {
                 if (p.id !== editingUserText.postId) return p;
                 const newArr = buildUpdatedUserColumnsArr(p, uc.id, newVal);
-                return { ...p, user_columns: newArr };
+                return { ...p, userColumns: newArr };
                 })
               );
               const postId = editingUserText.postId;
@@ -1523,7 +1523,7 @@ export function PostTable({
               const newArr = p
                 ? buildUpdatedUserColumnsArr(p, uc.id, newVal)
                 : [{ id: uc.id, value: newVal }];
-              updatePost(postId, { user_columns: newArr } as any);
+              updatePost(postId, { userColumns: newArr } as any);
             }}
           />
         )}

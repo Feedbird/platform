@@ -1593,11 +1593,11 @@ export class LinkedInPlatform extends BasePlatform {
         };
 
         // Add frontend-compatible analytics fields for direct access
-        (postHistory as any).analytics_impressions = postAnalytics.views;
-        (postHistory as any).analytics_engagement = postAnalytics.engagement;
-        (postHistory as any).analytics_reacts = postAnalytics.likes;
-        (postHistory as any).analytics_comments = postAnalytics.comments;
-        (postHistory as any).analytics_shares = postAnalytics.shares;
+        (postHistory as PostHistory).analytics!.views = postAnalytics.views;
+        (postHistory as PostHistory).analytics!.engagement = postAnalytics.engagement;
+        (postHistory as PostHistory).analytics!.likes = postAnalytics.likes;
+        (postHistory as PostHistory).analytics!.comments = postAnalytics.comments;
+        (postHistory as PostHistory).analytics!.shares = postAnalytics.shares;
 
         resolvedPosts.push(postHistory);
       }

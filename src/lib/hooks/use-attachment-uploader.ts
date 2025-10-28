@@ -142,7 +142,7 @@ export function useAttachmentUploader({ postId, columnId }: { postId: string; co
             
             if (post) {
               // Get current user columns or initialize empty array
-              const currentUserColumns = post.user_columns || [];
+              const currentUserColumns = post.userColumns || [];
               
               // Find the column we're updating
               const columnIndex = currentUserColumns.findIndex(col => col.id === columnId);
@@ -172,7 +172,7 @@ export function useAttachmentUploader({ postId, columnId }: { postId: string; co
 
               // 5. Update post in database and sync with Zustand store
               // Note: user_columns values are already stored as JSON strings
-              await updatePost(postId, { user_columns: newUserColumns } as any);
+              await updatePost(postId, { userColumns: newUserColumns } as any);
               
               // Update the post in the Zustand store
               // Note: The store.updatePost is already called via the updatePost function above

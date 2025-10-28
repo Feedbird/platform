@@ -9,6 +9,7 @@ import React from "react";
 import Loading from "./loading";
 import { formFieldSorter } from "@/lib/utils/transformers";
 import FormPageVisualizer from "@/components/forms/content/form-page-visualizer";
+import { FormField } from "@/lib/store";
 
 export default function Page() {
   const { activeForm, setIsPreview, setActiveForm, setIsEditing } = useForms();
@@ -103,9 +104,9 @@ export default function Page() {
                   <p className="min-w-[170px]">{service.name}</p>
                   <Divider orientation="vertical" />
                   <p>
-                    Quantity: {service.service_plans?.[0]?.quantity ?? 0}{" "}
-                    {service.service_plans?.[0]?.qty_indicator ?? "Not set"} - $
-                    {service.service_plans?.[0]?.price ?? 0}/mo
+                    Quantity: {service.servicePlans?.[0]?.quantity ?? 0}{" "}
+                    {service.servicePlans?.[0]?.qtyIndicator ?? "Not set"} - $
+                    {service.servicePlans?.[0]?.price ?? 0}/mo
                   </p>
                 </div>
               ))}

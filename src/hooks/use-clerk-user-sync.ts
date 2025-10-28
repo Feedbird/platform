@@ -27,6 +27,7 @@ export function useClerkUserSync() {
         lastName: user.lastName || undefined,
         imageUrl: user.imageUrl || undefined,
         createdAt: user.createdAt || new Date(),
+        updatedAt: user.updatedAt || new Date(),
       });
 
       // Then fetch complete user data from database (including unread_msg)
@@ -39,13 +40,15 @@ export function useClerkUserSync() {
               setUser({
                 id: dbUser.id,
                 email: dbUser.email,
-                firstName: dbUser.first_name || undefined,
-                lastName: dbUser.last_name || undefined,
-                imageUrl: dbUser.image_url || undefined,
-                unread_msg: dbUser.unread_msg || [],
-                unread_notification: dbUser.unread_notification || [],
-                notification_settings: dbUser.notification_settings || undefined,
-                createdAt: new Date(dbUser.created_at),
+                firstName: dbUser.firstName || undefined,
+                lastName: dbUser.lastName || undefined,
+                imageUrl: dbUser.imageUrl || undefined,
+                unreadMsg: dbUser.unreadMsg || [],
+                unreadNotification: dbUser.unreadNotification || [],
+                notificationSettings: dbUser.notificationSettings || undefined,
+                defaultBoardRules: dbUser.defaultBoardRules || undefined,
+                createdAt: new Date(dbUser.createdAt),
+                updatedAt: new Date(dbUser.updatedAt),
               });
             }
           })

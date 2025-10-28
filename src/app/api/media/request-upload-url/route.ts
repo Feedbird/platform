@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // Legacy approach: use individual query params
-      const board_id = req.nextUrl.searchParams.get("bid");
+      const boardId = req.nextUrl.searchParams.get("bid");
       const pid = req.nextUrl.searchParams.get("pid");
       const cid = req.nextUrl.searchParams.get("cid");
 
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
         fileName,
         fileType,
         wid,
-        board_id,
+        boardId,
         pid,
         cid,
       });

@@ -1,6 +1,6 @@
 import { CanvasFormField } from "@/components/forms/form-canvas";
 import { supabase } from "@/lib/supabase/client";
-import { FormField } from "@/lib/store/types";
+import { FormField, FormFieldConfig } from "@/lib/store/types";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { ApiHandlerError } from "../../shared";
 import { nestedObjectEqual } from "@/lib/utils/transformers";
@@ -86,14 +86,14 @@ export class FormFieldsHandler {
 
     const mappedFields: FormField[] = fieldsToInsert.map((field) => ({
       id: field.id,
-      form_id: formId,
+      formId: formId,
       type: field.type,
       position: field.position,
       config: field.config || {},
       title: field.config?.title?.value || "",
       description: field.config?.description?.value || "",
-      required: field.config?.required?.value || false,
-    }));
+      required: field.config?.isRequired?.value || false,
+    } as FormField));
 
     return mappedFields;
   }
@@ -137,12 +137,12 @@ export class FormFieldsHandler {
         updates.push({
           id: field.id,
           type: field.type,
-          form_id: formId,
+          formId: formId,
           position: field.position,
-          config: field.config || {},
-          title: field.config?.title?.value || "",
-          description: field.config?.description?.value || "",
-          required: field.config?.required?.value || false,
+          config: field.config as FormFieldConfig || {},
+          title: field.config?.title?.value as string || "",
+          description: field.config?.description?.value as string || "",
+          required: field.config?.isRequired?.value as boolean || false,
         });
       }
     }

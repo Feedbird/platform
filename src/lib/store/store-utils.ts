@@ -80,14 +80,14 @@ export const boardsToNav = (boards: Board[], workspaceId?: string): NavLink[] =>
 };
 
 // Helper function to determine correct post status based on publish date
-export const determineCorrectStatus = (currentStatus: Status, publish_date: Date | null): Status => {
+export const determineCorrectStatus = (currentStatus: Status, publishDate: Date | null): Status => {
   // If no publish date, keep current status
-  if (!publish_date) {
+  if (!publishDate) {
     return currentStatus;
   }
 
   // Convert to Date object if it's a string (due to JSON serialization)
-  const publishDateObj = publish_date instanceof Date ? publish_date : new Date(publish_date);
+  const publishDateObj = publishDate instanceof Date ? publishDate : new Date(publishDate);
   
   // Check if the date is valid
   if (isNaN(publishDateObj.getTime())) {

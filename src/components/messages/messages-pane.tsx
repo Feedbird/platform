@@ -78,8 +78,8 @@ export default function MessagesPane({
 	const channelMessagesMap = useMessageStore(s => s.channelMessagesByChannelId)
 
 	// Profiles for real-time updates
-	const [profilesByEmail, setProfilesByEmail] = useState<Record<string, { first_name?: string; image_url?: string }>>({})
-	const profilesRef = useRef<Record<string, { first_name?: string; image_url?: string }>>({})
+	const [profilesByEmail, setProfilesByEmail] = useState<Record<string, { firstName?: string; imageUrl?: string }>>({})
+	const profilesRef = useRef<Record<string, { firstName?: string; imageUrl?: string }>>({})
 
 	// Get messages from store
 	const messages = channelId === 'all'
@@ -108,9 +108,9 @@ export default function MessagesPane({
 	useEffect(() => {
 		if (!activeWorkspaceId) return
 		workspaceHelperApi.getWorkspaceMembers(activeWorkspaceId).then(resp => {
-			const map: Record<string, { first_name?: string; image_url?: string }> = {}
+			const map: Record<string, { firstName?: string; imageUrl?: string }> = {}
 			for (const u of resp.users) {
-				map[u.email] = { first_name: u.first_name, image_url: u.image_url }
+				map[u.email] = { firstName: u.firstName, imageUrl: u.imageUrl }
 			}
 			setProfilesByEmail(map)
 		}).catch(() => { })
@@ -195,22 +195,22 @@ export default function MessagesPane({
 	}
 
 	// Function to handle board selection
-	const handleBoardSelection = (board_id: string) => {
+	const handleBoardSelection = (boardId: string) => {
 		setSelectedBoards(prev => {
-			if (prev.includes(board_id)) {
-				return prev.filter(id => id !== board_id);
+			if (prev.includes(boardId)) {
+				return prev.filter(id => id !== boardId);
 			} else {
-				return [...prev, board_id];
+				return [...prev, boardId];
 			}
 		});
 	};
 
 	// Function to handle board quick view navigation
-	const handleBoardQuickView = (board_id: string) => {
-		const board = boardNav.find((b: any) => b.id === board_id);
+	const handleBoardQuickView = (boardId: string) => {
+		const board = boardNav.find((b: any) => b.id === boardId);
 		if (board) {
 			// Navigate to board content page
-			window.location.href = board.href || `/${activeWorkspaceId}/content/${board_id}`;
+			window.location.href = board.href || `/${activeWorkspaceId}/content/${boardId}`;
 		}
 	};
 

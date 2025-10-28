@@ -11,6 +11,7 @@ import type {
 } from "@/lib/social/platforms/platform-types";
 import type { RowHeightType } from "@/lib/utils";
 import type { ConditionGroup } from "@/components/content/post-table/filter-popover";
+import { FieldTypeEntitlements } from "../forms/field.config";
 
 // Shared types for all stores
 export interface BoardRules {
@@ -315,7 +316,7 @@ export interface User {
   lastName?: string;
   imageUrl?: string;
   unreadMsg?: string[];
-  unreadNotification: string[];
+  unreadNotification?: string[];
   notificationSettings?: NotificationSettings;
   defaultBoardRules?: BoardRules;
   createdAt: Date;

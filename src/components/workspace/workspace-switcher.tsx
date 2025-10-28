@@ -105,11 +105,11 @@ export default function WorkspaceSwitcher() {
         const pathParts = currentPath.split('/')
         const contentIndex = pathParts.findIndex(part => part === 'content')
         if (contentIndex !== -1 && pathParts[contentIndex + 1]) {
-          const board_id = pathParts[contentIndex + 1]
+          const boardId = pathParts[contentIndex + 1]
           // Check if this board exists in the new workspace
           const newWorkspace = workspaces.find(w => w.id === id)
-          if (newWorkspace?.boards.some(b => b.id === board_id)) {
-            newPath = `/${id}/content/${board_id}`
+          if (newWorkspace?.boards.some(b => b.id === boardId)) {
+            newPath = `/${id}/content/${boardId}`
           }
         }
       }
@@ -131,7 +131,7 @@ export default function WorkspaceSwitcher() {
     const initialRules = additionalData?.boardRules
     const wsId = await addWorkspace(name, userEmail, logo ?? '', initialRules)
     // Resolve Clerk organization ID for the newly created workspace
-    const orgId = useWorkspaceStore.getState().workspaces.find(w => w.id === wsId)?.clerk_organization_id
+    const orgId = useWorkspaceStore.getState().workspaces.find(w => w.id === wsId)?.clerkOrganizationId
 
     // Handle additional data (boards, rules, invitations)
     if (additionalData) {
@@ -167,7 +167,7 @@ export default function WorkspaceSwitcher() {
                 workspaceId: wsId,
                 actorId: user?.id,
                 organizationId: orgId,
-                first_name: user?.firstName,
+                firstName: user?.firstName,
               })
             )
           )
@@ -179,10 +179,10 @@ export default function WorkspaceSwitcher() {
       // 4) Persist default board rules if requested
       try {
         if (setAsDefault && user?.email) {
-          await userApi.updateUser({ email: user.email }, { default_board_rules: boardRules })
+          await userApi.updateUser({ email: user.email }, { defaultBoardRules: boardRules })
           // Update store copy
           useUserStore.setState(s => ({
-            user: s.user ? ({ ...s.user, default_board_rules: boardRules } as any) : s.user
+            user: s.user ? ({ ...s.user, defaultBoardRules: boardRules } as any) : s.user
           }))
         }
       } catch (e) {

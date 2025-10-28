@@ -304,7 +304,7 @@ export const formsApi = {
     });
   },
   getFormFields: async (formId: string) => {
-    return apiRequest<{ formFields: FormField[] }>(
+    return apiRequest<{ formFields: CanvasFormField[] }>(
       `/forms/fields?formId=${formId}`
     );
   },
@@ -1288,16 +1288,16 @@ export const storeApi = {
       const items = Array.isArray(resp) ? resp : resp ? [resp] : [];
       const transformed = items.map((m: any) => ({
         id: m.id,
-        author: m.author_name || m.author_email,
-        authorEmail: m.author_email,
-        authorImageUrl: m.author_image_url || undefined,
+        author: m.authorName || m.authorEmail,
+        authorEmail: m.authorEmail,
+        authorImageUrl: m.authorImageUrl || undefined,
         text: m.content,
-        createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-        parentId: m.parent_id || null,
+        createdAt: m.createdAt ? new Date(m.createdAt) : new Date(),
+        parentId: m.parentId || null,
         addon: m.addon,
         readby: m.readby,
         emoticons: m.emoticons,
-        channelId: m.channel_id, // Add channel ID to identify which channel the message belongs to
+        channelId: m.channelId, // Add channel ID to identify which channel the message belongs to
       }));
 
       // Store all workspace messages under a special 'all' key
@@ -1957,11 +1957,11 @@ export const storeApi = {
             return {
               ...p,
               status: (updated as any).status as any,
-              publish_date: (updated as any).publish_date
-                ? new Date((updated as any).publish_date)
+              publishDate: (updated as any).publishDate
+                ? new Date((updated as any).publishDate)
                 : null,
-              updatedAt: (updated as any).updated_at
-                ? new Date((updated as any).updated_at)
+              updatedAt: (updated as any).updatedAt
+                ? new Date((updated as any).updatedAt)
                 : p.updatedAt,
             };
           }),
@@ -2505,8 +2505,8 @@ export const notificationServiceApi = {
       Array<{
         id: string;
         email: string;
-        first_name: string;
-        unread_msg: string[];
+        firstName: string;
+        unreadMsg: string[];
       }>
     >('/notification-service?endpoint=users-with-unread-messages');
   },
@@ -2518,10 +2518,10 @@ export const notificationServiceApi = {
         id: string;
         content: string;
         authorEmail: string;
-        created_at: string;
+        createdAt: string;
         channelId: string;
         workspaceId: string;
-        sent_notification: boolean;
+        sentNotification: boolean;
       }>
     >('/notification-service', {
       method: 'POST',
@@ -2547,8 +2547,8 @@ export const notificationServiceApi = {
     return apiRequest<
       Array<{
         email: string;
-        first_name: string;
-        image_url: string;
+        firstName: string;
+        imageUrl: string;
       }>
     >('/notification-service', {
       method: 'POST',

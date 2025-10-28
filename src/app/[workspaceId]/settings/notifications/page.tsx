@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { useUserStore, useWorkspaceStore } from "@/lib/store";
 import { userApi } from "@/lib/api/api-service";
 import { UserStore } from "@/lib/store/user-store";
@@ -37,11 +35,11 @@ export default function SettingsNotificationsPage() {
 
   // Initialize settings from store when user data changes
   useEffect(() => {
-    if (user?.notification_settings) {
-        console.log(user.notification_settings)
+    if (user?.notificationSettings) {
+        console.log(user.notificationSettings)
       //setNotificationSettings(user.notification_settings);
     }
-  }, [user?.notification_settings]);
+  }, [user?.notificationSettings]);
 
   const persistSettings = async (nextSettings: typeof notificationSettings) => {
     if (!user?.email || !activeWorkspace?.id) return;
@@ -51,8 +49,8 @@ export default function SettingsNotificationsPage() {
         user.email,
         nextSettings
       );
-      if (updatedUser?.notification_settings) {
-        updateUserNotificationSettings(updatedUser.notification_settings);
+      if (updatedUser?.notificationSettings) {
+        updateUserNotificationSettings(updatedUser.notificationSettings);
       }
     } catch (error) {
       console.error("Failed to save notification settings:", error);
@@ -69,8 +67,8 @@ export default function SettingsNotificationsPage() {
         user.email,
         notificationSettings
       );
-      if (updatedUser?.notification_settings) {
-        updateUserNotificationSettings(updatedUser.notification_settings);
+      if (updatedUser?.notificationSettings) {
+        updateUserNotificationSettings(updatedUser.notificationSettings);
       }
     } catch (error) {
       console.error("Failed to save notification settings:", error);

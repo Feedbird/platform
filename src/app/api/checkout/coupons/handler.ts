@@ -5,15 +5,15 @@ import { ApiHandlerError } from "../../shared";
 export class CouponsHandler {
   private static verifyCouponValidity(coupon: Coupon): boolean {
     let isValid = true;
-    if (coupon.expires_at) {
+    if (coupon.expiresAt) {
       const now = new Date();
-      const expiresAt = new Date(coupon.expires_at);
+      const expiresAt = new Date(coupon.expiresAt);
 
       isValid = now < expiresAt;
     }
 
-    if (coupon.usage_limit) {
-      isValid = isValid && coupon.usage_count <= coupon.usage_limit;
+    if (coupon.usageLimit) {
+      isValid = isValid && coupon.usageCount <= coupon.usageLimit;
     }
 
     return isValid;

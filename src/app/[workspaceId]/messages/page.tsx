@@ -61,12 +61,12 @@ export default function MessagesPage() {
     const [newName, setNewName] = useState<string>('')
     const [newDescription, setNewDescription] = useState<string>('')
     const [allMemberEmails, setAllMemberEmails] = useState<string[]>([])
-    const [memberProfiles, setMemberProfiles] = useState<Record<string, { first_name?: string; image_url?: string }>>({})
+    const [memberProfiles, setMemberProfiles] = useState<Record<string, { firstName?: string; imageUrl?: string }>>({})
     const [selectedMemberEmails, setSelectedMemberEmails] = useState<string[]>([])
     const [iconPickerOpen, setIconPickerOpen] = useState(false)
 
     // Workspace members loaded on first load (or when workspace changes)
-    const [workspaceUsers, setWorkspaceUsers] = useState<{ email: string; first_name?: string; image_url?: string }[]>([])
+    const [workspaceUsers, setWorkspaceUsers] = useState<{ email: string; firstName?: string; imageUrl?: string }[]>([])
     const [workspaceCreatorEmail, setWorkspaceCreatorEmail] = useState<string | undefined>(undefined)
     useEffect(() => {
         if (!activeWorkspaceId) return
@@ -86,9 +86,9 @@ export default function MessagesPage() {
         if (leftPaneMode !== 'members') return
         const users = workspaceUsers || []
         const emails = users.map(u => u.email)
-        const profiles: Record<string, { first_name?: string; image_url?: string }> = {}
+        const profiles: Record<string, { firstName?: string; imageUrl?: string }> = {}
         for (const u of users) {
-            profiles[u.email] = { first_name: u.first_name, image_url: u.image_url }
+            profiles[u.email] = { firstName: u.firstName, imageUrl: u.imageUrl }
         }
         setAllMemberEmails(emails)
         setMemberProfiles(profiles)
@@ -103,7 +103,7 @@ export default function MessagesPage() {
         setSelectedMemberEmails([])
     }
 
-    const getDisplayName = (email: string) => memberProfiles[email]?.first_name || email
+    const getDisplayName = (email: string) => memberProfiles[email]?.firstName || email
 
     const toggleSelected = (email: string) => {
         setSelectedMemberEmails((prev) =>
@@ -184,9 +184,9 @@ export default function MessagesPage() {
         if (selectedChannelId === 'all') {
             return (workspaceUsers || []).map((u) => ({
                 email: u.email,
-                name: u.first_name || u.email,
+                name: u.firstName || u.email,
                 role: u.email === workspaceCreatorEmail ? 'admin' : 'member',
-                imageUrl: u.image_url,
+                imageUrl: u.imageUrl,
             }))
         }
         // Specific channel: filter users by channel.members
@@ -198,9 +198,9 @@ export default function MessagesPage() {
             const u = byEmail.get(email)
             return {
                 email,
-                name: u?.first_name || email,
+                name: u?.firstName || email,
                 role: email === workspaceCreatorEmail ? 'admin' : 'member',
-                imageUrl: u?.image_url,
+                imageUrl: u?.imageUrl,
             }
         })
         return list
@@ -454,7 +454,7 @@ export default function MessagesPage() {
                                         {selectedMemberEmails.map((email) => (
                                             <div key={email} className="flex items-center h-5 gap-1 px-[3px] rounded-full bg-[#F4F5F6]">
                                                 <Avatar className="w-3.5 h-3.5">
-                                                    <AvatarImage src={memberProfiles[email]?.image_url} alt={email} />
+                                                    <AvatarImage src={memberProfiles[email]?.imageUrl} alt={email} />
                                                     <AvatarFallback className="text-[9px]">{getFullnameinitial(undefined, undefined, getDisplayName(email))}</AvatarFallback>
                                                 </Avatar>
                                                 <span className="text-xs text-black max-w-[120px] truncate">{getDisplayName(email)}</span>
@@ -476,7 +476,7 @@ export default function MessagesPage() {
                                                 <div key={email} className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <Avatar className="w-6 h-6">
-                                                            <AvatarImage src={memberProfiles[email]?.image_url} alt={email} />
+                                                            <AvatarImage src={memberProfiles[email]?.imageUrl} alt={email} />
                                                             <AvatarFallback className="text-[10px] font-medium">{getFullnameinitial(undefined, undefined, getDisplayName(email))}</AvatarFallback>
                                                         </Avatar>
                                                         <div className="text-xs text-black font-medium truncate">{getDisplayName(email)}</div>

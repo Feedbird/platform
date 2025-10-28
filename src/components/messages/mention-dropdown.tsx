@@ -6,8 +6,8 @@ import { getFullnameinitial } from '@/lib/utils'
 
 type WorkspaceMember = {
 	email: string
-	first_name?: string
-	image_url?: string
+	firstName?: string
+	imageUrl?: string
 }
 
 type MentionDropdownProps = {
@@ -49,16 +49,16 @@ export default function MentionDropdown({
 					)}
 				>
 					<Avatar className="w-6 h-6">
-						<AvatarImage src={member.image_url} alt={member.first_name || member.email} />
+						<AvatarImage src={member.imageUrl} alt={member.firstName || member.email} />
 						<AvatarFallback className="text-[10px] font-medium">
-							{getFullnameinitial(undefined, undefined, member.first_name || member.email)}
+							{getFullnameinitial(undefined, undefined, member.firstName || member.email)}
 						</AvatarFallback>
 					</Avatar>
 					<div className="flex-1 min-w-0">
 						<div className="text-sm font-medium text-gray-900 truncate">
-							{member.first_name || member.email}
+							{member.firstName || member.email}
 						</div>
-						{member.first_name && (
+						{member.firstName && (
 							<div className="text-xs text-gray-500 truncate">
 								{member.email}
 							</div>

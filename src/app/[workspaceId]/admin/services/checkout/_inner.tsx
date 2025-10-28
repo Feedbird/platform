@@ -1,7 +1,7 @@
 "use client";
-import BuilderServiceCard from "@/components/checkout/builder/BuilderServiceCard";
-import CheckoutBuilderSideBar from "@/components/checkout/builder/CheckoutBuilderSideBar";
-import CheckoutFormInfo from "@/components/checkout/builder/CheckoutFormInfo";
+import BuilderServiceCard from "@/components/checkout/builder/builder-service-card";
+import CheckoutBuilderSideBar from "@/components/checkout/builder/checkout-builder-sidebar";
+import CheckoutFormInfo from "@/components/checkout/builder/checkout-forminfo";
 import { servicesApi } from "@/lib/api/api-service";
 import { useWorkspaceStore } from "@/lib/store";
 import { Service } from "@/lib/store/types";

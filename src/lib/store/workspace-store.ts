@@ -53,16 +53,16 @@ export interface WorkspaceStore {
   removeBoardTemplate: (id: string) => void;
 
   // Group data methods
-  addGroupComment: (board_id: string, month: number, text: string, author: string) => string;
-  updateGroupComment: (board_id: string, month: number, commentId: string, data: Partial<GroupComment>) => void;
-  deleteGroupComment: (board_id: string, month: number, commentId: string) => void;
-  resolveGroupComment: (board_id: string, month: number, commentId: string, resolvedBy: string) => void;
-  addGroupMessage: (board_id: string, month: number, commentId: string, text: string, author: string, parentMessageId?: string) => string;
-  updateGroupMessage: (board_id: string, month: number, commentId: string, messageId: string, data: Partial<GroupMessage>) => void;
-  deleteGroupMessage: (board_id: string, month: number, commentId: string, messageId: string) => void;
-  updateGroupCommentAiSummary: (board_id: string, month: number, commentId: string, aiSummary: string[]) => void;
-  deleteGroupCommentAiSummaryItem: (board_id: string, month: number, commentId: string, summaryIndex: number) => void;
-  markGroupCommentRead: (board_id: string, month: number, commentId: string) => void;
+  addGroupComment: (boardId: string, month: number, text: string, author: string) => string;
+  updateGroupComment: (boardId: string, month: number, commentId: string, data: Partial<GroupComment>) => void;
+  deleteGroupComment: (boardId: string, month: number, commentId: string) => void;
+  resolveGroupComment: (boardId: string, month: number, commentId: string, resolvedBy: string) => void;
+  addGroupMessage: (boardId: string, month: number, commentId: string, text: string, author: string, parentMessageId?: string) => string;
+  updateGroupMessage: (boardId: string, month: number, commentId: string, messageId: string, data: Partial<GroupMessage>) => void;
+  deleteGroupMessage: (boardId: string, month: number, commentId: string, messageId: string) => void;
+  updateGroupCommentAiSummary: (boardId: string, month: number, commentId: string, aiSummary: string[]) => void;
+  deleteGroupCommentAiSummaryItem: (boardId: string, month: number, commentId: string, summaryIndex: number) => void;
+  markGroupCommentRead: (boardId: string, month: number, commentId: string) => void;
 }
 
 const defaultBoards: Board[] = [
@@ -623,7 +623,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
     },
 
     // Group data methods implementation (DB first)
-    addGroupComment: (board_id, month, text, author) => {
+    addGroupComment: (boardId, month, text, author) => {
       const commentId = uuidv4();
       const userEmail: string | null = (get() as any).user?.email ?? null;
       // Optimistic local object to use in case of failure
@@ -649,7 +649,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       const ws = st.getActiveWorkspace();
       if (!ws) return commentId;
 
-      const currentBoard = ws.boards.find(b => b.id === board_id);
+      const currentBoard = ws.boards.find(b => b.id === boardId);
       const currentGroupData = currentBoard?.groupData || [];
       const nextGroupData: BoardGroupData[] = (() => {
         const monthGroup = currentGroupData.find(gd => gd.month === month);
@@ -663,16 +663,16 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       })();
 
       // DB first: update board.group_data, which will then update the store via storeApi
-      storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
+      storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
       return commentId;
     },
 
     /** Mark a specific group comment as read by current user (adds email to readBy). DB-first */
-    markGroupCommentRead: (board_id: string, month: number, commentId: string) => {
+    markGroupCommentRead: (boardId: string, month: number, commentId: string) => {
       const st = get();
       const ws = st.getActiveWorkspace();
       if (!ws) return;
-      const currentBoard = ws.boards.find(b => b.id === board_id);
+      const currentBoard = ws.boards.find(b => b.id === boardId);
       const currentGroupData = currentBoard?.groupData || [];
       const userEmail: string | null = (get() as any).user?.email ?? null;
       if (!userEmail) return;
@@ -686,10 +686,10 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
             : c)
         };
       });
-      storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
+      storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
     },
 
-    updateGroupComment: (board_id, month, commentId, data) => {
+    updateGroupComment: (boardId, month, commentId, data) => {
       set((s) => ({
         workspaces: s.workspaces.map((ws) => {
           // Only update the active workspace
@@ -698,7 +698,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           return {
             ...ws,
             boards: ws.boards.map((board) => {
-              if (board.id !== board_id) return board;
+              if (board.id !== boardId) return board;
               
               const updatedGroupData = (board.groupData || []).map(gd => {
                 if (gd.month !== month) return gd;
@@ -720,7 +720,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       }));
     },
 
-    deleteGroupComment: (board_id, month, commentId) => {
+    deleteGroupComment: (boardId, month, commentId) => {
       set((s) => ({
         workspaces: s.workspaces.map((ws) => {
           // Only update the active workspace
@@ -729,7 +729,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           return {
             ...ws,
             boards: ws.boards.map((board) => {
-              if (board.id !== board_id) return board;
+              if (board.id !== boardId) return board;
               
               const updatedGroupData = (board.groupData || []).map(gd => {
                 if (gd.month !== month) return gd;
@@ -747,11 +747,11 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       }));
     },
 
-    resolveGroupComment: (board_id, month, commentId, resolvedBy) => {
+    resolveGroupComment: (boardId, month, commentId, resolvedBy) => {
       const st = get();
       const ws = st.getActiveWorkspace();
       if (!ws) return;
-      const currentBoard = ws.boards.find(b => b.id === board_id);
+      const currentBoard = ws.boards.find(b => b.id === boardId);
       const currentGroupData = currentBoard?.groupData || [];
       const nextGroupData = currentGroupData.map(gd => {
         if (gd.month !== month) return gd;
@@ -766,10 +766,10 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           } : c)
         };
       });
-      storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
+      storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
     },
 
-    addGroupMessage: (board_id, month, commentId, text, author, parentMessageId) => {
+    addGroupMessage: (boardId, month, commentId, text, author, parentMessageId) => {
       const messageId = uuidv4();
       const newMessage: GroupMessage = {
         id: messageId,
@@ -785,7 +785,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       const ws = st.getActiveWorkspace();
       if (!ws) return messageId;
 
-      const currentBoard = ws.boards.find(b => b.id === board_id);
+      const currentBoard = ws.boards.find(b => b.id === boardId);
       const currentGroupData = currentBoard?.groupData || [];
       const nextGroupData = currentGroupData.map(gd => {
         if (gd.month !== month) return gd;
@@ -806,11 +806,11 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           })
         };
       });
-      storeApi.updateBoardAndUpdateStore(board_id, { group_data: nextGroupData });
+      storeApi.updateBoardAndUpdateStore(boardId, { group_data: nextGroupData });
       return messageId;
     },
 
-    updateGroupMessage: (board_id, month, commentId, messageId, data) => {
+    updateGroupMessage: (boardId, month, commentId, messageId, data) => {
       set((s) => ({
         workspaces: s.workspaces.map((ws) => {
           // Only update the active workspace
@@ -819,7 +819,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           return {
             ...ws,
             boards: ws.boards.map((board) => {
-              if (board.id !== board_id) return board;
+              if (board.id !== boardId) return board;
               
               const updatedGroupData = (board.groupData || []).map(gd => {
                 if (gd.month !== month) return gd;
@@ -854,7 +854,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       }));
     },
 
-    deleteGroupMessage: (board_id, month, commentId, messageId) => {
+    deleteGroupMessage: (boardId, month, commentId, messageId) => {
       set((s) => ({
         workspaces: s.workspaces.map((ws) => {
           // Only update the active workspace
@@ -863,7 +863,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           return {
             ...ws,
             boards: ws.boards.map((board) => {
-              if (board.id !== board_id) return board;
+              if (board.id !== boardId) return board;
               
               const updatedGroupData = (board.groupData || []).map(gd => {
                 if (gd.month !== month) return gd;
@@ -897,7 +897,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       }));
     },
 
-    updateGroupCommentAiSummary: (board_id, month, commentId, aiSummary) => {
+    updateGroupCommentAiSummary: (boardId, month, commentId, aiSummary) => {
       set((s) => ({
         workspaces: s.workspaces.map((ws) => {
           // Only update the active workspace
@@ -906,7 +906,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           return {
             ...ws,
             boards: ws.boards.map((board) => {
-              if (board.id !== board_id) return board;
+              if (board.id !== boardId) return board;
               
               const updatedGroupData = (board.groupData || []).map(gd => {
                 if (gd.month !== month) return gd;
@@ -928,7 +928,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
       }));
     },
 
-    deleteGroupCommentAiSummaryItem: (board_id, month, commentId, summaryIndex) => {
+    deleteGroupCommentAiSummaryItem: (boardId, month, commentId, summaryIndex) => {
       set((s) => ({
         workspaces: s.workspaces.map((ws) => {
           if (ws.id !== s.activeWorkspaceId) return ws;
@@ -936,7 +936,7 @@ export const useWorkspaceStore = createPersistedStore<WorkspaceStore>(
           return {
             ...ws,
             boards: ws.boards.map((board) => {
-              if (board.id !== board_id) return board;
+              if (board.id !== boardId) return board;
     
               const updatedGroupData = (board.groupData || []).map((gd) => {
                 if (gd.month !== month) return gd;

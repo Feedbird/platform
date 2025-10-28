@@ -253,7 +253,7 @@ const MessageInput = forwardRef<any, MessageInputProps>(({
 		const after = currentHTML.slice(atIdx + searchPattern.length)
 
 		const timestamp = Date.now()
-		const sanitizedFirstName = sanitizePlainText(member.first_name || '')
+		const sanitizedFirstName = sanitizePlainText(member.firstName || '')
 		const sanitizedEmail = sanitizePlainText(member.email || '')
 		const mentionSpanHTML = `<span style="background: #FE4C281A; border-radius: 4px; padding-left: 3px; padding-right: 3px; color: #FE4C28; display: inline-block;" data-mention-type="mention" data-timestamp="${timestamp}" contenteditable="false">@${sanitizedFirstName || sanitizedEmail}</span>`
 

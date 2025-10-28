@@ -5,7 +5,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";
 import Image from "next/image";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
-import MultiSelectDropdown from "./ChannelSelect";
+import MultiSelectDropdown from "./channel-select";
 
 export type ServiceCardPlan = {
   plan: ServicePlan;
@@ -56,14 +56,14 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
 
   const plans = React.useMemo(
     () =>
-      service.service_plans
-        ? service.service_plans?.sort((a, b) => a.price - b.price)
+      service.servicePlans
+        ? service.servicePlans?.sort((a, b) => a.price - b.price)
         : [],
-    [service.service_plans]
+    [service.servicePlans]
   );
 
   const channels =
-    service.social_channels && service.channels?.length ? service.channels : [];
+    service.socialChannels && service.channels?.length ? service.channels : [];
 
   const handleAdd = () => {
     if (!planSelected) {
@@ -121,14 +121,14 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   }, [channelsSelected]);
 
   const handleSelection = () => {
-    if (service.service_plans && service.service_plans.length === 1) {
+    if (service.servicePlans && service.servicePlans.length === 1) {
       isAdded(true);
       setSelectingMode(true);
-      selectPlan(service.service_plans![0]);
+      selectPlan(service.servicePlans![0]);
       selector((prev) => {
         const newMap = new Map(prev);
         newMap.set(service.id, {
-          plan: service.service_plans![0],
+          plan: service.servicePlans![0],
           channels: [],
         });
         return newMap;
@@ -153,7 +153,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
       <div className="flex flex-col gap-2">
         <div className="flex flex-row gap-2">
           <Image
-            src={`/images/checkout/icons/${service.internal_icon}.svg`}
+            src={`/images/checkout/icons/${service.internalIcon}.svg`}
             alt="service_icon"
             width={20}
             height={20}
@@ -176,19 +176,19 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             onClick={handleSelection}
             variant="ghost"
             className={`text-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 ${
-              service.service_plans && service.service_plans.length === 1
+              service.servicePlans && service.servicePlans.length === 1
                 ? "w-[100px]"
                 : "w-[131px]"
             } px-4 py-2.5 bg-transparent border-1 border-[#4670F9] flex items-center justify-center`}
           >
-            {service.service_plans && service.service_plans.length > 1
+            {service.servicePlans && service.servicePlans.length > 1
               ? "+ Select plan"
               : "+ Add"}
           </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {service.service_plans && service.service_plans.length > 1 && (
+          {service.servicePlans && service.servicePlans.length > 1 && (
             <div className="flex flex-col gap-1 text-black">
               <label className="font-medium text-sm">Plan</label>
               <Select
@@ -213,7 +213,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
               >
                 <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-black text-[13px]">
                   {planSelected
-                    ? `${planSelected.quantity} ${planSelected.qty_indicator} - $${planSelected.price}/${planSelected.period}`
+                    ? `${planSelected.quantity} ${planSelected.qtyIndicator} - $${planSelected.price}/${planSelected.period}`
                     : "Select a plan"}
                 </SelectTrigger>
                 <SelectContent>
@@ -228,7 +228,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
                         }}
                         className="text-black text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
                       >
-                        {plan.quantity} {plan.qty_indicator} - ${plan.price}/
+                        {plan.quantity} {plan.qtyIndicator} - ${plan.price}/
                         {mapPeriodicity(plan.period)}
                       </SelectItem>
                     ))}

@@ -3,6 +3,7 @@
  */
 
 import { CanvasFormField } from "@/components/forms/form-canvas";
+import { FormField } from "../store";
 
 export function humanizeDate(date: Date | string): string {
   const standardizedDate = typeof date === "string" ? new Date(date) : date;
@@ -72,8 +73,8 @@ export function nestedObjectEqual<T>(a: T, b: T): boolean {
 }
 
 export function formFieldSorter(
-  a: CanvasFormField,
-  b: CanvasFormField
+  a: CanvasFormField | FormField,
+  b: CanvasFormField | FormField
 ): number {
   return (a.position || 0) - (b.position || 0);
 }

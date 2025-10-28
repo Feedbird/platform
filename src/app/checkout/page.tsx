@@ -1,11 +1,11 @@
 "use client";
-import BillingTabs from "@/components/checkout/BillingTabs";
-import BusinessInformation from "@/components/checkout/BussinessInformation";
-import CouponValidator from "@/components/checkout/CouponValidator";
-import EmailInput from "@/components/checkout/EmailInput";
-import ReviewsCarousel from "@/components/checkout/ReviewsCarousel";
-import { ServiceCardPlan } from "@/components/checkout/ServiceCard";
-import ServiceSection from "@/components/checkout/ServiceSection";
+import BillingTabs from "@/components/checkout/billing-tabs";
+import BusinessInformation from "@/components/checkout/bussiness-information";
+import CouponValidator from "@/components/checkout/coupon-validator";
+import EmailInput from "@/components/checkout/email-input";
+import ReviewsCarousel from "@/components/checkout/reviews-carousel";
+import { ServiceCardPlan } from "@/components/checkout/service-card";
+import ServiceSection from "@/components/checkout/service-section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useWorkspaceStore, useUserStore } from "@/lib/store";

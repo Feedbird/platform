@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { mapPeriodicity, ServiceCardPlan } from "./ServiceCard";
+import { mapPeriodicity, ServiceCardPlan } from "./service-card";
 import { ServiceFolder } from "@/lib/store/types";
 import { Divider } from "@mui/material";
 import Image from "next/image";
@@ -88,7 +88,7 @@ export default function BillingTabs({
                       width={20}
                       height={20}
                       alt={`${service.name}_icon`}
-                      src={`/images/checkout/icons/${service.internal_icon}.svg`}
+                      src={`/images/checkout/icons/${service.internalIcon}.svg`}
                     />
                     <h3 className="text-base font-medium text-black">
                       {service.name}
@@ -99,7 +99,7 @@ export default function BillingTabs({
                       <div className="flex flex-col font-normal">
                         <span className="text-black">
                           {container.plan.quantity}{" "}
-                          {container.plan.qty_indicator}
+                          {container.plan.qtyIndicator}
                         </span>
                       </div>
 
@@ -115,10 +115,10 @@ export default function BillingTabs({
                           key={channel.id}
                         >
                           <span>
-                            {channel.social_channel
+                            {channel.socialChannel
                               .slice(0, 1)
                               .toLocaleUpperCase() +
-                              channel.social_channel.slice(1)}
+                              channel.socialChannel.slice(1)}
                           </span>
                           <p>
                             {idx === 0
@@ -173,7 +173,7 @@ export default function BillingTabs({
                       width={20}
                       height={20}
                       alt={`${service.name}_icon`}
-                      src={`/images/checkout/icons/${service.internal_icon}.svg`}
+                      src={`/images/checkout/icons/${service.internalIcon}.svg`}
                     />
                     <h3 className="text-base font-medium text-black">
                       {service.name}
@@ -184,7 +184,7 @@ export default function BillingTabs({
                       <div className="flex flex-col font-normal">
                         <span className="text-black">
                           {container.plan.quantity}{" "}
-                          {container.plan.qty_indicator}
+                          {container.plan.qtyIndicator}
                         </span>
                       </div>
 
@@ -200,10 +200,10 @@ export default function BillingTabs({
                           key={channel.id}
                         >
                           <span>
-                            {channel.social_channel
+                            {channel.socialChannel
                               .slice(0, 1)
                               .toLocaleUpperCase() +
-                              channel.social_channel.slice(1)}
+                              channel.socialChannel.slice(1)}
                           </span>
                           <p>
                             {idx === 0

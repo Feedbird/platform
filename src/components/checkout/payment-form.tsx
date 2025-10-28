@@ -3,7 +3,7 @@ import { Elements, PaymentElement } from "@stripe/react-stripe-js";
 import Image from "next/image";
 import React from "react";
 import { loadStripe } from "@stripe/stripe-js";
-import StripeFormPage from "./StripeForm";
+import StripeFormPage from "./stripe-form";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 

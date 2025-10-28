@@ -82,10 +82,10 @@ export const usePostStore = createPersistedStore<PostStore>(
       const { useWorkspaceStore } = require('./workspace-store');
       const workspaceStore = useWorkspaceStore.getState();
       const workspace = workspaceStore.getActiveWorkspace();
-      const board_id = workspaceStore.activeBoardId;
-      if (!workspace || !board_id) return [];
+      const boardId = workspaceStore.activeBoardId;
+      if (!workspace || !boardId) return [];
       
-      const board = workspace.boards.find((b: Board) => b.id === board_id);
+      const board = workspace.boards.find((b: Board) => b.id === boardId);
       console.log('board', board);
       return board?.posts ?? [];
     },
@@ -99,12 +99,12 @@ export const usePostStore = createPersistedStore<PostStore>(
       return workspace.boards.flatMap((board: Board) => board.posts);
     },
 
-    addPost: async (board_id?: string) => {
+    addPost: async (boardId?: string) => {
       const { useWorkspaceStore } = require('./workspace-store');
       const workspaceStore = useWorkspaceStore.getState();
       const ws = workspaceStore.getActiveWorkspace();
       if (!ws) return null;
-      const bId = board_id ?? workspaceStore.activeBoardId ?? (ws?.boards[0]?.id ?? "default");
+      const bId = boardId ?? workspaceStore.activeBoardId ?? (ws?.boards[0]?.id ?? "default");
       const userEmail = (get() as any).user?.email;
 
       if (!userEmail) {

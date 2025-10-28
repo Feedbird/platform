@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useWorkspaceStore, useUserStore } from "@/lib/store";
 import { inviteApi, workspaceHelperApi } from "@/lib/api/api-service";
@@ -24,8 +22,8 @@ export default function SettingsMembersPage() {
 
   const [members, setMembers] = React.useState<{
     email: string;
-    first_name?: string;
-    image_url?: string;
+    firstName?: string;
+    imageUrl?: string;
     role?: "admin" | "client" | "team";
     accept?: boolean;
   }[]>([]);
@@ -64,7 +62,7 @@ export default function SettingsMembersPage() {
         email: email.trim(),
         workspaceId: activeWorkspaceId,
         actorId: user?.id,
-        first_name: user?.firstName,
+        firstName: user?.firstName,
       };
       const response: InviteResponse = roleSelect === "Team"
         ? await inviteApi.inviteTeam(payload)
@@ -162,12 +160,12 @@ export default function SettingsMembersPage() {
                     {/* Who has access */}
                     <div className="flex items-center gap-2.5 min-w-0 px-3 py-1.5">
                       <Avatar className="size-6">
-                        <AvatarImage src={m.image_url || undefined} alt={m.first_name || m.email} />
+                        <AvatarImage src={m.imageUrl || undefined} alt={m.firstName || m.email} />
                         <AvatarFallback className="text-xs font-medium text-black">{getFullnameinitial(user?.firstName || undefined, user?.lastName || undefined, user?.email || undefined)}</AvatarFallback>
                       </Avatar>
                       <div className="truncate flex items-center">
                         <span className="text-xs font-normal text-darkGrey leading-none">
-                          {m.first_name || m.email}
+                          {m.firstName || m.email}
                         </span>
                         {m.accept === false && (
                           <span className="text-xs font-normal text-darkGrey ml-1">(Pending)</span>

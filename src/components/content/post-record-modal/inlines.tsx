@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
@@ -18,7 +17,6 @@ import {
   ChevronDown as ChevronDownIcon,
   AlarmClock,
   AlarmClockOff,
-  Check,
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -196,7 +194,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
   const updatePost = usePostStore(s => s.updatePost);
   const addActivity = usePostStore(s => s.addActivity);
 
-  const savedDate  = post.publish_date ? new Date(post.publish_date) : null;
+  const savedDate  = post.publishDate ? new Date(post.publishDate) : null;
   const hasDate    = !!savedDate;
   const isSched    = post.status === "Scheduled";
   const isPub      = post.status === "Published";
@@ -220,13 +218,13 @@ export function InlineDateEditor({ post }: { post: Post }) {
     
     if (suggestions.length) {
       scheduledDate = suggestions[0].date;
-      updatePost(post.id, { publish_date: scheduledDate });
+      updatePost(post.id, { publishDate: scheduledDate });
     } else {
       const fallback = new Date();
       fallback.setDate(fallback.getDate() + 7);
       fallback.setHours(9, 0, 0, 0);
       scheduledDate = fallback;
-      updatePost(post.id, { publish_date: fallback });
+      updatePost(post.id, { publishDate: fallback });
     }
     
     // Add scheduling activity
@@ -244,7 +242,7 @@ export function InlineDateEditor({ post }: { post: Post }) {
     const [hh, mm] = timeVal.split(":").map(Number);
     const dt = new Date(tempDate);
     dt.setHours(hh, mm, 0, 0);
-    updatePost(post.id, { publish_date: dt });
+    updatePost(post.id, { publishDate: dt });
     
     // Add scheduling activity
     addActivity({
@@ -269,16 +267,16 @@ export function InlineDateEditor({ post }: { post: Post }) {
       actorId: useUserStore.getState().user?.id || '',
       type: "scheduled",
       metadata: {
-        publishTime: post.publish_date || new Date()
+        publishTime: post.publishDate || new Date()
       }
     });
   }
   function handleUnsched() {
-    updatePost(post.id, { publish_date: undefined, status: "Draft" });
+    updatePost(post.id, { publishDate: undefined, status: "Draft" });
   }
   function handlePublish() {
     const publishTime = new Date();
-    updatePost(post.id, { status: "Published", publish_date: publishTime });
+    updatePost(post.id, { status: "Published", publishDate: publishTime });
     
     // Add publishing activity
     addActivity({

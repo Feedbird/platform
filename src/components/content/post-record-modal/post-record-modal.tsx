@@ -935,7 +935,7 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
 }) {
   const updatePost = usePostStore((s: PostStore) => s.updatePost);
   const activeWorkspace = useWorkspaceStore((s: WorkspaceStore) => s.getActiveWorkspace());
-  const activeBoard = activeWorkspace?.boards.find(b => b.id === selectedPost.board_id);
+  const activeBoard = activeWorkspace?.boards.find(b => b.id === selectedPost.boardId);
   const posts = activeBoard?.posts;
   const post = posts?.find(p => p.id === selectedPost.id);
   /* local states */
@@ -1014,9 +1014,9 @@ export function PostRecordModal({ selectedPost, open, onClose, onPostSelect }:{
 
   // Display date as: May 18, 2025   11:44
   // with date part in black, time part in grey
-  const dateDisplay = post.publish_date
+  const dateDisplay = post.publishDate
     ? (() => {
-        const dateObj = post.publish_date;
+        const dateObj = post.publishDate;
         const datePart = dateObj.toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",

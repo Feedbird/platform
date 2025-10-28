@@ -32,7 +32,7 @@ export const useUserStore = createPersistedStore<UserStore>(
       set((state) => ({
         user: state.user ? {
           ...state.user,
-          notification_settings: notificationSettings
+          notificationSettings: notificationSettings
         } : null
       }))
     },
@@ -45,14 +45,14 @@ export const useUserStore = createPersistedStore<UserStore>(
         if (!s.user) return s;
         
         // Check if message is already in unread list
-        const currentUnread = s.user.unread_msg || []
+        const currentUnread = s.user.unreadMsg || []
         if (currentUnread.includes(messageId)) return s;
         
         return {
           ...s,
           user: {
             ...s.user,
-            unread_msg: [...currentUnread, messageId]
+            unreadMsg: [...currentUnread, messageId]
           }
         };
       });
@@ -62,21 +62,21 @@ export const useUserStore = createPersistedStore<UserStore>(
       set((s) => {
         if (!s.user) return s;
         
-        const currentUnread = s.user.unread_msg || []
+        const currentUnread = s.user.unreadMsg || []
         const newUnread = currentUnread.filter(id => id !== messageId)
         
         return {
           ...s,
           user: {
             ...s.user,
-            unread_msg: newUnread
+            unreadMsg: newUnread
           }
         };
       });
     },
 
     hasUnreadMessages: () => {
-      const hasUnread = (get().user?.unread_msg?.length || 0) > 0;
+      const hasUnread = (get().user?.unreadMsg?.length || 0) > 0;
       return hasUnread;
     },
   })

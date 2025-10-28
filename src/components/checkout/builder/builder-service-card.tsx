@@ -1,7 +1,7 @@
 import { CheckoutServiceBuilder } from "@/app/[workspaceId]/admin/services/checkout/_inner";
 import Image from "next/image";
 import React from "react";
-import { mapPeriodicity } from "../ServiceCard";
+import { mapPeriodicity } from "../service-card";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 
 export default function BuilderServiceCard({ serviceBuilder }: Props) {
   const service = serviceBuilder.service;
-  const plans = service.service_plans ?? [];
+  const plans = service.servicePlans ?? [];
 
   if (!serviceBuilder.is_active) return null;
   return (
@@ -18,7 +18,7 @@ export default function BuilderServiceCard({ serviceBuilder }: Props) {
       <div className="flex flex-col gap-2">
         <div className="flex flex-row gap-2">
           <Image
-            src={`/images/checkout/icons/${service.internal_icon}.svg`}
+            src={`/images/checkout/icons/${service.internalIcon}.svg`}
             alt="service_icon"
             width={20}
             height={20}
@@ -39,12 +39,12 @@ export default function BuilderServiceCard({ serviceBuilder }: Props) {
         <Button
           variant="ghost"
           className={`text-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 ${
-            service.service_plans && service.service_plans.length === 1
+            service.servicePlans && service.servicePlans.length === 1
               ? "w-[100px]"
               : "w-[131px]"
           } px-4 py-2.5 bg-transparent border-1 border-[#4670F9] flex items-center justify-center`}
         >
-          {service.service_plans && service.service_plans.length > 1
+          {service.servicePlans && service.servicePlans.length > 1
             ? "+ Select plan"
             : "+ Add"}
         </Button>

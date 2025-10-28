@@ -306,7 +306,7 @@ export default function MessagesSidebar({
 											.flatMap(([status, posts]) =>
 												posts.map(post => ({
 													id: post.id,
-													board_id: board.id,
+													boardId: board.id,
 													boardName: board.label,
 													status: post.status,
 													preview: getPostThumbnail(post),

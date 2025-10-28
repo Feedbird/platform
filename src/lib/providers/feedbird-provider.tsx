@@ -60,7 +60,7 @@ export default function FeedbirdProvider({ children }: { children: React.ReactNo
         (payload: any) => {
           const m = payload.new as DbChannelMessage
           // Ignore our own messages
-          if (m.author_email === user.email) return
+          if (m.authorEmail === user.email) return
 
           // Handle the race condition: remove API might arrive before add API
           // If user is viewing this channel context, remove from unread_msg
@@ -73,7 +73,7 @@ export default function FeedbirdProvider({ children }: { children: React.ReactNo
           if (currentChannelId === 'all') {
             // User is viewing 'all messages' of the same workspace
             shouldMarkAsRead = true
-          } else if (currentChannelId === m.channel_id) {
+          } else if (currentChannelId === m.channelId) {
             // User is viewing the specific channel where the message was sent
             shouldMarkAsRead = true
           } else if (currentChannelId === undefined || currentChannelId === null) {

@@ -4,7 +4,7 @@ import {
 } from "@/app/[workspaceId]/admin/services/checkout/_inner";
 import { Switch } from "@/components/ui/switch";
 import React from "react";
-import ServiceSwitchCard from "./ServiceSwitchCard";
+import ServiceSwitchCard from "./service-switch-card";
 
 type Props = {
   folder: CheckoutFolderBuilder;

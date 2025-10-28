@@ -216,7 +216,7 @@ export default function FormInnerVisualizer() {
   const displayField = activeTemplateField || activePlacedFieldTemplate;
   const displayLabel =
     activeTemplateField?.label ||
-    activePlacedField?.config.title.value ||
+    activePlacedField?.config?.title?.value ||
     "Field";
 
   if (loading) {
@@ -284,7 +284,7 @@ export default function FormInnerVisualizer() {
                   height={15}
                 />
               }
-              label={displayLabel}
+              label={displayLabel as string}
             />
           </div>
         )}

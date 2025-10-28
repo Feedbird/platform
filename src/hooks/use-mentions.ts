@@ -4,8 +4,8 @@ import { useWorkspaceStore } from '@/lib/store'
 
 type WorkspaceMember = {
 	email: string
-	first_name?: string
-	image_url?: string
+	firstName?: string
+	imageUrl?: string
 }
 
 export function useMentions(activeWorkspaceId: string | null) {
@@ -29,7 +29,7 @@ export function useMentions(activeWorkspaceId: string | null) {
 
 	const filterMembers = (query: string) => {
 		const filtered = workspaceMembers.filter(m =>
-			(m.first_name || m.email).toLowerCase().startsWith(query.toLowerCase())
+			(m.firstName || m.email).toLowerCase().startsWith(query.toLowerCase())
 		)
 		setFilteredMembers(filtered)
 		setMentionQuery(query)

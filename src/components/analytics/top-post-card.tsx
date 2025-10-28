@@ -34,31 +34,31 @@ export interface TopPostBlock {
 
 export interface TopPost {
   id: string
-  workspace_id: string
-  board_id: string
+  workspaceId: string
+  boardId: string
   caption: string | { text?: string } | Array<{ text?: string }>
   status: string
   format: string
-  publish_date?: string
+  publishDate?: string
   platforms: string[]
   pages: string[]
-  billing_month?: string
+  billingMonth?: string
   month: number
   settings?: Record<string, unknown> | string[]
   hashtags?: string[] | Record<string, unknown>
   blocks: TopPostBlock[]
   comments: Array<Record<string, unknown>>
   activities: Array<Record<string, unknown>>
-  user_columns: Array<Record<string, unknown>>
-  created_at: string
-  updated_at: string
-  platform_post_ids?: Record<string, string>
+  userColumns: Array<Record<string, unknown>>
+  createdAt: string
+  updatedAt: string
+  platformPostIds?: Record<string, string>
   // Analytics fields (not in posts table but needed for UI)
-  analytics_impressions?: number
-  analytics_engagement?: number
-  analytics_comments?: number
-  analytics_reacts?: number
-  analytics_shares?: number
+  analyticsImpressions?: number
+  analyticsEngagement?: number
+  analyticsComments?: number
+  analyticsReacts?: number
+  analyticsShares?: number
 }
 
 function shortNumber(n: number): string {
@@ -82,11 +82,11 @@ export function TopPostCard({ post, highlightMode, onClick }: TopPostCardProps) 
   const angry = useMemo(() => getRandomInt(20), [])
 
   // Safe access with defaults for analytics fields
-  const impressions = post.analytics_impressions || 0
-  const engagement = post.analytics_engagement || 0
-  const reacts = post.analytics_reacts || 0
-  const commentsCount = post.analytics_comments || 0
-  const shares = post.analytics_shares || 0
+  const impressions = post.analyticsImpressions || 0
+  const engagement = post.analyticsEngagement || 0
+  const reacts = post.analyticsReacts || 0
+  const commentsCount = post.analyticsComments || 0
+  const shares = post.analyticsShares || 0
 
   // Extract text from caption (handle JSONB structure)
   const captionText = typeof post.caption === 'string'

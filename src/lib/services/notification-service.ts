@@ -56,12 +56,12 @@ export class NotificationService {
       const notifications: EmailNotificationData[] = [];
 
       for (const user of users) {
-        if (!user.unread_msg || !Array.isArray(user.unread_msg) || user.unread_msg.length === 0) {
+        if (!user.unreadMsg || !Array.isArray(user.unreadMsg) || user.unreadMsg.length === 0) {
           continue;
         }
 
         // Get message details for unread messages
-        const messages = await notificationServiceApi.getMessagesForNotifications(user.unread_msg);
+        const messages = await notificationServiceApi.getMessagesForNotifications(user.unreadMsg);
         
         if (!messages || messages.length === 0) {
           continue;
@@ -69,7 +69,7 @@ export class NotificationService {
 
         // Filter messages older than 30 minutes and not sent
         const filteredMessages = messages.filter(m => 
-          m.created_at < thirtyMinutesAgo && !m.sent_notification
+          m.createdAt < thirtyMinutesAgo && !m.sentNotification
         );
 
         if (filteredMessages.length === 0) {
@@ -77,22 +77,22 @@ export class NotificationService {
         }
 
         // Get channel and author information
-        const channelIds = [...new Set(filteredMessages.map(m => m.channel_id))];
-        const authorEmails = [...new Set(filteredMessages.map(m => m.author_email))];
+        const channelIds = [...new Set(filteredMessages.map(m => m.channelId))];
+        const authorEmails = [...new Set(filteredMessages.map(m => m.authorEmail))];
 
         const channels = await notificationServiceApi.getChannelsInfo(channelIds);
         const authors = await notificationServiceApi.getAuthorsInfo(authorEmails);
 
         const channelsMap = new Map(channels?.map(c => [c.id, c.name]) || []);
-        const authorsMap = new Map(authors?.map(a => [a.email, { name: a.first_name, imageUrl: a.image_url }]) || []);
+        const authorsMap = new Map(authors?.map(a => [a.email, { name: a.firstName, imageUrl: a.imageUrl }]) || []);
 
         // Group messages by channel, then by author
         const channelGroups = new Map<string, ChannelSection>();
 
         for (const message of filteredMessages) {
-          const channelId = message.channel_id;
+          const channelId = message.channelId;
           const channelName = channelsMap.get(channelId) || 'Unknown Channel';
-          const authorEmail = message.author_email;
+          const authorEmail = message.authorEmail;
           const authorInfo = authorsMap.get(authorEmail);
 
           if (!channelGroups.has(channelId)) {
@@ -126,7 +126,7 @@ export class NotificationService {
             authorEmail,
             authorName: authorInfo?.name || authorEmail,
             authorImageUrl: authorInfo?.imageUrl,
-            createdAt: message.created_at
+            createdAt: message.createdAt
           });
           authorSection.messageCount++;
           channelGroup.totalMessageCount++;
@@ -134,7 +134,7 @@ export class NotificationService {
 
         const notificationData = {
           userEmail: user.email,
-          userName: user.first_name || user.email,
+          userName: user.firstName || user.email,
           channelSections: Array.from(channelGroups.values())
         };
         

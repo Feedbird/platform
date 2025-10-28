@@ -111,15 +111,15 @@ export function AttachmentCell({
     // Update the store directly like BlocksPreview does
     const { updatePost } = usePostStore.getState();
     const post = usePostStore.getState().getPost(postId);
-    if (post && post.user_columns) {
-      const newUserColumns = [...post.user_columns];
+    if (post && post.userColumns) {
+      const newUserColumns = [...post.userColumns];
       const columnIndex = newUserColumns.findIndex(col => col.id === columnId);
       if (columnIndex !== -1) {
         newUserColumns[columnIndex] = {
           ...newUserColumns[columnIndex],
           value: JSON.stringify(newAttachments)
         };
-        updatePost(postId, { user_columns: newUserColumns } as any);
+        updatePost(postId, { userColumns: newUserColumns } as any);
       }
     }
   };

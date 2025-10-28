@@ -103,15 +103,15 @@ export function SelectedBoardsDisplay({
 	return (
 		<div className="px-2.5 pb-2">
 			<div className="flex flex-wrap gap-2">
-				{selectedBoards.map((board_id) => {
-					const board = boardNav.find(b => b.id === board_id);
+				{selectedBoards.map((boardId) => {
+					const board = boardNav.find(b => b.id === boardId);
 					if (!board) return null;
 
 					const boardColor = (board as any).color;
 
 					return (
 						<div
-							key={board_id}
+							key={boardId}
 							className="flex items-center gap-2 pl-1 pr-2 py-1 bg-gray-50 rounded-[5px] border border-elementStroke"
 						>
 							<div
@@ -129,7 +129,7 @@ export function SelectedBoardsDisplay({
 								{board.label}
 							</span>
 							<button
-								onClick={() => onBoardSelection(board_id)}
+								onClick={() => onBoardSelection(boardId)}
 								className="w-4 h-4 hover:bg-gray-200 rounded flex items-center justify-center transition-colors"
 							>
 								<X className="w-3 h-3 text-gray-500 hover:text-gray-700" />

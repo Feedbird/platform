@@ -113,8 +113,8 @@ export default function SettingsWorkspacePage() {
         name,
         logo,
         timezone,
-        week_start: weekStart,
-        time_format: timeFormat,
+        weekStart: weekStart,
+        timeFormat: timeFormat,
       });
       useWorkspaceStore.setState((s: WorkspaceStore) => ({
         workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
@@ -138,7 +138,7 @@ export default function SettingsWorkspacePage() {
     setPostingTimeLoading(true);
     try {
       const updated = await workspaceApi.updateWorkspace(ws.id, {
-        allowed_posting_time: allowedSlots,
+        allowedPostingTime: allowedSlots,
       });
       useWorkspaceStore.setState((s: WorkspaceStore) => ({
         workspaces: s.workspaces.map((w) => (w.id === ws.id ? {
@@ -158,7 +158,7 @@ export default function SettingsWorkspacePage() {
     setBoardSettingsLoading(true);
     try {
       const updated = await workspaceApi.updateWorkspace(ws.id, {
-        default_board_rules: rules,
+        defaultBoardRules: rules,
       });
       useWorkspaceStore.setState((s: WorkspaceStore) => ({
         workspaces: s.workspaces.map((w) => (w.id === ws.id ? {

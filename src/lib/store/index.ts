@@ -116,11 +116,10 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
       getActivePosts: () => {
         const workspaceStore = useWorkspaceStore.getState();
         const workspace = workspaceStore.getActiveWorkspace();
-        const board_id = workspaceStore.activeBoardId;
-        if (!workspace || !board_id) return [];
+        const boardId = workspaceStore.activeBoardId;
+        if (!workspace || !boardId) return [];
         
-        const board = workspace.boards.find(b => b.id === board_id);
-        console.log('board', board);
+        const board = workspace.boards.find(b => b.id === boardId);
         return board?.posts ?? [];
       },
 
@@ -156,7 +155,7 @@ export const useFeedbirdStore = create<FeedbirdStore>()(
           ...ws,
           boards: ws.boards.map((board) => {
             const updatedPosts = board.posts.map((p) => {
-              const correctStatus = determineCorrectStatus(p.status, p.publish_date);
+              const correctStatus = determineCorrectStatus(p.status, p.publishDate);
               if (correctStatus !== p.status) {
                 updatedCount++;
                 hasChanges = true;
@@ -249,10 +248,10 @@ export const usePostStatusTimeUpdater = () => {
     for (const ws of workspaces) {
       for (const board of ws.boards) {
         for (const post of board.posts) {
-          if (post.publish_date) {
-            const publish_date = post.publish_date instanceof Date ? post.publish_date : new Date(post.publish_date);
-            if (!isNaN(publish_date.getTime())) {
-              const isPast = publish_date < now;
+          if (post.publishDate) {
+            const publishDate = post.publishDate instanceof Date ? post.publishDate : new Date(post.publishDate);
+            if (!isNaN(publishDate.getTime())) {
+              const isPast = publishDate < now;
               const needsUpdate = (isPast && post.status !== "Published" && post.status !== "Failed Publishing") ||
                                 (!isPast && (post.status === "Published" || post.status === "Failed Publishing"));
               if (needsUpdate) {

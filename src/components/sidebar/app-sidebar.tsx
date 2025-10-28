@@ -105,10 +105,10 @@ const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
 /*  BOARD-HELPERS                                                        */
 /* --------------------------------------------------------------------- */
 
-function useBoardCount(board_id: string): number | null {
+function useBoardCount(boardId: string): number | null {
   const count = usePostStore((s) => {
     const posts = s.getAllPosts();
-    return posts.filter((p) => p.boardId === board_id).length;
+    return posts.filter((p) => p.boardId === boardId).length;
   });
   return count;
 }
@@ -194,17 +194,17 @@ function BoardDropdownMenu({
 }
 
 const BoardCount = ({
-  board_id,
+  boardId,
   variant = "expanded",
   isActive = false,
   boardColor,
 }: {
-  board_id: string;
+  boardId: string;
   variant?: "expanded" | "collapsed";
   isActive?: boolean;
   boardColor?: string | null;
 }) => {
-  const count = useBoardCount(board_id);
+  const count = useBoardCount(boardId);
 
   const styles = cn(
     "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none text-black"
@@ -363,7 +363,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                           )}
                         >
                           <BoardCount
-                            board_id={nav.id}
+                            boardId={nav.id}
                             isActive={!!active}
                             boardColor={boardColor}
                           />

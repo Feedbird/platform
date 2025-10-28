@@ -52,7 +52,7 @@ export function SingleTextControlled({
       <Input
         value={value}
         onChange={handleChange}
-        placeholder={config?.placeholder?.value || ""}
+        placeholder={config?.placeholder?.value as string || ""}
         className="w-full rounded-[6px] border bg-white border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#1C1D1F] focus:border-transparent"
       />
     </div>
@@ -90,7 +90,7 @@ export function LongTextControlled({
         rows={5}
         value={value}
         onChange={handleChange}
-        placeholder={config?.placeholder?.value || ""}
+        placeholder={config?.placeholder?.value as string || ""}
         className="w-full border bg-white border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 text-[#1C1D1F] focus:ring-blue-500 focus:border-transparent"
       />
     </div>
@@ -197,7 +197,7 @@ export function DropdownControlled({
               setSelectedOptions(e);
               setParent(e, field);
             }}
-            placeholder={config?.placeholder?.value || "Select options"}
+            placeholder={config?.placeholder?.value as string || "Select options"}
             options={(config?.dropdownItems?.dropdownValues?.length
               ? config.dropdownItems.dropdownValues.sort(
                   (i: ComplexObjectType) => i.order
@@ -379,7 +379,7 @@ export function AttachmentControlled({
                 </p>
               </div>
               <p className="text-[#5C5E63] font-normal text-sm">
-                {config?.placeholder?.value || "SVG, PNG, JPG"}
+                {config?.placeholder?.value as string || "SVG, PNG, JPG"}
               </p>
             </>
           )}

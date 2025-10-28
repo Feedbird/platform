@@ -18,7 +18,7 @@ export default function ServiceSwitchCard({ service, isFolderActive }: Props) {
         }`}
       >
         <Image
-          src={`/images/checkout/icons/${service.internal_icon}.svg`}
+          src={`/images/checkout/icons/${service.internalIcon}.svg`}
           alt="service_icon"
           width={16}
           height={16}

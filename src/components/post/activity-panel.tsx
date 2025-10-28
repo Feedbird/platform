@@ -352,8 +352,8 @@ export function ActivityPanel({
   const getActorDisplayName = (actorId: string, actor?: any) => {
     // If we have actor data from the database, use it
     if (actor) {
-      if (actor.first_name) {
-        return actor.first_name;
+      if (actor.firstName) {
+        return actor.firstName;
       }
       if (actor.email) {
         // Fallback to email if no first name
@@ -574,7 +574,7 @@ export function ActivityPanel({
           </div>
           <div className="pt-2">
             <span className="text-sm text-muted-foreground">
-              {post.publish_date ? format(new Date(post.publish_date), "MMM d, p") : "Not scheduled"}
+              {post.publishDate ? format(new Date(post.publishDate), "MMM d, p") : "Not scheduled"}
             </span>
           </div>
         </div>

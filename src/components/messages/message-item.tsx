@@ -62,7 +62,7 @@ type MessageItemProps = {
 	onReplySummaryClick?: () => void
 	formatTimeAgo?: (date: Date) => string
 	// New prop for board navigation
-	onBoardQuickView?: (board_id: string) => void
+	onBoardQuickView?: (boardId: string) => void
 }
 
 export default function MessageItem({
@@ -137,11 +137,11 @@ export default function MessageItem({
 						const boardNav = useWorkspaceStore(s => s.boardNav);
 						const getAllPosts = usePostStore(s => s.getAllPosts);
 						
-						const boardData = boards.map((board_id: string) => {
-							const board = boardNav.find(b => b.id === board_id);
+						const boardData = boards.map((boardId: string) => {
+							const board = boardNav.find(b => b.id === boardId);
 							
 							// Get posts for this board
-							const posts = getAllPosts().filter((post: any) => post.board_id === board_id);
+							const posts = getAllPosts().filter((post: any) => post.boardId === boardId);
 							const postCount = posts.length;
 							
 							// Get last update time from posts
@@ -158,7 +158,7 @@ export default function MessageItem({
 							}
 							
 							return {
-								id: board_id,
+								id: boardId,
 								name: board?.label || 'Unknown Board',
 								color: (board as any)?.color || null,
 								image: board?.image || null,

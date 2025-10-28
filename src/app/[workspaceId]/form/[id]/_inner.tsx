@@ -6,6 +6,7 @@ import Loading from "./loading";
 import { Divider } from "@mui/material";
 import ControlledPageVisualizer from "./components/controlled-page-visualizer";
 import ControlledSubmissionSummary from "./components/controlled-submission-summary";
+import { CanvasFormField } from "@/components/forms/form-canvas";
 
 type Props = {
   formData: Form & { formFields: FormField[] };
@@ -22,12 +23,12 @@ const formValueInitializer = (field: FormField) => {
       value = "no";
       break;
     case "option":
-      if (field.config.allowMultipleSelection?.value) {
+      if (field.config?.allowMultipleSelection?.value) {
         value = [];
       } else value = "";
       break;
     case "spreadsheet":
-      const columns = field.config.spreadsheetColumns?.columns
+      const columns = field.config?.spreadsheetColumns?.columns
         .map((col: { order: number; value: string }) => col.value)
         .join("|");
       value = [columns || ""];

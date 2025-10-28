@@ -28,7 +28,7 @@ export function useBoardData(activeWorkspaceId: string | null) {
 				boardNav.map(async (board) => {
 					try {
 						// Fetch posts for this board
-						const posts = await postApi.getPost({ board_id: board.id })
+						const posts = await postApi.getPost({ boardId: board.id })
 						const postsArray = Array.isArray(posts) ? posts : [posts]
 
 						// Calculate status counts and store actual posts
@@ -71,7 +71,7 @@ export function useBoardData(activeWorkspaceId: string | null) {
 				})
 			)
 
-			setBoardData(boardDataWithCounts)
+			setBoardData(boardDataWithCounts as BoardData[])
 		} catch (error) {
 			console.error('Error fetching board data:', error)
 		} finally {
@@ -80,9 +80,9 @@ export function useBoardData(activeWorkspaceId: string | null) {
 	}
 
 	// Function to toggle board card expansion
-	const toggleBoardExpansion = (board_id: string) => {
+	const toggleBoardExpansion = (boardId: string) => {
 		setBoardData(prev => prev.map(board =>
-			board.id === board_id
+			board.id === boardId
 				? { ...board, expanded: !board.expanded }
 				: board
 		))

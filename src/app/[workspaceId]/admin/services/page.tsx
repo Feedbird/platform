@@ -2,7 +2,7 @@
 
 import React from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import DevCheckoutButton from "@/components/checkout/builder/DevCheckoutButton";
+import DevCheckoutButton from "@/components/checkout/builder/dev-checkout-button";
 
 export default function AdminServicesPage() {
   return (

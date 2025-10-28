@@ -34,9 +34,9 @@ export function PostDetailSidebar({ post, isOpen, onClose }: PostDetailSidebarPr
   const mockData = useMemo(() => ({
     plays: 15240,
     playsRate: 12,
-    impressions: post?.analytics_impressions || 9770,
+    impressions: post?.analyticsImpressions || 9770,
     impressionsRate: 8,
-    engagements: post?.analytics_engagement || 886,
+    engagements: post?.analyticsEngagement || 886,
     engagementsRate: 15,
     playMetrics: {
       threeSecondViews: 12450,
@@ -44,9 +44,9 @@ export function PostDetailSidebar({ post, isOpen, onClose }: PostDetailSidebarPr
       avgMinutesViewed: 2.8
     },
     interactions: {
-      likes: post?.analytics_reacts || 118,
-      replies: post?.analytics_comments || 45,
-      reposts: post?.analytics_shares || 23
+      likes: post?.analyticsReacts || 118,
+      replies: post?.analyticsComments || 45,
+      reposts: post?.analyticsShares || 23
     }
   }), [post])
 

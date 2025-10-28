@@ -300,7 +300,7 @@ export default function ClientOnboardingPage() {
         if (!workspaceId) return;
         setSaving(true)
         try {
-            await workspaceApi.updateWorkspace(workspaceId, { timezone, week_start: weekStart, time_format: timeFormat })
+            await workspaceApi.updateWorkspace(workspaceId, { timezone, weekStart: weekStart, timeFormat: timeFormat })
             setActiveWorkspace(workspaceId)
         } finally {
             setSaving(false)
@@ -602,7 +602,7 @@ export default function ClientOnboardingPage() {
                                         .map((e, i) => ({ email: (e || '').trim(), role: inviteRoles[i] }))
                                         .filter((e) => e.email !== '')
                                     if (emails.length > 0) {
-                                        const orgId = workspaces.find(w => w.id === workspaceId)?.clerk_organization_id
+                                        const orgId = workspaces.find(w => w.id === workspaceId)?.clerkOrganizationId
                                         await Promise.all(
                                             emails.map(({ email, role }) =>
                                               (role === 'Client'
@@ -611,14 +611,14 @@ export default function ClientOnboardingPage() {
                                                     workspaceId: workspaceId,
                                                     actorId: user?.id,
                                                     organizationId: orgId,
-                                                    first_name: user?.firstName,
+                                                    firstName: user?.firstName,
                                                   })
                                                 : inviteApi.inviteTeam({
                                                     email,
                                                     workspaceId: workspaceId,
                                                     actorId: user?.id,
                                                     organizationId: orgId,
-                                                    first_name: user?.firstName,
+                                                    firstName: user?.firstName,
                                                   })
                                               )
                                             )

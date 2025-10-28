@@ -1,4 +1,4 @@
-import CheckoutBuilderSideBar from "@/components/checkout/builder/CheckoutBuilderSideBar";
+import CheckoutBuilderSideBar from "@/components/checkout/builder/checkout-builder-sidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import React from "react";
 import CheckoutBuilderClient from "./_inner";

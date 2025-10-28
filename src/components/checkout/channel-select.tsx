@@ -78,16 +78,16 @@ export default function MultiSelectDropdown({
           ) : channelsSelected.length === 1 ? (
             <div className="flex items-center gap-2">
               <Image
-                src={`/images/checkout/channels/${channelsSelected[0].social_channel}.svg`}
+                src={`/images/checkout/channels/${channelsSelected[0].socialChannel}.svg`}
                 alt="social_channel_icon"
                 width={18}
                 height={18}
               />
               <span className="text-black font-medium">
-                {channelsSelected[0].social_channel
+                {channelsSelected[0].socialChannel
                   .slice(0, 1)
                   .toLocaleUpperCase() +
-                  channelsSelected[0].social_channel.slice(1)}
+                  channelsSelected[0].socialChannel.slice(1)}
               </span>
             </div>
           ) : (
@@ -122,14 +122,14 @@ export default function MultiSelectDropdown({
                 >
                   <div className="flex items-center gap-2">
                     <Image
-                      src={`/images/checkout/channels/${channel.social_channel}.svg`}
+                      src={`/images/checkout/channels/${channel.socialChannel}.svg`}
                       alt="social_channel_icon"
                       width={18}
                       height={18}
                     />
                     <span className="text-black font-medium">
-                      {channel.social_channel.slice(0, 1).toLocaleUpperCase() +
-                        channel.social_channel.slice(1)}
+                      {channel.socialChannel.slice(0, 1).toLocaleUpperCase() +
+                        channel.socialChannel.slice(1)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -137,16 +137,16 @@ export default function MultiSelectDropdown({
                       className={` ${
                         channelsSelected.length < 1
                           ? "text-[#03985C] font-normal"
-                          : channel.social_channel ===
-                            channelsSelected[0].social_channel
+                          : channel.socialChannel ===
+                            channelsSelected[0].socialChannel
                           ? "text-[#03985C]"
                           : "text-[#838488] font-normal"
                       }`}
                     >
                       {channelsSelected.length < 1
                         ? "Free"
-                        : channel.social_channel ===
-                          channelsSelected[0].social_channel
+                        : channel.socialChannel ===
+                          channelsSelected[0].socialChannel
                         ? "Free"
                         : `$${channel.pricing}`}
                     </span>

@@ -12,12 +12,12 @@ import { format } from 'date-fns'
 
 export interface HistoricalStatsData {
   id: string
-  publish_date: string
-  followers_count: number
-  followers_rate: number
-  following_count: number
-  media_count: number
-  engagement_rate: number
+  publishDate: string
+  followersCount: number
+  followersRate: number
+  followingCount: number
+  mediaCount: number
+  engagementRate: number
   caption: string
   format: string
 }
@@ -47,7 +47,7 @@ export function HistoricalStatsTable({ data }: HistoricalStatsTableProps) {
         header: 'Post',
         cell: ({ row }) => {
           const item = row.original
-          const publishDate = item.publish_date ? format(new Date(item.publish_date), 'MMM d, yyyy') : 'Not published'
+          const publishDate = item.publishDate ? format(new Date(item.publishDate), 'MMM d, yyyy') : 'Not published'
 
           return (
             <div className="flex flex-col gap-1">
@@ -61,11 +61,11 @@ export function HistoricalStatsTable({ data }: HistoricalStatsTableProps) {
         header: 'Followers',
         cell: ({ row }) => {
           const item = row.original
-          const isPositive = item.followers_rate >= 0
+          const isPositive = item.followersRate >= 0
           return (
             <div className="flex justify-end gap-1">
               <div className="text-sm text-darkGrey">
-                {shortNumber(item.followers_count)}
+                {shortNumber(item.followersCount)}
               </div>
               <div
                 className={cn(
@@ -73,7 +73,7 @@ export function HistoricalStatsTable({ data }: HistoricalStatsTableProps) {
                   isPositive ? 'bg-[#E7F8E1] text-[#247E00]' : 'bg-red-500/10 text-red-500'
                 )}
               >
-                {isPositive ? '+' : ''}{formatPercent(item.followers_rate)}
+                {isPositive ? '+' : ''}{formatPercent(item.followersRate)}
               </div>
             </div>
           )

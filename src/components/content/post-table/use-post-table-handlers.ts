@@ -384,8 +384,8 @@ export function usePostTableHandlers(params: PostTableHandlersParams) {
         activities: orig.activities,
       }));
 
-      const board_id = posts[0].boardId;
-      duplicatedPosts.push(...(await usePostStore.getState().bulkAddPosts(board_id, postsData)));
+      const boardId = posts[0].boardId;
+      duplicatedPosts.push(...(await usePostStore.getState().bulkAddPosts(boardId, postsData)));
     } else {
       // For single post, use the existing duplicatePost method
       for (const orig of posts) {
