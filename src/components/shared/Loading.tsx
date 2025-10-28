@@ -4,7 +4,7 @@ type Props = {
   entity?: string;
 };
 
-export default function Loading({ entity }: Props) {
+export function Loading({ entity }: Props) {
   return (
     <div className="container mx-auto p-8">
       <div className="flex items-center justify-center h-64">

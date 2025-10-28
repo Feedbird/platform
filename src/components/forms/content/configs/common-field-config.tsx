@@ -11,7 +11,7 @@ import {
   RequiredInput,
   RowsSelectInput,
   TitleInput,
-} from "./inputs";
+} from "@/components/forms/content/configs/inputs";
 import { FieldTypeEntitlements } from "@/lib/forms/field.config";
 
 type Props = {
