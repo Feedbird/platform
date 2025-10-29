@@ -1,11 +1,11 @@
-import { Service, ServiceChannel, ServicePlan } from "@/lib/store/types";
-import React from "react";
-import { Button } from "../ui/button";
-import { Select, SelectTrigger, SelectContent, SelectItem } from "../ui/select";
-import Image from "next/image";
-import { Check } from "lucide-react";
-import { toast } from "sonner";
-import MultiSelectDropdown from "./channel-select";
+import { Service, ServiceChannel, ServicePlan } from '@/lib/store/types';
+import React from 'react';
+import { Button } from '../ui/button';
+import { Select, SelectTrigger, SelectContent, SelectItem } from '../ui/select';
+import Image from 'next/image';
+import { Check } from 'lucide-react';
+import { toast } from 'sonner';
+import MultiSelectDropdown from './channel-select';
 
 export type ServiceCardPlan = {
   plan: ServicePlan;
@@ -20,12 +20,12 @@ type Props = {
 
 export const mapPeriodicity = (period: string | undefined | null) => {
   switch (period) {
-    case "month":
-      return "mo";
-    case "year":
-      return "yr";
+    case 'month':
+      return 'mo';
+    case 'year':
+      return 'yr';
     default:
-      return "n/a";
+      return 'n/a';
   }
 };
 
@@ -56,18 +56,18 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
 
   const plans = React.useMemo(
     () =>
-      service.servicePlans
-        ? service.servicePlans?.sort((a, b) => a.price - b.price)
+      service.service_plans
+        ? service.service_plans?.sort((a, b) => a.price - b.price)
         : [],
-    [service.servicePlans]
+    [service.service_plans]
   );
 
   const channels =
-    service.socialChannels && service.channels?.length ? service.channels : [];
+    service.social_channels && service.channels?.length ? service.channels : [];
 
   const handleAdd = () => {
     if (!planSelected) {
-      toast.error("Please select a plan first");
+      toast.error('Please select a plan first');
       return;
     }
     selector((prev) => {
@@ -121,14 +121,14 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
   }, [channelsSelected]);
 
   const handleSelection = () => {
-    if (service.servicePlans && service.servicePlans.length === 1) {
+    if (service.service_plans && service.service_plans.length === 1) {
       isAdded(true);
       setSelectingMode(true);
-      selectPlan(service.servicePlans![0]);
+      selectPlan(service.service_plans![0]);
       selector((prev) => {
         const newMap = new Map(prev);
         newMap.set(service.id, {
-          plan: service.servicePlans![0],
+          plan: service.service_plans![0],
           channels: [],
         });
         return newMap;
@@ -138,8 +138,12 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
     }
   };
 
+  if (service.name === 'Instagram Growth') {
+    console.log(service);
+  }
+
   return (
-    <div className="bg-white rounded-[8px] border-1 border-[#D3D3D3] p-5 flex flex-col gap-3 justify-between relative">
+    <div className="relative flex flex-col justify-between gap-3 rounded-[8px] border-1 border-[#D3D3D3] bg-white p-5">
       {selectingMode && (
         <div className="absolute top-2 right-2" onClick={handleRemove}>
           <Image
@@ -153,44 +157,44 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
       <div className="flex flex-col gap-2">
         <div className="flex flex-row gap-2">
           <Image
-            src={`/images/checkout/icons/${service.internalIcon}.svg`}
+            src={service.icon ? service.icon.svg : '/images/icons/default.svg'}
             alt="service_icon"
             width={20}
             height={20}
           />
-          <span className="text-black font-medium text-sm">{service.name}</span>
+          <span className="text-sm font-medium text-black">{service.name}</span>
         </div>
-        <p className="text-[#5C5E63] font-normal text-[13px]">
-          {service.brief ?? "-"}
+        <p className="text-[13px] font-normal text-[#5C5E63]">
+          {service.brief ?? '-'}
         </p>
       </div>
       {!selectingMode ? (
-        <div className="flex flex-row justify-between items-center text-black">
-          <div className="flex flex-row text-sm gap-1">
+        <div className="flex flex-row items-center justify-between text-black">
+          <div className="flex flex-row gap-1 text-sm">
             <p>from</p>
             <span className="font-medium">
-              ${plans[0]?.price ?? "-"}/{mapPeriodicity(plans[0]?.period)}
+              ${plans[0]?.price ?? '-'}/{mapPeriodicity(plans[0]?.period)}
             </span>
           </div>
           <Button
             onClick={handleSelection}
             variant="ghost"
-            className={`text-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 ${
-              service.servicePlans && service.servicePlans.length === 1
-                ? "w-[100px]"
-                : "w-[131px]"
-            } px-4 py-2.5 bg-transparent border-1 border-[#4670F9] flex items-center justify-center`}
+            className={`h-10 rounded-full font-medium text-[#4670F9] hover:cursor-pointer ${
+              service.service_plans && service.service_plans.length === 1
+                ? 'w-[100px]'
+                : 'w-[131px]'
+            } flex items-center justify-center border-1 border-[#4670F9] bg-transparent px-4 py-2.5`}
           >
-            {service.servicePlans && service.servicePlans.length > 1
-              ? "+ Select plan"
-              : "+ Add"}
+            {service.service_plans && service.service_plans.length > 1
+              ? '+ Select plan'
+              : '+ Add'}
           </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {service.servicePlans && service.servicePlans.length > 1 && (
+          {service.service_plans && service.service_plans.length > 1 && (
             <div className="flex flex-col gap-1 text-black">
-              <label className="font-medium text-sm">Plan</label>
+              <label className="text-sm font-medium">Plan</label>
               <Select
                 open={ddOpen}
                 onOpenChange={(open) => isDDOpen(open)}
@@ -211,10 +215,10 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
                   }
                 }}
               >
-                <SelectTrigger className="w-full rounded-[6px] border-1 border-[#D3D3D3] bg-white cursor-pointer text-black text-[13px]">
-                  {planSelected
-                    ? `${planSelected.quantity} ${planSelected.qtyIndicator} - $${planSelected.price}/${planSelected.period}`
-                    : "Select a plan"}
+                <SelectTrigger className="w-full cursor-pointer rounded-[6px] border-1 border-[#D3D3D3] bg-white text-[13px] text-black">
+                  {/* {planSelected
+                    ? `${planSelected.quantity} ${planSelected.qty_indicator} - $${planSelected.price}/${planSelected.period}`
+                    : 'Select a plan'} */}
                 </SelectTrigger>
                 <SelectContent>
                   <div className="flex flex-col gap-1">
@@ -226,7 +230,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
                           e.stopPropagation();
                           selectPlan(plan);
                         }}
-                        className="text-black text-[13px] font-medium p-1 hover:cursor-pointer hover:bg-[#F3F3F3] rounded-[4px]"
+                        className="rounded-[4px] p-1 text-[13px] font-medium text-black hover:cursor-pointer hover:bg-[#F3F3F3]"
                       >
                         {plan.quantity} {plan.qtyIndicator} - ${plan.price}/
                         {mapPeriodicity(plan.period)}
@@ -239,7 +243,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
           )}
           {channels.length > 0 && (
             <div className="flex flex-col gap-1 text-black">
-              <label className="font-medium text-sm">Social channels</label>
+              <label className="text-sm font-medium">Social channels</label>
               <MultiSelectDropdown
                 channels={channels}
                 channelsSelected={channelsSelected}
@@ -248,21 +252,21 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
             </div>
           )}
           <div className="flex flex-row items-center justify-between">
-            <span className="text-black font-medium text-sm">
+            <span className="text-sm font-medium text-black">
               {planSelected
                 ? `$${total}/${mapPeriodicity(planSelected.period)}`
-                : ""}
+                : ''}
             </span>
             {added ? (
-              <div className="bg-[#0A8550] rounded-full flex flex-row items-center py-2.5 px-4 gap-1">
+              <div className="flex flex-row items-center gap-1 rounded-full bg-[#0A8550] px-4 py-2.5">
                 <Check width={16} height={16} color="white" />
-                <span className="text-white font-medium text-sm">Added</span>
+                <span className="text-sm font-medium text-white">Added</span>
               </div>
             ) : (
               <Button
                 onClick={handleAdd}
                 variant="default"
-                className="text-white bg-[#4670F9] hover:cursor-pointer font-medium rounded-full h-10 w-[100px] px-4 py-2.5 border-1 flex items-center justify-center"
+                className="flex h-10 w-[100px] items-center justify-center rounded-full border-1 bg-[#4670F9] px-4 py-2.5 font-medium text-white hover:cursor-pointer"
               >
                 + Add
               </Button>

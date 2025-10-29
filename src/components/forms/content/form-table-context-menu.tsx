@@ -2,18 +2,18 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { PopoverPortal } from "@radix-ui/react-popover";
-import Image from "next/image";
-import React from "react";
-import { TableForm } from "./forms-table";
-import { Row } from "@tanstack/table-core";
-import { formsApi } from "@/lib/api/api-service";
-import { toast } from "sonner";
-import { useWorkspaceStore } from "@/lib/store";
-import { Send } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useForms } from "@/contexts/forms-context";
+} from '@/components/ui/popover';
+import { PopoverPortal } from '@radix-ui/react-popover';
+import Image from 'next/image';
+import React from 'react';
+import { TableForm } from './forms-table';
+import { Row } from '@tanstack/table-core';
+import { formsApi } from '@/lib/api/api-service';
+import { toast } from 'sonner';
+import { useWorkspaceStore } from '@/lib/store';
+import { Send } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useForms } from '@/contexts/forms/FormsContext';
 
 type Props = {
   setLocalActiveForm: React.Dispatch<React.SetStateAction<TableForm | null>>;
@@ -26,7 +26,7 @@ type Props = {
 
 type LoadingPopover = {
   isLoading: boolean;
-  action: "duplicate" | null;
+  action: 'duplicate' | null;
 };
 
 export default function FormTableContextMenu({
@@ -48,14 +48,14 @@ export default function FormTableContextMenu({
   const router = useRouter();
 
   const handleFormDuplication = async () => {
-    isLoading({ isLoading: true, action: "duplicate" });
+    isLoading({ isLoading: true, action: 'duplicate' });
     try {
       const { data } = await formsApi.duplicateForm(row.original.id);
       setTableData((prev) => [...prev, data as TableForm]);
-      toast.success("Form duplicated");
+      toast.success('Form duplicated');
     } catch (e) {
       toast.error(
-        (e as Error).message || "An error occurred while duplicating the form."
+        (e as Error).message || 'An error occurred while duplicating the form.'
       );
     } finally {
       isOpen(false);
@@ -73,7 +73,7 @@ export default function FormTableContextMenu({
               tabledData.find((f) => f.id === row.original.id) ?? tabledData[0]
             );
           }}
-          className="hover:bg-gray-100 rounded transition-colors hover:cursor-pointer min-w-4"
+          className="min-w-4 rounded transition-colors hover:cursor-pointer hover:bg-gray-100"
         >
           <Image
             src="/images/forms/actions.svg"
@@ -83,15 +83,15 @@ export default function FormTableContextMenu({
           />
         </PopoverTrigger>
         <PopoverPortal>
-          <PopoverContent className="mr-6 rounded-sm border-1 border-border-primary p-2 flex flex-col font-medium text-sm text-black gap-0.5 max-w-[130px] relative">
+          <PopoverContent className="border-border-primary relative mr-6 flex max-w-[130px] flex-col gap-0.5 rounded-sm border-1 p-2 text-sm font-medium text-black">
             {loading.isLoading && (
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="bg-black/10 absolute w-full h-full rounded-sm top-0 left-0 z-20"
+                className="absolute top-0 left-0 z-20 h-full w-full rounded-sm bg-black/10"
               ></div>
             )}
             <button
-              className="flex flex-row items-center w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+              className="flex w-full flex-row items-center gap-2 rounded-xs p-1 transition-colors hover:cursor-pointer hover:bg-gray-100 active:bg-white"
               onClick={(e) => {
                 e.stopPropagation();
                 setActiveForm(row.original);
@@ -104,7 +104,7 @@ export default function FormTableContextMenu({
               <span>Submissions</span>
             </button>
             <button
-              className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+              className="flex w-full flex-row gap-2 rounded-xs p-1 transition-colors hover:cursor-pointer hover:bg-gray-100 active:bg-white"
               onClick={(e) => {
                 e.stopPropagation();
                 setSettingsModalOpen(true);
@@ -119,15 +119,15 @@ export default function FormTableContextMenu({
               <span>Settings</span>
             </button>
             <button
-              className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+              className="flex w-full flex-row gap-2 rounded-xs p-1 transition-colors hover:cursor-pointer hover:bg-gray-100 active:bg-white"
               onClick={(e) => {
                 e.stopPropagation();
                 handleFormDuplication();
               }}
-              disabled={loading.action === "duplicate"}
+              disabled={loading.action === 'duplicate'}
             >
-              {loading.isLoading && loading.action === "duplicate" ? (
-                <div className="animate-spin rounded-full self-center h-5 w-5 border-2 border-buttonStroke border-t-transparent"></div>
+              {loading.isLoading && loading.action === 'duplicate' ? (
+                <div className="border-buttonStroke h-5 w-5 animate-spin self-center rounded-full border-2 border-t-transparent"></div>
               ) : (
                 <>
                   <Image
@@ -141,13 +141,13 @@ export default function FormTableContextMenu({
               )}
             </button>
             <button
-              className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+              className="flex w-full flex-row gap-2 rounded-xs p-1 transition-colors hover:cursor-pointer hover:bg-gray-100 active:bg-white"
               onClick={(e) => {
                 e.stopPropagation();
                 navigator.clipboard.writeText(
                   `${process.env.NEXT_PUBLIC_APP_URL}/${activeWorkspaceId}/form/${row.original.id}`
                 );
-                toast.success("Form link copied to clipboard");
+                toast.success('Form link copied to clipboard');
                 isOpen(false);
               }}
             >
@@ -160,7 +160,7 @@ export default function FormTableContextMenu({
               <span>Share</span>
             </button>
             <button
-              className="flex flex-row w-full gap-2 p-1 hover:bg-gray-100 rounded-xs transition-colors hover:cursor-pointer active:bg-white"
+              className="flex w-full flex-row gap-2 rounded-xs p-1 transition-colors hover:cursor-pointer hover:bg-gray-100 active:bg-white"
               onClick={(e) => {
                 e.stopPropagation();
                 setDeleteModalOpen(true);

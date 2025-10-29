@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React from "react";
-import Image from "next/image";
-import { FormFieldsArray, FormFieldType } from "@/lib/forms/fields";
-import { Button } from "../ui/button";
-import { DraggableFieldType } from "./content/draggable-field-type";
-import { CanvasFormField } from "./form-canvas";
-import { formsApi } from "@/lib/api/api-service";
-import { toast } from "sonner";
-import { useForms } from "@/contexts/forms-context";
-import { useFormEditor } from "@/contexts/form-editor-context";
-import { useWorkspaceStore, useFormStore } from "@/lib/store";
+import React from 'react';
+import Image from 'next/image';
+import { FormFieldsArray, FormFieldType } from '@/lib/forms/fields';
+import { Button } from '../ui/button';
+import { DraggableFieldType } from './content/draggable-field-type';
+import { CanvasFormField } from './form-canvas';
+import { formsApi } from '@/lib/api/api-service';
+import { toast } from 'sonner';
+import { useForms } from '@/contexts/forms/FormsContext';
+import { useFormEditor } from '@/contexts/forms/FormEditorContext';
+import { useWorkspaceStore, useFormStore } from '@/lib/store';
 
 type FormEditorSideBarProps = {
   onAddField?: (fieldType: FormFieldType) => void;
@@ -36,10 +36,10 @@ export default function FormEditorSideBar({
       if (filesToUpload.length > 0) {
         await handleImageUpload();
       }
-      toast.success("Form fields updated");
+      toast.success('Form fields updated');
       setUnsavedFormChanges(false);
     } catch (e) {
-      toast.error("Failed to update form fields. Please try again.");
+      toast.error('Failed to update form fields. Please try again.');
     } finally {
       isLoading(false);
     }
@@ -51,10 +51,10 @@ export default function FormEditorSideBar({
       for (const fileData of filesToUpload) {
         const { path, file } = fileData;
         // TODO Migrate this to mediaApi instead of front calling It here
-        const req = await fetch("/api/upload/sign", {
-          method: "POST",
+        const req = await fetch('/api/upload/sign', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             fileName: file.name,
@@ -64,20 +64,20 @@ export default function FormEditorSideBar({
         });
 
         if (!req.ok) {
-          throw new Error("Failed to get signed URL");
+          throw new Error('Failed to get signed URL');
         }
         const { uploadUrl, publicUrl } = await req.json();
 
         const uploadReq = await fetch(uploadUrl, {
-          method: "PUT",
+          method: 'PUT',
           headers: {
-            "Content-Type": file.type,
+            'Content-Type': file.type,
           },
           body: file,
         });
 
         if (!uploadReq.ok) {
-          throw new Error("Failed to upload image");
+          throw new Error('Failed to upload image');
         }
 
         updates.push({ path, url: publicUrl });
@@ -90,7 +90,7 @@ export default function FormEditorSideBar({
     } catch (e) {
       console.error(e);
       toast.error(
-        "Failed to upload form related media images. Please try again."
+        'Failed to upload form related media images. Please try again.'
       );
     }
   };
@@ -113,17 +113,17 @@ export default function FormEditorSideBar({
   );
 
   return (
-    <div className="border-border-primary border-l-1 w-[320px] bg-[#FAFAFA] h-full flex-shrink-0 flex flex-col">
-      <header className="border-border-primary border-b-1 w-full p-3 text-black font-medium">
+    <div className="border-border-primary flex h-full w-[320px] flex-shrink-0 flex-col border-l-1 bg-[#FAFAFA]">
+      <header className="border-border-primary w-full border-b-1 p-3 font-medium text-black">
         Fields
       </header>
-      <div className="p-4 flex flex-col flex-1">
-        <p className="text-[#838488] text-sm mb-4">
+      <div className="flex flex-1 flex-col p-4">
+        <p className="mb-4 text-sm text-[#838488]">
           Double-click or drag and drop fields from the right column onto your
           form here.
         </p>
 
-        <div className="space-y-6 flex-1">
+        <div className="flex-1 space-y-6">
           <div className="space-y-2">
             {fields.map((field) => (
               <DraggableFieldType
@@ -138,10 +138,10 @@ export default function FormEditorSideBar({
           onClick={updateFormFields}
           disabled={loading}
           variant="default"
-          className="w-full mt-4 hover:cursor-pointer shadow-lg bg-[#4670F9] text-white text-sm rounded-sm"
+          className="mt-4 w-full rounded-sm bg-[#4670F9] text-sm text-white shadow-lg hover:cursor-pointer"
         >
           {loading && (
-            <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
           )}
           Save Form
         </Button>

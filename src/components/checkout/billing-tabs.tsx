@@ -1,9 +1,9 @@
-import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { mapPeriodicity, ServiceCardPlan } from "./service-card";
-import { ServiceFolder } from "@/lib/store/types";
-import { Divider } from "@mui/material";
-import Image from "next/image";
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { mapPeriodicity, ServiceCardPlan } from './service-card';
+import { ServiceFolder } from '@/lib/store/types';
+import { Divider } from '@mui/material';
+import Image from 'next/image';
 
 type Props = {
   selectedPlans: Map<string, ServiceCardPlan>;
@@ -50,7 +50,7 @@ export default function BillingTabs({
     <Tabs className="flex w-full flex-col gap-6" defaultValue="monthly">
       <TabsList
         defaultChecked
-        defaultValue={"monthly"}
+        defaultValue={'monthly'}
         className="h-11 w-full rounded-[6px] bg-[#F4F5F6] p-1"
       >
         <TabsTrigger
@@ -88,7 +88,11 @@ export default function BillingTabs({
                       width={20}
                       height={20}
                       alt={`${service.name}_icon`}
-                      src={`/images/checkout/icons/${service.internalIcon}.svg`}
+                      src={
+                        service.icon
+                          ? service.icon.svg
+                          : '/images/icons/default.svg'
+                      }
                     />
                     <h3 className="text-base font-medium text-black">
                       {service.name}
@@ -98,8 +102,7 @@ export default function BillingTabs({
                     <div className="flex flex-row justify-between text-sm">
                       <div className="flex flex-col font-normal">
                         <span className="text-black">
-                          {container.plan.quantity}{" "}
-                          {container.plan.qtyIndicator}
+                          {container.plan.quantity}{' '}
                         </span>
                       </div>
 
@@ -111,7 +114,7 @@ export default function BillingTabs({
                     {container.channels &&
                       container.channels.map((channel, idx) => (
                         <div
-                          className="w-full flex justify-between text-xs"
+                          className="flex w-full justify-between text-xs"
                           key={channel.id}
                         >
                           <span>
@@ -122,7 +125,7 @@ export default function BillingTabs({
                           </span>
                           <p>
                             {idx === 0
-                              ? "FREE"
+                              ? 'FREE'
                               : `USD $${channel.pricing}/${mapPeriodicity(
                                   container.plan.period
                                 )}`}
@@ -173,7 +176,11 @@ export default function BillingTabs({
                       width={20}
                       height={20}
                       alt={`${service.name}_icon`}
-                      src={`/images/checkout/icons/${service.internalIcon}.svg`}
+                      src={
+                        service.icon
+                          ? service.icon.svg
+                          : '/images/icons/default.svg'
+                      }
                     />
                     <h3 className="text-base font-medium text-black">
                       {service.name}
@@ -183,8 +190,7 @@ export default function BillingTabs({
                     <div className="flex flex-row justify-between text-sm">
                       <div className="flex flex-col font-normal">
                         <span className="text-black">
-                          {container.plan.quantity}{" "}
-                          {container.plan.qtyIndicator}
+                          {container.plan.quantity}{' '}
                         </span>
                       </div>
 
@@ -196,7 +202,7 @@ export default function BillingTabs({
                     {container.channels &&
                       container.channels.map((channel, idx) => (
                         <div
-                          className="w-full flex justify-between text-xs"
+                          className="flex w-full justify-between text-xs"
                           key={channel.id}
                         >
                           <span>
@@ -207,7 +213,7 @@ export default function BillingTabs({
                           </span>
                           <p>
                             {idx === 0
-                              ? "FREE"
+                              ? 'FREE'
                               : `USD $${calculateYearlyTotal(
                                   channel.pricing,
                                   false

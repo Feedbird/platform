@@ -1,8 +1,8 @@
-"use client";
-import { FormsProvider } from "@/contexts/forms-context";
-import { FormsHeader } from "@/components/forms/forms-header";
-import { useEffect } from "react";
-import { useWorkspaceStore, useFormStore } from "@/lib/store";
+'use client';
+import { FormsProvider } from '@/contexts/forms/FormsContext';
+import { FormsHeader } from '@/components/forms/forms-header';
+import { useEffect } from 'react';
+import { useWorkspaceStore, useFormStore } from '@/lib/store';
 
 export default function FormsLayout({
   children,
@@ -16,7 +16,7 @@ export default function FormsLayout({
   }, [fetchServices]);
   return (
     <FormsProvider>
-      <div className="h-screen flex flex-col w-full">
+      <div className="flex h-screen w-full flex-col">
         <FormsHeader />
         <div className="flex-1 overflow-hidden">{children}</div>
       </div>

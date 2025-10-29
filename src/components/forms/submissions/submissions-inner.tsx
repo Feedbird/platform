@@ -1,10 +1,10 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { formsApi } from "@/lib/api/api-service";
-import { Loading } from "@/components/shared/loadings";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+'use client';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { formsApi } from '@/lib/api/api-service';
+import { Loading } from '@/components/shared/loadings';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -12,15 +12,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { useForms } from "@/contexts/forms-context";
-import { TableForm } from "../content/forms-table";
-import { humanizeDate } from "@/lib/utils/transformers";
-import { SquareChartGantt } from "lucide-react";
-import ReviewCard from "@/app/[workspaceId]/form/[id]/components/review-card";
-import Image from "next/image";
-import { useWorkspaceStore } from "@/lib/store";
-import { FormSubmission } from "@/lib/store/types";
+} from '@/components/ui/table';
+import { useForms } from '@/contexts/forms-context';
+import { TableForm } from '../content/forms-table';
+import { humanizeDate } from '@/lib/utils/transformers';
+import { SquareChartGantt } from 'lucide-react';
+import ReviewCard from '@/app/[workspaceId]/form/[id]/components/review-card';
+import Image from 'next/image';
+import { useWorkspaceStore } from '@/lib/store';
+import { FormSubmission } from '@/lib/store/types';
 
 type Props = {
   formId?: string;
@@ -35,7 +35,7 @@ export default function SubmissionsInner({ formId }: Props) {
   const router = useRouter();
   const handleRedirection = () => {
     router.push(`/${activeWorkspaceId}/admin/forms`);
-    toast.error("Unable to find form to load submissions for.");
+    toast.error('Unable to find form to load submissions for.');
   };
 
   if (!formId) {
@@ -65,7 +65,7 @@ export default function SubmissionsInner({ formId }: Props) {
     error,
     isLoading,
   } = useQuery({
-    queryKey: ["submissions", formId],
+    queryKey: ['submissions', formId],
     queryFn: () => formsApi.getFormSubmissions(formId),
   });
 
@@ -83,30 +83,30 @@ export default function SubmissionsInner({ formId }: Props) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1 p-8">
-        <span className="font-normal text-sm">Form submissions</span>
-        <h2 className="text-black font-semibold text-lg">
+        <span className="text-sm font-normal">Form submissions</span>
+        <h2 className="text-lg font-semibold text-black">
           {activeForm?.title}
         </h2>
         <div className="flex flex-col gap-2">
-          <span className="font-normal text-sm">
+          <span className="text-sm font-normal">
             Questions: {Object.keys(submissions[0].answers).length}
           </span>
         </div>
       </div>
-      <Table className="border-b-1 border-buttonStroke">
+      <Table className="border-buttonStroke border-b-1">
         <TableHeader className="border-y-1 bg-[#FBFBFB]">
           <TableRow className="">
-            <TableHead className="border-r-1 w-8"></TableHead>
-            <TableHead className="py-2 border-r-1 text-black font-medium">
+            <TableHead className="w-8 border-r-1"></TableHead>
+            <TableHead className="border-r-1 py-2 font-medium text-black">
               Submitted By
             </TableHead>
-            <TableHead className="py-2 border-r-1 text-black font-medium">
+            <TableHead className="border-r-1 py-2 font-medium text-black">
               Date
             </TableHead>
-            <TableHead className="py-2 border-r-1 text-black font-medium">
+            <TableHead className="border-r-1 py-2 font-medium text-black">
               Form version
             </TableHead>
-            <TableHead className="py-2 w-52 text-black font-medium">
+            <TableHead className="w-52 py-2 font-medium text-black">
               Action
             </TableHead>
           </TableRow>
@@ -123,7 +123,7 @@ export default function SubmissionsInner({ formId }: Props) {
               </TableCell>
               <TableCell className="border-r-1">1</TableCell>
               <TableCell>
-                <div className="flex h-full gap-2 items-center hover:underline hover:cursor-pointer text-blue-600">
+                <div className="flex h-full items-center gap-2 text-blue-600 hover:cursor-pointer hover:underline">
                   <SquareChartGantt width={14} height={14} />
                   <span onClick={() => setActiveSubmission(submission)}>
                     See answers
@@ -136,11 +136,11 @@ export default function SubmissionsInner({ formId }: Props) {
       </Table>
       {activeSubmission && (
         <div className="mt-10 flex justify-center">
-          <div className="max-w-[1000px] w-full">
-            <div className="flex flex-col p-6 gap-2 border-1 rounded-[8px] border-elementStroke bg-white">
+          <div className="w-full max-w-[1000px]">
+            <div className="border-elementStroke flex flex-col gap-2 rounded-[8px] border-1 bg-white p-6">
               {Object.keys(activeSubmission.answers).map((fieldId, index) => {
                 const title =
-                  activeSubmission.schemaSnapshot[fieldId] || "Untitled";
+                  activeSubmission.schemaSnapshot[fieldId] || 'Untitled';
                 const value = activeSubmission.answers[fieldId].value;
 
                 return (

@@ -1,59 +1,60 @@
-"use client";
+'use client';
 
-import { useUser } from "@clerk/nextjs";
-import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
-import LandingPage from "@/app/landing/page";
-import { AuthenticatedLayout } from "./authenticated-layout";
+import { useUser } from '@clerk/nextjs';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import LandingPage from '@/app/landing/page';
+import { AuthenticatedLayout } from './authenticated-layout';
 
 const publicRoutes = [
-  "/landing",
-  "/signup",
-  "/signin",
-  "/verify-email",
-  "/sso-callback",
-  "/forgot-password",
+  '/landing',
+  '/signup',
+  '/signin',
+  '/verify-email',
+  '/sso-callback',
+  '/forgot-password',
 ];
-const initialRoutes = ["/accept-invite", "/client-onboarding", "/checkout"];
+const initialRoutes = ['/accept-invite', '/client-onboarding', '/checkout'];
 
 export function PublicPageWrapper({ pathname }: { pathname: string }) {
   const getPageComponent = () => {
     switch (pathname) {
-      case "/signup":
+      case '/signup':
         // Import the signup page dynamically to avoid circular imports
-        const SignUpPage = require("@/app/signup/page").default;
+        const SignUpPage = require('@/app/signup/page').default;
         return <SignUpPage />;
 
-      case "/signin":
+      case '/signin':
         // Import the signin page dynamically to avoid circular imports
-        const SignInPage = require("@/app/signin/page").default;
+        const SignInPage = require('@/app/signin/page').default;
         return <SignInPage />;
 
-      case "/verify-email":
+      case '/verify-email':
         // Import the verify-email page dynamically to avoid circular imports
-        const VerifyEmailPage = require("@/app/verify-email/page").default;
+        const VerifyEmailPage = require('@/app/verify-email/page').default;
         return <VerifyEmailPage />;
 
-      case "/sso-callback":
+      case '/sso-callback':
         // Import the sso-callback page dynamically to avoid circular imports
-        const SSOCallbackPage = require("@/app/sso-callback/page").default;
+        const SSOCallbackPage = require('@/app/sso-callback/page').default;
         return <SSOCallbackPage />;
 
-      case "/client-onboarding":
+      case '/client-onboarding':
         const ClientOnboardingPage =
-          require("@/app/client-onboarding/page").default;
+          require('@/app/client-onboarding/page').default;
         return <ClientOnboardingPage />;
 
-      case "/accept-invite":
-        const AcceptInvitePage = require("@/app/accept-invite/page").default;
+      case '/accept-invite':
+        const AcceptInvitePage = require('@/app/accept-invite/page').default;
         return <AcceptInvitePage />;
 
-      case "/checkout":
-        const CheckoutPage = require("@/app/checkout/page").default;
+      case '/checkout':
+        const CheckoutPage = require('@/app/checkout/page').default;
         return <CheckoutPage />;
 
-      case "/forgot-password":
-        const ForgotPasswordPage = require("@/app/forgot-password/page").default;
+      case '/forgot-password':
+        const ForgotPasswordPage =
+          require('@/app/forgot-password/page').default;
         return <ForgotPasswordPage />;
 
       default:
@@ -64,11 +65,15 @@ export function PublicPageWrapper({ pathname }: { pathname: string }) {
   return (
     <div
       className={
-        ["/signup", "/signin", "/client-onboarding", "/accept-invite", "/forgot-password"].includes(
-          pathname
-        )
-          ? "w-full h-screen overflow-hidden"
-          : "w-full h-full min-h-screen overflow-auto"
+        [
+          '/signup',
+          '/signin',
+          '/client-onboarding',
+          '/accept-invite',
+          '/forgot-password',
+        ].includes(pathname)
+          ? 'h-screen w-full overflow-hidden'
+          : 'h-full min-h-screen w-full overflow-auto'
       }
     >
       {getPageComponent()}
@@ -82,7 +87,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log("AuthGuard state:", {
+    console.log('AuthGuard state:', {
       isLoaded,
       isSignedIn,
       userId: user?.id,
@@ -98,7 +103,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         console.log(
           `AuthGuard: Redirecting signed-in user from ${matchedPublicRoute} to home`
         );
-        router.replace("/");
+        router.replace('/');
         return;
       }
       // If user is not signed in and trying to access protected routes, redirect to landing
@@ -106,8 +111,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         !isSignedIn &&
         ![...publicRoutes, ...initialRoutes].includes(pathname)
       ) {
-        console.log("AuthGuard: Redirecting unsigned user to landing");
-        router.replace("/landing");
+        console.log('AuthGuard: Redirecting unsigned user to landing');
+        router.replace('/landing');
         return;
       }
     }
@@ -116,10 +121,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Show loading while Clerk is loading
   if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
+      <div className="bg-background flex h-screen items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
+          <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       </div>
     );
@@ -127,7 +132,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // If user is not signed in, show appropriate page
   if (!isSignedIn) {
-    console.log("AuthGuard: User not signed in, showing page for", pathname);
+    console.log('AuthGuard: User not signed in, showing page for', pathname);
     return <PublicPageWrapper pathname={pathname} />;
   }
 
@@ -136,52 +141,57 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (
     isSignedIn &&
     user &&
-    ![...publicRoutes, "/checkout", "/client-onboarding", "/workspace-invite"].includes(pathname)
+    ![
+      ...publicRoutes,
+      '/checkout',
+      '/client-onboarding',
+      '/workspace-invite',
+    ].includes(pathname)
   ) {
-    console.log("AuthGuard: User signed in, showing authenticated layout");
+    console.log('AuthGuard: User signed in, showing authenticated layout');
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }
 
   // If user is signed in and on client-onboarding, render onboarding directly (no app layout)
-  if (isSignedIn && pathname === "/client-onboarding") {
+  if (isSignedIn && pathname === '/client-onboarding') {
     const ClientOnboardingPage =
-      require("@/app/client-onboarding/page").default;
+      require('@/app/client-onboarding/page').default;
     return <ClientOnboardingPage />;
-  } else if (isSignedIn && pathname === "/checkout") {
-    const CheckoutPage = require("@/app/checkout/page").default;
+  } else if (isSignedIn && pathname === '/checkout') {
+    const CheckoutPage = require('@/app/checkout/page').default;
     return (
-      <div className="w-full h-full min-h-screen overflow-auto">
+      <div className="h-full min-h-screen w-full overflow-auto">
         <CheckoutPage />
       </div>
     );
-  } else if (isSignedIn && pathname === "/workspace-invite") {
-    const WorkspaceInvitePage = require("@/app/workspace-invite/page").default;
+  } else if (isSignedIn && pathname === '/workspace-invite') {
+    const WorkspaceInvitePage = require('@/app/workspace-invite/page').default;
     return (
-      <div className="w-full h-full min-h-screen overflow-auto">
+      <div className="h-full min-h-screen w-full overflow-auto">
         <WorkspaceInvitePage />
       </div>
     );
   }
 
   // If user is signed in and on sso-callback, render sso-callback directly (no app layout)
-  if (isSignedIn && pathname === "/sso-callback") {
-    const SSOCallbackPage = require("@/app/sso-callback/page").default;
+  if (isSignedIn && pathname === '/sso-callback') {
+    const SSOCallbackPage = require('@/app/sso-callback/page').default;
     return <SSOCallbackPage />;
   }
 
   // If user is signed in but we're on landing, signup, signin, verify-email, or sso-callback page, show loading until redirect completes
   if (isSignedIn && publicRoutes.includes(pathname)) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
+      <div className="bg-background flex h-screen items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
+          <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
   // Fallback - should not reach here
-  console.log("AuthGuard: Fallback case");
+  console.log('AuthGuard: Fallback case');
   return <LandingPage />;
 }
