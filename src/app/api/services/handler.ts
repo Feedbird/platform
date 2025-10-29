@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabase/client";
-import { Service } from "@/lib/store/types";
-import { ApiHandlerError } from "../shared";
+import { supabase } from '@/lib/supabase/client';
+import { Service } from '@/lib/store/types';
+import { ApiHandlerError } from '../shared';
 
 export class ServicesHandler {
   static async getServices(
@@ -9,18 +9,20 @@ export class ServicesHandler {
   ): Promise<Service[]> {
     try {
       let query = supabase
-        .from("services")
-        .select("*, service_plans(*), channels:service_channels(*)")
-        .eq("workspace_id", workspaceId);
+        .from('services')
+        .select(
+          '*, service_plans(*), channels:service_channels(*), icon:icons(*)'
+        )
+        .eq('workspace_id', workspaceId);
 
       if (available === true) {
-        query = query.is("form_id", null);
+        query = query.is('form_id', null);
       }
 
       const { data, error } = await query;
 
       if (error) {
-        throw new ApiHandlerError("Database error: " + error.message);
+        throw new ApiHandlerError('Database error: ' + error.message);
       }
 
       return data;
@@ -28,25 +30,25 @@ export class ServicesHandler {
       if (e instanceof ApiHandlerError) {
         throw e;
       }
-      throw new ApiHandlerError("Internal server error: " + e);
+      throw new ApiHandlerError('Internal server error: ' + e);
     }
   }
 
   static async getServicesByFormId(formId: string): Promise<Service[]> {
     try {
       const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .eq("form_id", formId);
+        .from('services')
+        .select('*')
+        .eq('form_id', formId);
       if (error) {
-        throw new ApiHandlerError("Database error: " + error.message);
+        throw new ApiHandlerError('Database error: ' + error.message);
       }
       return data;
     } catch (e) {
       if (e instanceof ApiHandlerError) {
         throw e;
       }
-      throw new ApiHandlerError("Internal server error: " + e);
+      throw new ApiHandlerError('Internal server error: ' + e);
     }
   }
 
@@ -56,13 +58,13 @@ export class ServicesHandler {
   ): Promise<void> {
     try {
       const { data, error } = await supabase
-        .from("services")
-        .select("id")
-        .in("id", serviceIds)
-        .eq("workspace_id", workspaceId);
+        .from('services')
+        .select('id')
+        .in('id', serviceIds)
+        .eq('workspace_id', workspaceId);
 
       if (error) {
-        throw new ApiHandlerError("Database error: " + error.message);
+        throw new ApiHandlerError('Database error: ' + error.message);
       }
 
       // Check if all services exist
@@ -75,7 +77,7 @@ export class ServicesHandler {
       if (e instanceof ApiHandlerError) {
         throw e;
       }
-      throw new ApiHandlerError("Internal server error: " + e);
+      throw new ApiHandlerError('Internal server error: ' + e);
     }
   }
 
@@ -85,18 +87,18 @@ export class ServicesHandler {
   ) {
     try {
       const { error } = await supabase
-        .from("services")
+        .from('services')
         .update({ form_id: formId })
-        .in("id", serviceIds);
+        .in('id', serviceIds);
 
       if (error) {
-        throw new ApiHandlerError("Database error: " + error.message);
+        throw new ApiHandlerError('Database error: ' + error.message);
       }
     } catch (e) {
       if (e instanceof ApiHandlerError) {
         throw e;
       }
-      throw new ApiHandlerError("Internal server error: " + e);
+      throw new ApiHandlerError('Internal server error: ' + e);
     }
   }
 }
