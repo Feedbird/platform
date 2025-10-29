@@ -1,6 +1,7 @@
 // app/api/oauth/[platform]/callback/route.ts
 import { getPlatformOperations } from '@/lib/social/platforms/index'
 import { supabase } from '@/lib/supabase/client'
+import { encryptIfNeeded } from '@/lib/utils/secret-encryption'
 
 export async function GET(request: Request): Promise<Response> {
   /* --------------------- derive platform segment -------------------- */
@@ -88,8 +89,8 @@ async function saveSocialAccount(data: {
     const { data: updatedAccount, error: updateAccountError } = await supabase
       .from('social_accounts')
       .update({
-        auth_token: account.authToken,
-        refresh_token: account.refreshToken,
+        auth_token: encryptIfNeeded(account.authToken),
+        refresh_token: encryptIfNeeded(account.refreshToken),
         access_token_expires_at: account.accessTokenExpiresAt,
         refresh_token_expires_at: account.refreshTokenExpiresAt,
         token_issued_at: account.tokenIssuedAt,
@@ -106,7 +107,7 @@ async function saveSocialAccount(data: {
     const { data: updatedPages, error: updatePagesError } = await supabase
       .from('social_pages')
       .update({
-        auth_token: account.authToken,
+        auth_token: encryptIfNeeded(account.authToken),
         auth_token_expires_at: account.accessTokenExpiresAt,
       })
       .eq('account_id', existingAccount.id)
@@ -131,8 +132,8 @@ async function saveSocialAccount(data: {
       name: account.name,
       account_id: account.accountId,
       platform: platform,
-      auth_token: account.authToken,
-      refresh_token: account.refreshToken,
+      auth_token: encryptIfNeeded(account.authToken),
+      refresh_token: encryptIfNeeded(account.refreshToken),
       access_token_expires_at: account.accessTokenExpiresAt,
       refresh_token_expires_at: account.refreshTokenExpiresAt,
       token_issued_at: account.tokenIssuedAt,
@@ -157,7 +158,7 @@ async function saveSocialAccount(data: {
     platform: platform,
     connected: page.connected,
     status: page.status,
-    auth_token: page.authToken,
+    auth_token: encryptIfNeeded(page.authToken),
     auth_token_expires_at: page.authTokenExpiresAt,
     metadata: page.metadata || {},
     entity_type: page.entityType

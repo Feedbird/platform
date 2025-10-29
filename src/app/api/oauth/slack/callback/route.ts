@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { encryptIfNeeded } from '@/lib/utils/secret-encryption'
 import { supabase } from '@/lib/supabase/client'
 import { exchangeSlackCode, SlackService } from '@/lib/services/slack-service'
 
@@ -60,10 +61,10 @@ export async function GET(req: NextRequest) {
       enterprise_id: token.enterprise?.id || null,
       app_id: token.app_id || null,
       bot_user_id: token.bot_user_id || null,
-      bot_access_token: token.access_token || '',
+      bot_access_token: encryptIfNeeded(token.access_token || ''),
       scope: token.scope || null,
       authed_user_id: token.authed_user?.id || null,
-      authed_user_access_token: token.authed_user?.access_token || null,
+      authed_user_access_token: encryptIfNeeded(token.authed_user?.access_token || null),
     }
     if (channelId) {
       upsertPayload.channel_id = channelId

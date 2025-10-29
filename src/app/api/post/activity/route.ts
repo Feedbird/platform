@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
 import { SlackService } from '@/lib/services/slack-service'
+import { decryptIfNeeded } from '@/lib/utils/secret-encryption'
 import { readJsonSnake, jsonCamel } from '@/lib/utils/http'
 
 const CreateActivitySchema = z.object({
@@ -229,7 +230,9 @@ export async function POST(req: NextRequest) {
           { type: 'section', text: { type: 'mrkdwn', text } },
         ]
 
-        await slack.postMessageWithBotToken(installation.bot_access_token, installation.channel_id, text, blocks)
+        const botToken = decryptIfNeeded(installation.bot_access_token)
+        if (!botToken) return
+        await slack.postMessageWithBotToken(botToken, installation.channel_id, text, blocks)
       } catch (e) {
         console.error('Slack notification failed:', e)
       }

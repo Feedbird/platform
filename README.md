@@ -34,3 +34,25 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Security: Encrypting Sensitive Tokens
+
+Set `DATA_ENCRYPTION_KEY` to enable AES-256-GCM encryption for OAuth tokens stored in the database. The key can be:
+
+- Base64-encoded 32-byte key (recommended)
+- Hex-encoded 64-character key
+- Any string (will be SHA-256 hashed to 32 bytes as a fallback)
+
+Example (generate a secure base64 key):
+
+```bash
+openssl rand -base64 32
+```
+
+Add to your environment:
+
+```bash
+DATA_ENCRYPTION_KEY="<paste-generated-base64-key>"
+```
+
+Existing plaintext tokens will continue to work and will be encrypted the next time they are updated.

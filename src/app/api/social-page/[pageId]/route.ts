@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
+import { decryptIfNeeded, encryptIfNeeded } from '@/lib/utils/secret-encryption';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
 
 // GET - Get social page details including tokens
@@ -33,8 +34,11 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       console.error('Failed to fetch social page:', error);
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
-
-    return NextResponse.json(data);
+    const response = {
+      ...data,
+      auth_token: decryptIfNeeded(data.auth_token),
+    };
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching social page:', error);
     return NextResponse.json(
@@ -57,7 +61,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
 
     const updateData: any = {};
     
-    if (body.auth_token !== undefined) updateData.auth_token = body.auth_token;
+    if (body.auth_token !== undefined) updateData.auth_token = encryptIfNeeded(body.auth_token);
     if (body.auth_token_expires_at !== undefined) updateData.auth_token_expires_at = body.auth_token_expires_at;
     if (body.metadata !== undefined) updateData.metadata = body.metadata;
     if (body.status !== undefined) updateData.status = body.status;
