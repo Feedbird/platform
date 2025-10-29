@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     // 2) Workspace creator
     const { data: wsRow, error: wsErr } = await supabase
       .from('workspaces')
-      .select('createdby')
+      .select('created_by')
       .eq('id', workspace_id)
       .single()
     
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const creatorEmail: string | undefined = wsRow?.createdby
+    const creatorEmail: string | undefined = wsRow?.created_by
     // 3) Combine unique emails
     const combined = [...memberEmails, ...(creatorEmail ? [creatorEmail] : [])]
     const uniqueEmails = Array.from(new Set(combined))

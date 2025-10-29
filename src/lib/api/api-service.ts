@@ -885,7 +885,6 @@ export const storeApi = {
           id: ws.id,
           name: ws.name,
           logo: ws.logo,
-          clerkOrganizationId: (ws as any).clerk_organization_id,
           defaultBoardRules: (ws as any).default_board_rules,
           timezone: (ws as any).timezone,
           weekStart: (ws as any).week_start,
@@ -2187,7 +2186,6 @@ export const inviteApi = {
     email: string;
     workspaceId: string;
     actorId?: string;
-    organizationId?: string;
     firstName?: string;
   }): Promise<InviteResponse> => {
     return apiRequest<InviteResponse>(
@@ -2202,7 +2200,6 @@ export const inviteApi = {
     email: string;
     workspaceId: string;
     actorId?: string;
-    organizationId?: string;
     firstName?: string;
   }): Promise<InviteResponse> => {
     return apiRequest<InviteResponse>(

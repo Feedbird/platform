@@ -227,7 +227,6 @@ export interface Workspace {
   id: string;
   name: string;
   logo?: string;
-  clerkOrganizationId?: string;
   createdby?: string; // ID of the user who created this workspace
   role?: 'admin' | 'member';
   channels?: MessageChannel[];

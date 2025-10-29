@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
         // Find Slack installation for this workspace
         const { data: installation } = await supabase
           .from('slack_installations')
-          .select('*')
+          .select('id, bot_access_token, channel_id, events')
           .eq('workspace_id', validated.workspace_id)
           .single()
         if (!installation || !installation.bot_access_token || !installation.channel_id) return

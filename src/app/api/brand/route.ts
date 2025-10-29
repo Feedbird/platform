@@ -33,11 +33,9 @@ export async function GET(req: NextRequest) {
     const includeSocial = searchParams.get('include_social') === 'true'
 
     if (id) {
-      // Get specific brand
       let data, error;
       
       if (includeSocial) {
-        // Secure query that excludes sensitive tokens
         const { data: brandData, error: brandError } = await supabase
           .from('brands')
           .select('*')

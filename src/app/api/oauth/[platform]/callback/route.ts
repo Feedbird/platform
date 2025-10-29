@@ -71,7 +71,7 @@ async function saveSocialAccount(data: {
   // check if account already exists
   const { data: existingAccount, error: existingAccountError } = await supabase
     .from('social_accounts')
-    .select('*')
+    .select('id')
     .eq('workspace_id', workspaceId)
     .eq('account_id', account.accountId)
     .eq('platform', platform)

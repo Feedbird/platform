@@ -602,7 +602,6 @@ export default function ClientOnboardingPage() {
                                         .map((e, i) => ({ email: (e || '').trim(), role: inviteRoles[i] }))
                                         .filter((e) => e.email !== '')
                                     if (emails.length > 0) {
-                                        const orgId = workspaces.find(w => w.id === workspaceId)?.clerkOrganizationId
                                         await Promise.all(
                                             emails.map(({ email, role }) =>
                                               (role === 'Client'
@@ -610,14 +609,12 @@ export default function ClientOnboardingPage() {
                                                     email,
                                                     workspaceId: workspaceId,
                                                     actorId: user?.id,
-                                                    organizationId: orgId,
                                                     firstName: user?.firstName,
                                                   })
                                                 : inviteApi.inviteTeam({
                                                     email,
                                                     workspaceId: workspaceId,
                                                     actorId: user?.id,
-                                                    organizationId: orgId,
                                                     firstName: user?.firstName,
                                                   })
                                               )

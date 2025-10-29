@@ -7,7 +7,6 @@ const InviteSchema = z.object({
   email: z.string().email('Valid email is required'),
   workspaceId: z.string().uuid(),
   actorId: z.string().optional(),
-  organizationId: z.string().optional(),
   first_name: z.string().optional(),
 })
 
@@ -27,10 +26,10 @@ export async function POST(req: NextRequest) {
       let redirectUrl = process.env.CLERK_INVITE_REDIRECT_URL
       const hasValidRedirect = !!(redirectUrl && /^https?:\/\//i.test(redirectUrl))
 
-      let organizationId = (body.organizationId as string | undefined) || ''
+      let organizationId: string | undefined = undefined;
       const targetWorkspaceId: string | undefined = workspaceId
 
-      if (!organizationId && targetWorkspaceId) {
+      if (targetWorkspaceId) {
         const { data: wsRow } = await supabase
           .from('workspaces')
           .select('clerk_organization_id')

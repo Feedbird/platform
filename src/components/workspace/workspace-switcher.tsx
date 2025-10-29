@@ -130,9 +130,6 @@ export default function WorkspaceSwitcher() {
 
     const initialRules = additionalData?.boardRules
     const wsId = await addWorkspace(name, userEmail, logo ?? '', initialRules)
-    // Resolve Clerk organization ID for the newly created workspace
-    const orgId = useWorkspaceStore.getState().workspaces.find(w => w.id === wsId)?.clerkOrganizationId
-
     // Handle additional data (boards, rules, invitations)
     if (additionalData) {
       const { selectedBoards, boardRules, inviteEmails, setAsDefault } = additionalData
@@ -166,7 +163,6 @@ export default function WorkspaceSwitcher() {
                 email,
                 workspaceId: wsId,
                 actorId: user?.id,
-                organizationId: orgId,
                 firstName: user?.firstName,
               })
             )

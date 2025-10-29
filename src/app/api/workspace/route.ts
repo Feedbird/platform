@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       // Get specific workspace
       const { data: ws, error } = await supabase
         .from('workspaces')
-        .select('*')
+        .select('id, name, logo, created_by, default_board_rules, timezone, week_start, time_format, allowed_posting_time')
         .eq('id', id)
         .single()
 
@@ -97,8 +97,8 @@ export async function GET(req: NextRequest) {
       // 1️⃣  Workspaces created by the user (role: admin)
       const { data: createdWorkspaces, error: createdError } = await supabase
         .from('workspaces')
-        .select('*')
-        .eq('createdby', email)
+        .select('id, name, logo, created_by, default_board_rules, timezone, week_start, time_format, allowed_posting_time')
+        .eq('created_by', email)
 
       if (createdError) {
         console.error('Error fetching created workspaces:', createdError)
@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
       if (invitedWorkspaceIds.length) {
         const { data: invitedData, error: invitedErr } = await supabase
           .from('workspaces')
-          .select('*')
+          .select('id, name, logo, created_by, default_board_rules, timezone, week_start, time_format, allowed_posting_time')
           .in('id', invitedWorkspaceIds)
 
         if (invitedErr) {
@@ -240,8 +240,8 @@ export async function GET(req: NextRequest) {
       // Get workspaces created by specific user
       const { data, error } = await supabase
         .from('workspaces')
-        .select('*')
-        .eq('createdby', createdBy)
+        .select('id, name, logo, created_by, default_board_rules, timezone, week_start, time_format, allowed_posting_time')
+        .eq('created_by', createdBy)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -257,7 +257,7 @@ export async function GET(req: NextRequest) {
       // Get all workspaces (fallback for backward compatibility)
       const { data, error } = await supabase
         .from('workspaces')
-        .select('*')
+        .select('id, name, logo, created_by, default_board_rules, timezone, week_start, time_format, allowed_posting_time')
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -321,7 +321,7 @@ export async function POST(req: NextRequest) {
     const workspaceData = {
       name: validatedData.name,
       logo: validatedData.logo,
-      createdby: validatedData.email,
+      created_by: validatedData.email,
       clerk_organization_id: resolvedOrgId,
       default_board_rules: validatedData.default_board_rules,
       timezone: validatedData.timezone,
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabase
       .from('workspaces')
       .insert([workspaceData])
-      .select()
+      .select('id, name, logo, created_by, default_board_rules, timezone, week_start, time_format, allowed_posting_time')
       .single()
 
     if (error) {
@@ -381,7 +381,7 @@ export async function PUT(req: NextRequest) {
       .from('workspaces')
       .update(validatedData)
       .eq('id', id)
-      .select()
+      .select('id, name, logo, created_by, default_board_rules, timezone, week_start, time_format, allowed_posting_time')
       .single()
 
     if (error) {
@@ -432,7 +432,7 @@ export async function DELETE(req: NextRequest) {
     // Check if workspace exists and get its details (including Clerk org id)
     const { data: workspace, error: fetchError } = await supabase
       .from('workspaces')
-      .select('id, name, createdby, clerk_organization_id')
+      .select('id, name, created_by, clerk_organization_id')
       .eq('id', id)
       .single()
 
@@ -607,7 +607,7 @@ export async function DELETE(req: NextRequest) {
         deletedWorkspace: {
           id: workspace.id,
           name: workspace.name,
-          createdBy: workspace.createdby
+          createdBy: workspace.created_by
         }
       })
 
