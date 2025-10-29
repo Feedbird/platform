@@ -11,6 +11,8 @@
     "postinstall": "node scripts/copy-ffmpeg-core.js"
   },
   "dependencies": {
+    "@upstash/ratelimit": "^2.0.4",
+    "@upstash/redis": "^1.34.3",
     "@aws-sdk/client-s3": "^3.837.0",
     "@aws-sdk/s3-request-presigner": "^3.837.0",
     "@clerk/nextjs": "^6.28.1",
