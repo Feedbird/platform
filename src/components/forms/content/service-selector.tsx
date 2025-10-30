@@ -1,8 +1,8 @@
-"use client";
-import React, { useEffect } from "react";
-import { ModalMultiSelect } from "./modal-multi-select";
-import { useFormStore } from "@/lib/store";
-import { useForms } from "@/contexts/forms-context";
+'use client';
+import React, { useEffect } from 'react';
+import { ModalMultiSelect } from './modal-multi-select';
+import { useFormStore } from '@/lib/store';
+import { useForms } from '@/contexts/forms/forms-context';
 
 type ServiceSelectorProps = {
   formServices: { id: string; name: string }[];
@@ -28,10 +28,10 @@ export default function ServiceSelector({
   }, [activeForm]);
 
   return (
-    <header className="flex flex-col gap-5 p-6 max-w-[900px] mx-auto">
-      <div className="p-4 rounded-[5px] border-1 border-[#D3D3D3] flex flex-col gap-2.5">
+    <header className="mx-auto flex max-w-[900px] flex-col gap-5 p-6">
+      <div className="flex flex-col gap-2.5 rounded-[5px] border-1 border-[#D3D3D3] p-4">
         <div className="flex flex-col">
-          <span className="text-black font-medium text-base">
+          <span className="text-base font-medium text-black">
             Select Service
           </span>
           <p className="text-[13px] text-[#5C5E63]">
@@ -40,10 +40,10 @@ export default function ServiceSelector({
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[13px] text-black font-medium">
+          <span className="text-[13px] font-medium text-black">
             Choose Services
           </span>
-          <div className="flex flex-row justify-between w-full">
+          <div className="flex w-full flex-row justify-between">
             <ModalMultiSelect
               options={services}
               selectedValues={selectedServices.map((s) => s.id.toString())}
@@ -56,8 +56,8 @@ export default function ServiceSelector({
         </div>
       </div>
       <div className="flex flex-col not-visited:gap-1">
-        <h1 className="text-black font-semibold text-lg">Intake Form</h1>
-        <p className="text-gray-500 text-sm">
+        <h1 className="text-lg font-semibold text-black">Intake Form</h1>
+        <p className="text-sm text-gray-500">
           Clients get access to this form after buying your service. Their order
           will remain Pending until the form is filled out.
         </p>

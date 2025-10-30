@@ -1,6 +1,6 @@
-"use client";
-import FormEditorSideBar from "@/components/forms/form-editor-sidebar";
-import FormCanvas, { CanvasFormField } from "@/components/forms/form-canvas";
+'use client';
+import FormEditorSideBar from '@/components/forms/form-editor-sidebar';
+import FormCanvas, { CanvasFormField } from '@/components/forms/form-canvas';
 import {
   DndContext,
   DragEndEvent,
@@ -8,27 +8,27 @@ import {
   DragOverlay,
   DragStartEvent,
   pointerWithin,
-} from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
-import React from "react";
-import { useForms } from "@/contexts/forms-context";
-import ServiceSelector from "@/components/forms/content/service-selector";
-import { Form } from "@/lib/store/types";
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
+import React from 'react';
+import { useForms } from '@/contexts/forms/forms-context';
+import ServiceSelector from '@/components/forms/content/service-selector';
+import { Form } from '@/lib/store/types';
 import {
   FormFieldsArray,
   FormFieldType,
   UIFormFieldDefaults,
-} from "@/lib/forms/fields";
-import { BaseContent } from "@/components/forms/content/draggable-field-type";
-import Image from "next/image";
-import { useParams } from "next/navigation";
-import { formsApi } from "@/lib/api/api-service";
-import Loading from "./loading";
-import FormTypeConfig from "@/components/forms/content/form-type-config";
-import { useFormEditor } from "@/contexts/form-editor-context";
-import { formFieldSorter, nestedObjectEqual } from "@/lib/utils/transformers";
-import { useFormStore } from "@/lib/store";
-import { FieldTypeEntitlements } from "@/lib/forms/field.config";
+} from '@/lib/forms/fields';
+import { BaseContent } from '@/components/forms/content/draggable-field-type';
+import Image from 'next/image';
+import { useParams } from 'next/navigation';
+import { formsApi } from '@/lib/api/api-service';
+import Loading from './loading';
+import FormTypeConfig from '@/components/forms/content/form-type-config';
+import { useFormEditor } from '@/contexts/forms/form-editor-context';
+import { formFieldSorter, nestedObjectEqual } from '@/lib/utils/transformers';
+import { useFormStore } from '@/lib/store';
+import { FieldTypeEntitlements } from '@/lib/forms/field.config';
 
 type SelectedField = {
   id: string;
@@ -60,7 +60,10 @@ export default function FormInnerVisualizer() {
   const [selectedField, setSelectedField] =
     React.useState<SelectedField | null>(null); // For field settings/editing
 
-  const updateFieldConfig = (fieldId: string, newConfig: FieldTypeEntitlements) => {
+  const updateFieldConfig = (
+    fieldId: string,
+    newConfig: FieldTypeEntitlements
+  ) => {
     setFormFields((prevFields) =>
       prevFields.map((field) =>
         field.id === fieldId ? { ...field, config: newConfig } : field
@@ -87,7 +90,7 @@ export default function FormInnerVisualizer() {
       setActiveForm(tableForm);
       setIsEditing(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load form");
+      setError(err instanceof Error ? err.message : 'Failed to load form');
     } finally {
       setLoading(false);
     }
@@ -124,12 +127,12 @@ export default function FormInnerVisualizer() {
       return;
     }
 
-    if (active.data.current?.type === "template") {
-      if (over.id === "form-canvas") {
+    if (active.data.current?.type === 'template') {
+      if (over.id === 'form-canvas') {
         addNewField(active.id as FormFieldType);
       } else if (
-        over.id === "form-cover-area" ||
-        over.id === "form-title-area"
+        over.id === 'form-cover-area' ||
+        over.id === 'form-title-area'
       ) {
         // Add field at the beginning when dropping on cover or title area
         addNewFieldAtPosition(active.id as FormFieldType, 0);
@@ -217,7 +220,7 @@ export default function FormInnerVisualizer() {
   const displayLabel =
     activeTemplateField?.label ||
     activePlacedField?.config?.title?.value ||
-    "Field";
+    'Field';
 
   if (loading) {
     return <Loading />;
@@ -225,10 +228,10 @@ export default function FormInnerVisualizer() {
 
   if (error || !form) {
     return (
-      <div className="w-full h-full flex justify-center items-center">
+      <div className="flex h-full w-full items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Error Loading Form</h2>
-          <p className="text-gray-600">{error || "Form not found"}</p>
+          <h2 className="mb-2 text-xl font-semibold">Error Loading Form</h2>
+          <p className="text-gray-600">{error || 'Form not found'}</p>
         </div>
       </div>
     );
@@ -241,8 +244,8 @@ export default function FormInnerVisualizer() {
       onDragOver={handleDragOver}
       collisionDetection={pointerWithin}
     >
-      <div className="w-full h-full flex bg-[#FBFBFB] overflow-hidden relative">
-        <div className="flex-1 min-w-0 overflow-auto relative pb-10">
+      <div className="relative flex h-full w-full overflow-hidden bg-[#FBFBFB]">
+        <div className="relative min-w-0 flex-1 overflow-auto pb-10">
           <ServiceSelector formServices={activeForm!.services || []} />
           <FormCanvas
             formFields={formFields}
@@ -252,7 +255,11 @@ export default function FormInnerVisualizer() {
             overId={overId}
             selectedFieldId={selectedField?.id || null}
             onFieldSelect={(
-              val: { id: string; type: string; config: FieldTypeEntitlements } | null
+              val: {
+                id: string;
+                type: string;
+                config: FieldTypeEntitlements;
+              } | null
             ) => {
               setSelectedField(val);
             }}
@@ -264,7 +271,7 @@ export default function FormInnerVisualizer() {
           formId={form.id}
         />
         <FormTypeConfig
-          fieldId={selectedField?.id || ""}
+          fieldId={selectedField?.id || ''}
           updateFieldConfig={updateFieldConfig}
           setVisible={setSelectedField}
           isVisible={selectedField !== null}
@@ -274,7 +281,7 @@ export default function FormInnerVisualizer() {
 
       <DragOverlay>
         {activeId && displayField && (
-          <div className="py-2 transform -rotate-1 px-2.5 border border-gray-200 rounded-sm shadow-none cursor-grab hover:bg-gray-50 transition-colors">
+          <div className="-rotate-1 transform cursor-grab rounded-sm border border-gray-200 px-2.5 py-2 shadow-none transition-colors hover:bg-gray-50">
             <BaseContent
               icon={
                 <Image

@@ -2,7 +2,7 @@
  * Type definitions for API requests and responses
  */
 
-import type { NotificationSettings } from '@/lib/store/types';
+import type { BoardRules, NotificationSettings } from '@/lib/store/types';
 
 /**
  * Generic API response wrapper
@@ -170,7 +170,7 @@ export interface UpdateUserPayload {
   unreadMsg?: string[];
   unreadNotification?: string[];
   notificationSettings?: NotificationSettings;
-  defaultBoardRules?: Record<string, unknown>;
+  defaultBoardRules?: BoardRules;
 }
 
 /**
@@ -183,5 +183,3 @@ export interface CreateUserPayload {
   imageUrl?: string;
   defaultBoardRules?: Record<string, unknown>;
 }
-
- 

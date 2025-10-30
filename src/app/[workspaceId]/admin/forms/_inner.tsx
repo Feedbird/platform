@@ -1,11 +1,10 @@
-"use client";
-import FormsTable, { TableForm } from "@/components/forms/content/forms-table";
-import { useWorkspaceStore, useFormStore } from "@/lib/store";
-import { useEffect } from "react";
-import Loading from "./[id]/loading";
-import { useForms } from "@/contexts/forms-context";
-import { toast } from "sonner";
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+'use client';
+import FormsTable, { TableForm } from '@/components/forms/content/forms-table';
+import { useWorkspaceStore, useFormStore } from '@/lib/store';
+import { useEffect } from 'react';
+import Loading from './[id]/loading';
+import { useForms } from '@/contexts/forms/forms-context';
+import { toast } from 'sonner';
 
 export default function FormsInner() {
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -27,7 +26,7 @@ export default function FormsInner() {
       const forms = await getFormsByWorkspaceId(activeWorkspaceId);
       setForms(forms as TableForm[]);
     } catch (e) {
-      toast.error("Failed to fetch forms. Please try again.");
+      toast.error('Failed to fetch forms. Please try again.');
     } finally {
       setLoading(false);
     }

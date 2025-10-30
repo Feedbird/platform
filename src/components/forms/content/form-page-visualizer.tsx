@@ -1,9 +1,9 @@
-import React from "react";
-import { CanvasFormField } from "../form-canvas";
-import { useForms } from "@/contexts/forms-context";
-import Image from "next/image";
-import FieldRenderWrapper from "./field-render-wrapper";
-import { PageEnding } from "./form-inputs";
+import React from 'react';
+import { CanvasFormField } from '../form-canvas';
+import { useForms } from '@/contexts/forms/forms-context';
+import Image from 'next/image';
+import FieldRenderWrapper from '../content/field-render-wrapper';
+import { PageEnding } from '../content/form-inputs';
 
 type Props = {
   pages: CanvasFormField[][];
@@ -15,21 +15,21 @@ export default function FormPageVisualizer({ pages }: Props) {
     <div className="flex flex-col gap-16">
       {pages.map((page, pageIndex) => (
         <div key={pageIndex} className="flex flex-col">
-          <div className="rounded-t-[4px] bg-[#4670F9] h-7 w-[85px] flex items-center justify-center">
-            <span className="text-white font-medium text-xs">
+          <div className="flex h-7 w-[85px] items-center justify-center rounded-t-[4px] bg-[#4670F9]">
+            <span className="text-xs font-medium text-white">
               Page {pageIndex + 1} of {pages.length}
             </span>
           </div>
 
           <div
-            className={`rounded-[8px] bg-white rounded-tl-none ${
+            className={`rounded-[8px] rounded-tl-none bg-white ${
               pageIndex === 0 && activeForm?.coverUrl
-                ? "border-1 border-t-0"
-                : "border-1"
+                ? 'border-1 border-t-0'
+                : 'border-1'
             } border-elementStroke flex flex-col overflow-hidden`}
           >
             {pageIndex === 0 && activeForm?.coverUrl && (
-              <div className="w-full relative h-[160px]">
+              <div className="relative h-[160px] w-full">
                 <Image
                   src={activeForm.coverUrl}
                   alt="form_cover_image"
@@ -38,25 +38,27 @@ export default function FormPageVisualizer({ pages }: Props) {
                   style={{
                     objectPosition: `50% ${activeForm?.coverOffset ?? 50}%`,
                   }}
-                  className="w-full h-full object-cover z-10"
+                  className="z-10 h-full w-full object-cover"
                 />
               </div>
             )}
             <div className="flex flex-col p-8">
               {(() => {
-                const prevPage = pageIndex > 0 ? pages[pageIndex - 1] : undefined;
+                const prevPage =
+                  pageIndex > 0 ? pages[pageIndex - 1] : undefined;
                 const prevPageLastField = prevPage?.[prevPage.length - 1];
                 return (
                   <div className="flex flex-col gap-1 pb-10">
                     <span className="text-[24px] font-semibold text-[#1C1D1F]">
                       {pageIndex === 0
                         ? activeForm?.title
-                        : prevPageLastField?.config?.title?.value || `Page ${pageIndex + 1}`}
+                        : prevPageLastField?.config?.title?.value ||
+                          `Page ${pageIndex + 1}`}
                     </span>
-                    <p className="font-normal text-[#5C5E63] text-sm">
+                    <p className="text-sm font-normal text-[#5C5E63]">
                       {pageIndex === 0
                         ? activeForm?.description
-                        : prevPageLastField?.config?.description?.value || ""}
+                        : prevPageLastField?.config?.description?.value || ''}
                     </p>
                   </div>
                 );
@@ -75,7 +77,7 @@ export default function FormPageVisualizer({ pages }: Props) {
               {pageIndex === pages.length - 1 && (
                 <PageEnding pages={pages.length} />
               )}
-              <div className="min-h-[62px] w-full flex items-end">
+              <div className="flex min-h-[62px] w-full items-end">
                 <Image
                   src="/images/logo/logo(1).svg"
                   alt="feedbird_logo"

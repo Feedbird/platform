@@ -1,12 +1,12 @@
-"use client";
-import { Form, FormField } from "@/lib/store/types";
-import { formFieldSorter } from "@/lib/utils/transformers";
-import React from "react";
-import Loading from "./loading";
-import { Divider } from "@mui/material";
-import ControlledPageVisualizer from "./components/controlled-page-visualizer";
-import ControlledSubmissionSummary from "./components/controlled-submission-summary";
-import { CanvasFormField } from "@/components/forms/form-canvas";
+'use client';
+import { Form, FormField } from '@/lib/store/types';
+import { formFieldSorter, mapPeriodicity } from '@/lib/utils/transformers';
+import React from 'react';
+import Loading from './loading';
+import { Divider } from '@mui/material';
+import ControlledPageVisualizer from './components/controlled-page-visualizer';
+import ControlledSubmissionSummary from './components/controlled-submission-summary';
+import { CanvasFormField } from '@/components/forms/form-canvas';
 
 type Props = {
   formData: Form & { formFields: FormField[] };
@@ -17,24 +17,24 @@ export type FormSubmissionData = {
 };
 
 const formValueInitializer = (field: FormField) => {
-  let value: string | string[] = "";
+  let value: string | string[] = '';
   switch (field.type) {
-    case "checkbox":
-      value = "no";
+    case 'checkbox':
+      value = 'no';
       break;
-    case "option":
+    case 'option':
       if (field.config?.allowMultipleSelection?.value) {
         value = [];
-      } else value = "";
+      } else value = '';
       break;
-    case "spreadsheet":
+    case 'spreadsheet':
       const columns = field.config?.spreadsheetColumns?.columns
         .map((col: { order: number; value: string }) => col.value)
-        .join("|");
-      value = [columns || ""];
+        .join('|');
+      value = [columns || ''];
       break;
     default:
-      value = "";
+      value = '';
   }
 
   return { type: field.type, value };
@@ -59,7 +59,7 @@ export default function SubmitFormVisualizer({ formData }: Props) {
     const tempPages: FormField[][] = [[]];
     const formFields = formData?.formFields || [];
     for (const field of formFields.sort(formFieldSorter)) {
-      if (field.type === "page-break") {
+      if (field.type === 'page-break') {
         tempPages[tempPages.length - 1].push(field);
         tempPages.push([]);
       } else {
@@ -84,27 +84,39 @@ export default function SubmitFormVisualizer({ formData }: Props) {
   }
 
   return (
-    <div className="h-full overflow-auto bg-[#FBFBFB] w-full">
+    <div className="h-full w-full overflow-auto bg-[#FBFBFB]">
       <div className="flex justify-center p-5 pb-12">
         {!reviewActive ? (
-          <div className="w-full max-w-[900px] flex flex-col gap-5">
-            <div className="flex flex-col pr-3 pl-0 py-3 gap-2">
-              <span className="font-semibold text-[18px] text-[#1C1D1F]">
+          <div className="flex w-full max-w-[900px] flex-col gap-5">
+            <div className="flex flex-col gap-2 py-3 pr-3 pl-0">
+              <span className="text-[18px] font-semibold text-[#1C1D1F]">
                 Onboarding Questionnaire
               </span>
               <div className="flex flex-col gap-1.5">
                 {formData?.services?.map((service, index) => (
                   <div
                     key={index}
-                    className="flex flex-row gap-3 text-sm text-[#5C5E63] font-normal"
+                    className="flex flex-row gap-3 text-sm font-normal text-[#5C5E63]"
                   >
                     <p className="min-w-[170px]">{service.name}</p>
                     <Divider orientation="vertical" />
-                    <p>
-                      Quantity: {service.servicePlans?.[0]?.quantity ?? 0}{" "}
-                      {service.servicePlans?.[0]?.qtyIndicator ?? "Not set"} -
-                      ${service.servicePlans?.[0]?.price ?? 0}/mo
-                    </p>
+                    {service.service_plans &&
+                      service.service_plans.length &&
+                      service.service_plans.map((plan, planIndex) => (
+                        <div
+                          className="flex flex-col gap-2"
+                          key={`plan-${planIndex}`}
+                        >
+                          <div className="flex gap-1">
+                            <span>{plan.value}</span>
+                            {' - '}
+                            <span>
+                              ${plan.price} /{' '}
+                              {mapPeriodicity(plan.billing_period)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 ))}
               </div>
@@ -120,8 +132,8 @@ export default function SubmitFormVisualizer({ formData }: Props) {
             />
           </div>
         ) : (
-          <div className="w-full max-w-[900px] flex flex-col gap-5">
-            <span className="font-semibold text-lg text-black">
+          <div className="flex w-full max-w-[900px] flex-col gap-5">
+            <span className="text-lg font-semibold text-black">
               Almost done, review your information
             </span>
             <ControlledSubmissionSummary

@@ -1,6 +1,11 @@
 import { TableForm } from '@/components/forms/content/forms-table';
 import { CanvasFormField } from '@/components/forms/form-canvas';
-import { SocialPage, useMessageStore, useUserStore, useWorkspaceStore } from '@/lib/store';
+import {
+  SocialPage,
+  useMessageStore,
+  useUserStore,
+  useWorkspaceStore,
+} from '@/lib/store';
 import {
   Coupon,
   FormField,
@@ -252,7 +257,7 @@ export const workspaceHelperApi = {
   ): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/workspace/members`, {
       method: 'PATCH',
-        body: JSON.stringify({ workspaceId, email, role }),
+      body: JSON.stringify({ workspaceId, email, role }),
     });
   },
 };
@@ -363,6 +368,12 @@ export const servicesApi = {
     );
 
     return data.sort((a, b) => a.order - b.order);
+  },
+  createDraftService: async (workspaceId: string) => {
+    return apiRequest<ApiResponse<string>>('/services', {
+      method: 'POST',
+      body: JSON.stringify({ workspaceId }),
+    });
   },
 };
 
@@ -643,9 +654,7 @@ export const channelMessageApi = {
     workspaceId?: string;
   }): Promise<
     | (ChannelMessage & { authorName?: string; authorImageUrl?: string })
-    | Array<
-        ChannelMessage & { authorName?: string; authorImageUrl?: string }
-      >
+    | Array<ChannelMessage & { authorName?: string; authorImageUrl?: string }>
   > => {
     const searchParams = new URLSearchParams();
     if (params.id) searchParams.append('id', params.id);
@@ -808,13 +817,10 @@ export const postApi = {
   bulkDeletePosts: async (
     postIds: string[]
   ): Promise<{ message: string; deletedPosts: Post[] }> => {
-    return apiRequest<{ message: string; deletedPosts: Post[] }>(
-      '/post/bulk',
-      {
-        method: 'DELETE',
-        body: JSON.stringify({ postIds: postIds }),
-      }
-    );
+    return apiRequest<{ message: string; deletedPosts: Post[] }>('/post/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ postIds: postIds }),
+    });
   },
 
   // Auto-schedule post (server computes publish_date)
@@ -906,9 +912,7 @@ export const storeApi = {
                 statusUpdatedAt: p.statusUpdatedAt
                   ? new Date(p.statusUpdatedAt)
                   : undefined,
-                lastSyncAt: p.lastSyncAt
-                  ? new Date(p.lastSyncAt)
-                  : undefined,
+                lastSyncAt: p.lastSyncAt ? new Date(p.lastSyncAt) : undefined,
                 followerCount: p.followerCount,
                 postCount: p.postCount,
                 metadata: p.metadata,
@@ -1139,12 +1143,8 @@ export const storeApi = {
         members: channel.members,
         icon: channel.icon,
         color: (channel as any).color,
-        createdAt: channel.createdAt
-          ? new Date(channel.createdAt)
-          : new Date(),
-        updatedAt: channel.updatedAt
-          ? new Date(channel.updatedAt)
-          : new Date(),
+        createdAt: channel.createdAt ? new Date(channel.createdAt) : new Date(),
+        updatedAt: channel.updatedAt ? new Date(channel.updatedAt) : new Date(),
       };
       const updatedWorkspaces = workspaceStore.workspaces.map((w) => {
         if (w.id !== workspaceId) return w;
@@ -1370,9 +1370,7 @@ export const storeApi = {
         authorEmail: authorEmail,
         authorImageUrl: senderImageUrl as string | undefined,
         text: created.content,
-        createdAt: created.createdAt
-          ? new Date(created.createdAt)
-          : new Date(),
+        createdAt: created.createdAt ? new Date(created.createdAt) : new Date(),
         parentId: created.parentId || null,
         addon: (created as any).addon,
         readby: (created as any).readby,
@@ -1892,7 +1890,7 @@ export const storeApi = {
       if (userEmail) {
         postUpdates.last_updated_by = userEmail;
       }
-      console.log("postUpdates:", postUpdates);
+      console.log('postUpdates:', postUpdates);
       const post = await postApi.updatePost(id, postUpdates);
       console.log('post', post);
       const store = useWorkspaceStore.getState();
@@ -2166,13 +2164,10 @@ export const inviteApi = {
     memberRole?: 'client' | 'team';
     firstName?: string;
   }): Promise<InviteResponse> => {
-    return apiRequest<InviteResponse>(
-      '/invite',
-      {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }
-    );
+    return apiRequest<InviteResponse>('/invite', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
   inviteClient: async (payload: {
     email: string;
@@ -2180,13 +2175,10 @@ export const inviteApi = {
     actorId?: string;
     firstName?: string;
   }): Promise<InviteResponse> => {
-    return apiRequest<InviteResponse>(
-      '/invite/client',
-      {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }
-    );
+    return apiRequest<InviteResponse>('/invite/client', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
   inviteTeam: async (payload: {
     email: string;
@@ -2194,13 +2186,10 @@ export const inviteApi = {
     actorId?: string;
     firstName?: string;
   }): Promise<InviteResponse> => {
-    return apiRequest<InviteResponse>(
-      '/invite/team',
-      {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }
-    );
+    return apiRequest<InviteResponse>('/invite/team', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 };
 
@@ -2364,7 +2353,9 @@ export const commentApi = {
 export const socialAccountApi = {
   // Get social accounts for a workspace
   getSocialAccounts: async (workspaceId: string) => {
-    return apiRequest<SocialAccount[]>(`/social-account?workspaceId=${workspaceId}`);
+    return apiRequest<SocialAccount[]>(
+      `/social-account?workspaceId=${workspaceId}`
+    );
   },
 
   // Disconnect social page or account

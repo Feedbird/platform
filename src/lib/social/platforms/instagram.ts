@@ -2,7 +2,14 @@
     Instagram driver (Business / Creator)  —  Dual Connection
     ─────────────────────────────────────────────────────────── */
 import { BasePlatform } from './base-platform';
-import { SocialPlatformConfig, SocialAccount, SocialPage, PostContent, PostHistory, PublishOptions } from './platform-types';
+import {
+  SocialPlatformConfig,
+  SocialAccount,
+  SocialPage,
+  PostContent,
+  PostHistory,
+  PublishOptions,
+} from './platform-types';
 import { updatePlatformPostId } from '@/lib/utils/platform-post-ids';
 import { socialApiService } from '@/lib/api/social-api-service';
 
@@ -38,7 +45,7 @@ const facebookConfig: SocialPlatformConfig = {
     scheduling: true,
     analytics: true,
     deletion: false, // Instagram doesn't support deletion
-    mediaTypes: ["image", "video", "carousel", "story"],
+    mediaTypes: ['image', 'video', 'carousel', 'story'],
     maxMediaCount: 10,
     characterLimits: {
       content: 2200,
@@ -48,23 +55,23 @@ const facebookConfig: SocialPlatformConfig = {
     image: {
       maxWidth: 1080,
       maxHeight: 1350,
-      aspectRatios: ["1:1", "4:5", "1.91:1"],
+      aspectRatios: ['1:1', '4:5', '1.91:1'],
       maxSizeMb: 30,
-      formats: ["jpg", "png"],
+      formats: ['jpg', 'png'],
     },
     video: {
       maxWidth: 1080,
       maxHeight: 1920,
-      aspectRatios: ["1:1", "4:5", "16:9", "9:16"],
+      aspectRatios: ['1:1', '4:5', '16:9', '9:16'],
       maxSizeMb: 4000, // 4GB
       maxDurationSec: 3600, // 60 minutes for feed
       maxFps: 30,
-      formats: ["mp4", "mov"],
+      formats: ['mp4', 'mov'],
       audio: {
-        codecs: ["aac"],
+        codecs: ['aac'],
       },
       video: {
-        codecs: ["h264"],
+        codecs: ['h264'],
       },
     },
   },
@@ -72,9 +79,9 @@ const facebookConfig: SocialPlatformConfig = {
     {
       title: 'Instagram via Facebook Login',
       type: 'instagram_facebook',
-      requiredScopes: ['instagram_basic', 'instagram_content_publish']
-    }
-  ]
+      requiredScopes: ['instagram_basic', 'instagram_content_publish'],
+    },
+  ],
 };
 
 const instagramBusinessConfig: SocialPlatformConfig = {
@@ -91,7 +98,7 @@ const instagramBusinessConfig: SocialPlatformConfig = {
   scopes: [
     'instagram_business_basic',
     'instagram_business_content_publish',
-    'instagram_business_manage_insights'
+    'instagram_business_manage_insights',
   ],
   apiVersion: 'v23.0',
   baseUrl: 'https://graph.instagram.com',
@@ -101,7 +108,7 @@ const instagramBusinessConfig: SocialPlatformConfig = {
     scheduling: true,
     analytics: true,
     deletion: false, // Instagram doesn't support deletion
-    mediaTypes: ["image", "video", "carousel", "story"],
+    mediaTypes: ['image', 'video', 'carousel', 'story'],
     maxMediaCount: 10,
     characterLimits: {
       content: 2200,
@@ -111,23 +118,23 @@ const instagramBusinessConfig: SocialPlatformConfig = {
     image: {
       maxWidth: 1080,
       maxHeight: 1350,
-      aspectRatios: ["1:1", "4:5", "1.91:1"],
+      aspectRatios: ['1:1', '4:5', '1.91:1'],
       maxSizeMb: 30,
-      formats: ["jpg", "png"],
+      formats: ['jpg', 'png'],
     },
     video: {
       maxWidth: 1080,
       maxHeight: 1920,
-      aspectRatios: ["1:1", "4:5", "16:9", "9:16"],
+      aspectRatios: ['1:1', '4:5', '16:9', '9:16'],
       maxSizeMb: 4000, // 4GB
       maxDurationSec: 3600, // 60 minutes for feed
       maxFps: 30,
-      formats: ["mp4", "mov"],
+      formats: ['mp4', 'mov'],
       audio: {
-        codecs: ["aac"],
+        codecs: ['aac'],
       },
       video: {
-        codecs: ["h264"],
+        codecs: ['h264'],
       },
     },
   },
@@ -135,9 +142,12 @@ const instagramBusinessConfig: SocialPlatformConfig = {
     {
       title: 'Instagram Business Login',
       type: 'instagram_business',
-      requiredScopes: ['instagram_business_basic', 'instagram_business_content_publish']
-    }
-  ]
+      requiredScopes: [
+        'instagram_business_basic',
+        'instagram_business_content_publish',
+      ],
+    },
+  ],
 };
 
 export class InstagramPlatform extends BasePlatform {
@@ -148,9 +158,13 @@ export class InstagramPlatform extends BasePlatform {
     env: { clientId: string; clientSecret: string; redirectUri: string },
     connectionType: 'facebook' | 'instagram_business' = 'facebook'
   ) {
-    super(connectionType === 'facebook' ? facebookConfig : instagramBusinessConfig, env);
+    super(
+      connectionType === 'facebook' ? facebookConfig : instagramBusinessConfig,
+      env
+    );
     this.connectionType = connectionType;
-    this.activeConfig = connectionType === 'facebook' ? facebookConfig : instagramBusinessConfig;
+    this.activeConfig =
+      connectionType === 'facebook' ? facebookConfig : instagramBusinessConfig;
   }
 
   // Get the active configuration
@@ -170,7 +184,7 @@ export class InstagramPlatform extends BasePlatform {
       redirect_uri: this.env.redirectUri,
       response_type: 'code',
       scope: this.activeConfig.scopes.join(','),
-      ...(state && { state })
+      ...(state && { state }),
     });
 
     return `${this.activeConfig.authUrl}?${params.toString()}`;
@@ -180,12 +194,12 @@ export class InstagramPlatform extends BasePlatform {
   private async getToken(pageId: string): Promise<string> {
     try {
       const pageData = await socialApiService.getSocialPage(pageId);
-      
-      if (!pageData.auth_token) {
+
+      if (!pageData.authToken) {
         throw new Error('No auth token available');
       }
 
-      return pageData.auth_token;
+      return pageData.authToken;
     } catch (error) {
       console.error('Error getting token:', error);
       throw new Error('Failed to get auth token');
@@ -193,7 +207,6 @@ export class InstagramPlatform extends BasePlatform {
   }
 
   async connectAccount(code: string): Promise<SocialAccount> {
-
     if (this.connectionType.toLowerCase() == 'instagram_business') {
       return this.connectInstagramBusiness(code);
     } else {
@@ -203,7 +216,6 @@ export class InstagramPlatform extends BasePlatform {
 
   // Instagram Business Login connection flow
   private async connectInstagramBusiness(code: string): Promise<SocialAccount> {
-
     const formData = new FormData();
     formData.append('client_id', this.env.clientId);
     formData.append('client_secret', this.env.clientSecret);
@@ -213,13 +225,18 @@ export class InstagramPlatform extends BasePlatform {
 
     // Step 1: Exchange code for short-lived token
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login#step-2---exchange-the-code-for-a-token
-    const shortLived = await fetch(`${INSTAGRAM_OAUTH_API}/oauth/access_token`, {
-      method: 'POST',
-      body: formData,
-    }).then(res => res.json()).catch(err => {
-      console.error('Error in connectInstagramBusiness:', err);
-      throw err;
-    });
+    const shortLived = await fetch(
+      `${INSTAGRAM_OAUTH_API}/oauth/access_token`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    )
+      .then((res) => res.json())
+      .catch((err) => {
+        console.error('Error in connectInstagramBusiness:', err);
+        throw err;
+      });
 
     // Step 2: Exchange short-lived token for long-lived token
     // https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login#long-lived
@@ -232,8 +249,8 @@ export class InstagramPlatform extends BasePlatform {
       queryParams: {
         grant_type: 'ig_exchange_token',
         client_secret: this.env.clientSecret,
-        access_token: shortLived.access_token
-      }
+        access_token: shortLived.access_token,
+      },
     });
 
     // Step 3: Get user info
@@ -244,8 +261,8 @@ export class InstagramPlatform extends BasePlatform {
     }>(`${this.activeConfig.baseUrl}/me`, {
       token: longLived.access_token,
       queryParams: {
-        fields: 'id,username,account_type'
-      }
+        fields: 'id,username,account_type',
+      },
     });
 
     return {
@@ -260,8 +277,8 @@ export class InstagramPlatform extends BasePlatform {
       metadata: {
         connectionType: 'instagram_business',
         permissions: shortLived.permissions,
-        accountType: me.account_type
-      }
+        accountType: me.account_type,
+      },
     };
   }
 
@@ -271,28 +288,34 @@ export class InstagramPlatform extends BasePlatform {
     const shortLived = await this.fetchWithAuth<{
       access_token: string;
       expires_in: number;
-    }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/oauth/access_token`, {
-      token: '',
-      queryParams: {
-        client_id: this.env.clientId,
-        client_secret: this.env.clientSecret,
-        redirect_uri: this.env.redirectUri,
-        code
+    }>(
+      `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/oauth/access_token`,
+      {
+        token: '',
+        queryParams: {
+          client_id: this.env.clientId,
+          client_secret: this.env.clientSecret,
+          redirect_uri: this.env.redirectUri,
+          code,
+        },
       }
-    });
+    );
 
     const longLived = await this.fetchWithAuth<{
       access_token: string;
       expires_in: number;
-    }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/oauth/access_token`, {
-      token: '',
-      queryParams: {
-        grant_type: 'fb_exchange_token',
-        client_id: this.env.clientId,
-        client_secret: this.env.clientSecret,
-        fb_exchange_token: shortLived.access_token
+    }>(
+      `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/oauth/access_token`,
+      {
+        token: '',
+        queryParams: {
+          grant_type: 'fb_exchange_token',
+          client_id: this.env.clientId,
+          client_secret: this.env.clientSecret,
+          fb_exchange_token: shortLived.access_token,
+        },
       }
-    });
+    );
 
     // Get user info
     const me = await this.fetchWithAuth<{
@@ -301,8 +324,8 @@ export class InstagramPlatform extends BasePlatform {
     }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/me`, {
       token: longLived.access_token,
       queryParams: {
-        fields: 'id,name'
-      }
+        fields: 'id,name',
+      },
     });
 
     return {
@@ -315,14 +338,14 @@ export class InstagramPlatform extends BasePlatform {
       connected: true,
       status: 'active',
       metadata: {
-        connectionType: 'facebook'
-      }
+        connectionType: 'facebook',
+      },
     };
   }
 
   async refreshToken(acc: SocialAccount): Promise<SocialAccount> {
     const connectionType = acc.metadata?.connectionType || 'facebook';
-    
+
     if (connectionType === 'instagram_business') {
       return this.refreshInstagramBusinessToken(acc);
     } else {
@@ -331,7 +354,9 @@ export class InstagramPlatform extends BasePlatform {
   }
 
   // Refresh Instagram Business Login token
-  private async refreshInstagramBusinessToken(acc: SocialAccount): Promise<SocialAccount> {
+  private async refreshInstagramBusinessToken(
+    acc: SocialAccount
+  ): Promise<SocialAccount> {
     const response = await this.fetchWithAuth<{
       access_token: string;
       token_type: string;
@@ -340,42 +365,47 @@ export class InstagramPlatform extends BasePlatform {
       token: '',
       queryParams: {
         grant_type: 'ig_refresh_token',
-        access_token: acc.authToken || ''
-      }
+        access_token: acc.authToken || '',
+      },
     });
 
     return {
       ...acc,
       authToken: response.access_token,
-      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000)
+      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000),
     };
   }
 
   // Refresh Facebook API token (existing implementation)
-  private async refreshFacebookToken(acc: SocialAccount): Promise<SocialAccount> {
+  private async refreshFacebookToken(
+    acc: SocialAccount
+  ): Promise<SocialAccount> {
     const response = await this.fetchWithAuth<{
       access_token: string;
       expires_in: number;
-    }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/oauth/access_token`, {
-      token: '',
-      queryParams: {
-        grant_type: 'fb_exchange_token',
-        client_id: this.env.clientId,
-        client_secret: this.env.clientSecret,
-        fb_exchange_token: acc.authToken || ''
+    }>(
+      `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/oauth/access_token`,
+      {
+        token: '',
+        queryParams: {
+          grant_type: 'fb_exchange_token',
+          client_id: this.env.clientId,
+          client_secret: this.env.clientSecret,
+          fb_exchange_token: acc.authToken || '',
+        },
       }
-    });
+    );
 
     return {
       ...acc,
       authToken: response.access_token,
-      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000)
+      accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000),
     };
   }
 
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
     const connectionType = acc.metadata?.connectionType || 'facebook';
-    
+
     if (connectionType === 'instagram_business') {
       return this.listInstagramBusinessPages(acc);
     } else {
@@ -384,7 +414,9 @@ export class InstagramPlatform extends BasePlatform {
   }
 
   // List Instagram Business Login pages (direct Instagram accounts)
-  private async listInstagramBusinessPages(acc: SocialAccount): Promise<SocialPage[]> {
+  private async listInstagramBusinessPages(
+    acc: SocialAccount
+  ): Promise<SocialPage[]> {
     try {
       // Get Instagram account info directly
       const account = await this.fetchWithAuth<{
@@ -397,29 +429,32 @@ export class InstagramPlatform extends BasePlatform {
       }>(`${this.activeConfig.baseUrl}/me`, {
         token: acc.authToken || '',
         queryParams: {
-          fields: 'id,username,profile_picture_url,followers_count,media_count,account_type'
-        }
+          fields:
+            'id,username,profile_picture_url,followers_count,media_count,account_type',
+        },
       });
 
-      return [{
-        id: crypto.randomUUID(),
-        platform: 'instagram',
-        entityType: 'profile',
-        name: account.username,
-        pageId: account.id,
-        accountId: acc.id,
-        authToken: acc.authToken || '',
-        connected: true,
-        status: 'active',
-        metadata: {
-          connectionType: 'instagram_business',
-          profilePictureUrl: account.profile_picture_url,
-          followersCount: account.followers_count,
-          mediaCount: account.media_count,
-          accountType: account.account_type,
-          instagramUsername: account.username
-        }
-      }];
+      return [
+        {
+          id: crypto.randomUUID(),
+          platform: 'instagram',
+          entityType: 'profile',
+          name: account.username,
+          pageId: account.id,
+          accountId: acc.id,
+          authToken: acc.authToken || '',
+          connected: true,
+          status: 'active',
+          metadata: {
+            connectionType: 'instagram_business',
+            profilePictureUrl: account.profile_picture_url,
+            followersCount: account.followers_count,
+            mediaCount: account.media_count,
+            accountType: account.account_type,
+            instagramUsername: account.username,
+          },
+        },
+      ];
     } catch (error) {
       console.error('Error in listInstagramBusinessPages:', error);
       throw error;
@@ -427,7 +462,9 @@ export class InstagramPlatform extends BasePlatform {
   }
 
   // List Facebook-linked Instagram pages (existing implementation)
-  private async listFacebookLinkedPages(acc: SocialAccount): Promise<SocialPage[]> {
+  private async listFacebookLinkedPages(
+    acc: SocialAccount
+  ): Promise<SocialPage[]> {
     try {
       // First get Facebook pages
       const fbPages = await this.fetchWithAuth<{
@@ -448,18 +485,21 @@ export class InstagramPlatform extends BasePlatform {
             profile_picture_url: string;
           };
         }>;
-      }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/me/accounts`, {
-        token: acc.authToken || '',
-        queryParams: {
-          fields: [
-            'id',
-            'name',
-            'access_token',
-            'instagram_business_account{id,username,profile_picture_url,followers_count,media_count}',
-            'connected_instagram_account{id,username,profile_picture_url}'
-          ].join(',')
+      }>(
+        `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/me/accounts`,
+        {
+          token: acc.authToken || '',
+          queryParams: {
+            fields: [
+              'id',
+              'name',
+              'access_token',
+              'instagram_business_account{id,username,profile_picture_url,followers_count,media_count}',
+              'connected_instagram_account{id,username,profile_picture_url}',
+            ].join(','),
+          },
         }
-      });
+      );
 
       const pages: SocialPage[] = [];
 
@@ -479,18 +519,23 @@ export class InstagramPlatform extends BasePlatform {
             username: string;
             profile_picture_url: string;
           };
-        }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${fbPage.id}`, {
-          token: fbPage.access_token || '',
-          queryParams: {
-            fields: [
-              'instagram_business_account{id,username,profile_picture_url,followers_count,media_count}',
-              'connected_instagram_account{id,username,profile_picture_url}'
-            ].join(',')
+        }>(
+          `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${fbPage.id}`,
+          {
+            token: fbPage.access_token || '',
+            queryParams: {
+              fields: [
+                'instagram_business_account{id,username,profile_picture_url,followers_count,media_count}',
+                'connected_instagram_account{id,username,profile_picture_url}',
+              ].join(','),
+            },
           }
-        });
+        );
 
-        const ig = igInfo.instagram_business_account || igInfo.connected_instagram_account;
-        
+        const ig =
+          igInfo.instagram_business_account ||
+          igInfo.connected_instagram_account;
+
         if (ig?.id) {
           pages.push({
             id: crypto.randomUUID(),
@@ -507,8 +552,8 @@ export class InstagramPlatform extends BasePlatform {
             postCount: (ig as any).media_count || 0,
             metadata: {
               profilePicture: ig.profile_picture_url,
-              facebookPageId: fbPage.id
-            }
+              facebookPageId: fbPage.id,
+            },
           });
         }
       }
@@ -586,7 +631,7 @@ export class InstagramPlatform extends BasePlatform {
         throw new Error('Instagram requires at least one media item');
       }
 
-      // 2. Single video post  
+      // 2. Single video post
       if (mediaType === 'video') {
         if (mediaUrls.length > 1) {
           throw new Error('Instagram only supports single video uploads');
@@ -600,19 +645,25 @@ export class InstagramPlatform extends BasePlatform {
       }
 
       // 4. Carousel post (multiple images)
-      if ((mediaType === 'image' || mediaType === 'carousel') && mediaUrls.length > 1) {
+      if (
+        (mediaType === 'image' || mediaType === 'carousel') &&
+        mediaUrls.length > 1
+      ) {
         return await this.publishCarouselPost(page, content, token, options);
       }
 
       // 5. Story posts (photo or video)
       if (content.media?.type === 'story') {
         if (mediaUrls.length !== 1) {
-          throw new Error('Instagram stories support only single media uploads');
+          throw new Error(
+            'Instagram stories support only single media uploads'
+          );
         }
-        
+
         // Determine if it's a photo or video story based on file extension or metadata
         const mediaUrl = mediaUrls[0];
-        const isVideo = mediaUrl.match(/\.(mp4|mov|avi|mkv)$/i) || content.media.duration;
+        const isVideo =
+          mediaUrl.match(/\.(mp4|mov|avi|mkv)$/i) || content.media.duration;
 
         if (isVideo) {
           return await this.publishVideoStory(page, content, token, options);
@@ -622,7 +673,6 @@ export class InstagramPlatform extends BasePlatform {
       }
 
       throw new Error('Unsupported media configuration');
-      
     } catch (error) {
       console.error('Error in publishPost:', error);
       throw error;
@@ -650,8 +700,8 @@ export class InstagramPlatform extends BasePlatform {
             caption: content.text,
             media_type: 'IMAGE',
             alt_text: content.media?.altText, // Support for alt_text field
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
@@ -663,15 +713,20 @@ export class InstagramPlatform extends BasePlatform {
           token: token,
           body: JSON.stringify({
             creation_id: container.id,
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Instagram photo post ID:', published.id);
-        await updatePlatformPostId(content.id!, 'instagram', published.id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'instagram',
+          published.id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Instagram post ID:', error);
         // Don't fail the publish if saving the ID fails
@@ -684,7 +739,7 @@ export class InstagramPlatform extends BasePlatform {
         content: content.text,
         mediaUrls: content.media!.urls,
         status: 'published',
-        publishedAt: new Date()
+        publishedAt: new Date(),
       };
     } catch (error) {
       console.error('Error in publishPhotoPost:', error);
@@ -712,8 +767,8 @@ export class InstagramPlatform extends BasePlatform {
             video_url: content.media!.urls[0],
             caption: content.text,
             media_type: 'REELS',
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
@@ -729,15 +784,20 @@ export class InstagramPlatform extends BasePlatform {
           token: token,
           body: JSON.stringify({
             creation_id: container.id,
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Instagram video post ID:', published.id);
-        await updatePlatformPostId(content.id!, 'instagram', published.id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'instagram',
+          published.id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Instagram post ID:', error);
         // Don't fail the publish if saving the ID fails
@@ -750,7 +810,7 @@ export class InstagramPlatform extends BasePlatform {
         content: content.text,
         mediaUrls: content.media!.urls,
         status: 'published',
-        publishedAt: new Date()
+        publishedAt: new Date(),
       };
     } catch (error) {
       console.error('Error in publishVideoPost:', error);
@@ -776,7 +836,7 @@ export class InstagramPlatform extends BasePlatform {
       for (const url of content.media!.urls) {
         // Determine if it's a video or image based on file extension
         const isVideo = url.match(/\.(mp4|mov|avi|mkv)$/i);
-        
+
         const container = await this.fetchWithAuth<{ id: string }>(
           `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${page.pageId}/media`,
           {
@@ -786,17 +846,19 @@ export class InstagramPlatform extends BasePlatform {
               [isVideo ? 'video_url' : 'image_url']: url,
               is_carousel_item: true,
               media_type: isVideo ? 'VIDEO' : 'IMAGE',
-              access_token: token
-            })
+              access_token: token,
+            }),
           }
         );
-        
+
         // If it's a video, wait for it to be ready
         if (isVideo) {
-          console.log(`Waiting for video carousel item ${container.id} to be ready...`);
+          console.log(
+            `Waiting for video carousel item ${container.id} to be ready...`
+          );
           await this.waitForContainerReady(container.id, token);
         }
-        
+
         containerIds.push(container.id);
       }
 
@@ -811,8 +873,8 @@ export class InstagramPlatform extends BasePlatform {
             media_type: 'CAROUSEL',
             children: containerIds.join(','),
             caption: content.text,
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
@@ -824,15 +886,20 @@ export class InstagramPlatform extends BasePlatform {
           token: token,
           body: JSON.stringify({
             creation_id: carouselContainer.id,
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Instagram carousel post ID:', published.id);
-        await updatePlatformPostId(content.id!, 'instagram', published.id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'instagram',
+          published.id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Instagram post ID:', error);
         // Don't fail the publish if saving the ID fails
@@ -845,7 +912,7 @@ export class InstagramPlatform extends BasePlatform {
         content: content.text,
         mediaUrls: content.media!.urls,
         status: 'published',
-        publishedAt: new Date()
+        publishedAt: new Date(),
       };
     } catch (error) {
       console.error('Error in publishCarouselPost:', error);
@@ -862,7 +929,6 @@ export class InstagramPlatform extends BasePlatform {
     options?: PublishOptions
   ): Promise<PostHistory> {
     try {
-
       // create the story container
       const response = await this.fetchWithAuth<{ id: string }>(
         `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${page.pageId}/media`,
@@ -872,8 +938,8 @@ export class InstagramPlatform extends BasePlatform {
           body: JSON.stringify({
             image_url: content.media!.urls[0],
             media_type: 'STORIES',
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
@@ -885,15 +951,20 @@ export class InstagramPlatform extends BasePlatform {
           token: token,
           body: JSON.stringify({
             creation_id: response.id,
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Instagram photo story ID:', storyResponse.id);
-        await updatePlatformPostId(content.id!, 'instagram', storyResponse.id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'instagram',
+          storyResponse.id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Instagram post ID:', error);
         // Don't fail the publish if saving the ID fails
@@ -906,7 +977,7 @@ export class InstagramPlatform extends BasePlatform {
         content: content.text,
         mediaUrls: content.media!.urls,
         status: 'published',
-        publishedAt: new Date()
+        publishedAt: new Date(),
       };
     } catch (error) {
       console.error('Error in publishPhotoStory:', error);
@@ -933,8 +1004,8 @@ export class InstagramPlatform extends BasePlatform {
           body: JSON.stringify({
             video_url: content.media!.urls[0],
             media_type: 'STORIES',
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
@@ -953,15 +1024,20 @@ export class InstagramPlatform extends BasePlatform {
           body: JSON.stringify({
             video_url: content.media!.urls[0],
             media_type: 'STORIES',
-            access_token: token
-          })
+            access_token: token,
+          }),
         }
       );
 
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Instagram video story ID:', response.id);
-        await updatePlatformPostId(content.id!, 'instagram', response.id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'instagram',
+          response.id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Instagram post ID:', error);
         // Don't fail the publish if saving the ID fails
@@ -974,7 +1050,7 @@ export class InstagramPlatform extends BasePlatform {
         content: content.text,
         mediaUrls: content.media!.urls,
         status: 'published',
-        publishedAt: new Date()
+        publishedAt: new Date(),
       };
     } catch (error) {
       console.error('Error in publishVideoStory:', error);
@@ -988,44 +1064,55 @@ export class InstagramPlatform extends BasePlatform {
     containerId: string,
     token: string,
     maxWaitTime = 300000, // 5 minutes max
-    checkInterval = 20000  // Check every 20 seconds
+    checkInterval = 20000 // Check every 20 seconds
   ): Promise<void> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < maxWaitTime) {
       try {
-        const containerStatus = await this.fetchWithAuth<{ 
+        const containerStatus = await this.fetchWithAuth<{
           status_code: string;
           status: string;
         }>(
           `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${containerId}`,
           {
             token: token,
-            queryParams: { fields: 'status_code,status' }
+            queryParams: { fields: 'status_code,status' },
           }
         );
 
-        console.log(`Instagram container ${containerId} status:`, containerStatus);
+        console.log(
+          `Instagram container ${containerId} status:`,
+          containerStatus
+        );
 
         // Check for errors first
         if (containerStatus.status_code === 'ERROR') {
-          throw new Error(`Instagram container failed: ${containerStatus.status}`);
+          throw new Error(
+            `Instagram container failed: ${containerStatus.status}`
+          );
         }
 
         if (containerStatus.status_code === 'EXPIRED') {
-          throw new Error('Instagram container expired (not published within 24 hours)');
+          throw new Error(
+            'Instagram container expired (not published within 24 hours)'
+          );
         }
 
         // Check if ready to publish
         if (containerStatus.status_code === 'FINISHED') {
-          console.log(`Instagram container ${containerId} is ready for publishing`);
+          console.log(
+            `Instagram container ${containerId} is ready for publishing`
+          );
           return; // Container is ready
         }
 
         // Still processing, wait before next check
         if (containerStatus.status_code === 'IN_PROGRESS') {
-          console.log(`Instagram container ${containerId} still processing, waiting...`);
-          await new Promise(resolve => setTimeout(resolve, checkInterval));
+          console.log(
+            `Instagram container ${containerId} still processing, waiting...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, checkInterval));
           continue;
         }
 
@@ -1036,21 +1123,28 @@ export class InstagramPlatform extends BasePlatform {
         }
 
         // Unknown status, wait and retry
-        console.log(`Instagram container ${containerId} unknown status: ${containerStatus.status_code}, waiting...`);
-        await new Promise(resolve => setTimeout(resolve, checkInterval));
-        
+        console.log(
+          `Instagram container ${containerId} unknown status: ${containerStatus.status_code}, waiting...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
       } catch (error) {
         console.warn(`Error checking container ${containerId} status:`, error);
         // If we can't check status, continue waiting
-        await new Promise(resolve => setTimeout(resolve, checkInterval));
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
       }
     }
 
     // Timeout reached
-    throw new Error(`Instagram container ${containerId} processing timeout - container may still be processing`);
+    throw new Error(
+      `Instagram container ${containerId} processing timeout - container may still be processing`
+    );
   }
 
-  async getPostHistory(page: SocialPage, limit = 20, nextPage = ''): Promise<{ posts: PostHistory[], nextPage?: string }> {
+  async getPostHistory(
+    page: SocialPage,
+    limit = 20,
+    nextPage = ''
+  ): Promise<{ posts: PostHistory[]; nextPage?: string }> {
     // Prevent browser calls - route to API endpoint (same pattern as Facebook)
     if (IS_BROWSER) {
       const res = await fetch('/api/social/instagram/history', {
@@ -1092,16 +1186,20 @@ export class InstagramPlatform extends BasePlatform {
           next?: string;
           previous?: string;
         };
-      }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${page.pageId}/media`, {
-        token: token,
-        queryParams: {
-          fields: 'id,caption,media_url,media_type,timestamp,permalink,thumbnail_url',
-          limit: limit.toString(),
-          ...(nextPage && { after: nextPage })
+      }>(
+        `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${page.pageId}/media`,
+        {
+          token: token,
+          queryParams: {
+            fields:
+              'id,caption,media_url,media_type,timestamp,permalink,thumbnail_url',
+            limit: limit.toString(),
+            ...(nextPage && { after: nextPage }),
+          },
         }
-      });
+      );
 
-      const posts = response.data.map(post => ({
+      const posts = response.data.map((post) => ({
         id: post.id,
         pageId: page.id,
         postId: post.id,
@@ -1109,7 +1207,7 @@ export class InstagramPlatform extends BasePlatform {
         mediaUrls: [post.media_url],
         status: 'published' as const,
         publishedAt: new Date(post.timestamp),
-       
+
         // Initialize analytics (will be populated below)
         analytics: {
           views: 0,
@@ -1122,9 +1220,9 @@ export class InstagramPlatform extends BasePlatform {
             mediaType: post.media_type,
             permalink: post.permalink,
             thumbnailUrl: post.thumbnail_url,
-            platform: 'instagram'
+            platform: 'instagram',
           },
-        } as PostHistory['analytics']
+        } as PostHistory['analytics'],
       }));
 
       // Get analytics for each post (like Facebook does)
@@ -1134,7 +1232,7 @@ export class InstagramPlatform extends BasePlatform {
           if (analytics) {
             post.analytics = {
               ...post.analytics,
-              ...analytics
+              ...analytics,
             };
           }
         } catch (error) {
@@ -1143,9 +1241,9 @@ export class InstagramPlatform extends BasePlatform {
         }
       }
 
-      return { 
-        posts, 
-        nextPage: response.paging?.cursors?.after || undefined 
+      return {
+        posts,
+        nextPage: response.paging?.cursors?.after || undefined,
       };
     } catch (error) {
       console.error('Error in getPostHistory:', error);
@@ -1153,7 +1251,10 @@ export class InstagramPlatform extends BasePlatform {
     }
   }
 
-  async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> {
+  async getPostAnalytics(
+    page: SocialPage,
+    postId: string
+  ): Promise<PostHistory['analytics']> {
     // Prevent browser calls - route to API endpoint (same pattern as Facebook)
     if (IS_BROWSER) {
       const res = await fetch('/api/social/instagram/analytics', {
@@ -1180,22 +1281,28 @@ export class InstagramPlatform extends BasePlatform {
           name: string;
           values: Array<{ value: number }>;
         }>;
-      }>(`${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${postId}/insights`, {
-        token: token,
-        queryParams: {
-          metric: 'reach,likes,comments'
+      }>(
+        `${this.activeConfig.baseUrl}/${this.activeConfig.apiVersion}/${postId}/insights`,
+        {
+          token: token,
+          queryParams: {
+            metric: 'reach,likes,comments',
+          },
         }
-      });
+      );
 
-      const metrics = response.data.reduce((acc, metric) => {
-        acc[metric.name] = metric.values[0].value;
-        return acc;
-      }, {} as Record<string, number>);
+      const metrics = response.data.reduce(
+        (acc, metric) => {
+          acc[metric.name] = metric.values[0].value;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       return {
         reach: metrics.reach,
         likes: metrics.likes,
-        comments: metrics.comments
+        comments: metrics.comments,
       };
     } catch (error) {
       console.error('Error in getPostAnalytics:', error);
@@ -1211,7 +1318,7 @@ export class InstagramPlatform extends BasePlatform {
 
   async connectPage(acc: SocialAccount, pageId: string): Promise<SocialPage> {
     const pages = await this.listPages(acc);
-    const page = pages.find(p => p.pageId === pageId);
+    const page = pages.find((p) => p.pageId === pageId);
     if (!page) {
       throw new Error('Instagram profile not found');
     }
@@ -1259,4 +1366,3 @@ export class InstagramPlatform extends BasePlatform {
     throw new Error('Instagram API does not support post deletion');
   }
 }
-  

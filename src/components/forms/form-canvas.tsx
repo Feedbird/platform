@@ -1,26 +1,26 @@
-"use client";
-import { Form } from "@/lib/store/types";
-import { useDroppable } from "@dnd-kit/core";
+'use client';
+import { Form } from '@/lib/store/types';
+import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import Image from "next/image";
-import React from "react";
-import FieldRenderWrapper from "./content/field-render-wrapper";
-import { useForms } from "@/contexts/forms-context";
-import { TableForm } from "./content/forms-table";
-import { useFormEditor } from "@/contexts/form-editor-context";
-import { Popover, PopoverTrigger } from "../ui/popover";
-import { PopoverContent, PopoverPortal } from "@radix-ui/react-popover";
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import Image from 'next/image';
+import React from 'react';
+import FieldRenderWrapper from './content/field-render-wrapper';
+import { useForms } from '@/contexts/forms/forms-context';
+import { TableForm } from './content/forms-table';
+import { useFormEditor } from '@/contexts/forms/form-editor-context';
+import { Popover, PopoverTrigger } from '../ui/popover';
+import { PopoverContent, PopoverPortal } from '@radix-ui/react-popover';
 import {
   FormFieldsArray,
   FormFieldType,
   UIFormFieldDefaults,
-} from "@/lib/forms/fields";
-import { FieldTypeEntitlements } from "@/lib/forms/field.config";
+} from '@/lib/forms/fields';
+import { FieldTypeEntitlements } from '@/lib/forms/field.config';
 
 export interface CanvasFormField {
   id: string;
@@ -51,23 +51,23 @@ export default function FormCanvas({
   onFieldSelect,
 }: FormCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
-    id: "form-canvas",
+    id: 'form-canvas',
     data: {
-      type: "form-area",
+      type: 'form-area',
     },
   });
 
   const { setNodeRef: setCoverDropRef, isOver: isCoverOver } = useDroppable({
-    id: "form-cover-area",
+    id: 'form-cover-area',
     data: {
-      type: "form-header",
+      type: 'form-header',
     },
   });
 
   const { setNodeRef: setTitleDropRef, isOver: isTitleOver } = useDroppable({
-    id: "form-title-area",
+    id: 'form-title-area',
     data: {
-      type: "form-header",
+      type: 'form-header',
     },
   });
   const [editingTitle, setEditingTitle] = React.useState(false);
@@ -112,7 +112,7 @@ export default function FormCanvas({
     const percent = clamp((y / rect.height) * 100, 0, 100);
     setCoverOffset(percent);
     setActiveForm(
-      (prev) => ({ ...(prev as TableForm), coverOffset: percent } as TableForm)
+      (prev) => ({ ...(prev as TableForm), cover_offset: percent }) as TableForm
     );
   };
 
@@ -133,7 +133,7 @@ export default function FormCanvas({
           ...prev,
           title: title ?? prev?.title,
           description: description ?? prev?.description,
-        } as TableForm)
+        }) as TableForm
     );
   };
 
@@ -143,10 +143,10 @@ export default function FormCanvas({
       // For now, create a local preview URL
       const previewUrl = URL.createObjectURL(file);
       setActiveForm(
-        (prev) => ({ ...prev, coverUrl: previewUrl } as TableForm)
+        (prev) => ({ ...prev, cover_url: previewUrl }) as TableForm
       );
       // Keep track of files to upload and path to update form accordingly
-      setFilesToUpload((prev) => [...prev, { path: "form/coverUrl", file }]);
+      setFilesToUpload((prev) => [...prev, { path: 'form/cover_url', file }]);
     }
   };
 
@@ -169,20 +169,20 @@ export default function FormCanvas({
   const fieldIds = formFields.map((f) => f.id);
 
   return (
-    <div ref={setNodeRef} className="min-h-[600px] px-6 bg-transparent">
+    <div ref={setNodeRef} className="min-h-[600px] bg-transparent px-6">
       <div className="mx-auto max-w-[900px] p-4">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-lg bg-white shadow-sm">
           <div
             ref={setCoverDropRef}
-            className={`w-full relative h-[160px] ${
-              activeForm?.coverUrl ? "" : "bg-[#F4F5F6]"
+            className={`relative h-[160px] w-full ${
+              activeForm?.coverUrl ? '' : 'bg-[#F4F5F6]'
             } flex items-center justify-center`}
           >
             {activeForm?.coverUrl ? (
               <>
                 <div
                   ref={coverRef}
-                  className="w-full h-full relative overflow-hidden"
+                  className="relative h-full w-full overflow-hidden"
                 >
                   <Image
                     src={activeForm.coverUrl}
@@ -190,7 +190,7 @@ export default function FormCanvas({
                     width={920}
                     height={160}
                     style={{ objectPosition: `50% ${coverOffset}%` }}
-                    className="w-full h-full object-cover z-10"
+                    className="z-10 h-full w-full object-cover"
                   />
 
                   <button
@@ -201,12 +201,12 @@ export default function FormCanvas({
                         (prev) =>
                           ({
                             ...(prev as TableForm),
-                            coverUrl: undefined,
-                            coverOffset: 50,
-                          } as TableForm)
+                            cover_url: undefined,
+                            cover_offset: 50,
+                          }) as TableForm
                       );
                     }}
-                    className="absolute right-2 top-2 z-40 bg-white/90 p-1 rounded-md hover:bg-white border border-gray-200 hover:cursor-pointer"
+                    className="absolute top-2 right-2 z-40 rounded-md border border-gray-200 bg-white/90 p-1 hover:cursor-pointer hover:bg-white"
                     aria-label="Remove cover"
                   >
                     <Image
@@ -243,12 +243,12 @@ export default function FormCanvas({
                     className="absolute left-6 z-30"
                     style={{
                       top: `${coverOffset}%`,
-                      transform: "translateY(-50%)",
+                      transform: 'translateY(-50%)',
                     }}
                   >
                     <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center shadow border ${
-                        isDraggingCover ? "bg-blue-500" : "bg-white"
+                      className={`flex h-7 w-7 items-center justify-center rounded-full border shadow ${
+                        isDraggingCover ? 'bg-blue-500' : 'bg-white'
                       } cursor-row-resize`}
                     >
                       <svg
@@ -270,7 +270,7 @@ export default function FormCanvas({
 
                   <div
                     onClick={handleCoverImageClick}
-                    className={`absolute w-full h-full bg-transparent transition-all duration-100 content-center text-center z-20 text-transparent hover:bg-black/20 hover:backdrop-blur-xs hover:text-gray-500 font-semibold hover:cursor-pointer`}
+                    className={`absolute z-20 h-full w-full content-center bg-transparent text-center font-semibold text-transparent transition-all duration-100 hover:cursor-pointer hover:bg-black/20 hover:text-gray-500 hover:backdrop-blur-xs`}
                   >
                     Change cover
                   </div>
@@ -287,7 +287,7 @@ export default function FormCanvas({
                 <div className="flex flex-col text-center">
                   <button
                     type="button"
-                    className="text-sm underline hover:cursor-pointer text-black font-medium bg-transparent border-none p-0"
+                    className="border-none bg-transparent p-0 text-sm font-medium text-black underline hover:cursor-pointer"
                     onClick={handleCoverImageClick}
                   >
                     +Add Cover
@@ -318,11 +318,11 @@ export default function FormCanvas({
                     handleFormValuesChange(e.target.value, undefined)
                   }
                   onBlur={() => setEditingTitle(false)}
-                  className="outline-none text-black font-semibold text-3xl border-b-[1px]"
+                  className="border-b-[1px] text-3xl font-semibold text-black outline-none"
                 />
               ) : (
                 <h2
-                  className="text-black font-semibold text-3xl"
+                  className="text-3xl font-semibold text-black"
                   onDoubleClick={() => setEditingTitle(true)}
                 >
                   {form.title}
@@ -336,24 +336,24 @@ export default function FormCanvas({
                     handleFormValuesChange(undefined, e.target.value)
                   }
                   onBlur={() => setEditingDescription(false)}
-                  className="outline-none text-sm text-[#5C5E63] font-normal border-b-[1px]"
+                  className="border-b-[1px] text-sm font-normal text-[#5C5E63] outline-none"
                 />
               ) : (
                 <p
-                  className="text-sm text-[#5C5E63] font-normal"
+                  className="text-sm font-normal text-[#5C5E63]"
                   onDoubleClick={() => setEditingDescription(true)}
                 >
-                  {form.description ?? "Add description here"}
+                  {form.description ?? 'Add description here'}
                 </p>
               )}
             </div>
 
             {/* Droppable area for form fields */}
-            <div className="min-h-[20px] p-3 relative">
+            <div className="relative min-h-[20px] p-3">
               {/* Show insertion indicator when dragging over empty canvas */}
               {formFields.length === 0 && activeId && isOver && (
                 <div className="absolute inset-3 flex items-center">
-                  <div className="h-[1px] bg-blue-400 rounded-full w-full transition-all duration-200" />
+                  <div className="h-[1px] w-full rounded-full bg-blue-400 transition-all duration-200" />
                 </div>
               )}
 
@@ -361,7 +361,7 @@ export default function FormCanvas({
               {formFields.length > 0 &&
                 activeId &&
                 (isCoverOver || isTitleOver) && (
-                  <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200 mb-3" />
+                  <div className="mx-4 mb-3 h-[1px] rounded-full bg-blue-400 transition-all duration-200" />
                 )}
 
               {formFields.length > 0 ? (
@@ -377,7 +377,7 @@ export default function FormCanvas({
                           overId === field.id &&
                           activeId !== field.id &&
                           !formFields.find((f) => f.id === activeId) && (
-                            <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200" />
+                            <div className="mx-4 h-[1px] rounded-full bg-blue-400 transition-all duration-200" />
                           )}
                         <SimpleFormField
                           field={field}
@@ -392,9 +392,9 @@ export default function FormCanvas({
                         {/* Insertion indicator at the end */}
                         {index === formFields.length - 1 &&
                           activeId &&
-                          overId === "form-canvas" &&
+                          overId === 'form-canvas' &&
                           !formFields.find((f) => f.id === activeId) && (
-                            <div className="h-[1px] bg-blue-400 rounded-full mx-4 transition-all duration-200" />
+                            <div className="mx-4 h-[1px] rounded-full bg-blue-400 transition-all duration-200" />
                           )}
                       </React.Fragment>
                     ))}
@@ -405,11 +405,11 @@ export default function FormCanvas({
               )}
             </div>
 
-            <div className="p-3 w-full">
+            <div className="w-full p-3">
               <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                 <PopoverTrigger className="w-full">
-                  <div className="bg-[#EDF6FF] w-full h-[52px] border-[#4670F9] border-1 border-dashed rounded-[3px] hover:cursor-pointer hover:bg-[#E1EFFF] transition-colors">
-                    <span className="text-[#4670F9] text-[13px] flex items-center justify-center h-full">
+                  <div className="h-[52px] w-full rounded-[3px] border-1 border-dashed border-[#4670F9] bg-[#EDF6FF] transition-colors hover:cursor-pointer hover:bg-[#E1EFFF]">
+                    <span className="flex h-full items-center justify-center text-[13px] text-[#4670F9]">
                       +Add Components
                     </span>
                   </div>
@@ -417,13 +417,13 @@ export default function FormCanvas({
                 <PopoverPortal>
                   <PopoverContent
                     side="right"
-                    className="mt-1 rounded-sm border-1 bg-white border-border-primary p-2 flex flex-col font-medium text-sm text-black gap-0.5 w-42"
+                    className="border-border-primary mt-1 flex w-42 flex-col gap-0.5 rounded-sm border-1 bg-white p-2 text-sm font-medium text-black"
                   >
                     {FormFieldsArray.map((field) => (
                       <div
                         onClick={() => addNewField(field.type)}
                         key={field.label}
-                        className="flex flex-row p-1 gap-2 hover:bg-[#EDF6FF] hover:cursor-pointer rounded-sm"
+                        className="flex flex-row gap-2 rounded-sm p-1 hover:cursor-pointer hover:bg-[#EDF6FF]"
                       >
                         <Image
                           src={field.iconPath}
@@ -439,7 +439,7 @@ export default function FormCanvas({
               </Popover>
             </div>
 
-            <div className="flex flex-row py-6 px-3 gap-3 items-center">
+            <div className="flex flex-row items-center gap-3 px-3 py-6">
               <Image
                 src="/images/logo/logo(1).svg"
                 alt="feedbird_logo"
@@ -490,7 +490,11 @@ function SimpleFormField({
     if (onFieldSelect) {
       const newValue = isSelected
         ? null
-        : { id: field.id, type: field.type, config: field.config as FieldTypeEntitlements };
+        : {
+            id: field.id,
+            type: field.type,
+            config: field.config as FieldTypeEntitlements,
+          };
       onFieldSelect(newValue);
     }
   };
@@ -500,18 +504,18 @@ function SimpleFormField({
       ref={setNodeRef}
       style={style}
       onClick={handleFieldClick}
-      className={`group rounded-[6px] p-3 hover:border-blue-300 border-1 relative cursor-pointer transition-all ${
-        isDragging ? "opacity-50" : "opacity-100"
+      className={`group relative cursor-pointer rounded-[6px] border-1 p-3 transition-all hover:border-blue-300 ${
+        isDragging ? 'opacity-50' : 'opacity-100'
       } ${
         isSelected
-          ? "border-1.5 border-[#4670F9] shadow-md bg-[#EDF6FF]"
-          : "border-white bg-white"
+          ? 'border-1.5 border-[#4670F9] bg-[#EDF6FF] shadow-md'
+          : 'border-white bg-white'
       }`}
     >
       <Image
         {...attributes}
         {...listeners}
-        className="absolute -left-5 opacity-0 group-hover:opacity-80 cursor-grab hover:cursor-grabbing transition-opacity "
+        className="absolute -left-5 cursor-grab opacity-0 transition-opacity group-hover:opacity-80 hover:cursor-grabbing"
         alt="drag_handle_icon"
         width={16}
         height={16}
@@ -528,7 +532,7 @@ function SimpleFormField({
             onFieldSelect(null);
           }
         }}
-        className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
+        className="absolute top-2 right-2 text-red-500 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-700"
       >
         <svg
           className="h-4 w-4"

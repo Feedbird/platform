@@ -10,9 +10,16 @@ import type {
   PageStatus,
   PostStatus,
 } from './platform-types';
-import { SocialAPIError, isTokenExpiredError, handleSuccess } from '@/lib/utils/error-handler';
+import {
+  SocialAPIError,
+  isTokenExpiredError,
+  handleSuccess,
+} from '@/lib/utils/error-handler';
 import { withLoading } from '@/lib/utils/loading-manager';
-import { validatePostContent, validateScheduledTime } from '@/lib/utils/validation';
+import {
+  validatePostContent,
+  validateScheduledTime,
+} from '@/lib/utils/validation';
 import { normalizePostHistory } from '@/lib/utils/api-response';
 import { calculateEngagementRate } from '@/lib/utils/analytics';
 import { socialApiService } from '@/lib/api/social-api-service';
@@ -43,7 +50,7 @@ const config: SocialPlatformConfig = {
     'pages_show_list',
     // 'pages_manage_metadata',
     'pages_read_user_content',
-    'read_insights' // for analytics
+    'read_insights', // for analytics
   ],
   apiVersion: 'v23.0',
   baseUrl: 'https://graph.facebook.com',
@@ -56,61 +63,61 @@ const config: SocialPlatformConfig = {
     mediaTypes: ['image', 'video', 'carousel', 'story'],
     maxMediaCount: 10,
     characterLimits: {
-      content: 63206 // Facebook's actual limit
-    }
+      content: 63206, // Facebook's actual limit
+    },
   },
   mediaConstraints: {
     image: {
       maxWidth: 1200,
       maxHeight: 1350,
-      aspectRatios: ["1.91:1", "1:1", "4:5"],
+      aspectRatios: ['1.91:1', '1:1', '4:5'],
       maxSizeMb: 8,
-      formats: ["jpg", "png"],
+      formats: ['jpg', 'png'],
     },
     video: {
       maxWidth: 1280,
       maxHeight: 720,
-      aspectRatios: ["16:9", "1:1", "4:5", "9:16"],
+      aspectRatios: ['16:9', '1:1', '4:5', '9:16'],
       maxSizeMb: 250,
       maxDurationSec: 14400, // 240 minutes
       maxFps: 30,
-      formats: ["mp4", "mov"],
+      formats: ['mp4', 'mov'],
       audio: {
-        codecs: ["aac"],
+        codecs: ['aac'],
         minBitrateKbps: 128,
       },
       video: {
-        codecs: ["h264"],
+        codecs: ['h264'],
       },
     },
     story: {
       image: {
         maxWidth: 1080,
         maxHeight: 1920,
-        aspectRatios: ["9:16"],
+        aspectRatios: ['9:16'],
         maxSizeMb: 4, // Facebook story limit
-        formats: ["jpg", "png", "gif", "bmp", "tiff"],
+        formats: ['jpg', 'png', 'gif', 'bmp', 'tiff'],
       },
       video: {
         maxWidth: 1080,
         maxHeight: 1920,
-        aspectRatios: ["9:16"],
+        aspectRatios: ['9:16'],
         maxSizeMb: 250,
         maxDurationSec: 60, // Facebook story limit
         minDurationSec: 3,
         maxFps: 60,
         minFps: 24,
-        formats: ["mp4"],
+        formats: ['mp4'],
         audio: {
-          codecs: ["aac"],
+          codecs: ['aac'],
           minBitrateKbps: 128,
           channels: 2, // Stereo
           sampleRate: 48000, // 48kHz
         },
         video: {
-          codecs: ["h264", "h265"],
-          chromaSubsampling: "4:2:0",
-          closedGop: "2-5", // seconds
+          codecs: ['h264', 'h265'],
+          chromaSubsampling: '4:2:0',
+          closedGop: '2-5', // seconds
           progressiveScan: true,
         },
       },
@@ -120,13 +127,17 @@ const config: SocialPlatformConfig = {
     {
       title: 'Add Facebook Page',
       type: 'page',
-      requiredScopes: ['pages_manage_posts', 'pages_show_list']
-    }
-  ]
+      requiredScopes: ['pages_manage_posts', 'pages_show_list'],
+    },
+  ],
 };
 
 export class FacebookPlatform extends BasePlatform {
-  constructor(env: { clientId: string; clientSecret: string; redirectUri: string }) {
+  constructor(env: {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+  }) {
     super(config, env);
   }
 
@@ -160,9 +171,11 @@ export class FacebookPlatform extends BasePlatform {
   async getToken(pageId: string): Promise<string> {
     try {
       const pageData = await socialApiService.getSocialPage(pageId);
-      return pageData.auth_token;
+      return pageData.authToken ?? '';
     } catch (error) {
-      throw new Error('Failed to get Facebook token. Please reconnect your Facebook account.');
+      throw new Error(
+        'Failed to get Facebook token. Please reconnect your Facebook account.'
+      );
     }
   }
 
@@ -179,8 +192,8 @@ export class FacebookPlatform extends BasePlatform {
         client_id: this.env.clientId,
         client_secret: this.env.clientSecret,
         redirect_uri: this.env.redirectUri,
-        code
-      }
+        code,
+      },
     });
 
     // Get user info
@@ -191,8 +204,8 @@ export class FacebookPlatform extends BasePlatform {
     }>(`${config.baseUrl}/${config.apiVersion}/me`, {
       token: tokenRes.access_token,
       queryParams: {
-        fields: 'id,name'
-      }
+        fields: 'id,name',
+      },
     });
 
     let userData = {
@@ -207,7 +220,7 @@ export class FacebookPlatform extends BasePlatform {
       tokenIssuedAt: new Date(),
       connected: true,
       status: 'active',
-    }
+    };
 
     // generate a long lived access token
     const finalData = await this.refreshToken(userData);
@@ -215,9 +228,7 @@ export class FacebookPlatform extends BasePlatform {
     return finalData;
   }
 
-  
   async refreshToken(acc: any): Promise<SocialAccount> {
-
     // https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived/#get-a-long-lived-user-access-token
     const response = await this.fetchWithAuth<{
       access_token: string;
@@ -228,8 +239,8 @@ export class FacebookPlatform extends BasePlatform {
         grant_type: 'fb_exchange_token',
         client_id: this.env.clientId,
         client_secret: this.env.clientSecret,
-        fb_exchange_token: acc.authToken || ''
-      }
+        fb_exchange_token: acc.authToken || '',
+      },
     });
 
     return {
@@ -238,18 +249,16 @@ export class FacebookPlatform extends BasePlatform {
       authToken: response.access_token,
       refreshToken: undefined, // Facebook doesn't use refresh tokens
       accessTokenExpiresAt: new Date(Date.now() + response.expires_in * 1000),
-      refreshTokenExpiresAt: undefined // Facebook doesn't use refresh tokens
+      refreshTokenExpiresAt: undefined, // Facebook doesn't use refresh tokens
     };
   }
 
   async listPages(acc: SocialAccount): Promise<SocialPage[]> {
-
     let allPages: any[] = [];
 
     let cursor = null;
 
     while (true) {
-
       // https://developers.facebook.com/docs/pages-api/manage-pages#get-your-pages
       const response: any = await this.fetchWithAuth<{
         data: Array<{
@@ -275,8 +284,8 @@ export class FacebookPlatform extends BasePlatform {
         queryParams: {
           fields: 'id,name,access_token,category,category_list,tasks',
           limit: '100',
-          ...(cursor && { after: cursor })
-        }
+          ...(cursor && { after: cursor }),
+        },
       });
 
       allPages.push(...response.data);
@@ -287,8 +296,8 @@ export class FacebookPlatform extends BasePlatform {
 
       cursor = response.paging?.cursors?.after;
     }
-    
-    return allPages.map(page => ({
+
+    return allPages.map((page) => ({
       id: crypto.randomUUID(),
       platform: 'facebook',
       entityType: 'page',
@@ -298,7 +307,7 @@ export class FacebookPlatform extends BasePlatform {
       connected: true,
       status: 'active',
       accountId: acc.id,
-      statusUpdatedAt: new Date()
+      statusUpdatedAt: new Date(),
     }));
   }
 
@@ -319,7 +328,11 @@ export class FacebookPlatform extends BasePlatform {
 
       // Validate scheduling if needed
       if (options?.scheduledTime) {
-        const scheduleValidation = validateScheduledTime(options.scheduledTime, 'Facebook', this.config);
+        const scheduleValidation = validateScheduledTime(
+          options.scheduledTime,
+          'Facebook',
+          this.config
+        );
         if (!scheduleValidation.isValid) {
           throw new SocialAPIError(
             `Invalid schedule time: ${scheduleValidation.errors?.join(', ')}`,
@@ -384,10 +397,13 @@ export class FacebookPlatform extends BasePlatform {
         return await this.publishTextPost(page, content, token, options);
       }
 
-      // 2. Single video post  
+      // 2. Single video post
       if (mediaType === 'video') {
         if (mediaUrls.length > 1) {
-          throw new SocialAPIError('Facebook only supports single video uploads', 'VALIDATION_ERROR');
+          throw new SocialAPIError(
+            'Facebook only supports single video uploads',
+            'VALIDATION_ERROR'
+          );
         }
         return await this.publishVideoPost(page, content, token, options);
       }
@@ -398,7 +414,10 @@ export class FacebookPlatform extends BasePlatform {
       }
 
       // 4. Carousel post (multiple images)
-      if ((mediaType === 'image' || mediaType === 'carousel') && mediaUrls.length > 1) {
+      if (
+        (mediaType === 'image' || mediaType === 'carousel') &&
+        mediaUrls.length > 1
+      ) {
         return await this.publishCarouselPost(page, content, token, options);
       }
 
@@ -406,12 +425,16 @@ export class FacebookPlatform extends BasePlatform {
       if (content.media?.type === 'story') {
         // https://developers.facebook.com/docs/page-stories-api/
         if (mediaUrls.length !== 1) {
-          throw new SocialAPIError('Facebook stories support only single media uploads', 'VALIDATION_ERROR');
+          throw new SocialAPIError(
+            'Facebook stories support only single media uploads',
+            'VALIDATION_ERROR'
+          );
         }
-        
+
         // Determine if it's a photo or video story based on file extension or metadata
         const mediaUrl = mediaUrls[0];
-        const isVideo = mediaUrl.match(/\.(mp4|mov|avi|mkv)$/i) || content.media.duration;
+        const isVideo =
+          mediaUrl.match(/\.(mp4|mov|avi|mkv)$/i) || content.media.duration;
 
         if (isVideo) {
           return await this.publishVideoStory(page, content, token, options);
@@ -420,8 +443,10 @@ export class FacebookPlatform extends BasePlatform {
         }
       }
 
-      throw new SocialAPIError('Unsupported media configuration', 'VALIDATION_ERROR');
-      
+      throw new SocialAPIError(
+        'Unsupported media configuration',
+        'VALIDATION_ERROR'
+      );
     } catch (error) {
       this.handleApiError(error, 'publish post');
     }
@@ -436,14 +461,16 @@ export class FacebookPlatform extends BasePlatform {
     options?: PublishOptions
   ): Promise<PostHistory> {
     const endpoint = `${config.baseUrl}/${config.apiVersion}/${page.pageId}/feed`;
-    
+
     const postData: any = {
       message: content.text,
     };
 
     // Add scheduling if needed
     if (options?.scheduledTime) {
-      postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+      postData.scheduled_publish_time = Math.floor(
+        options.scheduledTime.getTime() / 1000
+      );
       postData.published = false;
     } else {
       postData.published = true;
@@ -457,7 +484,7 @@ export class FacebookPlatform extends BasePlatform {
     const response = await this.fetchWithAuth<{ id: string }>(endpoint, {
       method: 'POST',
       token: token,
-      body: JSON.stringify(postData)
+      body: JSON.stringify(postData),
     });
 
     // Save the published post ID to the platform_post_ids column
@@ -469,14 +496,17 @@ export class FacebookPlatform extends BasePlatform {
       // Don't fail the publish if saving the ID fails
     }
 
-    return normalizePostHistory({
-      id: response.id,
-      page_id: page.id,
-      message: content.text,
-      created_time: new Date().toISOString(),
-      scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
-      status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED'
-    }, 'facebook');
+    return normalizePostHistory(
+      {
+        id: response.id,
+        page_id: page.id,
+        message: content.text,
+        created_time: new Date().toISOString(),
+        scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
+        status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
+      },
+      'facebook'
+    );
   }
 
   // 2. Single photo post using /page_id/photos endpoint
@@ -488,7 +518,7 @@ export class FacebookPlatform extends BasePlatform {
     options?: PublishOptions
   ): Promise<PostHistory> {
     const endpoint = `${config.baseUrl}/${config.apiVersion}/${page.pageId}/photos`;
-    
+
     const postData: any = {
       url: content.media!.urls[0],
       message: content.text,
@@ -496,17 +526,22 @@ export class FacebookPlatform extends BasePlatform {
 
     // Add scheduling if needed
     if (options?.scheduledTime) {
-      postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+      postData.scheduled_publish_time = Math.floor(
+        options.scheduledTime.getTime() / 1000
+      );
       postData.published = false;
     } else {
       postData.published = true;
     }
 
-    const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(endpoint, {
-      method: 'POST',
-      token: token,
-      body: JSON.stringify(postData)
-    });
+    const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(
+      endpoint,
+      {
+        method: 'POST',
+        token: token,
+        body: JSON.stringify(postData),
+      }
+    );
 
     // Save the published post ID to the platform_post_ids column
     try {
@@ -518,21 +553,26 @@ export class FacebookPlatform extends BasePlatform {
       // Don't fail the publish if saving the ID fails
     }
 
-    return normalizePostHistory({
-      id: response.post_id ?? response.id,
-      page_id: page.id,
-      message: content.text,
-      created_time: new Date().toISOString(),
-      scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
-      status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
-      attachments: {
-        data: [{
-          media: {
-            image: { src: content.media!.urls[0] }
-          }
-        }]
-      }
-    }, 'facebook');
+    return normalizePostHistory(
+      {
+        id: response.post_id ?? response.id,
+        page_id: page.id,
+        message: content.text,
+        created_time: new Date().toISOString(),
+        scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
+        status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
+        attachments: {
+          data: [
+            {
+              media: {
+                image: { src: content.media!.urls[0] },
+              },
+            },
+          ],
+        },
+      },
+      'facebook'
+    );
   }
 
   // 3. Single video post using /page_id/videos endpoint
@@ -544,7 +584,7 @@ export class FacebookPlatform extends BasePlatform {
     options?: PublishOptions
   ): Promise<PostHistory> {
     const endpoint = `${config.baseUrl}/${config.apiVersion}/${page.pageId}/videos`;
-    
+
     const postData: any = {
       file_url: content.media!.urls[0], // Facebook uses file_url for videos
       description: content.text,
@@ -552,17 +592,22 @@ export class FacebookPlatform extends BasePlatform {
 
     // Add scheduling if needed
     if (options?.scheduledTime) {
-      postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+      postData.scheduled_publish_time = Math.floor(
+        options.scheduledTime.getTime() / 1000
+      );
       postData.published = false;
     } else {
       postData.published = true;
     }
 
-    const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(endpoint, {
-      method: 'POST',
-      token: token,
-      body: JSON.stringify(postData)
-    });
+    const response = await this.fetchWithAuth<{ id: string; post_id?: string }>(
+      endpoint,
+      {
+        method: 'POST',
+        token: token,
+        body: JSON.stringify(postData),
+      }
+    );
 
     // Save the published post ID to the platform_post_ids column
     try {
@@ -574,21 +619,26 @@ export class FacebookPlatform extends BasePlatform {
       // Don't fail the publish if saving the ID fails
     }
 
-    return normalizePostHistory({
-      id: response.post_id ?? response.id,
-      page_id: page.id,
-      message: content.text,
-      created_time: new Date().toISOString(),
-      scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
-      status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
-      attachments: {
-        data: [{
-          media: {
-            image: { src: content.media!.urls[0] }
-          }
-        }]
-      }
-    }, 'facebook');
+    return normalizePostHistory(
+      {
+        id: response.post_id ?? response.id,
+        page_id: page.id,
+        message: content.text,
+        created_time: new Date().toISOString(),
+        scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
+        status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
+        attachments: {
+          data: [
+            {
+              media: {
+                image: { src: content.media!.urls[0] },
+              },
+            },
+          ],
+        },
+      },
+      'facebook'
+    );
   }
 
   // 4. Carousel post (multiple images) using upload then attach pattern
@@ -610,8 +660,8 @@ export class FacebookPlatform extends BasePlatform {
               body: JSON.stringify({
                 url,
                 published: false, // Don't publish yet
-                temporary: true   // Mark as temporary for carousel
-              })
+                temporary: true, // Mark as temporary for carousel
+              }),
             }
           );
           return response.id;
@@ -622,14 +672,16 @@ export class FacebookPlatform extends BasePlatform {
       // https://developers.facebook.com/docs/pages-api/posts/#publish-posts
       const postData: any = {
         message: content.text,
-        attached_media: mediaIds.map(id => ({
-          media_fbid: id
-        }))
+        attached_media: mediaIds.map((id) => ({
+          media_fbid: id,
+        })),
       };
 
       // Add scheduling if needed
       if (options?.scheduledTime) {
-        postData.scheduled_publish_time = Math.floor(options.scheduledTime.getTime() / 1000);
+        postData.scheduled_publish_time = Math.floor(
+          options.scheduledTime.getTime() / 1000
+        );
         postData.published = false;
       } else {
         postData.published = true;
@@ -640,34 +692,43 @@ export class FacebookPlatform extends BasePlatform {
         {
           method: 'POST',
           token: token,
-          body: JSON.stringify(postData)
+          body: JSON.stringify(postData),
         }
       );
 
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Facebook carousel post ID:', response.id);
-        await updatePlatformPostId(content.id!, 'facebook', response.id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'facebook',
+          response.id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Facebook post ID:', error);
         // Don't fail the publish if saving the ID fails
       }
 
-      return normalizePostHistory({
-        id: response.id,
-        page_id: page.id,
-        message: content.text,
-        created_time: new Date().toISOString(),
-        scheduled_publish_time: options?.scheduledTime?.getTime() ?? undefined,
-        status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
-        attachments: {
-          data: content.media!.urls.map(url => ({
-            media: {
-              image: { src: url }
-            }
-          }))
-        }
-      }, 'facebook');
+      return normalizePostHistory(
+        {
+          id: response.id,
+          page_id: page.id,
+          message: content.text,
+          created_time: new Date().toISOString(),
+          scheduled_publish_time:
+            options?.scheduledTime?.getTime() ?? undefined,
+          status: options?.scheduledTime ? 'SCHEDULED' : 'PUBLISHED',
+          attachments: {
+            data: content.media!.urls.map((url) => ({
+              media: {
+                image: { src: url },
+              },
+            })),
+          },
+        },
+        'facebook'
+      );
     } catch (error) {
       this.handleApiError(error, 'publish carousel post');
     }
@@ -691,12 +752,12 @@ export class FacebookPlatform extends BasePlatform {
           token: token,
           body: JSON.stringify({
             url: content.media!.urls[0],
-            published: false // Must be false for stories
-          })
+            published: false, // Must be false for stories
+          }),
         }
       );
 
-      // Step 2: Publish photo as 
+      // Step 2: Publish photo as
       // https://developers.facebook.com/docs/page-stories-api/#step-2--publish-a-photo-story
       const storyResponse = await this.fetchWithAuth<{
         success: boolean;
@@ -707,8 +768,8 @@ export class FacebookPlatform extends BasePlatform {
           method: 'POST',
           token: token,
           body: JSON.stringify({
-            photo_id: photoResponse.id
-          })
+            photo_id: photoResponse.id,
+          }),
         }
       );
 
@@ -719,26 +780,36 @@ export class FacebookPlatform extends BasePlatform {
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Facebook photo story ID:', storyResponse.post_id);
-        await updatePlatformPostId(content.id!, 'facebook', storyResponse.post_id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'facebook',
+          storyResponse.post_id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Facebook post ID:', error);
         // Don't fail the publish if saving the ID fails
       }
 
-      return normalizePostHistory({
-        id: storyResponse.post_id,
-        page_id: page.id,
-        message: content.text,
-        created_time: new Date().toISOString(),
-        status: 'PUBLISHED',
-        attachments: {
-          data: [{
-            media: {
-              image: { src: content.media!.urls[0] }
-            }
-          }]
-        }
-      }, 'facebook');
+      return normalizePostHistory(
+        {
+          id: storyResponse.post_id,
+          page_id: page.id,
+          message: content.text,
+          created_time: new Date().toISOString(),
+          status: 'PUBLISHED',
+          attachments: {
+            data: [
+              {
+                media: {
+                  image: { src: content.media!.urls[0] },
+                },
+              },
+            ],
+          },
+        },
+        'facebook'
+      );
     } catch (error) {
       this.handleApiError(error, 'publish photo story');
     }
@@ -764,19 +835,22 @@ export class FacebookPlatform extends BasePlatform {
           method: 'POST',
           token: token,
           body: JSON.stringify({
-            upload_phase: 'start'
-          })
+            upload_phase: 'start',
+          }),
         }
       );
 
       // Step 2: Upload video to Meta servers
       // https://developers.facebook.com/docs/page-stories-api/#step-2--upload-a-video
-      const uploadResponse = await fetch(initResponse.upload_url + '?access_token=' + token, {
-        method: 'POST',
-        headers: {
-          'file_url': content.media!.urls[0]
+      const uploadResponse = await fetch(
+        initResponse.upload_url + '?access_token=' + token,
+        {
+          method: 'POST',
+          headers: {
+            file_url: content.media!.urls[0],
+          },
         }
-      });
+      );
 
       if (!uploadResponse.ok) {
         throw new Error('Failed to upload video for story');
@@ -802,8 +876,8 @@ export class FacebookPlatform extends BasePlatform {
           token: token,
           body: JSON.stringify({
             video_id: initResponse.video_id,
-            upload_phase: 'finish'
-          })
+            upload_phase: 'finish',
+          }),
         }
       );
 
@@ -814,26 +888,36 @@ export class FacebookPlatform extends BasePlatform {
       // Save the published post ID to the platform_post_ids column
       try {
         console.log('Saving Facebook video story ID:', storyResponse.post_id);
-        await updatePlatformPostId(content.id!, 'facebook', storyResponse.post_id, page.id);
+        await updatePlatformPostId(
+          content.id!,
+          'facebook',
+          storyResponse.post_id,
+          page.id
+        );
       } catch (error) {
         console.warn('Failed to save Facebook post ID:', error);
         // Don't fail the publish if saving the ID fails
       }
 
-      return normalizePostHistory({
-        id: storyResponse.post_id,
-        page_id: page.id,
-        message: content.text,
-        created_time: new Date().toISOString(),
-        status: 'PUBLISHED',
-        attachments: {
-          data: [{
-            media: {
-              image: { src: content.media!.urls[0] }
-            }
-          }]
-        }
-      }, 'facebook');
+      return normalizePostHistory(
+        {
+          id: storyResponse.post_id,
+          page_id: page.id,
+          message: content.text,
+          created_time: new Date().toISOString(),
+          status: 'PUBLISHED',
+          attachments: {
+            data: [
+              {
+                media: {
+                  image: { src: content.media!.urls[0] },
+                },
+              },
+            ],
+          },
+        },
+        'facebook'
+      );
     } catch (error) {
       console.log('error', error);
       this.handleApiError(error, 'publish video story');
@@ -841,7 +925,11 @@ export class FacebookPlatform extends BasePlatform {
   }
 
   // Helper method to wait for video processing
-  private async waitForVideoProcessing(videoId: string, token: string, maxWaitTime = 300000): Promise<void> {
+  private async waitForVideoProcessing(
+    videoId: string,
+    token: string,
+    maxWaitTime = 300000
+  ): Promise<void> {
     const startTime = Date.now();
     const checkInterval = 5000; // Check every 5 seconds
 
@@ -853,18 +941,16 @@ export class FacebookPlatform extends BasePlatform {
             uploading_phase: { status: string };
             processing_phase: { status: string };
           };
-        }>(
-          `${config.baseUrl}/${config.apiVersion}/${videoId}`,
-          {
-            token: token,
-            queryParams: {
-              fields: 'status'
-            }
-          }
-        );
+        }>(`${config.baseUrl}/${config.apiVersion}/${videoId}`, {
+          token: token,
+          queryParams: {
+            fields: 'status',
+          },
+        });
         console.log('statusResponse', statusResponse.status);
 
-        const { video_status, uploading_phase, processing_phase } = statusResponse.status;
+        const { video_status, uploading_phase, processing_phase } =
+          statusResponse.status;
 
         // Check for errors
         if (video_status === 'error') {
@@ -872,16 +958,19 @@ export class FacebookPlatform extends BasePlatform {
         }
 
         // Check if processing is complete
-        if (uploading_phase.status === 'complete' && processing_phase.status === 'complete') {
+        if (
+          uploading_phase.status === 'complete' &&
+          processing_phase.status === 'complete'
+        ) {
           return; // Video is ready
         }
 
         // Wait before next check
-        await new Promise(resolve => setTimeout(resolve, checkInterval));
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
       } catch (error) {
         // If we can't check status, continue waiting
         console.warn('Could not check video status:', error);
-        await new Promise(resolve => setTimeout(resolve, checkInterval));
+        await new Promise((resolve) => setTimeout(resolve, checkInterval));
       }
     }
 
@@ -889,7 +978,11 @@ export class FacebookPlatform extends BasePlatform {
     throw new Error('Video processing timeout - video may still be processing');
   }
 
-  async getPostHistory(page: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
+  async getPostHistory(
+    page: SocialPage,
+    limit = 20,
+    nextPage?: string | number
+  ): Promise<PostHistoryResponse<PostHistory>> {
     // Prevent browser calls - route to API endpoint
     if (IS_BROWSER) {
       const res = await fetch('/api/social/facebook/history', {
@@ -968,19 +1061,26 @@ export class FacebookPlatform extends BasePlatform {
         queryParams: {
           fields: 'id,message,created_time,attachments',
           limit: limit.toString(),
-          ...(nextPage && { after: typeof nextPage === 'string' ? nextPage : nextPage.toString() })
-        }
+          ...(nextPage && {
+            after:
+              typeof nextPage === 'string' ? nextPage : nextPage.toString(),
+          }),
+        },
       });
-      
 
-      const modifiedPosts = response.data.map(post => this.mapFacebookPostToHistory(post, page.id));
+      const modifiedPosts = response.data.map((post) =>
+        this.mapFacebookPostToHistory(post, page.id)
+      );
 
       for (const post of modifiedPosts) {
         const analytics = await this.getPostAnalytics(page, post.id);
         post.analytics = analytics;
       }
 
-      return { posts: modifiedPosts, nextPage: response.paging?.cursors?.after || undefined };
+      return {
+        posts: modifiedPosts,
+        nextPage: response.paging?.cursors?.after || undefined,
+      };
     } catch (error) {
       this.handleApiError(error, 'get post history');
     }
@@ -988,7 +1088,11 @@ export class FacebookPlatform extends BasePlatform {
 
   // Get story history for a Facebook Page
   // https://developers.facebook.com/docs/facebook-stories-api/get-stories
-  async getStoryHistory(page: SocialPage, limit = 20, nextPage?: string | number): Promise<PostHistoryResponse<PostHistory>> {
+  async getStoryHistory(
+    page: SocialPage,
+    limit = 20,
+    nextPage?: string | number
+  ): Promise<PostHistoryResponse<PostHistory>> {
     // Prevent browser calls - route to API endpoint
     if (IS_BROWSER) {
       const res = await fetch('/api/social/facebook/stories', {
@@ -1033,13 +1137,21 @@ export class FacebookPlatform extends BasePlatform {
         token: token,
         queryParams: {
           limit: limit.toString(),
-          ...(nextPage && { after: typeof nextPage === 'string' ? nextPage : nextPage.toString() })
-        }
+          ...(nextPage && {
+            after:
+              typeof nextPage === 'string' ? nextPage : nextPage.toString(),
+          }),
+        },
       });
 
-      const stories = response.data.map(story => this.mapFacebookStoryToHistory(story, page.id));
+      const stories = response.data.map((story) =>
+        this.mapFacebookStoryToHistory(story, page.id)
+      );
 
-      return { posts: stories, nextPage: response.paging?.cursors?.after || undefined };
+      return {
+        posts: stories,
+        nextPage: response.paging?.cursors?.after || undefined,
+      };
     } catch (error) {
       this.handleApiError(error, 'get story history');
     }
@@ -1048,11 +1160,11 @@ export class FacebookPlatform extends BasePlatform {
   // Custom mapping function for Facebook post history
   private mapFacebookPostToHistory(post: any, pageId: string): PostHistory {
     const attachment = post.attachments?.data?.[0];
-    
+
     // Determine media type and extract media URLs
     let mediaType: 'image' | 'video' | 'carousel' | undefined;
     let mediaUrls: string[] = [];
-    
+
     if (attachment) {
       switch (attachment.type) {
         case 'photo':
@@ -1061,7 +1173,7 @@ export class FacebookPlatform extends BasePlatform {
             mediaUrls = [attachment.media.image.src];
           }
           break;
-          
+
         case 'video_inline':
           mediaType = 'video';
           if (attachment.media?.source) {
@@ -1071,7 +1183,7 @@ export class FacebookPlatform extends BasePlatform {
             mediaUrls = [attachment.media.image.src];
           }
           break;
-          
+
         case 'album':
           mediaType = 'carousel';
           // Get images from subattachments
@@ -1095,7 +1207,7 @@ export class FacebookPlatform extends BasePlatform {
       mediaUrls: mediaUrls,
       publishedAt: new Date(post.created_time),
       status: 'published' as PostStatus,
-      
+
       // Default analytics (to be populated by separate call)
       analytics: {
         views: 0,
@@ -1112,9 +1224,9 @@ export class FacebookPlatform extends BasePlatform {
           title: attachment?.title,
           description: attachment?.description,
           mediaType: mediaType,
-          thumbnailUrl: attachment?.media?.image?.src
-        }
-      }
+          thumbnailUrl: attachment?.media?.image?.src,
+        },
+      },
     };
   }
 
@@ -1124,10 +1236,10 @@ export class FacebookPlatform extends BasePlatform {
       id: story.post_id,
       pageId: pageId,
       content: '', // Stories typically don't have text content
-      mediaUrls: [story.url], 
+      mediaUrls: [story.url],
       publishedAt: new Date(story.creation_time),
-      status: 'published' ,
-      
+      status: 'published',
+
       // Default analytics (to be populated by separate call)
       analytics: {
         views: 0,
@@ -1142,12 +1254,15 @@ export class FacebookPlatform extends BasePlatform {
           mediaType: story.media_type,
           storyUrl: story.url,
           status: story.status,
-        }
-      }
+        },
+      },
     };
   }
 
-  async getPostAnalytics(page: SocialPage, postId: string): Promise<PostHistory['analytics']> {
+  async getPostAnalytics(
+    page: SocialPage,
+    postId: string
+  ): Promise<PostHistory['analytics']> {
     // Prevent browser calls - route to API endpoint
     if (IS_BROWSER) {
       const res = await fetch('/api/social/facebook/analytics', {
@@ -1186,8 +1301,8 @@ export class FacebookPlatform extends BasePlatform {
             'post_reactions_by_type_total',
             'post_clicks',
           ].join(','),
-          period: 'lifetime'
-        }
+          period: 'lifetime',
+        },
       });
 
       // Process metrics handling both numeric and object values
@@ -1195,15 +1310,18 @@ export class FacebookPlatform extends BasePlatform {
       let totalReactions = 0;
       let reactionBreakdown: Record<string, number> = {};
 
-      response.data.forEach(metric => {
+      response.data.forEach((metric) => {
         if (metric.values && metric.values.length > 0) {
           const value = metric.values[0].value;
-          
+
           if (metric.name === 'post_reactions_by_type_total') {
             // Handle reaction breakdown object: {"like": 1, "love": 1}
             if (typeof value === 'object' && value !== null) {
               reactionBreakdown = value as Record<string, number>;
-              totalReactions = Object.values(reactionBreakdown).reduce((sum, count) => sum + count, 0);
+              totalReactions = Object.values(reactionBreakdown).reduce(
+                (sum, count) => sum + count,
+                0
+              );
               metrics.total_reactions = totalReactions;
             } else {
               // Fallback if it's somehow a number
@@ -1221,7 +1339,7 @@ export class FacebookPlatform extends BasePlatform {
         views: metrics.post_impressions || 0,
         likes: totalReactions || 0, // Total of all reactions
         clicks: metrics.post_clicks || 0,
-        
+
         // Additional Facebook-specific metadata
         metadata: {
           platform: 'facebook',
@@ -1233,10 +1351,10 @@ export class FacebookPlatform extends BasePlatform {
             haha: reactionBreakdown.haha || 0,
             sorry: reactionBreakdown.sorry || 0,
             anger: reactionBreakdown.anger || 0,
-            total: totalReactions
+            total: totalReactions,
           },
-          lastUpdated: new Date().toISOString()
-        }
+          lastUpdated: new Date().toISOString(),
+        },
       };
 
       return analyticsData;
@@ -1253,7 +1371,7 @@ export class FacebookPlatform extends BasePlatform {
 
   async connectPage(acc: SocialAccount, pageId: string): Promise<SocialPage> {
     const pages = await this.listPages(acc);
-    const page = pages.find(p => p.pageId === pageId);
+    const page = pages.find((p) => p.pageId === pageId);
     if (!page) {
       throw new Error('Page not found');
     }
@@ -1283,16 +1401,28 @@ export class FacebookPlatform extends BasePlatform {
       // Get secure token from database
       const token = await this.getToken(page.id);
       if (!token) {
-        return { ...page, status: 'expired' as PageStatus, statusUpdatedAt: new Date() };
+        return {
+          ...page,
+          status: 'expired' as PageStatus,
+          statusUpdatedAt: new Date(),
+        };
       }
 
       await this.fetchWithAuth(
         `${config.baseUrl}/${config.apiVersion}/${page.pageId}`,
         { token: token }
       );
-      return { ...page, status: 'active' as PageStatus, statusUpdatedAt: new Date() };
+      return {
+        ...page,
+        status: 'active' as PageStatus,
+        statusUpdatedAt: new Date(),
+      };
     } catch {
-      return { ...page, status: 'expired' as PageStatus, statusUpdatedAt: new Date() };
+      return {
+        ...page,
+        status: 'expired' as PageStatus,
+        statusUpdatedAt: new Date(),
+      };
     }
   }
 
@@ -1322,11 +1452,10 @@ export class FacebookPlatform extends BasePlatform {
       `${config.baseUrl}/${config.apiVersion}/${postId}`,
       {
         method: 'DELETE',
-        token: token
+        token: token,
       }
     );
 
     return res;
   }
-
-} 
+}

@@ -1,17 +1,17 @@
 // Import types from platform-types
-import type { 
-  Platform, 
-  Status, 
-  FileKind, 
+import type {
+  Platform,
+  Status,
+  FileKind,
   ContentFormat,
-  SocialAccount, 
+  SocialAccount,
   SocialPage,
   PostHistory,
-  PostSettings
-} from "@/lib/social/platforms/platform-types";
-import type { RowHeightType } from "@/lib/utils";
-import type { ConditionGroup } from "@/components/content/post-table/filter-popover";
-import { FieldTypeEntitlements } from "../forms/field.config";
+  PostSettings,
+} from '@/lib/social/platforms/platform-types';
+import type { RowHeightType } from '@/lib/utils';
+import type { ConditionGroup } from '@/components/content/post-table/filter-popover';
+import { IconSection } from './primary-types';
 
 // Shared types for all stores
 export interface BoardRules {
@@ -63,26 +63,26 @@ export interface BoardGroupData {
 export interface NavLink {
   id: string;
   label: string;
-  image?: React.ReactNode | string;    // e.g. "/images/public/approvals.svg"
+  image?: React.ReactNode | string; // e.g. "/images/public/approvals.svg"
   selectedImage?: React.ReactNode;
   href?: string;
   rules?: BoardRules;
-  color?: string;    // Board color for styling
+  color?: string; // Board color for styling
   onClick?: () => void;
 }
 
 export type ColumnType =
-  | "singleLine"
-  | "longText"
-  | "attachment"
-  | "checkbox"
-  | "feedback"
-  | "singleSelect"
-  | "multiSelect"
-  | "date"
-  | "lastUpdatedTime"
-  | "createdBy"
-  | "lastUpdatedBy";
+  | 'singleLine'
+  | 'longText'
+  | 'attachment'
+  | 'checkbox'
+  | 'feedback'
+  | 'singleSelect'
+  | 'multiSelect'
+  | 'date'
+  | 'lastUpdatedTime'
+  | 'createdBy'
+  | 'lastUpdatedBy';
 
 export interface UserColumnOption {
   id: string;
@@ -135,7 +135,7 @@ export interface Block {
   kind: FileKind;
   currentVersionId: string;
   versions: Version[];
-  comments: BaseComment[]; 
+  comments: BaseComment[];
 }
 
 export interface CaptionData {
@@ -148,7 +148,16 @@ export interface Activity {
   id: string;
   workspaceId: string;
   postId?: string;
-  type: 'revision_request' | 'revised' | 'approved' | 'scheduled' | 'published' | 'failed_publishing' | 'comment' | 'workspace_invited_sent' | 'board_invited_sent';
+  type:
+    | 'revision_request'
+    | 'revised'
+    | 'approved'
+    | 'scheduled'
+    | 'published'
+    | 'failed_publishing'
+    | 'comment'
+    | 'workspace_invited_sent'
+    | 'board_invited_sent';
   actorId: string; // User ID of the person who performed the action
   actor?: {
     id: string;
@@ -180,10 +189,10 @@ export interface Post {
   format: string;
   publishDate: Date | null;
   updatedAt: Date | null;
-  platforms: Platform[];  // Array of platforms this post is for
-  pages: string[];  // Array of social page IDs
+  platforms: Platform[]; // Array of platforms this post is for
+  pages: string[]; // Array of social page IDs
   billingMonth?: string;
-  month: number;  // Month number (1-50)
+  month: number; // Month number (1-50)
   /** Array of user defined column values saved as id/value pairs */
   userColumns?: Array<{ id: string; value: string }>;
   /** Per-post settings such as location tag, tagged accounts, custom thumbnail, and platform-specific options */
@@ -383,7 +392,7 @@ export interface PostSettingsFull {
 }
 
 export interface PostBlockVersionFile {
-  kind: "image" | "video";
+  kind: 'image' | 'video';
   url: string;
   thumbnailUrl?: string;
 }
@@ -421,7 +430,7 @@ export interface PostBlockCommentFull {
 
 export interface PostBlockFull {
   id: string;
-  kind: "image" | "video";
+  kind: 'image' | 'video';
   currentVersionId: string;
   versions: PostBlockVersion[];
   comments: PostBlockCommentFull[];
@@ -527,7 +536,7 @@ export interface Member {
   workspaceId: string;
   boardId?: string | null;
   isWorkspace: boolean;
-  role: "client" | "team";
+  role: 'client' | 'team';
   accept: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -535,9 +544,9 @@ export interface Member {
 
 export interface Form {
   id: string;
-  type: "intake" | "template";
+  type: 'intake' | 'template';
   title: string;
-  status: "draft" | "published";
+  status: 'draft' | 'published';
   workspaceId: string;
   shareUri?: string | null;
   hasBeenSubmitted: boolean;
@@ -557,28 +566,49 @@ export interface Form {
 // Database Service interface
 export interface Service {
   id: string;
-  workspaceId: string;
-  formId: string | null;
+  workspace_id: string;
+  form_id: string | null;
   name: string;
   brief: string | null;
+  created_at: string;
+  updated_at: string;
   description: string | null;
-  folderId: string;
-  socialChannels: boolean;
-  internalIcon: string;
+  folder_id: string;
+  social_channels: boolean;
+  icon_id: string | null; // TODO All services should have icons, change this when migrating existing data
+  color: string | null; // TODO Same here
+  image_url: string | null;
+  is_recurring: boolean;
+  is_addon: boolean;
+  addon_for: string | null;
+  deadline_date: string | null;
+  status: number;
   channels?: ServiceChannel[];
-  servicePlans?: ServicePlan[];
+  service_plans?: ServicePlan[];
+  icon?: Icon;
+}
+
+export interface Icon {
+  id: string;
+  section: IconSection;
+  common_name: string;
+  created_at: string;
+  svg: string;
+  workspace_id: string | null; // Share uploaded icons across workspaces
+  user_id: string | null;
 }
 
 export interface ServicePlan {
   id: string;
-  createdAt: Date;
-  period: string;
+  created_at: string;
   price: number;
-  serviceId: string;
-  quantity: number;
-  qtyIndicator: string;
+  service_id: string;
   currency: string;
-  updatedAt: Date;
+  updated_at: string;
+  value: string;
+  billing_period: number;
+  custom_billing_days: number | null;
+  tax_included: boolean;
 }
 
 export interface ServiceChannel {
@@ -671,6 +701,15 @@ export interface FormSubmission {
 }
 
 // Re-export types from platform-types.ts for backward compatibility
-export type { Platform, Status, FileKind, ContentFormat, SocialAccount, SocialPage, PostHistory, PostSettings };
+export type {
+  Platform,
+  Status,
+  FileKind,
+  ContentFormat,
+  SocialAccount,
+  SocialPage,
+  PostHistory,
+  PostSettings,
+};
 export type { RowHeightType };
 export type { ConditionGroup };

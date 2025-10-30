@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect } from 'react';
 import {
   Bold,
   Italic,
@@ -8,12 +8,14 @@ import {
   ListOrdered,
   Undo,
   Redo,
-} from "lucide-react";
-import { sanitizeRichText } from "@/lib/utils/sanitize";
+} from 'lucide-react';
+import { sanitizeRichText } from '@/lib/utils/sanitize';
 
 type Props = {
   value: string;
-  setter: React.Dispatch<React.SetStateAction<string>>;
+  setter:
+    | React.Dispatch<React.SetStateAction<string>>
+    | ((val: string) => void);
 };
 
 export default function AdvancedTextArea({ value, setter }: Props) {
@@ -41,28 +43,28 @@ export default function AdvancedTextArea({ value, setter }: Props) {
   };
 
   const insertLink = () => {
-    const url = prompt("Enter URL:");
+    const url = prompt('Enter URL:');
     if (url) {
-      executeCommand("createLink", url);
+      executeCommand('createLink', url);
     }
   };
 
   return (
-    <div className="border border-buttonStroke rounded-lg overflow-hidden bg-white">
+    <div className="border-buttonStroke overflow-hidden rounded-lg border bg-white">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 p-2">
         <button
           type="button"
-          onClick={() => executeCommand("bold")}
-          className="p-2 hover:bg-gray-200 rounded"
+          onClick={() => executeCommand('bold')}
+          className="rounded p-2 hover:bg-gray-200"
           title="Bold"
         >
           <Bold size={16} />
         </button>
         <button
           type="button"
-          onClick={() => executeCommand("italic")}
-          className="p-2 hover:bg-gray-200 rounded"
+          onClick={() => executeCommand('italic')}
+          className="rounded p-2 hover:bg-gray-200"
           title="Italic"
         >
           <Italic size={16} />
@@ -70,49 +72,49 @@ export default function AdvancedTextArea({ value, setter }: Props) {
         <button
           type="button"
           onClick={insertLink}
-          className="p-2 hover:bg-gray-200 rounded"
+          className="rounded p-2 hover:bg-gray-200"
           title="Link"
         >
           <Link size={16} />
         </button>
         <button
           type="button"
-          onClick={() => executeCommand("formatBlock", "h1")}
-          className="p-2 hover:bg-gray-200 rounded"
+          onClick={() => executeCommand('formatBlock', 'h1')}
+          className="rounded p-2 hover:bg-gray-200"
           title="Heading 1"
         >
           <Type size={16} />
         </button>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="mx-1 h-6 w-px bg-gray-300" />
         <button
           type="button"
-          onClick={() => executeCommand("insertUnorderedList")}
-          className="p-2 hover:bg-gray-200 rounded"
+          onClick={() => executeCommand('insertUnorderedList')}
+          className="rounded p-2 hover:bg-gray-200"
           title="Bullet List"
         >
           <List size={16} />
         </button>
         <button
           type="button"
-          onClick={() => executeCommand("insertOrderedList")}
-          className="p-2 hover:bg-gray-200 rounded"
+          onClick={() => executeCommand('insertOrderedList')}
+          className="rounded p-2 hover:bg-gray-200"
           title="Numbered List"
         >
           <ListOrdered size={16} />
         </button>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="mx-1 h-6 w-px bg-gray-300" />
         <button
           type="button"
-          onClick={() => executeCommand("undo")}
-          className="p-2 hover:bg-gray-200 rounded"
+          onClick={() => executeCommand('undo')}
+          className="rounded p-2 hover:bg-gray-200"
           title="Undo"
         >
           <Undo size={16} />
         </button>
         <button
           type="button"
-          onClick={() => executeCommand("redo")}
-          className="p-2 hover:bg-gray-200 rounded"
+          onClick={() => executeCommand('redo')}
+          className="rounded p-2 hover:bg-gray-200"
           title="Redo"
         >
           <Redo size={16} />
@@ -125,7 +127,7 @@ export default function AdvancedTextArea({ value, setter }: Props) {
         contentEditable
         onInput={handleInput}
         className="min-h-[120px] p-4 focus:outline-none"
-        style={{ minHeight: "120px" }}
+        style={{ minHeight: '120px' }}
         suppressContentEditableWarning={true}
       />
     </div>
