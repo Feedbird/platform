@@ -1,7 +1,7 @@
 'use client';
 import { CanvasFormField } from '@/components/forms/form-canvas';
-import { useFormEditor } from '@/contexts/forms/FormEditorContext';
-import { useForms } from '@/contexts/forms/FormsContext';
+import { useFormEditor } from '@/contexts/forms/form-editor-context';
+import { useForms } from '@/contexts/forms/forms-context';
 import { formsApi } from '@/lib/api/api-service';
 import { Divider } from '@mui/material';
 import { useParams } from 'next/navigation';

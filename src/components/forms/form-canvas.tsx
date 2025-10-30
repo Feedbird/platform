@@ -10,9 +10,9 @@ import { CSS } from '@dnd-kit/utilities';
 import Image from 'next/image';
 import React from 'react';
 import FieldRenderWrapper from './content/field-render-wrapper';
-import { useForms } from '@/contexts/forms/FormsContext';
+import { useForms } from '@/contexts/forms/forms-context';
 import { TableForm } from './content/forms-table';
-import { useFormEditor } from '@/contexts/forms/FormEditorContext';
+import { useFormEditor } from '@/contexts/forms/form-editor-context';
 import { Popover, PopoverTrigger } from '../ui/popover';
 import { PopoverContent, PopoverPortal } from '@radix-ui/react-popover';
 import {

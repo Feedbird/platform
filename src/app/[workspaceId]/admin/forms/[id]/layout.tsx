@@ -1,5 +1,5 @@
 'use client';
-import { FormEditorProvider } from '@/contexts/forms/FormEditorContext';
+import { FormEditorProvider } from '@/contexts/forms/form-editor-context';
 import React from 'react';
 
 type Props = {

@@ -8,8 +8,8 @@ import { DraggableFieldType } from './content/draggable-field-type';
 import { CanvasFormField } from './form-canvas';
 import { formsApi } from '@/lib/api/api-service';
 import { toast } from 'sonner';
-import { useForms } from '@/contexts/forms/FormsContext';
-import { useFormEditor } from '@/contexts/forms/FormEditorContext';
+import { useForms } from '@/contexts/forms/forms-context';
+import { useFormEditor } from '@/contexts/forms/form-editor-context';
 import { useWorkspaceStore, useFormStore } from '@/lib/store';
 
 type FormEditorSideBarProps = {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { CanvasFormField } from '../form-canvas';
-import { useForms } from '@/contexts/forms/FormsContext';
+import { useForms } from '@/contexts/forms/forms-context';
 import Image from 'next/image';
 import FieldRenderWrapper from '../content/field-render-wrapper';
 import { PageEnding } from '../content/form-inputs';
