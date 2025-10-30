@@ -8,8 +8,10 @@ export async function getSecureToken(pageId: string): Promise<string | null> {
     const page = await socialApiService.getSocialPage(pageId);
 
     // Check if token is expired
-    const isExpired = page.auth_token_expires_at && new Date(page.auth_token_expires_at) <= new Date();
-    
+    const isExpired =
+      page.authTokenExpiresAt &&
+      new Date(page.authTokenExpiresAt) <= new Date();
+
     if (isExpired) {
       // Refresh the token
       const ops = getPlatformOperations(page.platform as any);
@@ -18,7 +20,7 @@ export async function getSecureToken(pageId: string): Promise<string | null> {
       }
 
       // Get account for refresh
-      const account = await socialApiService.getSocialAccount(page.account_id);
+      const account = await socialApiService.getSocialAccount(page.accountId);
 
       if (!account) {
         throw new Error('Account not found');
@@ -29,23 +31,23 @@ export async function getSecureToken(pageId: string): Promise<string | null> {
         id: account.id,
         platform: account.platform,
         name: account.name,
-        accountId: account.account_id,
-        authToken: page.auth_token,
-        refreshToken: account.refresh_token,
+        accountId: account.accountId,
+        authToken: page.authToken,
+        refreshToken: account.refreshToken,
         connected: account.connected,
-        status: account.status
+        status: account.status,
       } as SocialAccount);
 
       // Update database with new token using API service
       await socialApiService.updateSocialPage(pageId, {
-        auth_token: refreshedAccount.authToken,
-        auth_token_expires_at: refreshedAccount.accessTokenExpiresAt?.toISOString() || null
+        authToken: refreshedAccount.authToken,
+        authTokenExpiresAt: refreshedAccount.accessTokenExpiresAt,
       });
 
       return refreshedAccount.authToken ?? null;
     }
 
-    return page.auth_token;
+    return page.authToken ?? '';
   } catch (error) {
     console.error('Error getting secure token:', error);
     throw new Error('Failed to get secure token');

@@ -1,10 +1,10 @@
 import { supabase } from '@/lib/supabase/client';
-import { IconSection } from '@/lib/supabase/primary';
 import { FetchIconsResponse } from '@/types';
 import { WorkspaceHandler } from '../workspace/handler';
 import { UserHandler } from '../user/handler';
 import { ApiHandlerError } from '../shared';
-import { Icon } from '@/lib/supabase/interfaces';
+import { IconSection } from '@/lib/store/primary-types';
+import { Icon } from '@/lib/store';
 
 type GetAllIconsParams = {
   section: IconSection;

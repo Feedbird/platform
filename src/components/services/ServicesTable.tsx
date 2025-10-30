@@ -20,6 +20,7 @@ type Props = {
 };
 
 function ServicesTableRow({ service }: { service: Service }) {
+  const plans = (service.service_plans ?? []).sort((a, b) => a.price - b.price);
   const initialPlan = service.service_plans ? service.service_plans[0] : null;
   const finalPlan = service.service_plans
     ? service.service_plans.slice(-1)[0]

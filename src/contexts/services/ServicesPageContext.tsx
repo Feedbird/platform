@@ -1,7 +1,6 @@
 'use client';
-import { Service } from '@/lib/supabase/interfaces';
 import { useQueryClient } from '@tanstack/react-query';
-import { useWorkspaceStore } from '@/lib/store';
+import { Service, useWorkspaceStore } from '@/lib/store';
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface ServicesContextType {

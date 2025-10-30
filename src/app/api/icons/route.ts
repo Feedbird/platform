@@ -1,7 +1,7 @@
-import { IconSection } from '@/lib/supabase/primary';
 import { NextRequest, NextResponse } from 'next/server';
 import { IconHandler } from './handler';
 import { ApiHandlerError } from '../shared';
+import { IconSection } from '@/lib/store/primary-types';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

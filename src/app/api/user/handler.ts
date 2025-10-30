@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { User } from '@/lib/supabase/interfaces';
+import { User } from '@/lib/store/types';
 
 export class UserHandler {
   static async getUserById(userId: string, selection = '*'): Promise<User> {
