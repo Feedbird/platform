@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { decryptIfNeeded, encryptIfNeeded } from '@/lib/utils/secret-encryption';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http';
 
 // GET - Get social account details including tokens
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
@@ -43,7 +44,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       refresh_token: decryptIfNeeded(data.refresh_token),
     };
 
-    return NextResponse.json(response);
+    return jsonCamel(response);
   } catch (error) {
     console.error('Error fetching social account:', error);
     return NextResponse.json(
@@ -58,7 +59,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const url = new URL(req.url);
     const accountId = url.pathname.split('/').pop();
-    const body = await req.json();
+    const body = await readJsonSnake(req);
 
     if (!accountId) {
       return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
@@ -87,7 +88,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Failed to update social account' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return jsonCamel(data);
   } catch (error) {
     console.error('Error updating social account:', error);
     return NextResponse.json(

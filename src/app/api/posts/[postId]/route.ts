@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
 import { PostUpdateData } from '@/lib/api/social-api-service';
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http';
 
 // GET - Get post details
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
@@ -24,7 +25,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return jsonCamel(data);
   } catch (error) {
     console.error('Error fetching post:', error);
     return NextResponse.json(
@@ -39,7 +40,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const url = new URL(req.url);
     const postId = url.pathname.split('/').pop();
-    const body = await req.json();
+    const body = await readJsonSnake(req);
 
     if (!postId) {
       return NextResponse.json({ error: 'Post ID is required' }, { status: 400 });
@@ -64,7 +65,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Failed to update post' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return jsonCamel(data);
   } catch (error) {
     console.error('Error updating post:', error);
     return NextResponse.json(

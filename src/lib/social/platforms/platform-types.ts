@@ -159,7 +159,7 @@ export interface SocialAccount {
   tokenIssuedAt?: Date;
   connected   : boolean;
   status      : PageStatus;
-  metadata?: Record<string, any>;
+  metadata?: object;
   pages?      : SocialPage[];        // lazy-loaded
 }
 
@@ -178,7 +178,7 @@ export interface SocialPage {
   postCount?    : number;
   followerCount?: number;
   lastSyncAt?   : Date;
-  metadata?: Record<string, any>;
+  metadata?: object;
   socialSetId?: string | null;
 }
 

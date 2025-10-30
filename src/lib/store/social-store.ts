@@ -6,7 +6,8 @@ import type {
   Platform, 
   SocialAccount, 
   SocialPage, 
-  PostHistory 
+  PostHistory,
+  Workspace
 } from './types';
 
 export interface SocialStore {
@@ -117,7 +118,7 @@ export const useSocialStore = createPersistedStore<SocialStore>(
     checkPageStatus: async (brandId: string, pageId: string) => {
       const { useWorkspaceStore } = require('./workspace-store');
       const workspaceStore = useWorkspaceStore.getState();
-      const ws = workspaceStore.workspaces.find((w: any) => w.brand?.id === brandId);
+      const ws = workspaceStore.workspaces.find((w: Workspace) => w.brand?.id === brandId);
       const pages = (ws?.socialPages || []) as SocialPage[];
       const page = pages.find(p => p.id === pageId);
       if (!page) return;
@@ -168,7 +169,7 @@ export const useSocialStore = createPersistedStore<SocialStore>(
           return {
             postHistory: {
               ...state.postHistory,
-              [pageId]: old.filter((p: any) => p.postId !== postId)
+              [pageId]: old.filter((p: PostHistory) => p.postId !== postId)
             }
           };
         });
@@ -218,21 +219,21 @@ export const useSocialStore = createPersistedStore<SocialStore>(
         const accounts = await socialAccountApi.getSocialAccounts(ws.id);
         
         // Extract all pages from all accounts into a flat array (exclude sensitive tokens)
-        const allPages = accounts.flatMap((acc: any) => 
-          (acc.social_pages || []).map((page: any) => ({
+        const allPages = accounts.flatMap((acc: SocialAccount) => 
+          (acc.pages || []).map((page: SocialPage) => ({
             id: page.id,
             platform: page.platform,
-            entityType: page.entity_type || 'page',
+            entityType: page.entityType || 'page',
             name: page.name,
-            pageId: page.page_id,
+            pageId: page.pageId,
             connected: page.connected,
             status: page.status,
             accountId: acc.id, // Link to the account
-            socialSetId: page.social_set_id ?? null,
-            statusUpdatedAt: page.status_updated_at ? new Date(page.status_updated_at) : undefined,
-            lastSyncAt: page.last_sync_at ? new Date(page.last_sync_at) : undefined,
-            followerCount: page.follower_count,
-            postCount: page.post_count,
+            socialSetId: page.socialSetId ?? null,
+            statusUpdatedAt: page.statusUpdatedAt ? new Date(page.statusUpdatedAt) : undefined,
+            lastSyncAt: page.lastSyncAt ? new Date(page.lastSyncAt) : undefined,
+            followerCount: page.followerCount,
+            postCount: page.postCount,
             metadata: page.metadata
           }))
         );

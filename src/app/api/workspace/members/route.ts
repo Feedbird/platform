@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { clerkClient } from '@clerk/nextjs/server'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // GET /api/workspace/members?workspace_id=...
 export async function GET(req: NextRequest) {
@@ -111,7 +112,7 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    return NextResponse.json({ users, creator_email: creatorEmail })
+    return jsonCamel({ users, creator_email: creatorEmail })
   } catch (error) {
     console.error('Error in GET /api/workspace/members:', error)
     return NextResponse.json(
@@ -125,7 +126,7 @@ export async function GET(req: NextRequest) {
 // PATCH /api/workspace/members  { workspace_id, email, role }
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const workspace_id = body?.workspace_id as string | undefined
     const email = body?.email as string | undefined
     const role = body?.role as 'client' | 'team' | undefined

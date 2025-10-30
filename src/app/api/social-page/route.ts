@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // PATCH /api/social-page
 // Body: { page_id: string, social_set_id: string | null }
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const page_id = body.page_id as string
     const social_set_id = (body.social_set_id ?? null) as string | null
 
@@ -25,7 +26,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to update social page' }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    return jsonCamel(data)
   } catch (e) {
     console.error('Error in PATCH /api/social-page', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

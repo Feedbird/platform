@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { decryptIfNeeded, encryptIfNeeded } from '@/lib/utils/secret-encryption';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http';
 
 // GET - Get social page details including tokens
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
@@ -38,7 +39,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       ...data,
       auth_token: decryptIfNeeded(data.auth_token),
     };
-    return NextResponse.json(response);
+    return jsonCamel(response);
   } catch (error) {
     console.error('Error fetching social page:', error);
     return NextResponse.json(
@@ -53,7 +54,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const url = new URL(req.url);
     const pageId = url.pathname.split('/').pop();
-    const body = await req.json();
+    const body = await readJsonSnake(req);
 
     if (!pageId) {
       return NextResponse.json({ error: 'Page ID is required' }, { status: 400 });
@@ -79,7 +80,7 @@ export const PATCH = withAuth(async (req: AuthenticatedRequest) => {
       return NextResponse.json({ error: 'Failed to update social page' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return jsonCamel(data);
   } catch (error) {
     console.error('Error updating social page:', error);
     return NextResponse.json(

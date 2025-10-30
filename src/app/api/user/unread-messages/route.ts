@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // Validation schemas
 const UpdateUnreadMessagesSchema = z.object({
@@ -12,7 +13,7 @@ const UpdateUnreadMessagesSchema = z.object({
 // POST - Add or remove message from user's unread list
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validated = UpdateUnreadMessagesSchema.parse(body)
 
     // Get current user data
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ unread_msg: newUnread })
+    return jsonCamel({ unread_msg: newUnread })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -102,7 +103,7 @@ export async function GET(req: NextRequest) {
     }
 
     const unreadCount = user.unread_msg?.length || 0
-    return NextResponse.json({ 
+    return jsonCamel({ 
       unread_count: unreadCount,
       has_unread: unreadCount > 0 
     })

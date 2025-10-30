@@ -27,7 +27,7 @@ export interface WorkspaceStore {
 
   // Workspace methods
   setActiveWorkspace: (id: string) => void;
-  addWorkspace: (name: string, email: string, logo?: string, default_board_rules?: Record<string, any>) => Promise<string>;
+  addWorkspace: (name: string, email: string, logo?: string, default_board_rules?: BoardRules) => Promise<string>;
   removeWorkspace: (id: string) => Promise<void>;
   loadUserWorkspaces: (email: string) => Promise<void>;
   getActiveWorkspace: () => Workspace | undefined;

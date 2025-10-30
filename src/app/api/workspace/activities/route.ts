@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { jsonCamel } from '@/lib/utils/http'
 
 // GET - Get all activities for a workspace
 export async function GET(req: NextRequest) {
@@ -81,7 +82,7 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    return NextResponse.json(mapped)
+    return jsonCamel(mapped)
   } catch (error) {
     console.error('Error in GET /api/workspace/activities:', error)
     return NextResponse.json(

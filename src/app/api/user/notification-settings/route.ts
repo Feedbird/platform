@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // Validation schema for notification settings (per user, no workspace)
 const NotificationSettingsSchema = z.object({
@@ -26,7 +27,7 @@ const NotificationSettingsSchema = z.object({
 // POST - Update notification settings for a user
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const validatedData = NotificationSettingsSchema.parse(body)
 
     // Ensure user exists
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(updatedUser)
+    return jsonCamel(updatedUser)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -120,7 +121,7 @@ export async function GET(req: NextRequest) {
     }
 
     const settings = user?.notification_settings || defaultSettings
-    return NextResponse.json(settings)
+    return jsonCamel(settings)
   } catch (error) {
     console.error('Error in GET /api/user/notification-settings:', error)
     return NextResponse.json(

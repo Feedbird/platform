@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const workspace_id = body.workspace_id as string
     const name = (body.name as string)?.trim()
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create social set' }, { status: 500 })
     }
 
-    return NextResponse.json(data, { status: 201 })
+    return jsonCamel(data, { status: 201 })
   } catch (e) {
     console.error('Error in POST /api/social-set', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 // Body: { id: string, name: string }
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonSnake(req)
     const id = (body.id as string) || ''
     const name = ((body.name as string) || '').trim()
 
@@ -54,7 +55,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to update social set' }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    return jsonCamel(data)
   } catch (e) {
     console.error('Error in PATCH /api/social-set', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

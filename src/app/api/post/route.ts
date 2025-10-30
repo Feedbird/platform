@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 import { z } from 'zod'
-import { keysToSnake, keysToCamel } from '@/lib/utils/case'
+import { jsonCamel, readJsonSnake } from '@/lib/utils/http'
 
 // Validation schemas
 const CreatePostSchema = z.object({
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(keysToCamel(data))
+      return jsonCamel(data)
     } else if (workspace_id) {
       // Get posts by workspace
       const { data, error } = await supabase
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(keysToCamel(data))
+      return jsonCamel(data)
     } else if (board_id) {
       // Get posts by board
       const { data, error } = await supabase
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(keysToCamel(data))
+      return jsonCamel(data)
     } else {
       return NextResponse.json(
         { error: 'Either id, workspace_id, or board_id parameter is required' },
@@ -141,9 +141,8 @@ export async function GET(req: NextRequest) {
 // POST - Create new post
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const bodySnake = keysToSnake(body)
-    const validatedData = CreatePostSchema.parse(bodySnake)
+    const body = await readJsonSnake(req)
+    const validatedData = CreatePostSchema.parse(body)
     // Verify workspace exists
     const { data: workspace } = await supabase
       .from('workspaces')
@@ -186,7 +185,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(keysToCamel(data), { status: 201 })
+    return jsonCamel(data, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -216,10 +215,9 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const bodySnake = keysToSnake(body)
+    const body = await readJsonSnake(req)
 
-    const validatedData = UpdatePostSchema.parse(bodySnake)
+    const validatedData = UpdatePostSchema.parse(body)
     const { data, error } = await supabase
       .from('posts')
       .update(validatedData)
@@ -241,7 +239,7 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(keysToCamel(data))
+    return jsonCamel(data)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

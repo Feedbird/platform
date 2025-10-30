@@ -3,7 +3,6 @@
  */
 
 import type { NotificationSettings } from '@/lib/store/types';
-import type { SocialPage } from '@/lib/social/platforms/platform-types';
 
 /**
  * Generic API response wrapper
@@ -76,19 +75,6 @@ export interface UpdateMemberRoleResponse {
 export interface ChannelMessageWithAuthor {
   authorName?: string;
   authorImageUrl?: string;
-}
-
-/**
- * Social account structure
- */
-export interface SocialAccount {
-  id: string;
-  platform: string;
-  name: string;
-  accountId: string;
-  connected: boolean;
-  status: string;
-  socialPages?: SocialPage[];
 }
 
 /**

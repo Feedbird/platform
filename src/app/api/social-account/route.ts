@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { SECURE_SOCIAL_ACCOUNT_WITH_PAGES } from '@/lib/utils/secure-queries';
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware/auth-middleware';
+import { jsonCamel } from '@/lib/utils/http';
 
 // GET - Load social accounts for a workspace
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
@@ -24,7 +25,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       throw new Error('Failed to load accounts');
     }
 
-    return NextResponse.json(data);
+    return jsonCamel(data);
   } catch (error) {
     console.error('Error loading social accounts:', error);
     return NextResponse.json(

@@ -45,6 +45,7 @@ import { useUser } from '@clerk/nextjs';
 import { storeApi, inviteApi, userApi, workspaceHelperApi } from '@/lib/api/api-service'
 import { WorkspaceStore } from '@/lib/store/workspace-store'
 import { UserStore } from '@/lib/store/user-store'
+import { BoardRules } from '@/lib/store/types'
 
 export default function WorkspaceSwitcher() {
   const isMounted = useMounted()
@@ -122,7 +123,7 @@ export default function WorkspaceSwitcher() {
 
   const handleAdd = async (name: string, logo: string | null, additionalData?: {
     selectedBoards: string[]
-    boardRules: any
+    boardRules: BoardRules
     inviteEmails: string[]
     setAsDefault?: boolean
   }): Promise<string> => {

@@ -19,6 +19,7 @@ import { useUserStore, useWorkspaceStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { ROW_HEIGHT_CONFIG, RowHeightType } from '@/lib/utils'
 import PlatformPreview from '@/components/platform-preview/platform-preview'
+import type { BoardRules } from '@/lib/store/types'
 
 /* ---------------------------------------------------------------------
    Multi-step modal to create workspace
@@ -30,7 +31,7 @@ interface WorkspaceModalProps {
   onClose: () => void
   onAdd: (name: string, logo: string | null, additionalData?: {
     selectedBoards: string[]
-    boardRules: any
+    boardRules: BoardRules
     inviteEmails: string[]
     setAsDefault?: boolean
   }) => Promise<string>
@@ -40,7 +41,7 @@ interface WorkspaceFormData {
   name: string
   logo: string | null
   selectedBoards: string[]
-  boardRules: any
+  boardRules: BoardRules
   inviteEmails: string[]
 }
 
@@ -50,19 +51,6 @@ const STEPS = [
   { id: 3, title: 'Board rules', description: 'Configure board settings' },
   { id: 4, title: 'Invite your clients', description: 'Add team members' }
 ]
-
-export interface BoardRules {
-  autoSchedule: boolean;
-  revisionRules: boolean;
-  approvalDeadline: boolean;
-  groupBy: string | null;
-  sortBy: string | null;
-  rowHeight: RowHeightType;
-  firstMonth?: number; // -1 represents "Unlimited"
-  ongoingMonth?: number; // -1 represents "Unlimited"
-  approvalDays?: number; // 7,14,30,60,custom
-  approvalCustom?: string;
-}
 
 const GROUP_OPTIONS = [
   {
@@ -198,7 +186,14 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
     name: '',
     logo: null,
     selectedBoards: [],
-    boardRules: {},
+    boardRules: {
+      autoSchedule: false,
+      revisionRules: false,
+      approvalDeadline: false,
+      groupBy: "month",
+      sortBy: "status",
+      rowHeight: "Medium",
+    },
     inviteEmails: []
   })
 
@@ -238,7 +233,14 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
         name: '',
         logo: null,
         selectedBoards: [],
-        boardRules: {},
+        boardRules: {
+          autoSchedule: false,
+          revisionRules: false,
+          approvalDeadline: false,
+          groupBy: "month",
+          sortBy: "status",
+          rowHeight: "Medium",
+        },
         inviteEmails: ['', '', '']
       }))
       try {
@@ -732,8 +734,8 @@ export function WorkspaceModal({ open, onClose, onAdd }: WorkspaceModalProps) {
                       min={0}
                       placeholder="Select custom deadline"
                       className="small-spin w-full px-2.5 py-2 text-[13px] border border-[#D3D3D3] rounded-md"
-                      value={boardRules.approvalCustom ?? ''}
-                      onChange={e => updateRule('approvalCustom', e.target.value)}
+                      value={boardRules.approvalDays ? String(boardRules.approvalDays) : ''}
+                      onChange={e => updateRule('approvalDays', Number(e.target.value))}
                     />
                   </div>
                 )}

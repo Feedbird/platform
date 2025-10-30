@@ -4,33 +4,7 @@
  * through API endpoints instead of direct Supabase access
  */
 
-export interface SocialPageData {
-  id: string;
-  account_id: string;
-  auth_token: string;
-  auth_token_expires_at: string | null;
-  metadata: any;
-  platform: string;
-  name: string;
-  page_id: string;
-  connected: boolean;
-  status: string;
-}
-
-export interface SocialAccountData {
-  id: string;
-  auth_token: string;
-  refresh_token: string | null;
-  access_token_expires_at: string | null;
-  refresh_token_expires_at: string | null;
-  token_issued_at: string | null;
-  metadata: any;
-  platform: string;
-  name: string;
-  account_id: string;
-  connected: boolean;
-  status: string;
-}
+import { SocialAccount, SocialPage } from "../social/platforms/platform-types";
 
 export interface PostUpdateData {
   status?: string;
@@ -49,7 +23,7 @@ class SocialApiService {
   /**
    * Get social page details including tokens
    */
-  async getSocialPage(pageId: string): Promise<SocialPageData> {
+  async getSocialPage(pageId: string): Promise<SocialPage> {
     const response = await fetch(`${this.baseUrl}/api/social-page/${pageId}`, {
       method: 'GET',
       headers: {
@@ -68,7 +42,7 @@ class SocialApiService {
   /**
    * Update social page tokens
    */
-  async updateSocialPage(pageId: string, updateData: Partial<SocialPageData>): Promise<SocialPageData> {
+  async updateSocialPage(pageId: string, updateData: Partial<SocialPage>): Promise<SocialPage> {
     const response = await fetch(`${this.baseUrl}/api/social-page/${pageId}`, {
       method: 'PATCH',
       headers: {
@@ -88,7 +62,7 @@ class SocialApiService {
   /**
    * Get social account details including tokens
    */
-  async getSocialAccount(accountId: string): Promise<SocialAccountData> {
+  async getSocialAccount(accountId: string): Promise<SocialAccount> {
     const response = await fetch(`${this.baseUrl}/api/social-account/${accountId}`, {
       method: 'GET',
       headers: {
@@ -107,7 +81,7 @@ class SocialApiService {
   /**
    * Update social account tokens
    */
-  async updateSocialAccount(accountId: string, updateData: Partial<SocialAccountData>): Promise<SocialAccountData> {
+  async updateSocialAccount(accountId: string, updateData: Partial<SocialAccount>): Promise<SocialAccount> {
     const response = await fetch(`${this.baseUrl}/api/social-account/${accountId}`, {
       method: 'PATCH',
       headers: {
@@ -166,7 +140,7 @@ class SocialApiService {
   /**
    * Update social pages tokens for an account (bulk update)
    */
-  async updateSocialPagesForAccount(accountId: string, updateData: Partial<SocialPageData>): Promise<void> {
+  async updateSocialPagesForAccount(accountId: string, updateData: Partial<SocialPage>): Promise<void> {
     // This would require a new API endpoint for bulk updates
     // For now, we'll handle this in the platform scripts by updating each page individually
     throw new Error('Bulk update not implemented yet - use individual page updates');

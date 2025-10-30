@@ -1,6 +1,6 @@
 import { TableForm } from '@/components/forms/content/forms-table';
 import { CanvasFormField } from '@/components/forms/form-canvas';
-import { useMessageStore, useUserStore, useWorkspaceStore } from '@/lib/store';
+import { SocialPage, useMessageStore, useUserStore, useWorkspaceStore } from '@/lib/store';
 import {
   Coupon,
   FormField,
@@ -15,20 +15,12 @@ import {
   Form,
   Service,
   FormSubmission,
+  SocialAccount,
 } from '@/lib/store/types';
 import {
   ApiResponse,
   ApiError,
   InviteResponse,
-  WorkspaceMember,
-  GetWorkspaceMembersResponse,
-  ChannelMessageWithAuthor,
-  ActivityType,
-  ActivityMetadata,
-  Comment,
-  PostCommentData,
-  BlockCommentData,
-  VersionCommentData,
   UpdateUserPayload,
   CreateUserPayload,
 } from './api-types';
@@ -902,23 +894,23 @@ export const storeApi = {
               accountId: acc.account_id,
               connected: acc.connected,
               status: acc.status,
-              socialPages: (acc.social_pages || []).map((p: any) => ({
+              socialPages: (acc.social_pages || []).map((p: SocialPage) => ({
                 id: p.id,
                 platform: p.platform,
-                entityType: p.entity_type || 'page',
+                entityType: p.entityType || 'page',
                 name: p.name,
-                pageId: p.page_id,
+                pageId: p.pageId,
                 connected: p.connected,
                 status: p.status,
                 accountId: acc.id,
-                statusUpdatedAt: p.status_updated_at
-                  ? new Date(p.status_updated_at)
+                statusUpdatedAt: p.statusUpdatedAt
+                  ? new Date(p.statusUpdatedAt)
                   : undefined,
-                lastSyncAt: p.last_sync_at
-                  ? new Date(p.last_sync_at)
+                lastSyncAt: p.lastSyncAt
+                  ? new Date(p.lastSyncAt)
                   : undefined,
-                followerCount: p.follower_count,
-                postCount: p.post_count,
+                followerCount: p.followerCount,
+                postCount: p.postCount,
                 metadata: p.metadata,
               })),
             })
@@ -2372,7 +2364,7 @@ export const commentApi = {
 export const socialAccountApi = {
   // Get social accounts for a workspace
   getSocialAccounts: async (workspaceId: string) => {
-    return apiRequest<any[]>(`/social-account?workspaceId=${workspaceId}`);
+    return apiRequest<SocialAccount[]>(`/social-account?workspaceId=${workspaceId}`);
   },
 
   // Disconnect social page or account

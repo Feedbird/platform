@@ -268,7 +268,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      return NextResponse.json(data)
+      return jsonCamel(data)
     }
   } catch (error) {
     console.error('Error in GET /api/workspace:', error)
