@@ -595,14 +595,15 @@ export interface Icon {
 
 export interface ServicePlan {
   id: string;
-  createdAt: Date;
-  period: string;
+  created_at: string;
   price: number;
-  serviceId: string;
-  quantity: number;
-  qtyIndicator: string;
+  service_id: string;
   currency: string;
-  updatedAt: Date;
+  updated_at: string;
+  value: string;
+  billing_period: number;
+  custom_billing_days: number | null;
+  tax_included: boolean;
 }
 
 export interface ServiceChannel {

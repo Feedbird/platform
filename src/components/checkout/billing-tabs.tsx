@@ -1,9 +1,10 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { mapPeriodicity, ServiceCardPlan } from './service-card';
+import { ServiceCardPlan } from './service-card';
 import { ServiceFolder } from '@/lib/store/types';
 import { Divider } from '@mui/material';
 import Image from 'next/image';
+import { mapPeriodicity } from '@/lib/utils/transformers';
 
 type Props = {
   selectedPlans: Map<string, ServiceCardPlan>;
@@ -102,13 +103,13 @@ export default function BillingTabs({
                     <div className="flex flex-row justify-between text-sm">
                       <div className="flex flex-col font-normal">
                         <span className="text-black">
-                          {container.plan.quantity}{' '}
+                          {container.plan.value}{' '}
                         </span>
                       </div>
 
                       <span className="text-sm font-medium text-black">
                         USD ${container.plan.price}/
-                        {mapPeriodicity(container.plan.period)}
+                        {mapPeriodicity(container.plan.billing_period)}
                       </span>
                     </div>
                     {container.channels &&
@@ -127,7 +128,7 @@ export default function BillingTabs({
                             {idx === 0
                               ? 'FREE'
                               : `USD $${channel.pricing}/${mapPeriodicity(
-                                  container.plan.period
+                                  container.plan.billing_period
                                 )}`}
                           </p>
                         </div>
@@ -190,7 +191,7 @@ export default function BillingTabs({
                     <div className="flex flex-row justify-between text-sm">
                       <div className="flex flex-col font-normal">
                         <span className="text-black">
-                          {container.plan.quantity}{' '}
+                          {container.plan.value}{' '}
                         </span>
                       </div>
 

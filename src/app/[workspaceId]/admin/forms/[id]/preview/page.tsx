@@ -7,7 +7,7 @@ import { Divider } from '@mui/material';
 import { useParams } from 'next/navigation';
 import React from 'react';
 import Loading from './loading';
-import { formFieldSorter } from '@/lib/utils/transformers';
+import { formFieldSorter, mapPeriodicity } from '@/lib/utils/transformers';
 import FormPageVisualizer from '@/components/forms/content/form-page-visualizer';
 
 export default function Page() {
@@ -102,11 +102,23 @@ export default function Page() {
                 >
                   <p className="min-w-[170px]">{service.name}</p>
                   <Divider orientation="vertical" />
-                  <p>
-                    {/* Quantity: {service.service_plans?.[0]?.quantity ?? 0}{' '}
-                    {service.service_plans?.[0]?.qty_indicator ?? 'Not set'} - $
-                    {service.service_plans?.[0]?.price ?? 0}/mo */}
-                  </p>
+                  {service.service_plans &&
+                    service.service_plans.length &&
+                    service.service_plans.map((plan, planIndex) => (
+                      <div
+                        className="flex flex-col gap-2"
+                        key={`plan-${planIndex}`}
+                      >
+                        <div className="flex gap-1">
+                          <span>{plan.value}</span>
+                          {' - '}
+                          <span>
+                            ${plan.price} /{' '}
+                            {mapPeriodicity(plan.billing_period)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               ))}
             </div>

@@ -2,11 +2,11 @@
  * Place any data transformers here, for humanizing / normalizing data
  */
 
-import { CanvasFormField } from "@/components/forms/form-canvas";
-import { FormField } from "../store";
+import { CanvasFormField } from '@/components/forms/form-canvas';
+import { FormField } from '../store';
 
 export function humanizeDate(date: Date | string): string {
-  const standardizedDate = typeof date === "string" ? new Date(date) : date;
+  const standardizedDate = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
 
   // Check if the date is within the same minute
@@ -14,22 +14,22 @@ export function humanizeDate(date: Date | string): string {
   const oneMinuteInMs = 60 * 1000;
 
   if (timeDiffInMs < oneMinuteInMs) {
-    return "Just now";
+    return 'Just now';
   }
 
   const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   const month = months[standardizedDate.getMonth()];
@@ -77,4 +77,17 @@ export function formFieldSorter(
   b: CanvasFormField | FormField
 ): number {
   return (a.position || 0) - (b.position || 0);
+}
+
+export function mapPeriodicity(periodicity: number): string {
+  switch (periodicity) {
+    case 0:
+      return 'month';
+    case 1:
+      return 'year';
+    case 2:
+      return 'days';
+    default:
+      return 'month';
+  }
 }

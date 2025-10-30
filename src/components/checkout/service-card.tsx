@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 import MultiSelectDropdown from './channel-select';
+import { mapPeriodicity } from '@/lib/utils/transformers';
 
 export type ServiceCardPlan = {
   plan: ServicePlan;
@@ -16,17 +17,6 @@ type Props = {
   service: Service;
   isActivated: boolean;
   selector: React.Dispatch<React.SetStateAction<Map<string, ServiceCardPlan>>>;
-};
-
-export const mapPeriodicity = (period: string | undefined | null) => {
-  switch (period) {
-    case 'month':
-      return 'mo';
-    case 'year':
-      return 'yr';
-    default:
-      return 'n/a';
-  }
 };
 
 export default function ServiceCard({ service, selector, isActivated }: Props) {
@@ -173,7 +163,8 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
           <div className="flex flex-row gap-1 text-sm">
             <p>from</p>
             <span className="font-medium">
-              ${plans[0]?.price ?? '-'}/{mapPeriodicity(plans[0]?.period)}
+              ${plans[0]?.price ?? '-'}/
+              {mapPeriodicity(plans[0]?.billing_period)}
             </span>
           </div>
           <Button
@@ -216,9 +207,9 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
                 }}
               >
                 <SelectTrigger className="w-full cursor-pointer rounded-[6px] border-1 border-[#D3D3D3] bg-white text-[13px] text-black">
-                  {/* {planSelected
-                    ? `${planSelected.quantity} ${planSelected.qty_indicator} - $${planSelected.price}/${planSelected.period}`
-                    : 'Select a plan'} */}
+                  {planSelected
+                    ? `${planSelected.value} - $${planSelected.price}/${mapPeriodicity(planSelected.billing_period)}`
+                    : 'Select a plan'}
                 </SelectTrigger>
                 <SelectContent>
                   <div className="flex flex-col gap-1">
@@ -232,8 +223,8 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
                         }}
                         className="rounded-[4px] p-1 text-[13px] font-medium text-black hover:cursor-pointer hover:bg-[#F3F3F3]"
                       >
-                        {plan.quantity} {plan.qtyIndicator} - ${plan.price}/
-                        {mapPeriodicity(plan.period)}
+                        {plan.value} - ${plan.price}/
+                        {mapPeriodicity(plan.billing_period)}
                       </SelectItem>
                     ))}
                   </div>
@@ -254,7 +245,7 @@ export default function ServiceCard({ service, selector, isActivated }: Props) {
           <div className="flex flex-row items-center justify-between">
             <span className="text-sm font-medium text-black">
               {planSelected
-                ? `$${total}/${mapPeriodicity(planSelected.period)}`
+                ? `$${total}/${mapPeriodicity(planSelected.billing_period)}`
                 : ''}
             </span>
             {added ? (

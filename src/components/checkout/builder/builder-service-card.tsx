@@ -1,8 +1,8 @@
 import { CheckoutServiceBuilder } from '@/app/[workspaceId]/admin/services/checkout/_inner';
 import Image from 'next/image';
 import React from 'react';
-import { mapPeriodicity } from '../service-card';
 import { Button } from '@/components/ui/button';
+import { mapPeriodicity } from '@/lib/utils/transformers';
 
 type Props = {
   serviceBuilder: CheckoutServiceBuilder;
@@ -33,7 +33,7 @@ export default function BuilderServiceCard({ serviceBuilder }: Props) {
         <div className="flex flex-row gap-1 text-sm">
           {plans.length > 1 && <p>from</p>}
           <span className="font-medium">
-            ${plans[0]?.price ?? '-'}/{mapPeriodicity(plans[0]?.period)}
+            ${plans[0]?.price ?? '-'}/{mapPeriodicity(plans[0]?.billing_period)}
           </span>
         </div>
         <Button
