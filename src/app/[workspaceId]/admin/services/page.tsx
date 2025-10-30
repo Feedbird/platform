@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import ServicesHeader from '@/components/services/ServicesHeader';
-import SectionSelector from '@/components/services/SectionSelector';
-import ServicesSection from '@/components/services/ServicesSection';
+import ServicesHeader from '@/components/services/services-header';
+import SectionSelector from '@/components/services/section-selector';
+import ServicesSection from '@/components/services/services-selection';
 import { useQuery } from '@tanstack/react-query';
 import { servicesApi } from '@/lib/api/api-service';
 import { useWorkspaceStore } from '@/lib/store';

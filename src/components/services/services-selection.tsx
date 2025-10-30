@@ -1,6 +1,6 @@
 import React from 'react';
-import CountCard from './CountCard';
-import ServicesTable from './ServicesTable';
+import CountCard from './count-card';
+import ServicesTable from './services-table';
 import { Service } from '@/lib/store/types';
 
 type Props = {

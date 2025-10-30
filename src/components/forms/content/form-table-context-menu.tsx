@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { useWorkspaceStore } from '@/lib/store';
 import { Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useForms } from '@/contexts/forms/FormsContext';
+import { useForms } from '@/contexts/forms/forms-context';
 
 type Props = {
   setLocalActiveForm: React.Dispatch<React.SetStateAction<TableForm | null>>;

@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import React from 'react';
-import { useForms } from '@/contexts/forms/FormsContext';
+import { useForms } from '@/contexts/forms/forms-context';
 import ServiceSelector from '@/components/forms/content/service-selector';
 import { Form } from '@/lib/store/types';
 import {
@@ -25,7 +25,7 @@ import { useParams } from 'next/navigation';
 import { formsApi } from '@/lib/api/api-service';
 import Loading from './loading';
 import FormTypeConfig from '@/components/forms/content/form-type-config';
-import { useFormEditor } from '@/contexts/forms/FormEditorContext';
+import { useFormEditor } from '@/contexts/forms/form-editor-context';
 import { formFieldSorter, nestedObjectEqual } from '@/lib/utils/transformers';
 import { useFormStore } from '@/lib/store';
 import { FieldTypeEntitlements } from '@/lib/forms/field.config';

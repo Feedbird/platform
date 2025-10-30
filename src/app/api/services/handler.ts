@@ -101,4 +101,33 @@ export class ServicesHandler {
       throw new ApiHandlerError('Internal server error: ' + e);
     }
   }
+
+  static async createDraftService({
+    workspaceId,
+  }: {
+    workspaceId: string;
+  }): Promise<string> {
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .insert({
+          id: crypto.randomUUID(),
+          workspace_id: workspaceId,
+          name: 'New Service',
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        throw new ApiHandlerError('Database error: ' + error.message);
+      }
+
+      return data.id;
+    } catch (e) {
+      if (e instanceof ApiHandlerError) {
+        throw e;
+      }
+      throw new ApiHandlerError('Internal server error: ' + e);
+    }
+  }
 }

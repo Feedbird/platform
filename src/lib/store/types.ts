@@ -575,8 +575,13 @@ export interface Service {
   description: string | null;
   folder_id: string;
   social_channels: boolean;
-  iconId: string | null; // TODO All services should have icons, change this when migrating existing data
+  icon_id: string | null; // TODO All services should have icons, change this when migrating existing data
   color: string | null; // TODO Same here
+  image_url: string | null;
+  is_recurring: boolean;
+  is_addon: boolean;
+  addon_for: string | null;
+  deadline_date: string | null;
   status: number;
   channels?: ServiceChannel[];
   service_plans?: ServicePlan[];

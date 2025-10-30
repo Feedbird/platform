@@ -3,7 +3,7 @@ import FormsTable, { TableForm } from '@/components/forms/content/forms-table';
 import { useWorkspaceStore, useFormStore } from '@/lib/store';
 import { useEffect } from 'react';
 import Loading from './[id]/loading';
-import { useForms } from '@/contexts/forms/FormsContext';
+import { useForms } from '@/contexts/forms/forms-context';
 import { toast } from 'sonner';
 
 export default function FormsInner() {

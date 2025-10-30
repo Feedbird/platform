@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { ModalMultiSelect } from './modal-multi-select';
 import { useFormStore } from '@/lib/store';
-import { useForms } from '@/contexts/forms-context';
+import { useForms } from '@/contexts/forms/forms-context';
 
 type ServiceSelectorProps = {
   formServices: { id: string; name: string }[];

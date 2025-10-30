@@ -9,10 +9,13 @@ import {
   TableRow,
 } from '../ui/table';
 import { Checkbox } from '../ui/checkbox';
-import { BoxIcon, Ellipsis } from 'lucide-react';
+import { Ellipsis } from 'lucide-react';
 import { humanizeDate } from '@/lib/utils/transformers';
 import { DynamicIcon } from '../shared/DynamicIcon';
 import { DEFAULT_ICON_SVG } from '@/lib/constants/default-icon';
+import { useServices } from '@/contexts/services/ServicesPageContext';
+import { useRouter } from 'next/navigation';
+import { Badge } from '../ui/badge';
 
 // TODO Remove periodicity, always prices per month and annual calculates with that info
 type Props = {
@@ -20,30 +23,52 @@ type Props = {
 };
 
 function ServicesTableRow({ service }: { service: Service }) {
+  const { setActiveService, activeWorkspaceId } = useServices();
+  const router = useRouter();
+
+  const handleRowClick = () => {
+    setActiveService(service);
+    router.push(`/${activeWorkspaceId}/admin/services/${service.id}`);
+  };
+
   const plans = (service.service_plans ?? []).sort((a, b) => a.price - b.price);
-  const initialPlan = service.service_plans ? service.service_plans[0] : null;
-  const finalPlan = service.service_plans
-    ? service.service_plans.slice(-1)[0]
-    : null;
+  const initialPlan = plans.length ? plans[0] : null;
+  const finalPlan = plans.length ? plans.slice(-1)[0] : null;
 
   const isSinglePlan =
     service.service_plans && service.service_plans.length === 1;
+  const hasServices = plans.length > 0;
   return (
-    <TableRow className="hover:cursor-pointer hover:bg-[#FBFBFB]">
+    <TableRow
+      className="hover:cursor-pointer hover:bg-[#FBFBFB]"
+      onClick={handleRowClick}
+    >
       <TableCell className=""></TableCell>
       <TableCell className="items-center justify-between py-2.5 pr-4 pl-2">
         <div className="flex items-center gap-2">
-          <div className="border-buttonStroke rounded-[6px] border-1 bg-white p-1.5">
+          <div className="border-buttonStroke h-[30px] w-[30px] rounded-[6px] border-1 bg-white p-1.5">
             <DynamicIcon svg={service.icon?.svg ?? DEFAULT_ICON_SVG} />
           </div>
           <span className="text-sm font-medium text-black">{service.name}</span>
+          {service.status === 2 && (
+            <Badge className="text-darkGrey bg-elementStroke h-4 px-1.5 text-[11px] font-medium">
+              Draft
+            </Badge>
+          )}
+          {service.is_addon && (
+            <Badge className="text-main h-4 bg-[#D7E9FF] px-1.5 text-[11px] font-medium">
+              Add-on
+            </Badge>
+          )}
         </div>
       </TableCell>
       <TableCell className="items-center justify-between py-2.5 pr-4 pl-2">
         <span className="h-full text-sm font-normal text-black">
-          {isSinglePlan
-            ? `$${initialPlan?.price} / month`
-            : `$${initialPlan?.price} - $${finalPlan?.price} / month`}
+          {hasServices
+            ? isSinglePlan
+              ? `$${initialPlan?.price} / month`
+              : `$${initialPlan?.price} - $${finalPlan?.price} / month`
+            : 'N/A'}
         </span>
       </TableCell>
       <TableCell className="items-center justify-between py-2.5 pr-4 pl-2">
@@ -57,7 +82,10 @@ function ServicesTableRow({ service }: { service: Service }) {
         </span>
       </TableCell>
       <TableCell className="items-center px-2 py-1.5">
-        <div className="border-buttonStroke flex h-6 w-6 items-center justify-center rounded-[6px] border-1 bg-white hover:bg-[#eeeeee]">
+        <div
+          className="border-buttonStroke flex h-6 w-6 items-center justify-center rounded-[6px] border-1 bg-white hover:bg-[#eeeeee]"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Ellipsis size={14} color="#838488" />
         </div>
       </TableCell>

@@ -1,5 +1,5 @@
 'use client';
-import { FormsProvider } from '@/contexts/forms/FormsContext';
+import { FormsProvider } from '@/contexts/forms/forms-context';
 import { FormsHeader } from '@/components/forms/forms-header';
 import { useEffect } from 'react';
 import { useWorkspaceStore, useFormStore } from '@/lib/store';

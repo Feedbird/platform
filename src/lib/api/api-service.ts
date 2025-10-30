@@ -369,6 +369,12 @@ export const servicesApi = {
 
     return data.sort((a, b) => a.order - b.order);
   },
+  createDraftService: async (workspaceId: string) => {
+    return apiRequest<ApiResponse<string>>('/services', {
+      method: 'POST',
+      body: JSON.stringify({ workspaceId }),
+    });
+  },
 };
 
 // Slack OAuth/Status API
