@@ -577,6 +577,7 @@ export interface Service {
   social_channels: boolean;
   iconId: string | null; // TODO All services should have icons, change this when migrating existing data
   color: string | null; // TODO Same here
+  status: number;
   channels?: ServiceChannel[];
   service_plans?: ServicePlan[];
   icon?: Icon;

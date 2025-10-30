@@ -1,4 +1,4 @@
-import { Service } from '@/lib/supabase/interfaces';
+import { Service } from '@/lib/store/types';
 import React from 'react';
 import {
   Table,
@@ -11,6 +11,8 @@ import {
 import { Checkbox } from '../ui/checkbox';
 import { BoxIcon, Ellipsis } from 'lucide-react';
 import { humanizeDate } from '@/lib/utils/transformers';
+import { DynamicIcon } from '../shared/DynamicIcon';
+import { DEFAULT_ICON_SVG } from '@/lib/constants/default-icon';
 
 // TODO Remove periodicity, always prices per month and annual calculates with that info
 type Props = {
@@ -31,7 +33,7 @@ function ServicesTableRow({ service }: { service: Service }) {
       <TableCell className="items-center justify-between py-2.5 pr-4 pl-2">
         <div className="flex items-center gap-2">
           <div className="border-buttonStroke rounded-[6px] border-1 bg-white p-1.5">
-            <BoxIcon size={18} color="#838488" />
+            <DynamicIcon svg={service.icon?.svg ?? DEFAULT_ICON_SVG} />
           </div>
           <span className="text-sm font-medium text-black">{service.name}</span>
         </div>

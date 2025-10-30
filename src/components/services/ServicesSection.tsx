@@ -1,7 +1,7 @@
 import React from 'react';
 import CountCard from './CountCard';
 import ServicesTable from './ServicesTable';
-import { Service } from '@/lib/supabase/interfaces';
+import { Service } from '@/lib/store/types';
 
 type Props = {
   services: Service[];
@@ -19,19 +19,19 @@ export default function ServicesSection({
       <div className="grid grid-cols-3 grid-rows-1 gap-3 px-3 py-4">
         <CountCard
           title="All"
-          count={2}
+          count={services.length}
           selected={selectedTableTab === 'all'}
           onClickAction={() => handleTabSwitch('all')}
         />
         <CountCard
           title="Active"
-          count={0}
+          count={services.filter((s) => s.status === 1).length}
           selected={selectedTableTab === 'active'}
           onClickAction={() => handleTabSwitch('active')}
         />
         <CountCard
           title="Archived"
-          count={0}
+          count={services.filter((s) => s.status === 0).length}
           selected={selectedTableTab === 'archived'}
           onClickAction={() => handleTabSwitch('archived')}
         />

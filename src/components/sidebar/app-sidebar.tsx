@@ -1,11 +1,11 @@
 /* components/layout/app-sidebar.tsx */
-"use client";
+'use client';
 
-import * as React from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { toast } from "sonner";
+import * as React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import {
   Sidebar,
@@ -18,25 +18,23 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   useSidebar,
-} from "@/components/ui/sidebar";
-import {
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/sidebar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
-import WorkspaceSwitcher from "@/components/workspace/workspace-switcher";
-import SocialShortcuts from "@/components/sidebar/social-shortcuts";
-import { LoadingLink } from "@/components/layout/navigation-loader";
-import { AddBoardModal } from "@/components/board/add-board-modal";
-import { BoardRulesModal } from "@/components/board/board-rules-modal";
-import { ColorAndIconDialog } from "@/components/board/color-and-icon-dialog";
-import { RenameBoardDialog } from "@/components/board/rename-board-dialog";
+import WorkspaceSwitcher from '@/components/workspace/workspace-switcher';
+import SocialShortcuts from '@/components/sidebar/social-shortcuts';
+import { LoadingLink } from '@/components/layout/navigation-loader';
+import { AddBoardModal } from '@/components/board/add-board-modal';
+import { BoardRulesModal } from '@/components/board/board-rules-modal';
+import { ColorAndIconDialog } from '@/components/board/color-and-icon-dialog';
+import { RenameBoardDialog } from '@/components/board/rename-board-dialog';
 import {
   NavLink as NavLinkType,
   BoardRules,
@@ -44,10 +42,10 @@ import {
   usePostStore,
   useUserStore,
   useWorkspaceStore,
-} from "@/lib/store";
-import { ManageSocialsDialog } from "@/components/social/manage-socials-dialog";
-import { cn, getFullnameinitial } from "@/lib/utils";
-import { useClerk } from "@clerk/nextjs";
+} from '@/lib/store';
+import { ManageSocialsDialog } from '@/components/social/manage-socials-dialog';
+import { cn, getFullnameinitial } from '@/lib/utils';
+import { useClerk } from '@clerk/nextjs';
 
 import {
   ChevronRight,
@@ -55,9 +53,15 @@ import {
   MoreHorizontal,
   Archive as ArchiveIcon,
   ArrowLeft,
-} from "lucide-react";
-import { AnalyticsIcon, ApprovalsIcon, DashboardIcon, InboxOnIcon, InboxIcon } from "../ui/icons";
-import { BoardInner } from "@/app/[workspaceId]/content/[board_id]/_inner";
+} from 'lucide-react';
+import {
+  AnalyticsIcon,
+  ApprovalsIcon,
+  DashboardIcon,
+  InboxOnIcon,
+  InboxIcon,
+} from '../ui/icons';
+import { BoardInner } from '@/app/[workspaceId]/content/[board_id]/_inner';
 
 /* --------------------------------------------------------------------- */
 /*  NAV CONFIGS (static for now – you can pull these from the store)     */
@@ -65,39 +69,39 @@ import { BoardInner } from "@/app/[workspaceId]/content/[board_id]/_inner";
 
 const getDefaultPlatformNav = (workspaceId?: string): NavLink[] => [
   {
-    id: "dashboard",
-    label: "Dashboard",
+    id: 'dashboard',
+    label: 'Dashboard',
     image: <DashboardIcon size={18} color="#1C1D1F" />,
     selectedImage: <DashboardIcon size={18} color="#1C1D1F" />,
-    href: workspaceId ? `/${workspaceId}/admin` : "/admin",
+    href: workspaceId ? `/${workspaceId}/admin` : '/admin',
   },
   {
-    id: "messages",
-    label: "Inbox",
+    id: 'messages',
+    label: 'Inbox',
     image: <InboxIcon size={18} color="#1C1D1F" />,
     selectedImage: <InboxIcon size={18} color="#1C1D1F" />,
-    href: workspaceId ? `/${workspaceId}/messages` : "/messages",
+    href: workspaceId ? `/${workspaceId}/messages` : '/messages',
   },
   {
-    id: "approvals",
-    label: "Approvals",
+    id: 'approvals',
+    label: 'Approvals',
     image: <ApprovalsIcon size={18} color="#1C1D1F" />,
     selectedImage: <ApprovalsIcon size={18} color="#1C1D1F" />,
-    href: workspaceId ? `/${workspaceId}/approvals` : "/approvals",
+    href: workspaceId ? `/${workspaceId}/approvals` : '/approvals',
   },
   {
-    id: "admin",
-    label: "Admin",
+    id: 'admin',
+    label: 'Admin',
     image: <DashboardIcon size={18} color="#1C1D1F" />,
     selectedImage: <DashboardIcon size={18} color="#1C1D1F" />,
-    href: workspaceId ? `/${workspaceId}/admin` : "/admin",
+    href: workspaceId ? `/${workspaceId}/admin` : '/admin',
   },
   {
-    id: "analytics",
-    label: "Analytics",
+    id: 'analytics',
+    label: 'Analytics',
     image: <AnalyticsIcon size={18} color="#1C1D1F" />,
     selectedImage: <AnalyticsIcon size={18} color="#1C1D1F" />,
-    href: workspaceId ? `/${workspaceId}/analytics` : "/analytics",
+    href: workspaceId ? `/${workspaceId}/analytics` : '/analytics',
   },
 ];
 
@@ -123,14 +127,14 @@ function BoardDropdownMenu({
   const [open, setOpen] = React.useState(false);
 
   const menu = [
-    { id: "rename", label: "Rename", icon: "rename" },
-    { id: "share", label: "Share", icon: "share" },
-    { id: "settings", label: "Settings", icon: "settings" },
-    { id: "color-icon", label: "Color & Icon", icon: "color-and-icon" },
-    { id: "favorites", label: "Add to Favorites", icon: "favorite" },
-    { id: "duplicate", label: "Duplicate", icon: "duplicate" },
-    { id: "archive", label: "Archive", icon: "archive" },
-    { id: "delete", label: "Delete board", icon: "delete" },
+    { id: 'rename', label: 'Rename', icon: 'rename' },
+    { id: 'share', label: 'Share', icon: 'share' },
+    { id: 'settings', label: 'Settings', icon: 'settings' },
+    { id: 'color-icon', label: 'Color & Icon', icon: 'color-and-icon' },
+    { id: 'favorites', label: 'Add to Favorites', icon: 'favorite' },
+    { id: 'duplicate', label: 'Duplicate', icon: 'duplicate' },
+    { id: 'archive', label: 'Archive', icon: 'archive' },
+    { id: 'delete', label: 'Delete board', icon: 'delete' },
   ];
 
   const handleAction = (actionId: string) => {
@@ -143,28 +147,26 @@ function BoardDropdownMenu({
       <DropdownMenuTrigger asChild>
         <button
           /* render in layout only on row hover or when menu is open */
-          className="hidden group-hover/row:inline-flex data-[state=open]:inline-flex
-                     p-1 hover:bg-[#EAEBEC] rounded cursor-pointer
-                     focus:outline-none"
+          className="hidden cursor-pointer rounded p-1 group-hover/row:inline-flex hover:bg-[#EAEBEC] focus:outline-none data-[state=open]:inline-flex"
           onClick={(e) => e.stopPropagation()}
         >
-          <MoreHorizontal className="w-4 h-4 text-black" />
+          <MoreHorizontal className="h-4 w-4 text-black" />
         </button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
         align="end"
-        className="w-40 flex flex-col p-[4px] rounded-[6px] border border-[1px] border-[#EAECF0] bg-white"
+        className="flex w-40 flex-col rounded-[6px] border border-[1px] border-[#EAECF0] bg-white p-[4px]"
         style={{
           boxShadow:
-            "0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03)",
+            '0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03)',
         }}
         onEscapeKeyDown={() => setOpen(false)}
         onInteractOutside={() => setOpen(false)}
       >
         {menu.map(({ id, label, icon }) => (
           <React.Fragment key={id}>
-            {id === "delete" && (
+            {id === 'delete' && (
               <DropdownMenuSeparator className="mx-auto w-[132px]" />
             )}
             <DropdownMenuItem
@@ -173,9 +175,9 @@ function BoardDropdownMenu({
                 handleAction(id);
               }}
               className={cn(
-                "flex px-[10px] py-[7px] gap-2 font-medium text-sm text-primary-foreground cursor-pointer",
-                "h-[30px]",
-                "hover:bg-[#F4F5F6]"
+                'text-primary-foreground flex cursor-pointer gap-2 px-[10px] py-[7px] text-sm font-medium',
+                'h-[30px]',
+                'hover:bg-[#F4F5F6]'
               )}
             >
               <Image
@@ -195,19 +197,19 @@ function BoardDropdownMenu({
 
 const BoardCount = ({
   boardId,
-  variant = "expanded",
+  variant = 'expanded',
   isActive = false,
   boardColor,
 }: {
   boardId: string;
-  variant?: "expanded" | "collapsed";
+  variant?: 'expanded' | 'collapsed';
   isActive?: boolean;
   boardColor?: string | null;
 }) => {
   const count = useBoardCount(boardId);
 
   const styles = cn(
-    "text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none text-black"
+    'text-[10px] font-semibold flex justify-center items-center px-1 min-w-[20px] h-[20px] leading-none text-black'
   );
 
   if (count === null) {
@@ -260,12 +262,12 @@ export const RenderNavItems = React.memo(function RenderNavItems({
         {items.map((nav) => {
           let active = false;
           if (nav.href) {
-            if (nav.id === "admin-home") {
+            if (nav.id === 'admin-home') {
               // Admin Home should only be active on exact workspace root
               active = pathname === nav.href;
-            } else if (nav.href.includes("/content/")) {
+            } else if (nav.href.includes('/content/')) {
               // For content routes, check if the pathname contains the board route segment
-              active = pathname.includes(nav.href.split("/").pop() || "");
+              active = pathname.includes(nav.href.split('/').pop() || '');
             } else {
               // For other routes, check if pathname starts with the href
               active = pathname.startsWith(nav.href);
@@ -281,10 +283,10 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           /*  ICON SELECTION                                            */
           /*  Use the original image and apply color styling instead    */
           /* ----------------------------------------------------------- */
-          let ImageComponent   = nav.image;
+          let ImageComponent = nav.image;
 
           // Special handling for messages icon based on unread status
-          if (nav.id === "messages") {
+          if (nav.id === 'messages') {
             if (totalUnreadCount > 0) {
               ImageComponent = <InboxOnIcon size={18} color="#1C1D1F" />;
             } else {
@@ -295,27 +297,27 @@ export const RenderNavItems = React.memo(function RenderNavItems({
           return (
             <SidebarMenuItem
               key={nav.id}
-              className={isBoard ? "group/row" : undefined}
+              className={isBoard ? 'group/row' : undefined}
             >
               <SidebarMenuButton
                 asChild
                 className={cn(
-                  "group/row gap-[6px] p-[6px] text-sm font-semibold",
-                  "cursor-pointer focus:outline-none hover:bg-[#F4F5F6]",
-                  active ? "bg-[#F4F5F6]" : ""
+                  'group/row gap-[6px] p-[6px] text-sm font-semibold',
+                  'cursor-pointer hover:bg-[#F4F5F6] focus:outline-none',
+                  active ? 'bg-[#F4F5F6]' : ''
                 )}
               >
                 {nav.href ? (
                   <LoadingLink
                     href={nav.href}
-                    className="flex items-center gap-[6px] w-full min-w-0 [&>svg]:size-4.5"
+                    className="flex w-full min-w-0 items-center gap-[6px] [&>svg]:size-4.5"
                     loadingText={`Loading ${nav.label}…`}
                   >
                     {nav.image &&
                       (isBoard ? (
                         <div
                           className={cn(
-                            "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0"
+                            'flex h-4.5 w-4.5 flex-shrink-0 items-center justify-center rounded-[3px] p-[3px]'
                           )}
                           style={
                             boardColor
@@ -326,7 +328,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                           <img
                             src={nav.image as string}
                             alt={nav.label}
-                            className="w-3 h-3"
+                            className="h-3 w-3"
                             loading="lazy"
                           />
                         </div>
@@ -334,17 +336,17 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                         ImageComponent
                       ))}
                     <span
-                      className={cn("text-sm font-normal truncate text-black")}
+                      className={cn('truncate text-sm font-normal text-black')}
                     >
                       {nav.label}
                     </span>
 
-                    {(nav.id === "messages" || nav.id === "admin-inbox") &&
+                    {(nav.id === 'messages' || nav.id === 'admin-inbox') &&
                       totalUnreadCount > 0 && (
                         <span
                           className={cn(
-                            "ml-auto text-[10px] font-medium flex justify-center items-center px-1 w-[14px] h-[14px] leading-none rounded-[4px] text-white",
-                            "bg-[#FE4C28]"
+                            'ml-auto flex h-[14px] w-[14px] items-center justify-center rounded-[4px] px-1 text-[10px] leading-none font-medium text-white',
+                            'bg-[#FE4C28]'
                           )}
                         >
                           {totalUnreadCount}
@@ -352,14 +354,14 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       )}
 
                     {isBoard && (
-                      <div className="flex items-center gap-1 ml-auto">
+                      <div className="ml-auto flex items-center gap-1">
                         <BoardDropdownMenu
                           item={nav}
                           onAction={handleBoardAction}
                         />
                         <div
                           className={cn(
-                            "flex items-center rounded font-normal"
+                            'flex items-center rounded font-normal'
                           )}
                         >
                           <BoardCount
@@ -374,12 +376,12 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                 ) : (
                   <button
                     onClick={nav.onClick}
-                    className="flex items-center gap-[6px] w-full text-left cursor-pointer focus:outline-none min-w-0"
+                    className="flex w-full min-w-0 cursor-pointer items-center gap-[6px] text-left focus:outline-none"
                   >
                     {ImageComponent && (
                       <div
                         className={cn(
-                          "w-4.5 h-4.5 rounded-[3px] p-[3px] flex items-center justify-center flex-shrink-0"
+                          'flex h-4.5 w-4.5 flex-shrink-0 items-center justify-center rounded-[3px] p-[3px]'
                         )}
                         style={
                           isBoard && boardColor
@@ -391,7 +393,7 @@ export const RenderNavItems = React.memo(function RenderNavItems({
                       </div>
                     )}
                     <span
-                      className={cn("text-sm font-normal truncate text-black")}
+                      className={cn('truncate text-sm font-normal text-black')}
                     >
                       {nav.label}
                     </span>
@@ -428,7 +430,7 @@ function UserProfileSection() {
   }
 
   const fullName =
-    `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User";
+    `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User';
   const userInitials = getFullnameinitial(
     user.firstName || undefined,
     user.lastName || undefined,
@@ -438,19 +440,19 @@ function UserProfileSection() {
   const handleLogout = async () => {
     try {
       clearUser();
-      await signOut({ redirectUrl: "/landing" });
+      await signOut({ redirectUrl: '/landing' });
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error('Sign out error:', error);
     }
   };
 
   const handleProfileSettings = () => {
-    const base = activeWorkspace ? `/${activeWorkspace.id}` : "";
+    const base = activeWorkspace ? `/${activeWorkspace.id}` : '';
     router.push(`${base}/settings/profile`);
   };
 
   const handleAccountBilling = () => {
-    const base = activeWorkspace ? `/${activeWorkspace.id}` : "";
+    const base = activeWorkspace ? `/${activeWorkspace.id}` : '';
     router.push(`${base}/settings/billing`);
   };
 
@@ -463,63 +465,63 @@ function UserProfileSection() {
             <img
               src={user.imageUrl}
               alt={fullName}
-              className="w-6 h-6 rounded-[3px] object-cover"
+              className="h-6 w-6 rounded-[3px] object-cover"
             />
           ) : (
-            <div className="w-6 h-6 rounded-[3px] bg-main flex items-center justify-center text-white text-sm font-medium">
+            <div className="bg-main flex h-6 w-6 items-center justify-center rounded-[3px] text-sm font-medium text-white">
               {userInitials}
             </div>
           )}
         </div>
 
         {/* User Info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-black truncate">{fullName}</p>
-          <p className="text-xs text-grey font-normal truncate">{user.email}</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-black">{fullName}</p>
+          <p className="text-grey truncate text-xs font-normal">{user.email}</p>
         </div>
 
         {/* Three-dot menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-1 hover:bg-gray-100 rounded cursor-pointer focus:outline-none">
-              <MoreHorizontal className="w-3.5 h-3.5 text-[#5C5E63]" />
+            <button className="cursor-pointer rounded p-1 hover:bg-gray-100 focus:outline-none">
+              <MoreHorizontal className="h-3.5 w-3.5 text-[#5C5E63]" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-[150px] flex flex-col p-0 rounded-[8px] border border-elementStroke bg-white"
+            className="border-elementStroke flex w-[150px] flex-col rounded-[8px] border bg-white p-0"
           >
             <DropdownMenuItem
               onClick={handleProfileSettings}
-              className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+              className="flex cursor-pointer gap-2 rounded-sm px-3 py-2 text-sm font-medium text-black hover:bg-gray-50"
             >
               <img
                 src="/images/settings/profile.svg"
                 alt="Account"
-                className="w-3.5 h-3.5"
+                className="h-3.5 w-3.5"
               />
               <span>Account</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleAccountBilling}
-              className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+              className="flex cursor-pointer gap-2 rounded-sm px-3 py-2 text-sm font-medium text-black hover:bg-gray-50"
             >
               <img
                 src="/images/settings/billing.svg"
                 alt="Billing"
-                className="w-3.5 h-3.5"
+                className="h-3.5 w-3.5"
               />
               <span>Billing</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-[0px] text-elementStroke" />
+            <DropdownMenuSeparator className="text-elementStroke my-[0px]" />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="flex px-3 py-2 gap-2 font-medium text-sm text-black cursor-pointer hover:bg-gray-50 rounded-sm"
+              className="flex cursor-pointer gap-2 rounded-sm px-3 py-2 text-sm font-medium text-black hover:bg-gray-50"
             >
               <img
                 src="/images/sidebar/logout.svg"
                 alt="Logout"
-                className="w-3.5 h-3.5"
+                className="h-3.5 w-3.5"
               />
               <span>Sign Out</span>
             </DropdownMenuItem>
@@ -576,7 +578,7 @@ export function AppSidebar() {
   React.useEffect(() => {
     if (
       boardNav.some(
-        (b) => b.href && pathname.includes(b.href.split("/").pop() || "")
+        (b) => b.href && pathname.includes(b.href.split('/').pop() || '')
       )
     ) {
       setBoardsOpen(true);
@@ -585,26 +587,26 @@ export function AppSidebar() {
 
   /* auto-expand socials when in social routes */
   React.useEffect(() => {
-    if (pathname.includes("/social/") || pathname.includes("/images/social/")) {
+    if (pathname.includes('/social/') || pathname.includes('/images/social/')) {
       setSocialOpen(true);
     }
   }, [pathname]);
 
   const handleBoardAction = (action: string, item: NavLinkType) => {
-    if (action === "color-icon") {
+    if (action === 'color-icon') {
       setColorIconTarget(item);
-    } else if (action === "rename") {
+    } else if (action === 'rename') {
       setRenameTarget(item);
-    } else if (action === "share") {
+    } else if (action === 'share') {
       // TODO: Implement share functionality
       alert(`Share board: ${item.label}`);
-    } else if (action === "settings") {
+    } else if (action === 'settings') {
       // TODO: Navigate to board settings or open settings modal
       alert(`Open settings for: ${item.label}`);
-    } else if (action === "favorites") {
+    } else if (action === 'favorites') {
       // TODO: Add to favorites functionality
       alert(`Add ${item.label} to favorites`);
-    } else if (action === "duplicate") {
+    } else if (action === 'duplicate') {
       const duplicatedBoard = useWorkspaceStore
         .getState()
         .workspaces.flatMap((w) => w.boards)
@@ -620,21 +622,21 @@ export function AppSidebar() {
           duplicatedBoard.rules
         );
       }
-    } else if (action === "archive") {
+    } else if (action === 'archive') {
       // TODO: Implement archive functionality
       alert(`Archive board: ${item.label}`);
-    } else if (action === "delete") {
+    } else if (action === 'delete') {
       removeBoard(item.id)
         .then(() => {
           toast.success(`Board "${item.label}" deleted successfully`);
         })
         .catch((error) => {
-          console.error("Failed to delete board:", error);
-          toast.error("Failed to delete board", {
+          console.error('Failed to delete board:', error);
+          toast.error('Failed to delete board', {
             description:
               error instanceof Error
                 ? error.message
-                : "An unexpected error occurred",
+                : 'An unexpected error occurred',
           });
         });
     } else {
@@ -642,7 +644,10 @@ export function AppSidebar() {
     }
   };
 
-  const handleUpdateBoardColorAndIcon = (icon: React.ReactNode, color: string) => {
+  const handleUpdateBoardColorAndIcon = (
+    icon: React.ReactNode,
+    color: string
+  ) => {
     if (colorIconTarget) {
       updateBoard(colorIconTarget.id, { image: icon as string, color: color });
 
@@ -714,12 +719,12 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="offcanvas"
-      className="border-r border-border-primary text-foreground gap-2 bg-[#FAFAFA]"
+      className="border-border-primary text-foreground gap-2 border-r bg-[#FAFAFA]"
     >
       {/* ---------------------------------------------------------------- */}
       {/*  HEADER                                                         */}
       {/* ---------------------------------------------------------------- */}
-      <SidebarHeader className="border-b border-border-primary">
+      <SidebarHeader className="border-border-primary border-b">
         <WorkspaceSwitcher />
       </SidebarHeader>
 
@@ -727,66 +732,66 @@ export function AppSidebar() {
       {/*  CONTENT                                                        */}
       {/* ---------------------------------------------------------------- */}
       <SidebarContent>
-        {pathname.includes("/settings") ? (
+        {pathname.includes('/settings') ? (
           <>
             <Link
-              href={activeWorkspace ? `/${activeWorkspace.id}` : "/"}
-              className="flex items-center gap-1 cursor-pointer"
+              href={activeWorkspace ? `/${activeWorkspace.id}` : '/'}
+              className="flex cursor-pointer items-center gap-1"
             >
-              <span className="flex items-center justify-center w-4 h-4">
-                <ArrowLeft className="w-4 h-4 text-black" />
+              <span className="flex h-4 w-4 items-center justify-center">
+                <ArrowLeft className="h-4 w-4 text-black" />
               </span>
-              <span className="text-sm text-black font-medium">
+              <span className="text-sm font-medium text-black">
                 Return to workspace
               </span>
             </Link>
             <SidebarGroup>
               <SidebarGroupLabel>
-                <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                <span className="text-xs font-medium tracking-wide text-[#75777C]">
                   WORKSPACE
                 </span>
               </SidebarGroupLabel>
               <RenderNavItems
                 items={[
                   {
-                    id: "ws-workspace",
-                    label: "Workspace",
-                    image: "/images/settings/workspace.svg",
+                    id: 'ws-workspace',
+                    label: 'Workspace',
+                    image: '/images/settings/workspace.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/settings/workspace`
-                      : "/settings/workspace",
+                      : '/settings/workspace',
                   },
                   {
-                    id: "ws-socials",
-                    label: "Socials",
-                    image: "/images/settings/socials.svg",
+                    id: 'ws-socials',
+                    label: 'Socials',
+                    image: '/images/settings/socials.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/settings/socials`
-                      : "/settings/socials",
+                      : '/settings/socials',
                   },
                   {
-                    id: "ws-billing",
-                    label: "Billing",
-                    image: "/images/settings/billing.svg",
+                    id: 'ws-billing',
+                    label: 'Billing',
+                    image: '/images/settings/billing.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/settings/billing`
-                      : "/settings/billing",
+                      : '/settings/billing',
                   },
                   {
-                    id: "ws-members",
-                    label: "Members",
-                    image: "/images/settings/members.svg",
+                    id: 'ws-members',
+                    label: 'Members',
+                    image: '/images/settings/members.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/settings/members`
-                      : "/settings/members",
+                      : '/settings/members',
                   },
                   {
-                    id: "ws-integrations",
-                    label: "Integrations",
-                    image: "/images/settings/integrations.svg",
+                    id: 'ws-integrations',
+                    label: 'Integrations',
+                    image: '/images/settings/integrations.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/settings/integrations`
-                      : "/settings/integrations",
+                      : '/settings/integrations',
                   },
                 ]}
               />
@@ -794,58 +799,58 @@ export function AppSidebar() {
 
             <SidebarGroup>
               <SidebarGroupLabel>
-                <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                <span className="text-xs font-medium tracking-wide text-[#75777C]">
                   ACCOUNT
                 </span>
               </SidebarGroupLabel>
               <RenderNavItems
                 items={[
                   {
-                    id: "acc-profile",
-                    label: "Profile",
-                    image: "/images/settings/profile.svg",
+                    id: 'acc-profile',
+                    label: 'Profile',
+                    image: '/images/settings/profile.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/settings/profile`
-                      : "/settings/profile",
+                      : '/settings/profile',
                   },
                   {
-                    id: "acc-notifications",
-                    label: "Notifications",
-                    image: "/images/settings/notifications.svg",
+                    id: 'acc-notifications',
+                    label: 'Notifications',
+                    image: '/images/settings/notifications.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/settings/notifications`
-                      : "/settings/notifications",
+                      : '/settings/notifications',
                   },
                 ]}
               />
             </SidebarGroup>
           </>
-        ) : pathname.includes("/admin") ? (
+        ) : pathname.includes('/admin') ? (
           <>
             <SidebarGroup>
               <RenderNavItems
                 items={[
                   {
-                    id: "admin-home",
-                    label: "Home",
-                    image: "/images/sidebar/home.svg",
-                    href: activeWorkspace ? `/${activeWorkspace.id}` : "/",
+                    id: 'admin-home',
+                    label: 'Home',
+                    image: '/images/sidebar/home.svg',
+                    href: activeWorkspace ? `/${activeWorkspace.id}` : '/',
                   },
                   {
-                    id: "admin-clients",
-                    label: "Clients",
-                    image: "/images/sidebar/clients.svg",
+                    id: 'admin-clients',
+                    label: 'Clients',
+                    image: '/images/sidebar/clients.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/clients`
-                      : "/admin/clients",
+                      : '/admin/clients',
                   },
                   {
-                    id: "admin-team",
-                    label: "Team",
-                    image: "/images/sidebar/team.svg",
+                    id: 'admin-team',
+                    label: 'Team',
+                    image: '/images/sidebar/team.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/team`
-                      : "/admin/team",
+                      : '/admin/team',
                   },
                 ]}
               />
@@ -853,59 +858,59 @@ export function AppSidebar() {
 
             <SidebarGroup>
               <SidebarGroupLabel>
-                <span className="text-xs font-medium text-[#75777C] tracking-wide">
+                <span className="text-xs font-medium tracking-wide text-[#75777C]">
                   TOOLS & AUTOMATIONS
                 </span>
               </SidebarGroupLabel>
               <RenderNavItems
                 items={[
                   {
-                    id: "admin-inbox",
-                    label: "Inbox",
-                    image: "/images/sidebar/messages.svg",
+                    id: 'admin-inbox',
+                    label: 'Inbox',
+                    image: '/images/sidebar/messages.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/inbox`
-                      : "/admin/inbox",
+                      : '/admin/inbox',
                   },
                   {
-                    id: "admin-services",
-                    label: "Services",
-                    image: "/images/sidebar/services.svg",
+                    id: 'admin-services',
+                    label: 'Services',
+                    image: '/images/sidebar/services.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/services`
-                      : "/admin/services",
+                      : '/admin/services',
                   },
                   {
-                    id: "admin-forms",
-                    label: "Forms",
-                    image: "/images/sidebar/forms.svg",
+                    id: 'admin-forms',
+                    label: 'Forms',
+                    image: '/images/sidebar/forms.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/forms`
-                      : "/admin/forms",
+                      : '/admin/forms',
                   },
                   {
-                    id: "admin-automations",
-                    label: "Automations",
-                    image: "/images/sidebar/automations.svg",
+                    id: 'admin-automations',
+                    label: 'Automations',
+                    image: '/images/sidebar/automations.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/automations`
-                      : "/admin/automations",
+                      : '/admin/automations',
                   },
                   {
-                    id: "admin-files",
-                    label: "Files",
-                    image: "/images/sidebar/files.svg",
+                    id: 'admin-files',
+                    label: 'Files',
+                    image: '/images/sidebar/files.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/files`
-                      : "/admin/files",
+                      : '/admin/files',
                   },
                   {
-                    id: "admin-settings",
-                    label: "Settings",
-                    image: "/images/sidebar/settings.svg",
+                    id: 'admin-settings',
+                    label: 'Settings',
+                    image: '/images/sidebar/settings.svg',
                     href: activeWorkspace
                       ? `/${activeWorkspace.id}/admin/settings`
-                      : "/admin/settings",
+                      : '/admin/settings',
                   },
                 ]}
               />
@@ -922,13 +927,13 @@ export function AppSidebar() {
             {isClient && (
               <SidebarGroup>
                 <SidebarGroupLabel>
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-medium text-[#75777C] tracking-wide uppercase">
+                  <div className="flex w-full items-center justify-between">
+                    <span className="text-xs font-medium tracking-wide text-[#75777C] uppercase">
                       Boards
                     </span>
                     <button
                       onClick={() => setIsAddBoardModalOpen(!!activeWorkspace)}
-                      className="hover:bg-gray-100 rounded cursor-pointer  "
+                      className="cursor-pointer rounded hover:bg-gray-100"
                     >
                       <Image
                         src={`/images/sidebar/plus.svg`}
@@ -954,15 +959,15 @@ export function AppSidebar() {
             {isClient && (
               <SidebarGroup>
                 <SidebarGroupLabel>
-                  <div className="flex items-center justify-between w-full cursor-pointer">
+                  <div className="flex w-full cursor-pointer items-center justify-between">
                     <div
-                      className="flex items-center text-[#75777C] gap-1.5"
+                      className="flex items-center gap-1.5 text-[#75777C]"
                       onClick={() => setSocialOpen((o) => !o)}
                     >
                       {socialOpen ? (
-                        <ChevronDown className="w-4 h-4" />
+                        <ChevronDown className="h-4 w-4" />
                       ) : (
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="h-4 w-4" />
                       )}
                       <span className="text-xs font-medium tracking-wide uppercase">
                         Socials
@@ -970,7 +975,7 @@ export function AppSidebar() {
                     </div>
                     <button
                       onClick={() => setIsManageSocialsOpen(true)}
-                      className="hover:bg-gray-100 rounded cursor-pointer"
+                      className="cursor-pointer rounded hover:bg-gray-100"
                     >
                       <Image
                         src={`/images/sidebar/plus.svg`}
@@ -1015,7 +1020,7 @@ export function AppSidebar() {
       <RenameBoardDialog
         isOpen={!!renameTarget}
         onClose={() => setRenameTarget(null)}
-        currentName={renameTarget?.label || ""}
+        currentName={renameTarget?.label || ''}
         onRename={handleRenameBoard}
       />
 

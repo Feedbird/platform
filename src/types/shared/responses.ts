@@ -1,4 +1,4 @@
-import { Icon } from '@/lib/supabase/interfaces';
+import { Icon } from '@/lib/store/types';
 
 export interface FetchIconsResponse {
   defaultIcons: Icon[];
