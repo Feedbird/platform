@@ -3,7 +3,6 @@ import { ChevronLeftIcon, ChevronRightIcon, Columns2Icon } from 'lucide-react';
 import React from 'react';
 import FeedbirdButton from '../shared/FeedbirdButton';
 import { SidebarTrigger } from '../ui/sidebar';
-import { useWorkspaceStore } from '@/lib/store';
 import { servicesApi } from '@/lib/api/api-service';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -18,7 +17,6 @@ export default function ServicesHeader() {
         activeWorkspaceId!
       );
 
-      console.log(newService);
       router.push(`/${activeWorkspaceId}/admin/services/${newService.data}`);
       // Redirect to the new service editor page
     } catch (e) {

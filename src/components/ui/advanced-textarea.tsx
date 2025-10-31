@@ -50,16 +50,16 @@ export default function AdvancedTextArea({ value, setter }: Props) {
   };
 
   return (
-    <div className="border-buttonStroke overflow-hidden rounded-lg border bg-white">
+    <div className="border-buttonStroke overflow-hidden rounded-[6px] border-1 bg-white">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 p-2">
+      <div className="flex items-center gap-1 bg-[#FBFBFB] p-1 py-0.5">
         <button
           type="button"
           onClick={() => executeCommand('bold')}
           className="rounded p-2 hover:bg-gray-200"
           title="Bold"
         >
-          <Bold size={16} />
+          <Bold size={14} color="black" />
         </button>
         <button
           type="button"
@@ -67,7 +67,7 @@ export default function AdvancedTextArea({ value, setter }: Props) {
           className="rounded p-2 hover:bg-gray-200"
           title="Italic"
         >
-          <Italic size={16} />
+          <Italic size={14} color="black" />
         </button>
         <button
           type="button"
@@ -75,7 +75,7 @@ export default function AdvancedTextArea({ value, setter }: Props) {
           className="rounded p-2 hover:bg-gray-200"
           title="Link"
         >
-          <Link size={16} />
+          <Link size={14} color="black" />
         </button>
         <button
           type="button"
@@ -83,7 +83,7 @@ export default function AdvancedTextArea({ value, setter }: Props) {
           className="rounded p-2 hover:bg-gray-200"
           title="Heading 1"
         >
-          <Type size={16} />
+          <Type size={14} color="black" />
         </button>
         <div className="mx-1 h-6 w-px bg-gray-300" />
         <button
@@ -92,7 +92,7 @@ export default function AdvancedTextArea({ value, setter }: Props) {
           className="rounded p-2 hover:bg-gray-200"
           title="Bullet List"
         >
-          <List size={16} />
+          <List size={16} color="black" />
         </button>
         <button
           type="button"
@@ -100,7 +100,7 @@ export default function AdvancedTextArea({ value, setter }: Props) {
           className="rounded p-2 hover:bg-gray-200"
           title="Numbered List"
         >
-          <ListOrdered size={16} />
+          <ListOrdered size={16} color="black" />
         </button>
         <div className="mx-1 h-6 w-px bg-gray-300" />
         <button
@@ -109,7 +109,7 @@ export default function AdvancedTextArea({ value, setter }: Props) {
           className="rounded p-2 hover:bg-gray-200"
           title="Undo"
         >
-          <Undo size={16} />
+          <Undo size={14} color="black" />
         </button>
         <button
           type="button"
@@ -126,8 +126,8 @@ export default function AdvancedTextArea({ value, setter }: Props) {
         ref={editorRef}
         contentEditable
         onInput={handleInput}
-        className="min-h-[120px] p-4 focus:outline-none"
-        style={{ minHeight: '120px' }}
+        className="max-h-[350px] min-h-[120px] overflow-auto p-4 text-sm text-black focus:outline-none"
+        style={{ minHeight: '90px' }}
         suppressContentEditableWarning={true}
       />
     </div>
