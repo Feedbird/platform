@@ -1,10 +1,8 @@
 // analytics-sync.ts
 // Main analytics synchronization service for Edge Function
 
-import { supabase } from "./supabase-client.ts";
-import { syncYouTubeAnalytics } from "./platforms/youtube.ts";
-import type { SocialAccount } from "./utils.ts";
-import { snapshotExists, fetchSocialPages } from "./utils.ts";
+import { syncYouTubeAnalytics } from "./platforms/youtube";
+import { snapshotExists, fetchSocialPages } from "./utils";
 
 /**
  * Main sync function - processes all social pages
