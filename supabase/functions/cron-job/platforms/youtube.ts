@@ -176,16 +176,16 @@ export function transformYouTubeAnalytics(
     account_id: accountId,
     platform: platform,
     snapshot_date: today,
+    // Available metrics for YouTube channel
     follower_count: parseInt(stats.subscriberCount || '0', 10),
     post_count: parseInt(stats.videoCount || '0', 10),
     total_views: parseInt(stats.viewCount || '0', 10),
-    // YouTube doesn't have following_count or likes at channel level
-    following_count: 0,
-    total_likes: 0,
-    // YouTube doesn't have page impressions/reach/engagement at channel level
-    page_impressions: 0,
-    page_reach: 0,
-    page_engagement: 0,
+    // Not available at YouTube channel level - set to null to distinguish from zero values
+    following_count: null,
+    total_likes: null,
+    page_impressions: null,
+    page_reach: null,
+    page_engagement: null,
     raw_metrics: {
       channelId: channelData.channelId,
       statistics: stats,
@@ -197,7 +197,10 @@ export function transformYouTubeAnalytics(
       platform: 'youtube',
       analyticsType: 'channel',
       channelId: channelData.channelId,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      // Indicate which metrics are not available at channel level
+      availableMetrics: ['follower_count', 'post_count', 'total_views'],
+      unavailableMetrics: ['following_count', 'total_likes', 'page_impressions', 'page_reach', 'page_engagement']
     }
   };
 }

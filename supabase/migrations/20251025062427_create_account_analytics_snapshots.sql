@@ -14,17 +14,17 @@ CREATE TABLE IF NOT EXISTS account_analytics_snapshots (
   snapshot_date DATE NOT NULL,
   snapshot_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  -- Standardized account metrics
-  follower_count BIGINT DEFAULT 0,
-  following_count BIGINT DEFAULT 0,
-  post_count BIGINT DEFAULT 0,
-  total_views BIGINT DEFAULT 0,
-  total_likes BIGINT DEFAULT 0,
+  -- Standardized account metrics (NULL allowed for metrics not available on all platforms)
+  follower_count BIGINT DEFAULT 0,  -- Always available on all platforms
+  following_count BIGINT,  -- NULL if not available (e.g., YouTube, Facebook pages)
+  post_count BIGINT,  -- NULL if not available (e.g., Facebook, Instagram pages)
+  total_views BIGINT,  -- NULL if not available (e.g., some platforms)
+  total_likes BIGINT,  -- NULL if not available at account level (e.g., YouTube channel)
   
-  -- Engagement metrics
-  page_impressions BIGINT DEFAULT 0,
-  page_reach BIGINT DEFAULT 0,
-  page_engagement BIGINT DEFAULT 0,
+  -- Engagement metrics (NULL if not available)
+  page_impressions BIGINT,  -- NULL if not available (e.g., YouTube channel level)
+  page_reach BIGINT,  -- NULL if not available (e.g., YouTube, Pinterest)
+  page_engagement BIGINT,  -- NULL if not available (e.g., YouTube channel level)
   
   -- Platform-specific raw data
   raw_metrics JSONB DEFAULT '{}', -- Full platform response
