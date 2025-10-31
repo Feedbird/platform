@@ -1,0 +1,60 @@
+@layer components {
+  /* Reusable border utility */
+  .border-standard {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  /* Form label */
+  .input-label {
+    @apply flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50;
+  }
+
+  /* Base input */
+  .input {
+    @apply file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive;
+  }
+
+  /* Button base + variants */
+  .button-base {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive;
+  }
+
+  .button-default {
+    @apply bg-primary text-primary-foreground shadow-xs hover:bg-primary/90;
+  }
+
+  .button-primary {
+    @apply !h-8 bg-main text-white text-sm font-medium hover:bg-main/90 rounded-[5px] cursor-pointer;
+  }
+
+  .button-secondary {
+    @apply !h-8 bg-[#F4F5F6] text-black font-medium text-sm hover:bg-[#F4F5F6]/80 rounded-[5px] cursor-pointer;
+  }
+
+  .button-tertiary {
+    @apply !h-8 bg-white text-black font-medium text-sm border border-buttonStroke rounded-[5px] cursor-pointer;
+  }
+
+  .button-outline {
+    @apply border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50;
+  }
+
+  .button-destructive {
+    @apply bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60;
+  }
+
+  .button-ghost {
+    @apply hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50;
+  }
+
+  .button-disabled {
+    @apply !h-8 bg-backgroundHover text-grey font-medium text-sm cursor-not-allowed rounded-[5px];
+  }
+
+  .button-link {
+    @apply text-primary underline-offset-4 hover:underline;
+  }
+}
+
+

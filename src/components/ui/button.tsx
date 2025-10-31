@@ -5,30 +5,30 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "button-base",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+          "button-default",
         // New standardized naming
         primary:
-          "!h-8 bg-main text-white text-sm font-medium hover:bg-main/90 rounded-[5px] cursor-pointer",
+          "button-primary",
         destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "button-destructive",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "button-outline",
         secondary:
-          "!h-8 bg-[#F4F5F6] text-black font-medium text-sm hover:bg-[#F4F5F6]/80 rounded-[5px] cursor-pointer",
+          "button-secondary",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "button-ghost",
         // Tertiary maps to a subtle/ghost style
         tertiary:
-          "!h-8 bg-white text-black font-medium text-sm border border-buttonStroke rounded-[5px] cursor-pointer",
+          "button-tertiary",
         // Disabled visual template; use with disabled attribute for semantics
         disabled:
-          "!h-8 bg-backgroundHover text-grey font-medium text-sm cursor-not-allowed rounded-[5px]",
-        link: "text-primary underline-offset-4 hover:underline",
+          "button-disabled",
+        link: "button-link",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
