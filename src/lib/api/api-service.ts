@@ -375,6 +375,19 @@ export const servicesApi = {
       body: JSON.stringify({ workspaceId }),
     });
   },
+  fetchServiceById: async (id: string) => {
+    return apiRequest<{ data: Service }>(`/services/${id}`);
+  },
+  updateServiceById: async (
+    id: string,
+    isDraft: boolean,
+    payload: Partial<Service>
+  ) => {
+    return apiRequest<{ data: Service }>(`/services/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...payload, is_draft_save: isDraft }),
+    });
+  },
 };
 
 // Slack OAuth/Status API
