@@ -5,6 +5,8 @@ import { syncAllAnalytics } from "./analytics-sync.ts";
 import { 
   youtubeClientId, 
   youtubeClientSecret,
+  facebookClientId,
+  facebookClientSecret,
   supabaseUrl,
   supabaseServiceKey
 } from "./config.ts";
@@ -18,17 +20,22 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-
+  
   try {
     // Validate environment variables first
     const missingVars = [];
     if (!supabaseUrl) missingVars.push('SUPABASE_URL');
     if (!supabaseServiceKey) missingVars.push('SUPABASE_SERVICE_ROLE_KEY');
+    // YouTube credentials (optional if no YouTube pages)
     if (!youtubeClientId) missingVars.push('YOUTUBE_CLIENT_ID');
     if (!youtubeClientSecret) missingVars.push('YOUTUBE_CLIENT_SECRET');
+    // Facebook credentials (optional if no Facebook pages)
+    if (!facebookClientId) missingVars.push('FACEBOOK_CLIENT_ID');
+    if (!facebookClientSecret) missingVars.push('FACEBOOK_CLIENT_SECRET');
     
     if (missingVars.length > 0) {
-      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+      // Log warning but don't fail - credentials might not be needed if no pages of that type
+      console.warn(`[Cron] Missing environment variables (may be optional): ${missingVars.join(', ')}`);
     }
     // Test database connection
     const connectionTest = await testConnection();

@@ -1,5 +1,5 @@
 // supabase-client.ts
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import { supabaseUrl, supabaseServiceKey } from "./config.ts";
 
 // Initialize Supabase client with production database

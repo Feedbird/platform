@@ -1,8 +1,9 @@
 // analytics-sync.ts
 // Main analytics synchronization service for Edge Function
 
-import { syncYouTubeAnalytics } from "./platforms/youtube";
-import { snapshotExists, fetchSocialPages } from "./utils";
+import { syncYouTubeAnalytics } from "./platforms/youtube.ts";
+import { syncFacebookAnalytics } from "./platforms/facebook.ts";
+import { snapshotExists, fetchSocialPages } from "./utils.ts";
 
 /**
  * Main sync function - processes all social pages
@@ -46,6 +47,10 @@ export async function syncAllAnalytics(): Promise<void> {
           case 'youtube':
             // Sync YouTube (all logic handled internally)
             await syncYouTubeAnalytics(page);
+            break;
+          case 'facebook':
+            // Sync Facebook (all logic handled internally)
+            await syncFacebookAnalytics(page);
             break;
           default:
             console.log(`[${platform}] Not yet implemented, skipping ${page.name}`);
